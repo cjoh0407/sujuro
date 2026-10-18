@@ -1,11 +1,11 @@
-package com.ojj.bid;
+package com.ojj.sujuro;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class BidApplication {
+public class sujuroApplication {
     public static void main(String[] args) {
-        SpringApplication.run(BidApplication.class, args);
+        SpringApplication.run(SpringBootApplication.class, args);
     }
 }

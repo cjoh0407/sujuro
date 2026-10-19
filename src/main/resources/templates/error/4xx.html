@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>오류 - 수주로</title>
+  <link rel="stylesheet" th:href="@{/css/common.css}">
+</head>
+<body>
+<!--/* 400번대 오류(권한 없음 403, 페이지 없음 404 등). Spring Boot가 상태 코드에 맞춰 자동으로 보여 준다. */-->
+<div class="center-screen">
+  <div class="box">
+    <div class="card">
+      <div class="lock" th:switch="${status}">
+        <div th:case="403">
+          <div style="font-size:34px">🔒</div>
+          <h2>접근 권한이 없습니다</h2>
+          <p class="muted">이 화면을 볼 수 있는 권한이 아닙니다. 필요하면 경영지원실에 문의해 주세요.</p>
+        </div>
+        <div th:case="404">
+          <div style="font-size:34px">🔍</div>
+          <h2>페이지를 찾을 수 없습니다</h2>
+          <p class="muted">주소가 바뀌었거나 아직 만들어지지 않은 화면입니다.</p>
+        </div>
+        <div th:case="*">
+          <div style="font-size:34px">⚠️</div>
+          <h2>요청을 처리할 수 없습니다</h2>
+          <p class="muted">요청한 내용을 확인한 뒤 다시 시도해 주세요.</p>
+        </div>
+        <a class="btn primary" th:href="@{/dashboard}">처음 화면으로</a>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

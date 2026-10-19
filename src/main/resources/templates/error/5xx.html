@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>오류 - 수주로</title>
+  <link rel="stylesheet" th:href="@{/css/common.css}">
+</head>
+<body>
+<!--/* 500번대 오류(서버 내부 오류). 자세한 원인은 화면에 보여 주지 않고 서버 로그에서 확인한다. */-->
+<div class="center-screen">
+  <div class="box">
+    <div class="card">
+      <div class="lock">
+        <div style="font-size:34px">⚠️</div>
+        <h2>서버에서 오류가 발생했습니다</h2>
+        <p class="muted">잠시 후 다시 시도해 주세요. 같은 오류가 계속되면 담당자에게 알려 주세요.</p>
+        <a class="btn primary" th:href="@{/dashboard}">처음 화면으로</a>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

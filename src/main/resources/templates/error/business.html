@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>안내 - 수주로</title>
+  <link rel="stylesheet" th:href="@{/css/common.css}">
+</head>
+<body>
+<!--/* BusinessException 이 발생했을 때 GlobalExceptionHandler 가 보여 주는 화면. 메시지를 그대로 보여 준다. */-->
+<div class="center-screen">
+  <div class="box">
+    <div class="card">
+      <div class="lock">
+        <div style="font-size:34px">ℹ️</div>
+        <h2>요청을 처리할 수 없습니다</h2>
+        <p class="muted" th:text="${message}">처리할 수 없는 이유</p>
+        <div class="row" style="justify-content:center">
+          <a class="btn" href="javascript:history.back()">이전 화면으로</a>
+          <a class="btn primary" th:href="@{/dashboard}">처음 화면으로</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

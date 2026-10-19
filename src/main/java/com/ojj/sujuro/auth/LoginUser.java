@@ -14,7 +14,7 @@ import org.springframework.security.core.userdetails.UserDetails;
  *   컨트롤러 : public String list(@AuthenticationPrincipal LoginUser user)
  *   화면     : sec:authentication="principal.name", ${#authentication.principal.team}
  *
- * DB 조회로 바뀌어도 이 클래스는 그대로 쓴다. (직원 테이블 → LoginUser 변환만 바뀐다.)
+ * DB 조회 결과(AuthUser)를 CustomUserDetailsService가 이 객체로 바꿔 준다.
  */
 public class LoginUser implements UserDetails {
 
@@ -23,10 +23,12 @@ public class LoginUser implements UserDetails {
     /** 외부 인력 계정에 붙는 권한. 메뉴·URL 제한에 쓴다. (FR-008-1, NFR-004-1) */
     public static final String EXTERNAL_AUTHORITY = "EXTERNAL";
 
-    public static final String STATUS_INITIAL = "초기 비밀번호";
-    public static final String STATUS_ACTIVE = "활성";
-    public static final String STATUS_INACTIVE = "비활성";
-    public static final String STATUS_LOCKED = "잠금";
+    /** 계정상태코드 (공통코드 ACSTS) */
+    public static final String STATUS_REQUESTED = "AS010"; // 발급 요청: 아직 승인 전이라 로그인 불가
+    public static final String STATUS_INITIAL = "AS020";   // 초기 비밀번호
+    public static final String STATUS_ACTIVE = "AS030";    // 활성
+    public static final String STATUS_LOCKED = "AS040";    // 잠금
+    public static final String STATUS_INACTIVE = "AS050";  // 비활성
 
     private final String empNo;
     private final String name;
@@ -34,7 +36,7 @@ public class LoginUser implements UserDetails {
     private final String team;
     private final Role role;
     private final boolean external;
-    private final String status;
+    private final String status; // 계정상태코드
     private final String password;
 
     public LoginUser(String empNo, String name, String rank, String team,
@@ -85,7 +87,7 @@ public class LoginUser implements UserDetails {
 
     /** 계정 상태가 '초기 비밀번호'이면 비밀번호를 바꾸기 전까지 다른 메뉴에 들어갈 수 없다. (FR-002) */
     public boolean isInitialPassword() {
-        return STATUS_INITIAL.equals(status);
+        return STATUS_INITIAL.equals(trim(status));
     }
 
     @Override
@@ -116,7 +118,7 @@ public class LoginUser implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return !STATUS_LOCKED.equals(status);
+        return !STATUS_LOCKED.equals(trim(status));
     }
 
     @Override
@@ -126,6 +128,12 @@ public class LoginUser implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return !STATUS_INACTIVE.equals(status);
+        String s = trim(status);
+        return !STATUS_INACTIVE.equals(s) && !STATUS_REQUESTED.equals(s);
+    }
+
+    /** CHAR 컬럼이라 뒤에 공백이 붙어 올 수 있어 잘라서 비교한다. */
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
     }
 }

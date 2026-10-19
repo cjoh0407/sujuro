@@ -2,6 +2,8 @@ package com.ojj.sujuro.common.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -55,7 +57,12 @@ public class SecurityConfig {
                 .usernameParameter("empNo")
                 .passwordParameter("password")
                 .defaultSuccessUrl("/dashboard", true)
-                .failureUrl("/login?error")
+                // 잠긴 계정·비활성 계정은 비밀번호가 맞아도 막히므로, 이유를 구분해서 알려 준다.
+                .failureHandler((request, response, exception) -> {
+                    String result = exception instanceof LockedException ? "locked"
+                            : exception instanceof DisabledException ? "disabled" : "error";
+                    response.sendRedirect(request.getContextPath() + "/login?" + result);
+                })
                 .permitAll())
             .logout(logout -> logout
                 .logoutUrl("/logout")

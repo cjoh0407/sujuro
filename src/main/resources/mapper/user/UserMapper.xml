@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 사용자 관리 SQL (FR-002, FR-003 ~ FR-008). 테이블: TB_USER (db/01_schema.sql) -->
+<mapper namespace="com.ojj.sujuro.user.UserMapper">
+
+  <select id="findPasswordHash" parameterType="string" resultType="string">
+    SELECT ENPSWD FROM TB_USER WHERE USER_ID = #{userId}
+  </select>
+
+  <update id="updatePassword">
+    UPDATE TB_USER
+       SET ENPSWD = #{enpswd},
+           ACNT_STTS_CD = #{acntSttsCd},
+           LGN_FAIL_NMTM = 0,
+           MDFCN_DT = SYSDATE
+     WHERE USER_ID = #{userId}
+  </update>
+
+</mapper>

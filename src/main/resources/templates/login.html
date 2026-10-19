@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>로그인 - 수주로</title>
+  <link rel="stylesheet" th:href="@{/css/common.css}">
+</head>
+<body>
+<div class="login">
+  <div class="box">
+    <div class="card">
+      <div class="pad" style="display:flex;flex-direction:column;gap:14px">
+        <div class="brand">
+          <div class="brand-mark">수</div>
+          <div><b style="font-size:17px">수주로</b><span>나라장터 입찰 관리 서비스</span></div>
+        </div>
+
+        <div class="banner err" th:if="${param.error != null}">사번 또는 비밀번호가 올바르지 않습니다.</div>
+        <div class="banner warn" th:if="${param.expired != null}">오래 사용하지 않아 로그아웃되었습니다. 다시 로그인해 주세요.</div>
+        <div class="banner info" th:if="${param.logout != null}">로그아웃되었습니다.</div>
+
+        <form th:action="@{/login}" method="post" style="display:flex;flex-direction:column;gap:12px">
+          <div class="fld">
+            <label for="empNo">사번</label>
+            <input id="empNo" name="empNo" type="text" autocomplete="username" autofocus required>
+          </div>
+          <div class="fld">
+            <label for="password">비밀번호</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required>
+          </div>
+          <button class="btn primary" type="submit" style="justify-content:center">로그인</button>
+        </form>
+
+        <div class="faint" style="font-size:11.5px">회원가입 없이 경영지원실이 발급한 계정으로 로그인합니다.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

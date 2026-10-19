@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<!--/*
+  수주로 공통 레이아웃 (사이드바 + 상단바 + 내용 영역).
+  로그인한 사용자 화면에서만 쓴다. (로그인 화면·오류 화면은 이 레이아웃을 쓰지 않는다.)
+
+  새 화면 만드는 방법 - 아래 틀을 복사해서 내용만 바꾼다. 전체 예시는 templates/dashboard/index.html
+
+    <html lang="ko"
+          xmlns:th="http://www.thymeleaf.org"
+          xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+          xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+          layout:decorate="~{layout/default}">
+    <head><title>공고 관리</title></head>
+    <body>
+      <h1 layout:fragment="pageTitle">공고 관리</h1>
+      <th:block layout:fragment="content"> ... 화면 내용 ... </th:block>
+      <th:block layout:fragment="scripts"> ... 이 화면에서만 쓰는 스크립트 ... </th:block>
+    </body>
+    </html>
+
+  - 스타일은 static/css/common.css 의 클래스(.card, .btn, .pill, table ...)를 쓴다. 색을 직접 쓰지 않는다.
+  - form은 th:action 을 써야 CSRF 토큰이 자동으로 들어간다.
+  - 메뉴는 fragments/sidebar.html 에서 권한별로 보여 준다. 메뉴 주소(/notices, /files ...)는 SecurityConfig 의 URL 규칙과 같다.
+*/-->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="_csrf" th:if="${_csrf != null}" th:content="${_csrf.token}">
+  <meta name="_csrf_header" th:if="${_csrf != null}" th:content="${_csrf.headerName}">
+  <title layout:title-pattern="$CONTENT_TITLE - 수주로">수주로</title>
+  <link rel="stylesheet" th:href="@{/css/common.css}">
+  <th:block layout:fragment="head"></th:block>
+</head>
+<body>
+<div class="app">
+
+  <aside th:replace="~{fragments/sidebar :: sidebar}"></aside>
+
+  <div class="main">
+    <header class="topbar">
+      <h1 layout:fragment="pageTitle">수주로</h1>
+      <div class="right">
+        <!-- 알림 종 아이콘: 알림 기능(10/23) 구현 시 미확인 건수 배지를 연결한다. (FR-032) -->
+        <a class="bellbtn" th:href="@{/alerts}" title="알림">🔔</a>
+        <div class="who">
+          <div class="avatar" th:text="${#strings.substring(#authentication.principal.name, 0, 1)}">나</div>
+          <div>
+            <b sec:authentication="principal.name">이름</b>
+            <span th:text="${#authentication.principal.roleLabel + ' · ' + #authentication.principal.team}">권한 · 소속</span>
+          </div>
+        </div>
+        <a class="btn sm" th:href="@{/profile}">내 정보</a>
+        <form class="logout-form" th:action="@{/logout}" method="post">
+          <button class="btn sm" type="submit">로그아웃</button>
+        </form>
+      </div>
+    </header>
+
+    <main class="content on">
+      <th:block layout:fragment="content"></th:block>
+    </main>
+  </div>
+
+</div>
+<div id="toast"></div>
+<script th:src="@{/js/common.js}"></script>
+<th:block layout:fragment="scripts"></th:block>
+</body>
+</html>

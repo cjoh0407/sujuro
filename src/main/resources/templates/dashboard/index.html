@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layout/default}">
+<head>
+  <title>대시보드</title>
+</head>
+<body>
+
+<h1 layout:fragment="pageTitle">대시보드</h1>
+
+<th:block layout:fragment="content">
+  <div class="banner info">공통 레이아웃을 확인하기 위한 임시 화면입니다. 대시보드는 10/24에 구현합니다.</div>
+
+  <div class="card">
+    <div class="card-head"><h3>로그인 정보</h3></div>
+    <div class="info-grid">
+      <div><div class="k">이름</div><div class="v" sec:authentication="principal.name">이름</div></div>
+      <div><div class="k">사번</div><div class="v" sec:authentication="principal.empNo">사번</div></div>
+      <div><div class="k">소속</div><div class="v" sec:authentication="principal.team">소속</div></div>
+      <div><div class="k">권한</div><div class="v" sec:authentication="principal.roleLabel">권한</div></div>
+    </div>
+  </div>
+</th:block>
+
+</body>
+</html>

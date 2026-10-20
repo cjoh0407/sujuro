@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  목차 SQL (FR-046~048, FR-056). 사용 테이블: TB_TOC, TB_USER, TB_RQT_MTTR, TB_ATCH_FILE, TB_QSTN_ANS
+  목차는 부모-자식 구조라 CONNECT BY로 "부모 바로 아래에 자식" 순서로 읽는다.
+-->
+<mapper namespace="com.ojj.sujuro.proposal.toc.TocMapper">
+
+  <sql id="tocSelect">
+    SELECT T.TOC_SN AS tocSn, T.PBANC_SN AS pbancSn, T.UP_TOC_SN AS upTocSn,
+           T.TOC_NO AS tocNo, T.TOC_NM AS tocNm, T.SORT_SEQ AS sortSeq,
+           T.PIC_ID AS picId, U.USER_NM AS picNm,
+           T.EXPC_PAGE_CNT AS expcPageCnt, T.PRGRS_STTS_CD AS prgrsSttsCd,
+           (SELECT COUNT(*) FROM TB_RQT_MTTR R WHERE R.TOC_SN = T.TOC_SN) AS rqtCnt,
+           (SELECT COUNT(*) FROM TB_TOC C WHERE C.UP_TOC_SN = T.TOC_SN)   AS childCnt,
+           LEVEL - 1 AS depth
+      FROM TB_TOC T
+      LEFT JOIN TB_USER U ON U.USER_ID = T.PIC_ID
+  </sql>
+
+  <select id="findByBid" resultType="com.ojj.sujuro.proposal.toc.TocDto">
+    <include refid="tocSelect"/>
+     WHERE T.PBANC_SN = #{pbancSn}
+     START WITH T.UP_TOC_SN IS NULL
+     CONNECT BY PRIOR T.TOC_SN = T.UP_TOC_SN
+     ORDER SIBLINGS BY T.SORT_SEQ, T.TOC_SN
+  </select>
+
+  <select id="findCommon" resultType="com.ojj.sujuro.proposal.toc.TocDto">
+    <include refid="tocSelect"/>
+     WHERE T.PBANC_SN IS NULL
+     START WITH T.UP_TOC_SN IS NULL AND T.PBANC_SN IS NULL
+     CONNECT BY PRIOR T.TOC_SN = T.UP_TOC_SN
+     ORDER SIBLINGS BY T.SORT_SEQ, T.TOC_SN
+  </select>
+
+  <select id="findOne" resultType="com.ojj.sujuro.proposal.toc.TocDto">
+    SELECT T.TOC_SN AS tocSn, T.PBANC_SN AS pbancSn, T.UP_TOC_SN AS upTocSn,
+           T.TOC_NO AS tocNo, T.TOC_NM AS tocNm, T.SORT_SEQ AS sortSeq,
+           T.PIC_ID AS picId, T.EXPC_PAGE_CNT AS expcPageCnt, T.PRGRS_STTS_CD AS prgrsSttsCd
+      FROM TB_TOC T
+     WHERE T.TOC_SN = #{tocSn}
+  </select>
+
+  <select id="countByBid" resultType="int">
+    SELECT COUNT(*) FROM TB_TOC WHERE PBANC_SN = #{pbancSn}
+  </select>
+
+  <select id="nextSortSeq" resultType="int">
+    SELECT NVL(MAX(SORT_SEQ), 0) + 1 FROM TB_TOC
+     WHERE PBANC_SN = #{pbancSn}
+    <choose>
+      <when test="upTocSn == null"> AND UP_TOC_SN IS NULL</when>
+      <otherwise> AND UP_TOC_SN = #{upTocSn}</otherwise>
+    </choose>
+  </select>
+
+  <insert id="insert" parameterType="com.ojj.sujuro.proposal.toc.TocDto" useGeneratedKeys="true" keyProperty="tocSn" keyColumn="TOC_SN">
+    INSERT INTO TB_TOC (PBANC_SN, UP_TOC_SN, TOC_NO, TOC_NM, SORT_SEQ, PIC_ID, EXPC_PAGE_CNT, PRGRS_STTS_CD)
+    VALUES (#{pbancSn}, #{upTocSn}, #{tocNo}, #{tocNm}, #{sortSeq}, #{picId}, #{expcPageCnt}, 'TS010')
+  </insert>
+
+  <update id="update">
+    UPDATE TB_TOC SET TOC_NM = #{tocNm}, EXPC_PAGE_CNT = #{expcPageCnt} WHERE TOC_SN = #{tocSn}
+  </update>
+
+  <update id="updatePages">
+    UPDATE TB_TOC SET EXPC_PAGE_CNT = #{expcPageCnt} WHERE TOC_SN = #{tocSn}
+  </update>
+
+  <update id="updateTocNo">
+    UPDATE TB_TOC SET TOC_NO = #{tocNo} WHERE TOC_SN = #{tocSn}
+  </update>
+
+  <delete id="delete">
+    DELETE FROM TB_TOC WHERE TOC_SN = #{tocSn}
+  </delete>
+
+  <select id="countChildren" resultType="int">
+    SELECT COUNT(*) FROM TB_TOC WHERE UP_TOC_SN = #{tocSn}
+  </select>
+
+  <select id="countFiles" resultType="int">
+    SELECT COUNT(*) FROM TB_ATCH_FILE WHERE TOC_SN = #{tocSn}
+  </select>
+
+  <update id="clearRequirements">
+    UPDATE TB_RQT_MTTR SET TOC_SN = NULL WHERE TOC_SN = #{tocSn}
+  </update>
+
+  <update id="clearQuestions">
+    UPDATE TB_QSTN_ANS SET TOC_SN = NULL WHERE TOC_SN = #{tocSn}
+  </update>
+</mapper>

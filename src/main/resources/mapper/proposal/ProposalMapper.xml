@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  제안 업무 공통 SQL: 내 사업건 목록, 제안팀원 확인, 쪽수 제한 (FR-011, FR-055)
+  사용 테이블: TB_BID_PBANC, TB_PRP_TMMBR, TB_COM_CD(PBSTS)
+-->
+<mapper namespace="com.ojj.sujuro.proposal.bid.ProposalMapper">
+
+  <sql id="bidCols">
+    B.PBANC_SN       AS pbancSn,
+    B.BID_PBANC_NO   AS bidPbancNo,
+    B.PBANC_NM       AS pbancNm,
+    B.PBANC_STTS_CD  AS pbancSttsCd,
+    C.CD_NM          AS pbancSttsNm,
+    B.LMT_PAGE_CNT   AS lmtPageCnt
+  </sql>
+
+  <!-- 내가 제안팀원인 사업건만 (제안팀에 없으면 볼 수 없다) -->
+  <select id="findMyBids" resultType="com.ojj.sujuro.proposal.bid.ProposalBidDto">
+    SELECT <include refid="bidCols"/>
+      FROM TB_BID_PBANC B
+      JOIN TB_PRP_TMMBR M ON M.PBANC_SN = B.PBANC_SN AND M.USER_ID = #{userId}
+      LEFT JOIN TB_COM_CD C ON C.GROUP_CD = 'PBSTS' AND C.CD = B.PBANC_STTS_CD
+     ORDER BY B.PBANC_SN DESC
+  </select>
+
+  <select id="findBid" resultType="com.ojj.sujuro.proposal.bid.ProposalBidDto">
+    SELECT <include refid="bidCols"/>
+      FROM TB_BID_PBANC B
+      LEFT JOIN TB_COM_CD C ON C.GROUP_CD = 'PBSTS' AND C.CD = B.PBANC_STTS_CD
+     WHERE B.PBANC_SN = #{pbancSn}
+  </select>
+
+  <select id="countMember" resultType="int">
+    SELECT COUNT(*) FROM TB_PRP_TMMBR WHERE PBANC_SN = #{pbancSn} AND USER_ID = #{userId}
+  </select>
+
+  <update id="updatePageLimit">
+    UPDATE TB_BID_PBANC SET LMT_PAGE_CNT = #{lmtPageCnt} WHERE PBANC_SN = #{pbancSn}
+  </update>
+</mapper>

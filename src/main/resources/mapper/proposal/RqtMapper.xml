@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  요구사항 SQL (FR-050~054). 사용 테이블: TB_RQT_MTTR, TB_TOC, TB_USER
+  담당자는 따로 저장하지 않고 연결된 목차의 담당자(TB_TOC.PIC_ID)를 그대로 쓴다.
+-->
+<mapper namespace="com.ojj.sujuro.proposal.rqt.RqtMapper">
+
+  <sql id="rqtSelect">
+    SELECT R.RQT_MTTR_SN AS rqtMttrSn, R.PBANC_SN AS pbancSn, R.RQT_MTTR_NO AS rqtMttrNo,
+           R.CLSF_NM AS clsfNm, R.RQT_MTTR_NM AS rqtMttrNm, R.RQT_MTTR_DFN AS rqtMttrDfn,
+           R.DTL_CN AS dtlCn, R.PAGE_NO AS pageNo, R.TOC_SN AS tocSn, R.RGTR_ID AS rgtrId,
+           T.TOC_NO AS tocNo, T.TOC_NM AS tocNm, T.PIC_ID AS picId, U.USER_NM AS picNm
+      FROM TB_RQT_MTTR R
+      LEFT JOIN TB_TOC T ON T.TOC_SN = R.TOC_SN
+      LEFT JOIN TB_USER U ON U.USER_ID = T.PIC_ID
+  </sql>
+
+  <select id="findByBid" resultType="com.ojj.sujuro.proposal.rqt.RqtDto">
+    <include refid="rqtSelect"/>
+     WHERE R.PBANC_SN = #{pbancSn}
+     ORDER BY R.RQT_MTTR_SN
+  </select>
+
+  <select id="findOne" resultType="com.ojj.sujuro.proposal.rqt.RqtDto">
+    <include refid="rqtSelect"/>
+     WHERE R.RQT_MTTR_SN = #{rqtMttrSn}
+  </select>
+
+  <select id="countByNo" resultType="int">
+    SELECT COUNT(*) FROM TB_RQT_MTTR WHERE PBANC_SN = #{pbancSn} AND RQT_MTTR_NO = #{rqtMttrNo}
+  </select>
+
+  <insert id="insert" parameterType="com.ojj.sujuro.proposal.rqt.RqtDto" useGeneratedKeys="true" keyProperty="rqtMttrSn" keyColumn="RQT_MTTR_SN">
+    INSERT INTO TB_RQT_MTTR (PBANC_SN, RQT_MTTR_NO, CLSF_NM, RQT_MTTR_NM, RQT_MTTR_DFN, DTL_CN, PAGE_NO, RGTR_ID)
+    VALUES (#{pbancSn}, #{rqtMttrNo}, #{clsfNm}, #{rqtMttrNm}, #{rqtMttrDfn}, #{dtlCn}, #{pageNo}, #{rgtrId})
+  </insert>
+
+  <update id="update">
+    UPDATE TB_RQT_MTTR
+       SET CLSF_NM = #{clsfNm}, RQT_MTTR_NM = #{rqtMttrNm}, RQT_MTTR_DFN = #{rqtMttrDfn},
+           DTL_CN = #{dtlCn}, PAGE_NO = #{pageNo}
+     WHERE RQT_MTTR_SN = #{rqtMttrSn}
+  </update>
+
+  <delete id="delete">
+    DELETE FROM TB_RQT_MTTR WHERE RQT_MTTR_SN = #{rqtMttrSn}
+  </delete>
+</mapper>

@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  공고 SQL (FR-017 ~ 020). 테이블: TB_BID_PBANC, TB_PTCP_TEAM, TB_TEAM, TB_COM_CD (db/01_schema.sql)
+  코드값은 TB_COM_CD 를 왼쪽 조인해 이름까지 같이 내보낸다. 화면에서 코드를 다시 풀지 않는다.
+-->
+<mapper namespace="com.ojj.sujuro.bid.BidNoticeMapper">
+
+  <!--
+    목록·건수가 같이 쓰는 검색 조건.
+    - 공고번호 검색은 입찰공고번호와 사전규격번호를 둘 다 본다. (UI 목업 v3.2 의 공고번호 검색과 같다)
+    - 공고명은 사전규격을 등록한 직후 비어 있을 수 있어 NVL 로 감싼다. 그래야 NULL 때문에 행이 빠지지 않는다.
+  -->
+  <sql id="searchWhere">
+    <where>
+      <if test="sttsCd != null">
+        AND P.PBANC_STTS_CD = #{sttsCd}
+      </if>
+      <if test="keyword != null">
+        <choose>
+          <when test="searchBy == 'no'">
+            AND ( UPPER(NVL(P.BID_PBANC_NO, ' '))    LIKE '%' || UPPER(#{keyword}) || '%'
+               OR UPPER(NVL(P.BF_SPEC_RGST_NO, ' ')) LIKE '%' || UPPER(#{keyword}) || '%' )
+          </when>
+          <when test="searchBy == 'org'">
+            AND UPPER(NVL(P.ORDER_INST_NM, ' ')) LIKE '%' || UPPER(#{keyword}) || '%'
+          </when>
+          <otherwise>
+            AND UPPER(NVL(P.PBANC_NM, ' ')) LIKE '%' || UPPER(#{keyword}) || '%'
+          </otherwise>
+        </choose>
+      </if>
+    </where>
+  </sql>
+
+  <select id="findNotices" resultType="com.ojj.sujuro.bid.BidNotice">
+    SELECT P.PBANC_SN                                AS pbancSn,
+           NVL(P.BID_PBANC_NO, P.BF_SPEC_RGST_NO)    AS pbancNo,
+           P.PBANC_STEP_CD                           AS pbancStepCd,
+           STEP.CD_NM                                AS pbancStepNm,
+           P.PBANC_NM                                AS pbancNm,
+           P.ORDER_INST_NM                           AS orderInstNm,
+           P.ALTMNT_BGT_AMT                          AS altmntBgtAmt,
+           P.BID_DDLN_DT                             AS bidDdlnDt,
+           TEAM.TEAM_NM                              AS sprvsnTeamNm,
+           ( SELECT LISTAGG(JT.TEAM_NM, ', ') WITHIN GROUP (ORDER BY JT.TEAM_NM)
+               FROM TB_PTCP_TEAM PT
+               JOIN TB_TEAM JT ON JT.TEAM_SN = PT.TEAM_SN
+              WHERE PT.PBANC_SN = P.PBANC_SN )       AS joinTeamNms,
+           P.PBANC_STTS_CD                           AS pbancSttsCd,
+           STTS.CD_NM                                AS pbancSttsNm,
+           RTRN.CD_NM                                AS rtrnSeNm
+      FROM TB_BID_PBANC P
+      LEFT JOIN TB_TEAM   TEAM ON TEAM.TEAM_SN = P.SPRVSN_TEAM_SN
+      LEFT JOIN TB_COM_CD STEP ON STEP.GROUP_CD = 'PBSTP' AND STEP.CD = P.PBANC_STEP_CD
+      LEFT JOIN TB_COM_CD STTS ON STTS.GROUP_CD = 'PBSTS' AND STTS.CD = P.PBANC_STTS_CD
+      LEFT JOIN TB_COM_CD RTRN ON RTRN.GROUP_CD = 'RTRSE' AND RTRN.CD  = P.RTRN_SE_CD
+    <include refid="searchWhere"/>
+    <choose>
+      <!-- 최신 순은 등록 역순이다. 수집일시(CLCT_DT)는 정정이 날 때마다 바뀌어 목록 순서가 흔들린다. -->
+      <when test="sort == 'recent'">
+        ORDER BY P.REG_DT DESC, P.PBANC_SN DESC
+      </when>
+      <otherwise>
+        <!-- 사전규격은 아직 마감일이 없으므로 뒤로 보낸다. -->
+        ORDER BY P.BID_DDLN_DT ASC NULLS LAST, P.PBANC_SN ASC
+      </otherwise>
+    </choose>
+    OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+  </select>
+
+  <select id="countNotices" resultType="int">
+    SELECT COUNT(*)
+      FROM TB_BID_PBANC P
+    <include refid="searchWhere"/>
+  </select>
+
+  <select id="findStatusCounts" resultType="com.ojj.sujuro.bid.StatusCount">
+    SELECT C.CD        AS sttsCd,
+           C.CD_NM     AS sttsNm,
+           NVL(N.CNT, 0) AS cnt
+      FROM TB_COM_CD C
+      LEFT JOIN ( SELECT PBANC_STTS_CD, COUNT(*) AS CNT
+                    FROM TB_BID_PBANC
+                   GROUP BY PBANC_STTS_CD ) N
+        ON N.PBANC_STTS_CD = C.CD
+     WHERE C.GROUP_CD = 'PBSTS'
+       AND C.USE_YN = 'Y'
+     ORDER BY C.SORT_SEQ
+  </select>
+
+  <!-- 중복 등록 차단 (FR-021). 번호에 UNIQUE 제약이 걸려 있지만, 제약 위반 화면 대신
+       "이미 등록된 공고입니다" 라고 알려 주기 위해 먼저 센다. -->
+  <select id="countByBfSpecRgstNo" parameterType="string" resultType="int">
+    SELECT COUNT(*) FROM TB_BID_PBANC WHERE BF_SPEC_RGST_NO = #{bfSpecRgstNo}
+  </select>
+
+  <select id="countByBidPbancNo" parameterType="string" resultType="int">
+    SELECT COUNT(*) FROM TB_BID_PBANC WHERE BID_PBANC_NO = #{bidPbancNo}
+  </select>
+
+  <!-- PBANC_SN 은 IDENTITY 라서 DB가 만든다. 그 값을 param.pbancSn 으로 돌려받아
+       이어서 넣을 이력 행들이 쓴다. -->
+  <insert id="insertNotice" parameterType="com.ojj.sujuro.bid.NoticeRegist"
+          useGeneratedKeys="true" keyProperty="pbancSn" keyColumn="PBANC_SN">
+    INSERT INTO TB_BID_PBANC (
+      BF_SPEC_RGST_NO, BID_PBANC_NO, BID_PBANC_CYCL, PBANC_STEP_CD, TRCK_STTS_CD,
+      NTCE_KIND_NM, PBANC_NM, ORDER_INST_NM, DMND_INST_NM, SW_BIZ_YN,
+      ALTMNT_BGT_AMT, OPNN_DDLN_DT, BID_DDLN_DT, OPENG_DT, EVL_MTHD_NM,
+      PBANC_DTL_URL, PBANC_STTS_CD, RGTR_ID, CLCT_DT, LAST_CFM_DT
+    ) VALUES (
+      #{bfSpecRgstNo}, #{bidPbancNo}, NVL(#{bidPbancCycl}, 0), #{pbancStepCd}, #{trckSttsCd},
+      #{ntceKindNm}, #{pbancNm}, #{orderInstNm}, #{dmndInstNm}, #{swBizYn},
+      #{altmntBgtAmt}, #{opnnDdlnDt}, #{bidDdlnDt}, #{opengDt}, #{evlMthdNm},
+      #{pbancDtlUrl}, #{pbancSttsCd}, #{rgtrId}, SYSDATE, SYSDATE
+    )
+  </insert>
+
+  <insert id="insertCollectHistory" parameterType="com.ojj.sujuro.bid.CollectHistory">
+    INSERT INTO TB_PBANC_CLCT_HSTRY (
+      PBANC_SN, CLCT_SEQ, PBANC_STEP_CD, PBANC_NO, BID_PBANC_CYCL,
+      NTCE_KIND_NM, ALTMNT_BGT_AMT, BID_DDLN_DT, OPENG_DT, API_RSPNS_CN
+    ) VALUES (
+      #{pbancSn}, #{clctSeq}, #{pbancStepCd}, #{pbancNo}, #{bidPbancCycl},
+      #{ntceKindNm}, #{altmntBgtAmt}, #{bidDdlnDt}, #{opengDt}, #{apiRspnsCn}
+    )
+  </insert>
+
+  <insert id="insertProcessHistory" parameterType="com.ojj.sujuro.bid.ProcessHistory">
+    INSERT INTO TB_PBANC_PRCS_HSTRY (
+      PBANC_SN, TRGT_TEAM_SN, PRCS_SE_CD, PRCS_RSN, PRCR_ID
+    ) VALUES (
+      #{pbancSn}, #{trgtTeamSn}, #{prcsSeCd}, #{prcsRsn}, #{prcrId}
+    )
+  </insert>
+
+</mapper>

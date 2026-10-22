@@ -13,7 +13,6 @@ public class AuthUser {
     private String authrtCd;
     private String enpswd;
     private String acntSttsCd;
-    private String otsdMnpwYn;
 
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
@@ -25,7 +24,7 @@ public class AuthUser {
     public String getJbgdNm() { return jbgdNm; }
     public void setJbgdNm(String jbgdNm) { this.jbgdNm = jbgdNm; }
 
-    /** 팀명. 외부 인력은 회사명 */
+    /** 팀명 */
     public String getTeamNm() { return teamNm; }
     public void setTeamNm(String teamNm) { this.teamNm = teamNm; }
 
@@ -39,7 +38,4 @@ public class AuthUser {
     /** 계정상태코드 (공통코드 ACSTS) */
     public String getAcntSttsCd() { return acntSttsCd; }
     public void setAcntSttsCd(String acntSttsCd) { this.acntSttsCd = acntSttsCd; }
-
-    public String getOtsdMnpwYn() { return otsdMnpwYn; }
-    public void setOtsdMnpwYn(String otsdMnpwYn) { this.otsdMnpwYn = otsdMnpwYn; }
 }

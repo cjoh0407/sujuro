@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 알림 SQL (FR-030 ~ FR-034). 테이블: TB_NOTI, TB_USER, TB_PRP_TMMBR (db/01_schema.sql) -->
+<mapper namespace="com.ojj.sujuro.notification.NotificationMapper">
+
+  <insert id="insert">
+    INSERT INTO TB_NOTI (RCVR_ID, PBANC_SN, NOTI_TYPE_CD, NOTI_CN)
+    VALUES (#{receiverId}, #{pbancSn,jdbcType=NUMERIC}, #{typeCd}, #{content})
+  </insert>
+
+  <!-- 비활성(AS050) 계정에는 보내지 않는다 -->
+  <select id="findUserIdsByAuthority" resultType="string">
+    SELECT USER_ID FROM TB_USER
+     WHERE AUTHRT_CD = #{authrtCd} AND ACNT_STTS_CD &lt;&gt; 'AS050'
+  </select>
+
+  <select id="findLeaderIds" resultType="string">
+    SELECT USER_ID FROM TB_USER
+     WHERE TEAM_SN = #{teamSn} AND AUTHRT_CD = 'AU030' AND ACNT_STTS_CD &lt;&gt; 'AS050'
+  </select>
+
+  <select id="findProposalMemberIds" resultType="string">
+    SELECT M.USER_ID
+      FROM TB_PRP_TMMBR M
+      JOIN TB_USER U ON U.USER_ID = M.USER_ID
+     WHERE M.PBANC_SN = #{pbancSn} AND U.ACNT_STTS_CD &lt;&gt; 'AS050'
+  </select>
+
+</mapper>

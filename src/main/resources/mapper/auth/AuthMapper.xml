@@ -6,16 +6,15 @@
 -->
 <mapper namespace="com.ojj.sujuro.auth.AuthMapper">
 
-  <!-- 사번으로 로그인 정보 조회. 직급명은 공통코드(JBGDS), 팀명은 TB_TEAM에서 가져온다. 외부 인력은 팀 대신 회사명을 쓴다. -->
+  <!-- 사번으로 로그인 정보 조회. 직급명은 공통코드(JBGDS), 팀명은 TB_TEAM에서 가져온다. -->
   <select id="findByUserId" parameterType="string" resultType="com.ojj.sujuro.auth.AuthUser">
     SELECT U.USER_ID        AS userId,
            U.USER_NM        AS userNm,
            J.CD_NM          AS jbgdNm,
-           NVL(T.TEAM_NM, U.CO_NM) AS teamNm,
+           T.TEAM_NM        AS teamNm,
            U.AUTHRT_CD      AS authrtCd,
            U.ENPSWD         AS enpswd,
-           U.ACNT_STTS_CD   AS acntSttsCd,
-           U.OTSD_MNPW_YN   AS otsdMnpwYn
+           U.ACNT_STTS_CD   AS acntSttsCd
       FROM TB_USER U
       LEFT JOIN TB_TEAM T ON T.TEAM_SN = U.TEAM_SN
       LEFT JOIN TB_COM_CD J ON J.GROUP_CD = 'JBGDS' AND J.CD = U.JBGD_CD

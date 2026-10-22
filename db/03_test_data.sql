@@ -6,6 +6,8 @@
 -- 다시 실행해도 된다. (테스트 계정만 지우고 다시 넣는다.) 배포 DB에는 넣지 않는다.
 --
 -- [변경 이력]
+-- v1.4  2026-10-22  오창준  사용자 관리로 등록한 계정이 있어도 다시 실행되도록, 테스트 계정을 지우기 전에 등록자(RGTR_ID) 참조를 비움
+-- v1.3  2026-10-22  오창준  테스트 계정을 지우기 전에 그 계정의 알림(TB_NOTI)을 먼저 지우도록 추가
 -- v1.2  2026-10-22  오창준  외부 인력 제외에 따라 테스트 계정 EXT-001 삭제(이미 들어 있으면 정리), OTSD_MNPW_YN 컬럼 지정 제거
 -- v1.1  2026-10-19  오창준  초기 비밀번호 상태 테스트 계정 2025-0001 추가
 -- v1.0  2026-10-19  오창준  최초 작성 (팀 3개, 테스트 계정 5명)
@@ -25,6 +27,10 @@ SELECT '개발1팀', 'DP030' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM TB_TEAM W
 DELETE FROM TB_PRP_TMMBR WHERE USER_ID = 'EXT-001';
 UPDATE TB_TOC SET PIC_ID = NULL WHERE PIC_ID = 'EXT-001';
 DELETE FROM TB_USER WHERE USER_ID = 'EXT-001';
+-- 알림 화면 테스트 알림(05_test_notifications.sql)이 계정을 참조하므로 계정보다 먼저 지운다.
+DELETE FROM TB_NOTI WHERE RCVR_ID IN ('2023-0067', '2024-0031', '2024-0102', '2022-0009', '2025-0001');
+-- 사용자 관리 화면에서 테스트 계정이 다른 계정을 등록했다면 그 등록자 표시(RGTR_ID)를 비워 둔다. (자기 참조 외래키 때문에 지워지지 않는 것을 막는다.)
+UPDATE TB_USER SET RGTR_ID = NULL WHERE RGTR_ID IN ('2023-0067', '2024-0031', '2024-0102', '2022-0009', '2025-0001');
 DELETE FROM TB_USER WHERE USER_ID IN ('2023-0067', '2024-0031', '2024-0102', '2022-0009', '2025-0001');
 
 -- 3) 테스트 계정 (직급 JG010 사원 / JG020 팀장, 권한 AU010 영업부 / AU020 경영지원실 / AU030 팀장 / AU040 팀원, 상태 AS030 활성)

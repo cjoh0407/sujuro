@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layout/default}">
+<head>
+  <title>사용자 관리</title>
+</head>
+<body>
+
+<h1 layout:fragment="pageTitle">사용자 관리</h1>
+
+<th:block layout:fragment="content">
+
+  <!-- 초기 비밀번호는 발급 직후 한 번만 보여 준다. (FR-004) 새로고침하면 사라진다. -->
+  <div class="banner ok" th:if="${issued != null}" style="flex-direction:column;align-items:flex-start;gap:4px">
+    <b th:text="${issued.title}">초기 비밀번호를 발급했습니다.</b>
+    <span>사번 <b class="mono" th:text="${issued.empNo}">2026-0001</b> · 초기 비밀번호 <b class="mono" th:text="${issued.password}">Tmp!xxxx</b> · 계정 상태 "초기 비밀번호"</span>
+    <span style="font-size:11.5px">이 화면을 벗어나면 다시 볼 수 없습니다. 직원에게 직접 전달해 주세요. 직원은 처음 로그인할 때 비밀번호를 바꿔야 합니다.</span>
+  </div>
+  <div class="banner ok" th:if="${message != null}" th:text="${message}">처리했습니다.</div>
+  <div class="banner err" th:if="${error != null}" th:text="${error}">오류</div>
+  <div class="banner err" th:if="${!#lists.isEmpty(errors)}">
+    <ul style="margin:0;padding-left:18px">
+      <li th:each="e : ${errors}" th:text="${e}">오류 안내</li>
+    </ul>
+  </div>
+
+  <div class="two">
+
+    <!-- 직원 목록 (FR-003) -->
+    <div class="card">
+      <div class="card-head">
+        <h3>직원 목록 (<span th:text="${#lists.size(users)}">0</span>)</h3>
+      </div>
+      <div class="pad" style="padding-bottom:0">
+        <form th:action="@{/users}" method="get" class="row">
+          <input type="text" name="keyword" th:value="${keyword}" placeholder="이름 또는 사번" style="width:200px">
+          <select name="status">
+            <option value="">계정 상태 전체</option>
+            <option th:each="s : ${statuses}" th:value="${s.code}" th:text="${s.name}"
+                    th:selected="${status != null and status == s.code}">활성</option>
+          </select>
+          <button class="btn sm" type="submit">검색</button>
+          <a class="btn sm" th:href="@{/users}" th:if="${keyword != null or status != null}">초기화</a>
+        </form>
+      </div>
+      <div class="ts">
+        <table>
+          <thead>
+            <tr><th>이름</th><th>사번</th><th>소속</th><th>직급</th><th>권한</th><th>계정 상태</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr class="hv" th:each="u : ${users}">
+              <td><b th:text="${u.userNm}">이름</b></td>
+              <td class="mono faint" th:text="${u.userId}">사번</td>
+              <td class="muted" th:text="${u.teamNm}">소속</td>
+              <td th:text="${u.jbgdNm}">직급</td>
+              <td>
+                <span class="pill"
+                      th:classappend="${u.authrtCd == 'AU030'} ? 'warning' : (${u.authrtCd == 'AU040'} ? 'neutral' : 'accent')"
+                      th:text="${u.authrtNm}">권한</span>
+              </td>
+              <td>
+                <span class="pill"
+                      th:classappend="${u.active} ? 'success' : (${u.initial} ? 'warning' : (${u.inactive} ? 'neutral' : 'danger'))"
+                      th:text="${u.acntSttsNm}">활성</span>
+              </td>
+              <td>
+                <div class="row">
+                  <a class="btn sm" th:href="@{/users(edit=${u.userId},keyword=${keyword},status=${status})}">수정</a>
+                  <form th:if="${u.userId != myId}" th:action="@{/users/{id}/reset(id=${u.userId})}" method="post"
+                        th:data-name="${u.userNm}" th:data-inactive="${u.inactive}"
+                        onsubmit="return confirm(this.dataset.name + (this.dataset.inactive === 'true' ? ' 님의 계정을 복구하고 새 초기 비밀번호를 발급할까요?' : ' 님의 비밀번호를 초기화하고 새 초기 비밀번호를 발급할까요? 잠금도 함께 풀립니다.'));">
+                    <button class="btn sm" type="submit" th:text="${u.inactive} ? '계정 복구' : '비밀번호 초기화'">비밀번호 초기화</button>
+                  </form>
+                  <form th:if="${u.userId != myId and !u.inactive}" th:action="@{/users/{id}/deactivate(id=${u.userId})}" method="post"
+                        th:data-name="${u.userNm}"
+                        onsubmit="return confirm(this.dataset.name + ' 님의 계정을 비활성으로 바꿀까요? 업무 이력은 그대로 남습니다.');">
+                    <button class="btn sm danger" type="submit">비활성</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(users)}">
+              <td colspan="7" class="empty">조건에 맞는 직원이 없습니다.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="col">
+
+      <!-- 직원 추가(FR-004) / 직급·소속 수정(FR-005) -->
+      <div class="card">
+        <div class="card-head">
+          <h3 th:text="${editUser != null} ? '직원 정보 수정 · ' + ${editUser.userNm} : '신규 직원 추가'">신규 직원 추가</h3>
+        </div>
+        <div class="pad">
+          <form th:action="${editUser != null} ? @{/users/{id}/update(id=${editUser.userId})} : @{/users}"
+                method="post" style="display:flex;flex-direction:column;gap:10px">
+            <input type="hidden" name="keyword" th:value="${keyword}" th:if="${editUser == null}">
+            <input type="hidden" name="status" th:value="${status}" th:if="${editUser == null}">
+
+            <div class="grid2">
+              <div class="fld">
+                <label for="userNm">이름</label>
+                <input id="userNm" name="userNm" type="text" maxlength="100" th:value="${form.userNm}" required>
+              </div>
+              <div class="fld">
+                <label for="userId">사번 (로그인 ID)</label>
+                <input id="userId" name="userId" type="text" maxlength="20" th:value="${form.userId}"
+                       th:readonly="${editUser != null}" th:required="${editUser == null}">
+              </div>
+            </div>
+
+            <div class="grid2">
+              <div class="fld">
+                <label for="teamSn">소속 팀</label>
+                <select id="teamSn" name="teamSn" required>
+                  <option value="">선택</option>
+                  <option th:each="t : ${teams}" th:value="${t.code}" th:text="${t.name}"
+                          th:selected="${form.teamSn != null and form.teamSn.toString() == t.code}">개발1팀</option>
+                </select>
+              </div>
+              <div class="fld">
+                <label for="jbgdCd">직급</label>
+                <select id="jbgdCd" name="jbgdCd" required>
+                  <option value="">선택</option>
+                  <option th:each="r : ${ranks}" th:value="${r.code}" th:text="${r.name}"
+                          th:selected="${form.jbgdCd != null and form.jbgdCd == r.code}">사원</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid2">
+              <div class="fld">
+                <label for="telno">전화번호 (선택)</label>
+                <input id="telno" name="telno" type="text" maxlength="13" placeholder="010-1234-5678" th:value="${form.telno}">
+              </div>
+              <div class="fld">
+                <label for="emlAddr">이메일 (선택)</label>
+                <input id="emlAddr" name="emlAddr" type="text" maxlength="320" placeholder="name@company.com" th:value="${form.emlAddr}">
+              </div>
+            </div>
+
+            <div class="faint" style="font-size:11.5px" th:if="${editUser == null}">
+              추가하면 초기 비밀번호가 자동으로 만들어져 화면에 한 번만 보입니다. 권한은 소속과 직급으로 자동 정해집니다.
+            </div>
+            <div class="faint" style="font-size:11.5px" th:if="${editUser != null}">
+              소속 팀이나 직급을 바꾸면 권한이 자동으로 다시 정해집니다. 사번은 바꿀 수 없습니다.
+            </div>
+
+            <div class="row">
+              <button class="btn primary" type="submit" th:text="${editUser != null} ? '수정 저장' : '추가 · 초기 비밀번호 발급'">추가 · 초기 비밀번호 발급</button>
+              <a class="btn" th:href="@{/users(keyword=${keyword},status=${status})}" th:if="${editUser != null}">취소</a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- 권한 자동 부여 규칙 (FR-007) -->
+      <div class="card">
+        <div class="card-head"><h3>권한 자동 부여 규칙</h3></div>
+        <div class="pad" style="font-size:12.5px;display:flex;flex-direction:column;gap:6px">
+          <div>소속 영업부 → <span class="pill accent">영업부</span></div>
+          <div>소속 경영지원실 → <span class="pill accent">경영지원실</span></div>
+          <div>개발 부서 · 직급 팀장 → <span class="pill warning">팀장</span></div>
+          <div>개발 부서 · 그 외 직급 → <span class="pill neutral">팀원</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</th:block>
+
+</body>
+</html>

@@ -3,9 +3,9 @@
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 <!--/*
-  사이드바 메뉴. 권한별 노출 기준은 HTML 목업 v3.2 와 같고(FR-009),
+  사이드바 메뉴. 권한별 노출 기준은 HTML 목업 v3.5 와 같고(FR-009),
   같은 규칙이 SecurityConfig 의 URL 접근 규칙에도 들어 있다. 메뉴를 바꾸면 두 곳을 함께 고친다.
-  권한: MGMT 경영지원실 / SALES 영업부 / LEADER 팀장 / MEMBER 팀원 / EXTERNAL 외부 인력(제한 계정)
+  권한: MGMT 경영지원실 / SALES 영업부 / LEADER 팀장 / MEMBER 팀원
 */-->
 <aside class="sidebar" th:fragment="sidebar">
   <a class="brand" th:href="@{/dashboard}">
@@ -15,7 +15,7 @@
 
   <nav class="nav" th:with="uri=${#httpServletRequest.requestURI}">
     <a th:href="@{/dashboard}" th:classappend="${#strings.startsWith(uri, '/dashboard')} ? 'on'">대시보드</a>
-    <a sec:authorize="hasAnyRole('SALES','LEADER','MGMT') and !hasAuthority('EXTERNAL')"
+    <a sec:authorize="hasAnyRole('SALES','LEADER','MGMT')"
        th:href="@{/notices}" th:classappend="${#strings.startsWith(uri, '/notices')} ? 'on'">공고 관리</a>
 
     <div class="grp" sec:authorize="hasAnyRole('MGMT','LEADER','MEMBER')">제안 업무 (사업건 단위)</div>
@@ -28,14 +28,13 @@
     <a sec:authorize="hasAnyRole('LEADER','MEMBER')"
        th:href="@{/qa}" th:classappend="${#strings.startsWith(uri, '/qa')} ? 'on'">질의응답 기록</a>
 
-    <div class="grp" sec:authorize="!hasAuthority('EXTERNAL')">결과 · 운영</div>
+    <div class="grp">결과 · 운영</div>
     <a sec:authorize="hasRole('MGMT')"
        th:href="@{/results}" th:classappend="${#strings.startsWith(uri, '/results')} ? 'on'">평가·결과 입력</a>
-    <a sec:authorize="!hasAuthority('EXTERNAL')"
-       th:href="@{/schedule}" th:classappend="${#strings.startsWith(uri, '/schedule')} ? 'on'">일정 관리</a>
-    <a sec:authorize="hasAnyRole('MGMT','LEADER') and !hasAuthority('EXTERNAL')"
+    <a th:href="@{/schedule}" th:classappend="${#strings.startsWith(uri, '/schedule')} ? 'on'">일정 관리</a>
+    <a sec:authorize="hasAnyRole('MGMT','LEADER')"
        th:href="@{/stats}" th:classappend="${#strings.startsWith(uri, '/stats')} ? 'on'">통계</a>
-    <a sec:authorize="hasRole('MGMT') and !hasAuthority('EXTERNAL')"
+    <a sec:authorize="hasRole('MGMT')"
        th:href="@{/users}" th:classappend="${#strings.startsWith(uri, '/users')} ? 'on'">사용자 관리</a>
   </nav>
 </aside>

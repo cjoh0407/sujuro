@@ -1,4 +1,4 @@
-package com.ojj.sujuro.bid;
+package com.ojj.sujuro.bid.dto;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -12,7 +12,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class BidNoticeSearch {
+public class BidNoticeSearchDTO {
 
     /** 한 페이지에 보여 줄 건수. UI 목업 v3.2 와 같게 10건으로 고정한다. */
     public static final int PAGE_SIZE = 10;
@@ -33,7 +33,7 @@ public class BidNoticeSearch {
     private String sort = SORT_DEADLINE;
     private int page = 1;
 
-    /** 허용되지 않는 값이 들어오면 기본값으로 되돌린다. 컨트롤러가 조회 전에 한 번 부른다. */
+    /** 허용되지 않는 값이 들어오면 기본값으로 되돌린다. 조회 전에 한 번 부른다. */
     public void normalize() {
         if (isBlank(sttsCd)) {
             sttsCd = null;

@@ -1,4 +1,4 @@
-package com.ojj.sujuro.bid;
+package com.ojj.sujuro.bid.web;
 
 import java.util.List;
 
@@ -14,9 +14,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.ojj.sujuro.auth.LoginUser;
+import com.ojj.sujuro.bid.dto.BidNoticeSearchDTO;
+import com.ojj.sujuro.bid.dto.NoticeRegisterResultDTO;
+import com.ojj.sujuro.bid.dto.StatusCountDTO;
+import com.ojj.sujuro.bid.service.BidNoticeService;
+import com.ojj.sujuro.bid.service.NoticeRegisterService;
 
 /**
- * 공고 관리 (FR-017 ~ 020). 목록을 탭·검색·정렬·페이지로 보여 준다.
+ * 공고 관리 (FR-017 ~ 022). 목록을 탭·검색·정렬·페이지로 보여 주고, 사전규격번호로 등록한다.
  *
  * 볼 수 있는 사람은 영업부·팀장·경영지원실이고 팀원과 외부 인력은 들어올 수 없다.
  * 이 규칙은 SecurityConfig 의 /notices/** URL 규칙에서 막으므로 여기서 다시 검사하지 않는다.
@@ -40,8 +45,8 @@ public class NoticeController {
     }
 
     @GetMapping
-    public String list(@ModelAttribute("search") BidNoticeSearch search, Model model) {
-        List<StatusCount> tabs = bidNoticeService.findStatusCounts();
+    public String list(@ModelAttribute("search") BidNoticeSearchDTO search, Model model) {
+        List<StatusCountDTO> tabs = bidNoticeService.findStatusCounts();
 
         model.addAttribute("result", bidNoticeService.findPage(search));
         model.addAttribute("tabs", tabs);
@@ -59,7 +64,7 @@ public class NoticeController {
     public String registerPreSpec(@RequestParam String bfSpecRgstNo,
                                   @AuthenticationPrincipal LoginUser user,
                                   RedirectAttributes redirect) {
-        NoticeRegisterService.RegistResult result =
+        NoticeRegisterResultDTO result =
                 noticeRegisterService.registerByPreSpecNo(bfSpecRgstNo, user.getEmpNo());
 
         StringBuilder msg = new StringBuilder();

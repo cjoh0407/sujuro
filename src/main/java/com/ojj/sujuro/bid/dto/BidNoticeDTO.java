@@ -1,8 +1,10 @@
-package com.ojj.sujuro.bid;
+package com.ojj.sujuro.bid.dto;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Date;
+
+import com.ojj.sujuro.bid.BidCode;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -12,11 +14,12 @@ import lombok.Setter;
  * 코드값은 TB_COM_CD 를 조인해 이름까지 같이 받아 화면에서 코드를 다시 풀지 않는다.
  *
  * MyBatis 가 기본 생성자와 setter 로 값을 채우므로 @Setter 가 필요하다.
+ * 필드 이름은 컬럼명을 그대로 따른다. SQL 의 alias 와 맞아야 매핑되기 때문이다.
  * 화면에 바로 쓰려고 계산해서 내보내는 값(예산 표기, 담당 팀 표기)은 아래에 직접 적어 둔다.
  */
 @Getter
 @Setter
-public class BidNotice {
+public class BidNoticeDTO {
 
     /** 1억 (원). 예산을 "7.6억"처럼 보여 줄 때 쓴다. */
     private static final BigDecimal HUNDRED_MILLION = new BigDecimal("100000000");
@@ -55,7 +58,7 @@ public class BidNotice {
     /** 반환구분명 (불참/중도 철회). 영업부로 돌아온 공고만 값이 있다. */
     private String rtrnSeNm;
 
-    /** 사전규격 단계인지. 공고번호 옆에 뱃지를 붙일 때 쓴다. */
+    /** 사전규격 단계인지. 단계구분 칸의 색을 정할 때 쓴다. */
     public boolean isPreSpec() {
         return BidCode.is(pbancStepCd, BidCode.STEP_PRE_SPEC);
     }

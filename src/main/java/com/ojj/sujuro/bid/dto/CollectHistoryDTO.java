@@ -1,4 +1,4 @@
-package com.ojj.sujuro.bid;
+package com.ojj.sujuro.bid.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -14,7 +14,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class CollectHistory {
+public class CollectHistoryDTO {
 
     private Long pbancSn;
 

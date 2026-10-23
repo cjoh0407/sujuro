@@ -1,4 +1,4 @@
-package com.ojj.sujuro.bid;
+package com.ojj.sujuro.bid.dto;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -9,7 +9,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class StatusCount {
+public class StatusCountDTO {
 
     /** 공고상태코드 (PBSTS) */
     private String sttsCd;

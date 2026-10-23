@@ -1,4 +1,4 @@
-package com.ojj.sujuro.bid;
+package com.ojj.sujuro.bid.dto;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,7 +14,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class ProcessHistory {
+public class ProcessHistoryDTO {
 
     private Long pbancSn;
 
@@ -28,7 +28,7 @@ public class ProcessHistory {
     private String prcrId;
 
     /** 팀과 무관한 처리(등록·결과 등록 등)에 쓰는 생성자 */
-    public ProcessHistory(Long pbancSn, String prcsSeCd, String prcsRsn, String prcrId) {
+    public ProcessHistoryDTO(Long pbancSn, String prcsSeCd, String prcsRsn, String prcrId) {
         this.pbancSn = pbancSn;
         this.prcsSeCd = prcsSeCd;
         this.prcsRsn = prcsRsn;

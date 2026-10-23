@@ -1,4 +1,4 @@
-package com.ojj.sujuro.bid;
+package com.ojj.sujuro.bid.dto;
 
 import java.util.List;
 
@@ -11,9 +11,9 @@ import lombok.RequiredArgsConstructor;
  */
 @Getter
 @RequiredArgsConstructor
-public class BidNoticePage {
+public class BidNoticePageDTO {
 
-    private final List<BidNotice> rows;
+    private final List<BidNoticeDTO> rows;
 
     /** 검색 조건에 맞는 전체 건수 */
     private final int total;

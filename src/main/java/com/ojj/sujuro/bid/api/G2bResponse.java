@@ -1,4 +1,4 @@
-package com.ojj.sujuro.bid;
+package com.ojj.sujuro.bid.api;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;

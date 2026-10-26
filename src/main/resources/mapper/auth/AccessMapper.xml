@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <!--
   사업건 단위 접근 검사 SQL (FR-011, NFR-001, NFR-004)
-  "이 사람이 이 사업건의 제안팀원인가"만 확인한다. (db/01_schema.sql 의 TB_PRP_TMMBR)
+  "이 사람이 이 사업건의 제안팀원인가", "그중 주관팀(PT010)인가"를 확인한다. (db/01_schema.sql 의 TB_PRP_TMMBR)
 -->
 <mapper namespace="com.ojj.sujuro.auth.AccessMapper">
 
@@ -11,6 +11,14 @@
       FROM TB_PRP_TMMBR
      WHERE PBANC_SN = #{pbancSn}
        AND USER_ID = #{userId}
+  </select>
+
+  <select id="countProposalMemberByType" resultType="int">
+    SELECT COUNT(*)
+      FROM TB_PRP_TMMBR
+     WHERE PBANC_SN = #{pbancSn}
+       AND USER_ID = #{userId}
+       AND PTCP_SE_CD = #{ptcpSeCd}
   </select>
 
 </mapper>

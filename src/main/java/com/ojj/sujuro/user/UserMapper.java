@@ -58,9 +58,9 @@ public interface UserMapper {
     /** 사용 중인 팀 목록 (code=팀 번호, name=팀 이름, extra=부서코드) */
     List<CodeOption> findTeams();
 
-    /** 직급 목록 (공통코드 JBGDS). 외부(JG030)는 외부 인력을 쓰지 않기로 해서 제외한다. */
+    /** 직급 목록 (공통코드 JBGDS) */
     List<CodeOption> findRanks();
 
-    /** 계정 상태 목록 (공통코드 ACSTS). 발급 요청(AS010)은 외부 인력용이라 제외한다. */
+    /** 계정 상태 목록 (공통코드 ACSTS) */
     List<CodeOption> findStatuses();
 }

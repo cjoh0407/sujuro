@@ -18,6 +18,9 @@ public interface ProposalMapper {
     /** 사용자가 이 사업건의 제안팀원이면 1, 아니면 0 */
     int countMember(@Param("pbancSn") Long pbancSn, @Param("userId") String userId);
 
+    /** 목차 담당자로 고를 수 있는 제안팀원 (주관팀·참여팀, 비활성 계정 제외) (FR-049) */
+    List<ProposalMemberDto> findMembers(@Param("pbancSn") Long pbancSn);
+
     /** 제안서 전체 페이지 제한을 바꾼다. (FR-055) */
     int updatePageLimit(@Param("pbancSn") Long pbancSn, @Param("lmtPageCnt") Integer lmtPageCnt);
 }

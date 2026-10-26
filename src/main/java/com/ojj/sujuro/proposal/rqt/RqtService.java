@@ -2,7 +2,7 @@ package com.ojj.sujuro.proposal.rqt;
 
 import java.util.List;
 
-/** 요구사항 등록·수정·삭제와 현황 계산 (FR-050, FR-052~054) */
+/** 요구사항 등록·수정·삭제, 목차 매핑과 현황 계산 (FR-050~054, FR-016-1) */
 public interface RqtService {
 
     String FILTER_ALL = "all";
@@ -27,4 +27,19 @@ public interface RqtService {
     void edit(Long pbancSn, Long rqtMttrSn, RqtDto in);
 
     void delete(Long pbancSn, Long rqtMttrSn);
+
+    /**
+     * 요구사항 등록·수정·삭제·매핑을 할 수 있는지. 팀장이거나, 이 사업건 목차를 하나 이상 맡은 담당자면 된다. (FR-016-1)
+     */
+    boolean canEdit(Long pbancSn, String userId, boolean leader);
+
+    /** canEdit이 아니면 업무 예외 */
+    void requireEditor(Long pbancSn, String userId, boolean leader);
+
+    /**
+     * 요구사항을 제안서 세부 목차에 연결한다. tocSn이 null이면 미매핑으로 돌린다. (FR-051)
+     * 요구사항 하나는 세부 목차 하나에만 연결되고, 담당자를 지정한 세부 목차에만 연결할 수 있다. (FR-049, 화면 설계 v3.4)
+     * 연결된 목차의 담당자가 요구사항 담당자가 된다.
+     */
+    void map(Long pbancSn, Long rqtMttrSn, Long tocSn);
 }

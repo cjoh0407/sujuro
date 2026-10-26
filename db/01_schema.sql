@@ -139,7 +139,7 @@ CREATE TABLE TB_BID_PBANC (
   BF_SPEC_RGST_NO VARCHAR2(20 CHAR),
   BID_PBANC_NO    VARCHAR2(40 CHAR),
   BID_PBANC_CYCL  NUMBER(7)            DEFAULT 0  NOT NULL,
-  PBANC_STEP_CD   CHAR(5)              NOT NULL,
+  PBANC_STEP_CD   CHAR(5)              DEFAULT 'PP020'  NOT NULL,
   TRCK_STTS_CD    CHAR(5),
   NTCE_KIND_NM    VARCHAR2(100 CHAR),
   PBANC_NM        VARCHAR2(1000 CHAR),
@@ -180,7 +180,7 @@ COMMENT ON COLUMN TB_BID_PBANC.PBANC_SN IS '공고일련번호 - 자동 증가. 
 COMMENT ON COLUMN TB_BID_PBANC.BF_SPEC_RGST_NO IS '사전규격등록번호 - R25BD… 13자리. 사전규격으로 먼저 등록한 경우. 본공고로 전환돼도 지우지 않는다';
 COMMENT ON COLUMN TB_BID_PBANC.BID_PBANC_NO IS '입찰공고번호 - 실제 값은 R26BK… 13자리지만 API 명세는 40자까지 허용한다. 사전규격 단계에서는 NULL (FR-021)';
 COMMENT ON COLUMN TB_BID_PBANC.BID_PBANC_CYCL IS '입찰공고차수 - 정정 공고면 차수가 올라간다. API bidNtceOrd 는 "000" 처럼 3자리로 채워 오므로 숫자로 바꿔 넣고, 상세URL을 만들 때 다시 3자리로 채운다';
-COMMENT ON COLUMN TB_BID_PBANC.PBANC_STEP_CD IS '공고단계코드 - 공통코드 PBSTP (사전규격/본공고). 업무 진행 상태(PBANC_STTS_CD)와 다른 축';
+COMMENT ON COLUMN TB_BID_PBANC.PBANC_STEP_CD IS '공고단계코드 - 공통코드 PBSTP (사전규격/본공고). 업무 진행 상태(PBANC_STTS_CD)와 다른 축. 기본값은 본공고라서 손으로 INSERT할 때 빠뜨려도 들어간다. 사전규격은 반드시 지정해야 한다';
 COMMENT ON COLUMN TB_BID_PBANC.TRCK_STTS_CD IS '추적상태코드 - 공통코드 TRSTS (본공고 대기/연결됨/추적 종료). 사전규격으로 등록한 공고만 쓴다';
 COMMENT ON COLUMN TB_BID_PBANC.NTCE_KIND_NM IS '공고종류명 - API ntceKindNm. 실제 값은 등록공고/변경공고/재공고/취소공고 (2026-10 실측). 취소공고면 영업부에 알린다';
 COMMENT ON COLUMN TB_BID_PBANC.PBANC_NM IS '공고명 - API 수집 후 채워진다. 사전규격 단계는 품명(사업명)';

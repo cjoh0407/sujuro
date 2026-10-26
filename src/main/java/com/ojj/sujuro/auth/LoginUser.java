@@ -20,11 +20,7 @@ public class LoginUser implements UserDetails {
 
     private static final long serialVersionUID = 1L;
 
-    /** 외부 인력 계정에 붙는 권한. 메뉴·URL 제한에 쓴다. (FR-008-1, NFR-004-1) */
-    public static final String EXTERNAL_AUTHORITY = "EXTERNAL";
-
     /** 계정상태코드 (공통코드 ACSTS) */
-    public static final String STATUS_REQUESTED = "AS010"; // 발급 요청: 아직 승인 전이라 로그인 불가
     public static final String STATUS_INITIAL = "AS020";   // 초기 비밀번호
     public static final String STATUS_ACTIVE = "AS030";    // 활성
     public static final String STATUS_LOCKED = "AS040";    // 잠금
@@ -35,18 +31,16 @@ public class LoginUser implements UserDetails {
     private final String rank;
     private final String team;
     private final Role role;
-    private final boolean external;
     private final String status; // 계정상태코드
     private final String password;
 
     public LoginUser(String empNo, String name, String rank, String team,
-                     Role role, boolean external, String status, String password) {
+                     Role role, String status, String password) {
         this.empNo = empNo;
         this.name = name;
         this.rank = rank;
         this.team = team;
         this.role = role;
-        this.external = external;
         this.status = status;
         this.password = password;
     }
@@ -63,7 +57,7 @@ public class LoginUser implements UserDetails {
         return rank;
     }
 
-    /** 소속 팀. 외부 인력은 소속 회사명이 들어간다. */
+    /** 소속 팀 */
     public String getTeam() {
         return team;
     }
@@ -72,17 +66,19 @@ public class LoginUser implements UserDetails {
         return role;
     }
 
+    /** 외부 인력은 쓰지 않기로 해서 항상 false다. 이 메서드를 쓰는 코드(ProposalController)를 정리하면 함께 지운다. */
+    @Deprecated
     public boolean isExternal() {
-        return external;
+        return false;
     }
 
     public String getStatus() {
         return status;
     }
 
-    /** 화면에 보여 줄 권한 이름. 외부 인력은 "외부 인력"으로 보여 준다. */
+    /** 화면에 보여 줄 권한 이름 */
     public String getRoleLabel() {
-        return external ? "외부 인력" : role.getLabel();
+        return role.getLabel();
     }
 
     /** 계정 상태가 '초기 비밀번호'이면 비밀번호를 바꾸기 전까지 다른 메뉴에 들어갈 수 없다. (FR-002) */
@@ -94,9 +90,6 @@ public class LoginUser implements UserDetails {
     public Collection<? extends GrantedAuthority> getAuthorities() {
         List<GrantedAuthority> authorities = new ArrayList<>();
         authorities.add(new SimpleGrantedAuthority(role.getAuthority()));
-        if (external) {
-            authorities.add(new SimpleGrantedAuthority(EXTERNAL_AUTHORITY));
-        }
         return authorities;
     }
 
@@ -129,7 +122,7 @@ public class LoginUser implements UserDetails {
     @Override
     public boolean isEnabled() {
         String s = trim(status);
-        return !STATUS_INACTIVE.equals(s) && !STATUS_REQUESTED.equals(s);
+        return !STATUS_INACTIVE.equals(s);
     }
 
     /** CHAR 컬럼이라 뒤에 공백이 붙어 올 수 있어 잘라서 비교한다. */

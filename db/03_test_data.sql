@@ -1,13 +1,18 @@
 -- ============================================================
 -- sujuro 개발용 테스트 데이터 (01_schema.sql, 02_code_data.sql 실행 후)
 -- 실행: docker exec -e NLS_LANG=.AL32UTF8 oracle sqlplus 계정/비밀번호@//localhost:1521/FREEPDB1 @/tmp/03_test_data.sql
--- 로그인 화면 확인용 계정 6명. 비밀번호는 모두 Demo!2026a (BCrypt로 저장)
+-- 로그인 화면 확인용 계정 5명. 비밀번호는 모두 Demo!2026a (BCrypt로 저장)
 -- 2025-0001 은 계정 상태가 '초기 비밀번호'라서 로그인하면 비밀번호 변경 화면으로 간다. (FR-002 확인용)
 -- 다시 실행해도 된다. (테스트 계정만 지우고 다시 넣는다.) 배포 DB에는 넣지 않는다.
 --
 -- [변경 이력]
--- v1.2  2026-10-20  김종민  공고 9건 추가 (사전규격 2 · 본공고 7, 공고상태 7종 전부 + 반환 1건).
---                           공고 목록 탭·검색·정렬과 영업부 대시보드 집계 확인용
+-- v1.5  2026-10-26  김종민  공고 9건 추가 (사전규격 2 · 본공고 7, 공고상태 7종 전부 + 반환 1건).
+--                           공고 목록 탭·검색·정렬과 영업부 대시보드 집계 확인용.
+--                           지우는 공고를 번호 목록으로 한정해 03_sample_data.sql 의 샘플 공고
+--                           (R26BK00000001, R26BK00000002)를 건드리지 않는다.
+-- v1.4  2026-10-22  오창준  사용자 관리로 등록한 계정이 있어도 다시 실행되도록, 테스트 계정을 지우기 전에 등록자(RGTR_ID) 참조를 비움
+-- v1.3  2026-10-22  오창준  테스트 계정을 지우기 전에 그 계정의 알림(TB_NOTI)을 먼저 지우도록 추가
+-- v1.2  2026-10-22  오창준  외부 인력 제외에 따라 테스트 계정 EXT-001 삭제(이미 들어 있으면 정리), OTSD_MNPW_YN 컬럼 지정 제거
 -- v1.1  2026-10-19  오창준  초기 비밀번호 상태 테스트 계정 2025-0001 추가
 -- v1.0  2026-10-19  오창준  최초 작성 (팀 3개, 테스트 계정 5명)
 -- ============================================================
@@ -26,40 +31,72 @@ SELECT '개발1팀', 'DP030' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM TB_TEAM W
 --    공고가 등록자(RGTR_ID)·제출자(PRSNR_ID)로 사용자를 참조하므로, 계정을 먼저 지우려 하면
 --    ORA-02292(자식 레코드 발견)로 막히고 이어지는 계정 INSERT가 ORA-00001(PK 위배)로 깨진다.
 --    화면에서 공고를 등록하면 처리이력도 함께 생기므로 그 표까지 지운다.
+--
+--    지울 공고를 번호로 한정한다. 'R26B%' 로 지우면 03_sample_data.sql 이 만든 샘플 공고
+--    (R26BK00000001, R26BK00000002)까지 지워져 그 목차·요구사항이 깨진다.
 DELETE FROM TB_CLCT_LOG
  WHERE PBANC_SN IN (SELECT PBANC_SN FROM TB_BID_PBANC
-                     WHERE NVL(BID_PBANC_NO, BF_SPEC_RGST_NO) LIKE 'R26B%');
+                     WHERE BID_PBANC_NO    IN ('R26BK00945112','R26BK00946730','R26BK00947181',
+                                               'R26BK00941055','R26BK00938420','R26BK00944003',
+                                               'R26BK00948820')
+                        OR BF_SPEC_RGST_NO IN ('R26BD00012345','R26BD00013902','R26BD00011088'));
 DELETE FROM TB_PBANC_CLCT_HSTRY
  WHERE PBANC_SN IN (SELECT PBANC_SN FROM TB_BID_PBANC
-                     WHERE NVL(BID_PBANC_NO, BF_SPEC_RGST_NO) LIKE 'R26B%');
+                     WHERE BID_PBANC_NO    IN ('R26BK00945112','R26BK00946730','R26BK00947181',
+                                               'R26BK00941055','R26BK00938420','R26BK00944003',
+                                               'R26BK00948820')
+                        OR BF_SPEC_RGST_NO IN ('R26BD00012345','R26BD00013902','R26BD00011088'));
 DELETE FROM TB_PBANC_PRCS_HSTRY
  WHERE PBANC_SN IN (SELECT PBANC_SN FROM TB_BID_PBANC
-                     WHERE NVL(BID_PBANC_NO, BF_SPEC_RGST_NO) LIKE 'R26B%');
-DELETE FROM TB_BID_PBANC WHERE NVL(BID_PBANC_NO, BF_SPEC_RGST_NO) LIKE 'R26B%';
+                     WHERE BID_PBANC_NO    IN ('R26BK00945112','R26BK00946730','R26BK00947181',
+                                               'R26BK00941055','R26BK00938420','R26BK00944003',
+                                               'R26BK00948820')
+                        OR BF_SPEC_RGST_NO IN ('R26BD00012345','R26BD00013902','R26BD00011088'));
+DELETE FROM TB_NOTI
+ WHERE PBANC_SN IN (SELECT PBANC_SN FROM TB_BID_PBANC
+                     WHERE BID_PBANC_NO    IN ('R26BK00945112','R26BK00946730','R26BK00947181',
+                                               'R26BK00941055','R26BK00938420','R26BK00944003',
+                                               'R26BK00948820')
+                        OR BF_SPEC_RGST_NO IN ('R26BD00012345','R26BD00013902','R26BD00011088'));
+DELETE FROM TB_BID_PBANC
+ WHERE BID_PBANC_NO    IN ('R26BK00945112','R26BK00946730','R26BK00947181',
+                           'R26BK00941055','R26BK00938420','R26BK00944003',
+                           'R26BK00948820')
+    OR BF_SPEC_RGST_NO IN ('R26BD00012345','R26BD00013902','R26BD00011088');
 
--- 3) 테스트 계정 삭제 (외부 인력이 팀장을 참조하므로 외부 인력부터)
+-- 3) 외부 인력(EXT-001) 정리. 더 쓰지 않으므로 예전에 넣은 것이 있으면 참조하는 행과 함께 지운다.
+DELETE FROM TB_PRP_TMMBR WHERE USER_ID = 'EXT-001';
+UPDATE TB_TOC SET PIC_ID = NULL WHERE PIC_ID = 'EXT-001';
 DELETE FROM TB_USER WHERE USER_ID = 'EXT-001';
-DELETE FROM TB_USER WHERE USER_ID IN ('2023-0067', '2024-0031', '2024-0102', '2022-0009', '2025-0001');
 
--- 4) 테스트 계정 (직급 JG010 사원 / JG020 팀장 / JG030 외부, 권한 AU010 영업부 / AU020 경영지원실 / AU030 팀장 / AU040 팀원 / AU050 외부, 상태 AS030 활성)
-INSERT INTO TB_USER (USER_ID, USER_NM, TEAM_SN, JBGD_CD, AUTHRT_CD, ENPSWD, ACNT_STTS_CD, OTSD_MNPW_YN)
-VALUES ('2023-0067', '박서연', (SELECT TEAM_SN FROM TB_TEAM WHERE TEAM_NM = '영업부'), 'JG010', 'AU010',
-        '$2b$10$nFBh95LuF8O959s4LLejnO6SKJJQeVjPQrpdEtPD1ExF6hfr54Vzq', 'AS030', 'N');
-INSERT INTO TB_USER (USER_ID, USER_NM, TEAM_SN, JBGD_CD, AUTHRT_CD, ENPSWD, ACNT_STTS_CD, OTSD_MNPW_YN)
-VALUES ('2024-0031', '김가희', (SELECT TEAM_SN FROM TB_TEAM WHERE TEAM_NM = '개발1팀'), 'JG020', 'AU030',
-        '$2b$10$nFBh95LuF8O959s4LLejnO6SKJJQeVjPQrpdEtPD1ExF6hfr54Vzq', 'AS030', 'N');
-INSERT INTO TB_USER (USER_ID, USER_NM, TEAM_SN, JBGD_CD, AUTHRT_CD, ENPSWD, ACNT_STTS_CD, OTSD_MNPW_YN)
-VALUES ('2024-0102', '오창준', (SELECT TEAM_SN FROM TB_TEAM WHERE TEAM_NM = '개발1팀'), 'JG010', 'AU040',
-        '$2b$10$nFBh95LuF8O959s4LLejnO6SKJJQeVjPQrpdEtPD1ExF6hfr54Vzq', 'AS030', 'N');
-INSERT INTO TB_USER (USER_ID, USER_NM, TEAM_SN, JBGD_CD, AUTHRT_CD, ENPSWD, ACNT_STTS_CD, OTSD_MNPW_YN)
-VALUES ('2022-0009', '최민정', (SELECT TEAM_SN FROM TB_TEAM WHERE TEAM_NM = '경영지원실'), 'JG010', 'AU020',
-        '$2b$10$nFBh95LuF8O959s4LLejnO6SKJJQeVjPQrpdEtPD1ExF6hfr54Vzq', 'AS030', 'N');
-INSERT INTO TB_USER (USER_ID, USER_NM, TEAM_SN, JBGD_CD, AUTHRT_CD, ENPSWD, ACNT_STTS_CD, OTSD_MNPW_YN)
-VALUES ('2025-0001', '이신입', (SELECT TEAM_SN FROM TB_TEAM WHERE TEAM_NM = '개발1팀'), 'JG010', 'AU040',
-        '$2b$10$nFBh95LuF8O959s4LLejnO6SKJJQeVjPQrpdEtPD1ExF6hfr54Vzq', 'AS020', 'N');
-INSERT INTO TB_USER (USER_ID, USER_NM, TEAM_SN, JBGD_CD, AUTHRT_CD, ENPSWD, ACNT_STTS_CD, OTSD_MNPW_YN, CO_NM, RGTR_ID)
-VALUES ('EXT-001', '서진우', NULL, 'JG030', 'AU050',
-        '$2b$10$nFBh95LuF8O959s4LLejnO6SKJJQeVjPQrpdEtPD1ExF6hfr54Vzq', 'AS030', 'Y', '㈜가온시스템', '2024-0031');
+-- 4) 테스트 계정을 "알려진 상태"로 되돌린다. (직급 JG010 사원 / JG020 팀장,
+--    권한 AU010 영업부 / AU020 경영지원실 / AU030 팀장 / AU040 팀원, 상태 AS030 활성)
+--
+--    지웠다 다시 넣지 않고 MERGE 로 덮어쓴다. 계정을 지우려 하면
+--    03_sample_data.sql 의 샘플 공고가 등록자(RGTR_ID)로 이 계정들을 참조하고 있어
+--    ORA-02292(자식 레코드 발견)로 막히기 때문이다.
+--    이 방식이면 알림·제안팀원·공고가 계정을 참조하고 있어도 몇 번이든 다시 실행된다.
+--    로그인 실패 횟수도 0으로 되돌려 잠긴 계정이 풀린다.
+MERGE INTO TB_USER u
+USING (
+  SELECT '2023-0067' AS USER_ID, '박서연' AS USER_NM, '영업부'     AS TEAM_NM, 'JG010' AS JBGD_CD, 'AU010' AS AUTHRT_CD, 'AS030' AS ACNT_STTS_CD FROM DUAL
+  UNION ALL SELECT '2024-0031', '김가희', '개발1팀',   'JG020', 'AU030', 'AS030' FROM DUAL
+  UNION ALL SELECT '2024-0102', '오창준', '개발1팀',   'JG010', 'AU040', 'AS030' FROM DUAL
+  UNION ALL SELECT '2022-0009', '최민정', '경영지원실', 'JG010', 'AU020', 'AS030' FROM DUAL
+  UNION ALL SELECT '2025-0001', '이신입', '개발1팀',   'JG010', 'AU040', 'AS020' FROM DUAL
+) s ON (u.USER_ID = s.USER_ID)
+WHEN MATCHED THEN UPDATE SET
+  u.USER_NM      = s.USER_NM,
+  u.TEAM_SN      = (SELECT TEAM_SN FROM TB_TEAM WHERE TEAM_NM = s.TEAM_NM),
+  u.JBGD_CD      = s.JBGD_CD,
+  u.AUTHRT_CD    = s.AUTHRT_CD,
+  u.ENPSWD       = '$2b$10$nFBh95LuF8O959s4LLejnO6SKJJQeVjPQrpdEtPD1ExF6hfr54Vzq',
+  u.ACNT_STTS_CD = s.ACNT_STTS_CD,
+  u.LGN_FAIL_NMTM = 0
+WHEN NOT MATCHED THEN INSERT (USER_ID, USER_NM, TEAM_SN, JBGD_CD, AUTHRT_CD, ENPSWD, ACNT_STTS_CD)
+VALUES (s.USER_ID, s.USER_NM, (SELECT TEAM_SN FROM TB_TEAM WHERE TEAM_NM = s.TEAM_NM),
+        s.JBGD_CD, s.AUTHRT_CD,
+        '$2b$10$nFBh95LuF8O959s4LLejnO6SKJJQeVjPQrpdEtPD1ExF6hfr54Vzq', s.ACNT_STTS_CD);
 
 
 -- 5) 공고 (공고 목록 탭·검색·정렬 확인용)

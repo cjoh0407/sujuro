@@ -3,6 +3,8 @@ target/
 .classpath
 .project
 .factorypath
+bin/
+.vscode/
 *.log
 .DS_Store
 application-local.properties

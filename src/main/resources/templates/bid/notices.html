@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layout/default}">
+<!--/*
+  공고 관리 - 목록 (FR-017 ~ 020). UI 목업 v3.2 의 rNotices() 화면과 같은 구성이다.
+  탭·검색·정렬·페이지 이동은 모두 GET 주소로 옮겨 다닌다. 그래서 주소를 그대로 북마크할 수 있다.
+  등록 · [지금 불러오기] · 공고 상세는 아직 없다. NoticeController 주석에 붙일 날짜를 적어 두었다.
+*/-->
+<head>
+  <title>공고 관리</title>
+</head>
+<body>
+
+<h1 layout:fragment="pageTitle">공고 관리</h1>
+
+<th:block layout:fragment="content">
+
+  <div class="page-head">
+    <div>
+      <h2>공고 관리</h2>
+      <div class="sub">공고 정보는 경영지원실·영업부·팀장만 봅니다 · 팀원에게는 노출되지 않습니다</div>
+    </div>
+    <div class="row" sec:authorize="hasRole('SALES')">
+      <button class="btn" type="button" disabled
+              title="본공고 연결·정정 확인은 10/22에 붙입니다">지금 불러오기</button>
+    </div>
+  </div>
+
+  <div class="banner ok" th:if="${registMessage}" th:text="${registMessage}">등록했습니다</div>
+
+  <!-- 공고 등록 (영업부). 번호만 넣으면 나라장터 API로 내용을 가져온다. 키워드 검색은 없다. -->
+  <div class="card" sec:authorize="hasRole('SALES')">
+    <div class="card-head">
+      <h3>공고 등록</h3>
+      <span class="faint" style="font-size:11.5px">영업부가 나라장터에서 찾은 공고를 번호로 등록합니다</span>
+    </div>
+    <div class="pad" style="display:flex;flex-direction:column;gap:10px">
+      <form class="row" method="post" th:action="@{/notices/pre-spec}">
+        <span class="lbl">사전규격등록번호</span>
+        <input type="text" name="bfSpecRgstNo" placeholder="R26BD00283794"
+               style="flex:1;min-width:180px;max-width:320px" required>
+        <button class="btn primary sm" type="submit">등록</button>
+      </form>
+      <div class="faint" style="font-size:11.5px">
+        번호만 넣으면 사업명·발주기관·실수요기관·예산·의견등록마감일시를 나라장터에서 가져옵니다.
+        본공고가 올라오면 자동으로 본공고로 바뀌고 알림이 갑니다.
+        입찰공고번호(R26BK…)로 바로 등록하는 경로는 다음 단계에서 붙입니다.
+      </div>
+    </div>
+  </div>
+
+  <!-- 탭: 건수가 0인 상태도 보여 준다. 숫자는 검색어와 무관한 전체 건수다. (목업과 같다) -->
+  <div class="tabs">
+    <a class="tab" th:classappend="${search.sttsCd == null} ? 'on' : ''"
+       th:href="@{/notices(searchBy=${search.searchBy}, keyword=${search.keyword}, sort=${search.sort})}"
+       th:text="|전체 ${totalAll}|">전체 0</a>
+    <a class="tab" th:each="tab : ${tabs}"
+       th:classappend="${tab.sttsCd == search.sttsCd} ? 'on' : ''"
+       th:href="@{/notices(sttsCd=${tab.sttsCd}, searchBy=${search.searchBy}, keyword=${search.keyword}, sort=${search.sort})}"
+       th:text="|${tab.sttsNm} ${tab.cnt}|">상태 0</a>
+  </div>
+
+  <!-- 검색·정렬. page 를 넘기지 않으므로 검색하면 1페이지부터 다시 본다. -->
+  <form class="row" method="get" th:action="@{/notices}">
+    <input type="hidden" name="sttsCd" th:value="${search.sttsCd}">
+    <select name="searchBy" aria-label="검색 대상">
+      <option value="name" th:selected="${search.searchBy == 'name'}">공고명</option>
+      <option value="no" th:selected="${search.searchBy == 'no'}">공고번호</option>
+      <option value="org" th:selected="${search.searchBy == 'org'}">발주기관</option>
+    </select>
+    <input type="text" name="keyword" th:value="${search.keyword}" placeholder="검색어" style="width:220px">
+    <button class="btn sm" type="submit">검색</button>
+    <select name="sort" data-auto-submit aria-label="정렬">
+      <option value="deadline" th:selected="${search.sort == 'deadline'}">마감일 빠른 순</option>
+      <option value="recent" th:selected="${search.sort == 'recent'}">최신 순</option>
+    </select>
+  </form>
+
+  <div class="card">
+    <div class="card-head">
+      <h3>공고 목록</h3>
+      <span class="faint" style="font-size:11.5px"
+            th:text="|총 ${result.total}건 · ${result.page} / ${result.totalPages} 페이지|">총 0건</span>
+    </div>
+
+    <div class="ts">
+      <table>
+        <thead>
+          <tr>
+            <th>공고번호</th>
+            <th>단계구분</th>
+            <th>공고명</th>
+            <th>발주기관</th>
+            <th>마감일</th>
+            <th>예산</th>
+            <th>담당 팀</th>
+            <th>진행상태</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="hv" th:each="row : ${result.rows}">
+            <td class="mono faint" th:text="${row.pbancNo}">R26BK00000000</td>
+            <td>
+              <!-- 사전규격은 아직 본공고를 기다리는 단계라 회색, 본공고는 진행 중이라 파랑 -->
+              <span class="pill" th:classappend="${row.preSpec} ? 'neutral' : 'accent'"
+                    th:text="${row.pbancStepNm}">본공고</span>
+            </td>
+            <td>
+              <b th:if="${row.pbancNm}" th:text="${row.pbancNm}">공고명</b>
+              <span class="faint" th:unless="${row.pbancNm}">공고명 미수집</span>
+            </td>
+            <td class="muted" th:text="${row.orderInstNm}">발주기관</td>
+            <td class="mono"
+                th:text="${row.bidDdlnDt != null} ? ${#dates.format(row.bidDdlnDt, 'MM-dd')} : '-'">00-00</td>
+            <td class="mono" th:text="${row.budgetText}">0억</td>
+            <td>
+              <span th:if="${row.teamText}" th:text="${row.teamText}">개발1팀</span>
+              <span class="faint" th:unless="${row.teamText}">미배정</span>
+            </td>
+            <td>
+              <span class="pill" th:classappend="${row.sttsPillClass}" th:text="${row.pbancSttsNm}">신규</span>
+              <!-- 팀에서 돌아온 공고는 상태가 '신규'로 같아지므로 따로 표시해 구분한다. -->
+              <span class="pill danger" th:if="${row.returned}" th:text="|${row.rtrnSeNm} 반환|">불참 반환</span>
+            </td>
+          </tr>
+          <tr th:if="${result.empty}">
+            <td colspan="8" class="empty">조건에 맞는 공고가 없습니다.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pager">
+      <a th:if="${result.hasPrev}" aria-label="이전 페이지"
+         th:href="@{/notices(sttsCd=${search.sttsCd}, searchBy=${search.searchBy}, keyword=${search.keyword}, sort=${search.sort}, page=${result.page - 1})}">&laquo;</a>
+      <span class="off" th:unless="${result.hasPrev}">&laquo;</span>
+
+      <th:block th:each="p : ${#numbers.sequence(1, result.totalPages)}">
+        <a th:classappend="${p == result.page} ? 'on' : ''" th:text="${p}"
+           th:href="@{/notices(sttsCd=${search.sttsCd}, searchBy=${search.searchBy}, keyword=${search.keyword}, sort=${search.sort}, page=${p})}">1</a>
+      </th:block>
+
+      <a th:if="${result.hasNext}" aria-label="다음 페이지"
+         th:href="@{/notices(sttsCd=${search.sttsCd}, searchBy=${search.searchBy}, keyword=${search.keyword}, sort=${search.sort}, page=${result.page + 1})}">&raquo;</a>
+      <span class="off" th:unless="${result.hasNext}">&raquo;</span>
+    </div>
+  </div>
+
+</th:block>
+
+<th:block layout:fragment="scripts">
+  <script>
+    // 정렬을 고르면 바로 검색 폼을 보낸다. (목업의 onchange 정렬과 같은 동작)
+    document.querySelectorAll('[data-auto-submit]').forEach(function (el) {
+      el.addEventListener('change', function () { el.form.submit(); });
+    });
+  </script>
+</th:block>
+
+</body>
+</html>

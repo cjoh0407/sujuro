@@ -91,7 +91,7 @@ flowchart LR
 | --- | --- |
 | Language | Java 11 |
 | Framework | Spring Boot 2.7.18, Spring Security, Spring Validation, Spring Mail |
-| Persistence | MyBatis 2.3.2, Oracle 21c XE (ojdbc8), 공공데이터 공통표준용어 기반 테이블 16개 |
+| Persistence | MyBatis 2.3.2, Oracle 21c XE (ojdbc8), 공공데이터 공통표준용어 기반 테이블 21개 |
 | View | Thymeleaf, Thymeleaf Layout Dialect, FullCalendar, Chart.js |
 | Build · IDE | Maven, Spring Tools(STS) 4 |
 | Collaboration | Git, GitHub (Pull Request 리뷰) |

@@ -1,6 +1,6 @@
 -- ============================================================
 -- sujuro 샘플 데이터 (목차·요구사항 개발과 화면 확인용)
--- 실행 전제: 01_schema.sql, 02_code_data.sql, 그리고 팀·사용자 데이터(2024-0031, 2024-0102, EXT-001, 2023-0067)가 들어 있어야 한다.
+-- 실행 전제: 01_schema.sql, 02_code_data.sql, 그리고 팀·사용자 데이터(2024-0031, 2024-0102, 2023-0067)가 들어 있어야 한다.
 -- 한 번만 실행한다. 다시 실행하려면 맨 아래 "샘플 지우기"를 먼저 실행한다.
 -- DBeaver: 파일을 열고 Alt+X (스크립트 실행). 파일 인코딩은 UTF-8.
 -- ============================================================
@@ -68,8 +68,6 @@ INSERT INTO TB_PRP_TMMBR (PBANC_SN, USER_ID, PTCP_SE_CD)
 VALUES ((SELECT PBANC_SN FROM TB_BID_PBANC WHERE BID_PBANC_NO = 'R26BK00000002'), '2024-0031', 'PT010');
 INSERT INTO TB_PRP_TMMBR (PBANC_SN, USER_ID, PTCP_SE_CD)
 VALUES ((SELECT PBANC_SN FROM TB_BID_PBANC WHERE BID_PBANC_NO = 'R26BK00000002'), '2024-0102', 'PT010');
-INSERT INTO TB_PRP_TMMBR (PBANC_SN, USER_ID, PTCP_SE_CD)
-VALUES ((SELECT PBANC_SN FROM TB_BID_PBANC WHERE BID_PBANC_NO = 'R26BK00000002'), 'EXT-001', 'PT030');
 
 -- ------------------------------------------------------------
 -- 3) 샘플공고 2의 사업건 목차 (담당자·예상 쪽수 포함)

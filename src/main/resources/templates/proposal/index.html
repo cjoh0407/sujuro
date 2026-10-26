@@ -36,141 +36,262 @@
       </form>
     </div>
 
-    <div class="banner info" th:unless="${canEdit}">조회만 가능합니다. 목차와 요구사항은 팀장만 수정할 수 있습니다.</div>
+    <div class="banner info" th:if="${!canEdit && canReq}">목차와 담당자는 팀장만 수정할 수 있습니다. 요구사항 등록·수정과 목차 연결은 할 수 있습니다.</div>
+    <div class="banner info" th:unless="${canReq}">조회만 가능합니다. 목차·담당자는 팀장이, 요구사항은 팀장과 목차 담당자가 수정할 수 있습니다.</div>
 
-    <!-- 분량 합계 (FR-055, 초안 기능) -->
-    <div class="card pad">
-      <div class="row" style="justify-content:space-between">
-        <b style="font-size:12.5px">
-          제안서 분량 합계 <span th:text="${totalPages}">0</span>
-          <th:block th:if="${bid.lmtPageCnt != null}"> / <span th:text="${bid.lmtPageCnt}">0</span></th:block>쪽
-          <span class="faint" style="font-weight:400">(초안 기능 · 제안요청서의 페이지 제한)</span>
-        </b>
-        <form th:if="${canEdit}" th:action="@{/proposal/limit}" method="post" class="row">
-          <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-          <span class="lbl">제한</span>
-          <input type="number" name="limit" min="1" max="9999" th:value="${bid.lmtPageCnt}" style="width:80px">
-          <button class="btn sm" type="submit">저장</button>
-        </form>
+    <!-- 탭: 제안서 목차·요구사항 / 제안요약서 목차 (FR-063, 화면 설계 v3.4) -->
+    <div class="tabs">
+      <a class="tab" th:classappend="${tab == 'prop'} ? 'on'" th:href="@{/proposal(bid=${bid.pbancSn})}">제안서 목차 · 요구사항</a>
+      <a class="tab" th:classappend="${tab == 'sum'} ? 'on'" th:href="@{/proposal(bid=${bid.pbancSn}, tab='sum')}">제안요약서 목차</a>
+    </div>
+
+    <!-- ================================================================
+         제안서 목차 · 담당자 · 요구사항
+         ================================================================ -->
+    <th:block th:if="${tab == 'prop'}">
+
+      <!-- 진행 단계: ① 목차 양식 불러오기 → ② 목차별 담당자 지정 → ③ 요구사항 연결 (FR-046, FR-049, FR-051) -->
+      <div class="steps"
+           th:with="s1=${!#lists.isEmpty(tocs)}, s2=${assignedAll}, s3=${assignedAll && rqtTotal > 0 && unmapped == 0}">
+        <div class="step" th:classappend="${s1} ? 'done' : 'cur'">
+          <b>① 목차 양식 불러오기</b>
+          <span th:text="${s1} ? '양식 적용됨' : '목차 양식을 불러오세요'">양식 적용됨</span>
+        </div>
+        <div class="step" th:classappend="${s2} ? 'done' : (${s1} ? 'cur' : '')">
+          <b>② 목차별 담당자 지정</b>
+          <span th:text="${s2} ? '모든 목차 지정 완료' : (${s1} ? '미지정 ' + ${unassigned} + '개' : '①이 먼저 필요')">미지정 0개</span>
+        </div>
+        <div class="step" th:classappend="${s3} ? 'done' : (${s2} ? 'cur' : '')">
+          <b>③ 요구사항 연결</b>
+          <span th:text="${s3} ? '모두 연결됨' : (${s2} ? '미매핑 ' + ${unmapped} + '건' : '②가 먼저 필요')">미매핑 0건</span>
+        </div>
       </div>
-      <div class="bar" th:classappend="${overPages > 0} ? 'red'" style="margin-top:8px"
-           th:if="${bid.lmtPageCnt != null}">
-        <i th:style="'width:' + ${T(java.lang.Math).min(100, totalPages * 100 / bid.lmtPageCnt)} + '%'"></i>
+
+      <!-- 분량 합계 (FR-055, 초안 기능) -->
+      <div class="card pad">
+        <div class="row" style="justify-content:space-between">
+          <b style="font-size:12.5px">
+            제안서 분량 합계 <span th:text="${totalPages}">0</span>
+            <th:block th:if="${bid.lmtPageCnt != null}"> / <span th:text="${bid.lmtPageCnt}">0</span></th:block>쪽
+            <span class="faint" style="font-weight:400">(초안 기능 · 제안요청서의 페이지 제한)</span>
+          </b>
+          <form th:if="${canEdit}" th:action="@{/proposal/limit}" method="post" class="row">
+            <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+            <span class="lbl">제한</span>
+            <input type="number" name="limit" min="1" max="9999" th:value="${bid.lmtPageCnt}" style="width:80px">
+            <button class="btn sm" type="submit">저장</button>
+          </form>
+        </div>
+        <div class="bar" th:classappend="${overPages > 0} ? 'red'" style="margin-top:8px" th:if="${bid.lmtPageCnt != null}">
+          <i th:style="'width:' + ${T(java.lang.Math).min(100, totalPages * 100 / bid.lmtPageCnt)} + '%'"></i>
+        </div>
       </div>
-    </div>
-    <div class="banner err" th:if="${overPages > 0}">
-      목차별 예상 쪽수의 합계(<span th:text="${totalPages}">0</span>쪽)가 제한(<span th:text="${bid.lmtPageCnt}">0</span>쪽)을
-      <b th:text="${overPages}">0</b>쪽 넘었습니다. 분량을 조정하세요.
-    </div>
-
-    <!-- 목차가 없으면 공통 양식 불러오기 (FR-046) -->
-    <div class="card" th:if="${#lists.isEmpty(tocs)}">
-      <div class="empty">
-        아직 목차가 없습니다.<br><br>
-        <form th:if="${canEdit}" th:action="@{/proposal/toc/import}" method="post">
-          <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-          <button class="btn primary" type="submit">공통 목차 불러오기</button>
-        </form>
-        <span th:unless="${canEdit}">팀장이 공통 목차를 불러오면 표시됩니다.</span>
+      <div class="banner err" th:if="${overPages > 0}">
+        목차별 예상 쪽수의 합계(<span th:text="${totalPages}">0</span>쪽)가 제한(<span th:text="${bid.lmtPageCnt}">0</span>쪽)을
+        <b th:text="${overPages}">0</b>쪽 넘었습니다. 분량을 조정하세요.
       </div>
-    </div>
+      <div class="banner warn" th:if="${!#lists.isEmpty(tocs) && rqtTotal > 0 && unmapped > 0}">
+        <span>어느 목차에도 연결되지 않은 요구사항(미매핑)이 <b th:text="${unmapped} + '건'">0건</b> 있습니다. 모든 요구사항은 반드시 목차에 연결되어야 합니다.</span>
+      </div>
 
-    <div class="banner warn" th:if="${!#lists.isEmpty(tocs) && rqtTotal > 0 && unmapped > 0}">
-      <span>어느 목차에도 연결되지 않은 요구사항(미매핑)이 <b th:text="${unmapped}">0</b>건 있습니다. 모든 요구사항은 반드시 목차에 연결되어야 합니다.</span>
-    </div>
+      <!-- 목차가 없으면 양식 고르기 (FR-046) -->
+      <div class="card" th:if="${#lists.isEmpty(tocs)}">
+        <div class="empty">
+          아직 제안서 목차가 없습니다.<br><br>
+          <form th:if="${canEdit}" th:action="@{/proposal/toc/import}" method="post" class="row" style="justify-content:center">
+            <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+            <select name="tocFormSn" required>
+              <option th:each="f, st : ${forms}" th:value="${f.tocFormSn}" th:text="${f.label}" th:selected="${st.first}">대법원 양식</option>
+            </select>
+            <button class="btn primary" type="submit">목차 불러오기</button>
+          </form>
+          <span th:unless="${canEdit}">팀장이 목차 양식을 불러오면 표시됩니다.</span>
+        </div>
+      </div>
 
-    <div class="two" style="grid-template-columns:1fr 1.15fr">
+      <th:block th:unless="${#lists.isEmpty(tocs)}">
 
-      <!-- ===== 목차 ===== -->
-      <div class="card" th:if="${canEdit or !#lists.isEmpty(tocs)}">
-        <div class="card-head">
-          <h3>제안서 목차 (이 사업건만 수정됨)</h3>
+        <!-- 목차 양식 바꾸기 · 커스텀 양식으로 저장 (FR-046, FR-048) -->
+        <div class="card pad" th:if="${canEdit}">
+          <div class="row" style="justify-content:space-between;gap:14px">
+            <form th:action="@{/proposal/toc/import}" method="post" class="row"
+                  onsubmit="return confirm('현재 목차와 담당자 지정이 사라지고, 연결된 요구사항은 모두 미매핑이 됩니다. 선택한 양식으로 바꿀까요?')">
+              <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+              <b style="font-size:12.5px">목차 양식</b>
+              <select name="tocFormSn" required>
+                <option value="">양식 선택</option>
+                <option th:each="f : ${forms}" th:value="${f.tocFormSn}" th:text="${f.label}">대법원 양식</option>
+              </select>
+              <button class="btn sm" type="submit">다른 양식으로 바꾸기</button>
+            </form>
+            <form th:action="@{/proposal/toc/form}" method="post" class="row">
+              <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+              <input type="text" name="tocFormNm" placeholder="저장할 양식 이름" maxlength="100" required style="width:170px">
+              <button class="btn sm" type="submit">지금 목차를 커스텀 양식으로 저장</button>
+            </form>
+          </div>
+          <div class="faint" style="font-size:11.5px;margin-top:6px">대법원·한국고용정보원 양식은 기본 제공이고, 커스텀 양식은 직접 저장한 본인 양식만 보입니다. 저장은 사업건 목차와 따로 보관되어 이 사업건의 이후 수정에는 영향받지 않습니다.</div>
         </div>
 
-        <div class="ts" th:unless="${#lists.isEmpty(tocs)}">
-          <table>
-            <thead>
-              <tr>
-                <th>목차</th><th>담당자</th><th>예상 쪽수</th><th>요구사항</th>
-                <th th:if="${canEdit}"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="hv" th:each="t : ${tocs}">
-                <td th:style="'padding-left:' + ${12 + t.depth * 18} + 'px'">
-                  <span class="mono" th:text="${t.tocNo}">1.1</span>
-                  <th:block th:if="${canEdit}">
-                    <input type="text" name="tocNm" th:value="${t.tocNm}" th:attr="form='e' + ${t.tocSn}"
-                           maxlength="200" required style="width:70%">
-                  </th:block>
-                  <span th:unless="${canEdit}" th:text="${t.tocNm}"
-                        th:style="${t.depth == 0} ? 'font-weight:700'">목차명</span>
-                </td>
-                <td>
-                  <span th:if="${t.picNm != null}" th:text="${t.picNm}">담당자</span>
-                  <span class="faint" th:if="${t.picNm == null && !t.group}">미지정</span>
-                </td>
-                <td>
-                  <span th:if="${t.group}" class="faint" th:text="${groupPages[t.tocSn] ?: 0}">0</span>
-                  <th:block th:unless="${t.group}">
-                    <input th:if="${canEdit}" type="number" name="pages" min="0" max="9999" th:value="${t.expcPageCnt}"
-                           th:attr="form='e' + ${t.tocSn}" style="width:64px">
-                    <span th:unless="${canEdit}" th:text="${t.pages}">0</span>
-                  </th:block>
-                </td>
-                <td th:text="${t.rqtCnt}">0</td>
-                <td th:if="${canEdit}" style="white-space:nowrap">
-                  <form th:id="'e' + ${t.tocSn}" th:action="@{/proposal/toc/edit}" method="post" style="display:inline">
-                    <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-                    <input type="hidden" name="tocSn" th:value="${t.tocSn}">
-                    <button class="link" type="submit">저장</button>
-                  </form>
-                  <form th:action="@{/proposal/toc/delete}" method="post" style="display:inline" th:data-cnt="${t.rqtCnt}"
-                        onsubmit="var n=+this.dataset.cnt;return confirm(n>0?'이 목차에 연결된 요구사항 '+n+'건이 미매핑으로 바뀝니다. 삭제할까요?':'이 목차를 삭제할까요?')">
-                    <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-                    <input type="hidden" name="tocSn" th:value="${t.tocSn}">
-                    <button class="link" type="submit">삭제</button>
-                  </form>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- 목차 추가 (FR-047) -->
-        <form th:if="${canEdit}" th:action="@{/proposal/toc/add}" method="post" class="pad row">
-          <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-          <select name="upTocSn" style="width:150px">
-            <option value="">최상위 목차</option>
-            <th:block th:each="t : ${tocs}">
-              <option th:if="${t.depth == 0}" th:value="${t.tocSn}" th:text="${t.tocNo + ' 아래'}">1 아래</option>
-            </th:block>
-          </select>
-          <input type="text" name="tocNm" placeholder="새 목차 이름" maxlength="200" required style="width:150px">
-          <input type="number" name="pages" min="0" max="9999" placeholder="쪽수" style="width:70px">
-          <button class="btn sm" type="submit">+ 추가</button>
-        </form>
-      </div>
-
-      <!-- ===== 요구사항 ===== -->
-      <div class="col">
+        <!-- 목차 · 담당자 · 요구사항 연결 (FR-047, FR-049, FR-051) -->
         <div class="card">
           <div class="card-head">
-            <h3>요구사항 · 매핑 진행률 <span th:text="${progress}">0</span>%
-              (<span th:text="${rqtTotal - unmapped}">0</span>/<span th:text="${rqtTotal}">0</span>)</h3>
+            <h3>제안서 목차 · 담당자 · 요구사항 (이 사업건만 수정됨)</h3>
+            <form th:if="${canEdit}" th:action="@{/proposal/toc/add}" method="post" class="row">
+              <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+              <input type="text" name="tocNm" placeholder="새 큰 목차 이름" maxlength="200" required style="width:150px">
+              <button class="btn sm" type="submit">+ 큰 목차 추가</button>
+            </form>
+          </div>
+          <div class="pad" style="padding-bottom:0">
+            <span class="faint" style="font-size:11.5px">
+              요구사항 연결 진행률 <span th:text="${progress}">0</span>%
+              (<span th:text="${rqtTotal - unmapped}">0</span>/<span th:text="${rqtTotal}">0</span>)
+              · 요구사항 하나는 세부 목차 하나에만 연결됩니다 · 담당자를 지정한 세부 목차부터 연결할 수 있습니다
+            </span>
+            <div class="bar ok" style="margin-top:6px"><i th:style="'width:' + ${progress} + '%'"></i></div>
+          </div>
+          <div class="ts">
+            <table>
+              <thead>
+                <tr>
+                  <th>세부 목차</th><th>담당자</th><th style="width:36%">요구사항 ID</th><th>예상 쪽수</th>
+                  <th th:if="${canEdit}"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <th:block th:each="t : ${tocs}">
+
+                  <!-- 큰 목차 줄 -->
+                  <th:block th:if="${t.group}">
+                    <tr>
+                      <td th:colspan="${canEdit} ? 5 : 4" style="font-weight:700;background:var(--alt)">
+                        <span class="mono" th:text="${t.tocNo}">1</span>
+                        <th:block th:if="${canEdit}">
+                          <form th:action="@{/proposal/toc/edit}" method="post" style="display:inline">
+                            <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                            <input type="hidden" name="tocSn" th:value="${t.tocSn}">
+                            <input type="text" name="tocNm" th:value="${t.tocNm}" maxlength="200" required style="width:180px;font-weight:700">
+                            <button class="link" type="submit">저장</button>
+                          </form>
+                        </th:block>
+                        <span th:unless="${canEdit}" th:text="${t.tocNm}">큰 목차</span>
+                        <span class="faint" style="font-weight:400"
+                              th:text="'· 세부 ' + ${t.childCnt} + '개 · 요구사항 ' + ${groupRqts[t.tocSn] ?: 0} + '건 · ' + ${groupPages[t.tocSn] ?: 0} + '쪽'">· 세부 0개</span>
+                        <span class="row" th:if="${canEdit}" style="float:right;font-weight:400">
+                          <form th:action="@{/proposal/toc/add}" method="post" class="row">
+                            <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                            <input type="hidden" name="upTocSn" th:value="${t.tocSn}">
+                            <input type="text" name="tocNm" placeholder="새 세부 목차 이름" maxlength="200" required style="width:140px">
+                            <button class="btn sm" type="submit">+ 세부 목차</button>
+                          </form>
+                          <form th:action="@{/proposal/toc/delete}" method="post"
+                                th:data-name="${t.tocNm}" th:data-kids="${t.childCnt}" th:data-rqts="${groupRqts[t.tocSn] ?: 0}"
+                                onsubmit="var d=this.dataset;return confirm('&quot;'+d.name+'&quot;과 세부 목차 '+d.kids+'개를 삭제합니다.'+(+d.rqts>0?' 연결된 요구사항 '+d.rqts+'건은 미매핑이 됩니다.':'')+' 삭제할까요?')">
+                            <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                            <input type="hidden" name="tocSn" th:value="${t.tocSn}">
+                            <button class="btn sm danger" type="submit">큰 목차 삭제</button>
+                          </form>
+                        </span>
+                      </td>
+                    </tr>
+                    <tr th:if="${t.childCnt == 0}">
+                      <td th:colspan="${canEdit} ? 5 : 4" class="faint" style="padding-left:28px">세부 목차가 없습니다. 위의 "+ 세부 목차"로 추가하세요.</td>
+                    </tr>
+                  </th:block>
+
+                  <!-- 세부 목차 줄 -->
+                  <tr class="hv" th:unless="${t.group}"
+                      th:with="mine=${rqtsByToc[t.tocSn]}, can=${t.picId != null && canReq}">
+                    <td style="padding-left:28px">
+                      <span class="mono" th:text="${t.tocNo}">1.1</span>
+                      <input th:if="${canEdit}" type="text" name="tocNm" th:value="${t.tocNm}" th:attr="form='e' + ${t.tocSn}"
+                             maxlength="200" required style="width:65%">
+                      <span th:unless="${canEdit}" th:text="${t.tocNm}">세부 목차</span>
+                    </td>
+                    <td>
+                      <form th:if="${canEdit}" th:action="@{/proposal/toc/assign}" method="post" style="display:inline">
+                        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                        <input type="hidden" name="tocSn" th:value="${t.tocSn}">
+                        <select name="picId" onchange="this.form.submit()" style="max-width:130px">
+                          <option value="">미지정</option>
+                          <option th:each="m : ${members}" th:value="${m.userId}" th:text="${m.userNm}"
+                                  th:selected="${m.userId == t.picId}">담당자</option>
+                          <!-- 제안팀에서 빠진 사람이 담당자로 남아 있으면 그대로 보여 준다 -->
+                          <option th:if="${t.picId != null && !#lists.contains(members.![userId], t.picId)}"
+                                  th:value="${t.picId}" th:text="${(t.picNm ?: t.picId) + ' (제안팀 아님)'}" selected>담당자</option>
+                        </select>
+                      </form>
+                      <th:block th:unless="${canEdit}">
+                        <span th:if="${t.picNm != null}" th:text="${t.picNm}">담당자</span>
+                        <span class="faint" th:if="${t.picNm == null}">미지정</span>
+                      </th:block>
+                    </td>
+                    <td>
+                      <div class="row" style="gap:6px">
+                        <span class="pill neutral" th:each="q : ${mine}" th:title="${q.rqtMttrNm}">
+                          <span th:text="${q.rqtMttrNo}">SFR-001</span>
+                          <form th:if="${can}" th:action="@{/proposal/rqt/map}" method="post" style="display:inline">
+                            <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                            <input type="hidden" name="rqtMttrSn" th:value="${q.rqtMttrSn}">
+                            <input type="hidden" name="filter" th:value="${filter}">
+                            <button type="submit" title="연결 해제" style="border:0;background:none;padding:0;cursor:pointer;color:inherit">✕</button>
+                          </form>
+                        </span>
+                        <th:block th:if="${#lists.isEmpty(mine)}">
+                          <span class="faint" th:text="${t.picId != null} ? '연결된 요구사항 없음' : '담당자 지정 후 연결'">연결된 요구사항 없음</span>
+                        </th:block>
+                        <form th:if="${can && !#lists.isEmpty(unmappedList)}" th:action="@{/proposal/rqt/map}" method="post" style="display:inline">
+                          <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                          <input type="hidden" name="tocSn" th:value="${t.tocSn}">
+                          <input type="hidden" name="filter" th:value="${filter}">
+                          <select name="rqtMttrSn" onchange="this.form.submit()" style="max-width:190px">
+                            <option value="">+ 요구사항 추가</option>
+                            <option th:each="q : ${unmappedList}" th:value="${q.rqtMttrSn}"
+                                    th:text="${q.rqtMttrNo + ' · ' + q.rqtMttrNm}">SFR-001 · 요구사항</option>
+                          </select>
+                        </form>
+                      </div>
+                    </td>
+                    <td>
+                      <input th:if="${canEdit}" type="number" name="pages" min="0" max="9999" th:value="${t.expcPageCnt}"
+                             th:attr="form='e' + ${t.tocSn}" style="width:64px">
+                      <span th:unless="${canEdit}" th:text="${t.pages}">0</span>
+                    </td>
+                    <td th:if="${canEdit}" style="white-space:nowrap">
+                      <form th:id="'e' + ${t.tocSn}" th:action="@{/proposal/toc/edit}" method="post" style="display:inline">
+                        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                        <input type="hidden" name="tocSn" th:value="${t.tocSn}">
+                        <button class="link" type="submit">저장</button>
+                      </form>
+                      <form th:action="@{/proposal/toc/delete}" method="post" style="display:inline" th:data-cnt="${t.rqtCnt}"
+                            onsubmit="var n=+this.dataset.cnt;return confirm(n>0?'이 세부 목차에 연결된 요구사항 '+n+'건이 미매핑으로 바뀝니다. 삭제할까요?':'이 세부 목차를 삭제할까요?')">
+                        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                        <input type="hidden" name="tocSn" th:value="${t.tocSn}">
+                        <button class="link" type="submit">삭제</button>
+                      </form>
+                    </td>
+                  </tr>
+                </th:block>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 요구사항 목록 (FR-052~054) -->
+        <div class="card">
+          <div class="card-head">
+            <h3 th:text="'요구사항 목록 (' + ${rqtTotal} + ')'">요구사항 목록 (0)</h3>
             <div class="tabs">
               <a class="tab" th:classappend="${filter == 'all'} ? 'on'" th:href="@{/proposal(bid=${bid.pbancSn}, filter='all')}">전체</a>
               <a class="tab" th:classappend="${filter == 'unmapped'} ? 'on'" th:href="@{/proposal(bid=${bid.pbancSn}, filter='unmapped')}">미매핑</a>
               <a class="tab" th:classappend="${filter == 'mine'} ? 'on'" th:href="@{/proposal(bid=${bid.pbancSn}, filter='mine')}">내 담당</a>
             </div>
           </div>
-          <div class="pad" style="padding-bottom:0">
-            <div class="bar ok"><i th:style="'width:' + ${progress} + '%'"></i></div>
-          </div>
           <div class="ts">
             <table>
               <thead>
-                <tr><th>ID</th><th>요구사항</th><th>연결 목차</th><th>담당자</th><th th:if="${canEdit}"></th></tr>
+                <tr><th>ID</th><th>요구사항</th><th>연결된 세부 목차</th><th>담당자</th><th th:if="${canReq}"></th></tr>
               </thead>
               <tbody>
                 <tr class="hv" th:each="q : ${rqts}" th:style="${q.unmapped} ? 'background:var(--danger-soft)'">
@@ -186,7 +307,7 @@
                     <span th:unless="${q.unmapped}" th:text="${q.tocNo + ' ' + q.tocNm}">1.1 목차</span>
                   </td>
                   <td th:text="${q.picNm ?: '-'}">-</td>
-                  <td th:if="${canEdit}" style="white-space:nowrap">
+                  <td th:if="${canReq}" style="white-space:nowrap">
                     <a class="link" th:href="@{/proposal(bid=${bid.pbancSn}, filter=${filter}, edit=${q.rqtMttrSn})}">수정</a>
                     <form th:action="@{/proposal/rqt/delete}" method="post" style="display:inline"
                           onsubmit="return confirm('이 요구사항을 삭제할까요?')">
@@ -204,59 +325,206 @@
           </div>
         </div>
 
-        <div class="banner info" th:if="${canEdit}">
-          요구사항을 목차에 연결하는 매핑과 목차별 담당자 지정은 다음 단계에서 추가됩니다.
+      <!-- 요구사항 수기 등록·수정 (FR-050) -->
+      <div class="card" th:if="${canReq}">
+        <div class="card-head">
+          <h3 th:text="${editRqt != null} ? '요구사항 수정 · ' + ${editRqt.rqtMttrNo} : '요구사항 수기 등록'">요구사항 수기 등록</h3>
         </div>
-
-        <!-- 요구사항 수기 등록·수정 (FR-050) -->
-        <div class="card" th:if="${canEdit}">
-          <div class="card-head">
-            <h3 th:text="${editRqt != null} ? '요구사항 수정 · ' + ${editRqt.rqtMttrNo} : '요구사항 수기 등록'">요구사항 수기 등록</h3>
+        <form th:action="${editRqt != null} ? @{/proposal/rqt/edit} : @{/proposal/rqt/add}" method="post"
+              class="pad" style="display:flex;flex-direction:column;gap:10px">
+          <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+          <input type="hidden" name="rqtMttrSn" th:if="${editRqt != null}" th:value="${editRqt.rqtMttrSn}">
+          <div class="grid2">
+            <div class="fld">
+              <label for="rqtMttrNo">요구사항 ID (사업 안에서 중복 불가)</label>
+              <input id="rqtMttrNo" name="rqtMttrNo" type="text" maxlength="50" required
+                     th:value="${editRqt?.rqtMttrNo}" th:disabled="${editRqt != null}">
+            </div>
+            <div class="fld">
+              <label for="rqtMttrNm">명칭</label>
+              <input id="rqtMttrNm" name="rqtMttrNm" type="text" maxlength="300" required th:value="${editRqt?.rqtMttrNm}">
+            </div>
           </div>
-          <form th:action="${editRqt != null} ? @{/proposal/rqt/edit} : @{/proposal/rqt/add}" method="post"
-                class="pad" style="display:flex;flex-direction:column;gap:10px">
+          <div class="grid2">
+            <div class="fld">
+              <label for="clsfNm">분류</label>
+              <select id="clsfNm" name="clsfNm">
+                <option th:each="c : ${#strings.arraySplit('기능,성능,보안,인터페이스,사업관리', ',')}" th:value="${c}" th:text="${c}"
+                        th:selected="${editRqt != null && c == editRqt.clsfNm}">기능</option>
+              </select>
+            </div>
+            <div class="fld">
+              <label for="pageNo">원본 위치(RFP 쪽)</label>
+              <input id="pageNo" name="pageNo" type="text" maxlength="20" th:value="${editRqt?.pageNo}">
+            </div>
+          </div>
+          <div class="fld">
+            <label for="rqtMttrDfn">정의</label>
+            <input id="rqtMttrDfn" name="rqtMttrDfn" type="text" maxlength="2000" th:value="${editRqt?.rqtMttrDfn}">
+          </div>
+          <div class="fld">
+            <label for="dtlCn">세부 내용</label>
+            <textarea id="dtlCn" name="dtlCn" rows="3" maxlength="4000" th:text="${editRqt?.dtlCn}"></textarea>
+          </div>
+          <div class="row">
+            <button class="btn primary" type="submit" th:text="${editRqt != null} ? '수정 저장' : '등록'">등록</button>
+            <a class="btn" th:if="${editRqt != null}" th:href="@{/proposal(bid=${bid.pbancSn}, filter=${filter})}">취소</a>
+          </div>
+        </form>
+      </div>
+      </th:block>
+    </th:block>
+
+    <!-- ================================================================
+         제안요약서 목차 · 담당자 (FR-049, FR-063)
+         ================================================================ -->
+    <th:block th:if="${tab == 'sum'}">
+      <div class="banner info"><span>제안요약서(발표본)도 제안서처럼 목차를 구성하고 목차마다 담당자를 지정합니다. 파일은 <b>제안서 파일 관리</b>의 "제안요약서 (목차별)" 탭에서 담당자가 올립니다. 요구사항 연결은 제안서 목차에만 적용됩니다.</span></div>
+
+      <div class="card" th:if="${#lists.isEmpty(tocs)}">
+        <div class="empty">
+          아직 제안요약서 목차가 없습니다.<br><br>
+          <form th:if="${canEdit}" th:action="@{/proposal/toc/import}" method="post" class="row" style="justify-content:center">
             <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-            <input type="hidden" name="rqtMttrSn" th:if="${editRqt != null}" th:value="${editRqt.rqtMttrSn}">
-            <div class="grid2">
-              <div class="fld">
-                <label for="rqtMttrNo">요구사항 ID (사업 안에서 중복 불가)</label>
-                <input id="rqtMttrNo" name="rqtMttrNo" type="text" maxlength="50" required
-                       th:value="${editRqt?.rqtMttrNo}" th:disabled="${editRqt != null}">
-              </div>
-              <div class="fld">
-                <label for="rqtMttrNm">명칭</label>
-                <input id="rqtMttrNm" name="rqtMttrNm" type="text" maxlength="300" required th:value="${editRqt?.rqtMttrNm}">
-              </div>
-            </div>
-            <div class="grid2">
-              <div class="fld">
-                <label for="clsfNm">분류</label>
-                <select id="clsfNm" name="clsfNm">
-                  <option th:each="c : ${#strings.arraySplit('기능,성능,보안,인터페이스,사업관리', ',')}" th:value="${c}" th:text="${c}"
-                          th:selected="${editRqt != null && c == editRqt.clsfNm}">기능</option>
-                </select>
-              </div>
-              <div class="fld">
-                <label for="pageNo">원본 위치(RFP 쪽)</label>
-                <input id="pageNo" name="pageNo" type="text" maxlength="20" th:value="${editRqt?.pageNo}">
-              </div>
-            </div>
-            <div class="fld">
-              <label for="rqtMttrDfn">정의</label>
-              <input id="rqtMttrDfn" name="rqtMttrDfn" type="text" maxlength="2000" th:value="${editRqt?.rqtMttrDfn}">
-            </div>
-            <div class="fld">
-              <label for="dtlCn">세부 내용</label>
-              <textarea id="dtlCn" name="dtlCn" rows="3" maxlength="4000" th:text="${editRqt?.dtlCn}"></textarea>
-            </div>
-            <div class="row">
-              <button class="btn primary" type="submit" th:text="${editRqt != null} ? '수정 저장' : '등록'">등록</button>
-              <a class="btn" th:if="${editRqt != null}" th:href="@{/proposal(bid=${bid.pbancSn}, filter=${filter})}">취소</a>
-            </div>
+            <input type="hidden" name="tab" value="sum">
+            <select name="tocFormSn" required>
+              <option th:each="f, st : ${forms}" th:value="${f.tocFormSn}" th:text="${f.label}" th:selected="${st.first}">대법원 양식</option>
+            </select>
+            <button class="btn primary" type="submit">목차 불러오기</button>
           </form>
+          <span th:unless="${canEdit}">팀장이 목차 양식을 불러오면 표시됩니다.</span>
         </div>
       </div>
-    </div>
+
+      <th:block th:unless="${#lists.isEmpty(tocs)}">
+        <div class="card pad" th:if="${canEdit}">
+          <div class="row" style="justify-content:space-between;gap:14px">
+            <form th:action="@{/proposal/toc/import}" method="post" class="row"
+                  onsubmit="return confirm('현재 목차와 담당자 지정이 사라집니다. 선택한 양식으로 바꿀까요?')">
+              <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+              <input type="hidden" name="tab" value="sum">
+              <b style="font-size:12.5px">목차 양식</b>
+              <select name="tocFormSn" required>
+                <option value="">양식 선택</option>
+                <option th:each="f : ${forms}" th:value="${f.tocFormSn}" th:text="${f.label}">대법원 양식</option>
+              </select>
+              <button class="btn sm" type="submit">다른 양식으로 바꾸기</button>
+            </form>
+            <form th:action="@{/proposal/toc/form}" method="post" class="row">
+              <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+              <input type="hidden" name="tab" value="sum">
+              <input type="text" name="tocFormNm" placeholder="저장할 양식 이름" maxlength="100" required style="width:170px">
+              <button class="btn sm" type="submit">지금 목차를 커스텀 양식으로 저장</button>
+            </form>
+          </div>
+          <div class="faint" style="font-size:11.5px;margin-top:6px">대법원·한국고용정보원 양식은 기본 제공이고, 커스텀 양식은 직접 저장한 본인 양식만 보입니다. 저장은 사업건 목차와 따로 보관되어 이 사업건의 이후 수정에는 영향받지 않습니다.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>제안요약서 목차 · 담당자 (이 사업건만 수정됨)</h3>
+            <form th:if="${canEdit}" th:action="@{/proposal/toc/add}" method="post" class="row">
+              <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+              <input type="hidden" name="tab" value="sum">
+              <input type="text" name="tocNm" placeholder="새 큰 목차 이름" maxlength="200" required style="width:150px">
+              <button class="btn sm" type="submit">+ 큰 목차 추가</button>
+            </form>
+          </div>
+          <div class="ts">
+            <table>
+              <thead>
+                <tr><th>세부 목차</th><th>담당자</th><th>파일 상태</th><th th:if="${canEdit}"></th></tr>
+              </thead>
+              <tbody>
+                <th:block th:each="t : ${tocs}">
+                  <th:block th:if="${t.group}">
+                    <tr>
+                      <td th:colspan="${canEdit} ? 4 : 3" style="font-weight:700;background:var(--alt)">
+                        <span class="mono" th:text="${t.tocNo}">1</span>
+                        <th:block th:if="${canEdit}">
+                          <form th:action="@{/proposal/toc/edit}" method="post" style="display:inline">
+                            <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                            <input type="hidden" name="tab" value="sum">
+                            <input type="hidden" name="tocSn" th:value="${t.tocSn}">
+                            <input type="text" name="tocNm" th:value="${t.tocNm}" maxlength="200" required style="width:180px;font-weight:700">
+                            <button class="link" type="submit">저장</button>
+                          </form>
+                        </th:block>
+                        <span th:unless="${canEdit}" th:text="${t.tocNm}">큰 목차</span>
+                        <span class="row" th:if="${canEdit}" style="float:right;font-weight:400">
+                          <form th:action="@{/proposal/toc/add}" method="post" class="row">
+                            <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                            <input type="hidden" name="tab" value="sum">
+                            <input type="hidden" name="upTocSn" th:value="${t.tocSn}">
+                            <input type="text" name="tocNm" placeholder="새 세부 목차 이름" maxlength="200" required style="width:140px">
+                            <button class="btn sm" type="submit">+ 세부 목차</button>
+                          </form>
+                          <form th:action="@{/proposal/toc/delete}" method="post"
+                                th:data-name="${t.tocNm}" th:data-kids="${t.childCnt}"
+                                onsubmit="var d=this.dataset;return confirm('&quot;'+d.name+'&quot;과 세부 목차 '+d.kids+'개를 삭제합니다. 삭제할까요?')">
+                            <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                            <input type="hidden" name="tab" value="sum">
+                            <input type="hidden" name="tocSn" th:value="${t.tocSn}">
+                            <button class="btn sm danger" type="submit">큰 목차 삭제</button>
+                          </form>
+                        </span>
+                      </td>
+                    </tr>
+                    <tr th:if="${t.childCnt == 0}">
+                      <td th:colspan="${canEdit} ? 4 : 3" class="faint" style="padding-left:28px">세부 목차가 없습니다.</td>
+                    </tr>
+                  </th:block>
+
+                  <tr class="hv" th:unless="${t.group}">
+                    <td style="padding-left:28px">
+                      <span class="mono" th:text="${t.tocNo}">1.1</span>
+                      <input th:if="${canEdit}" type="text" name="tocNm" th:value="${t.tocNm}" th:attr="form='e' + ${t.tocSn}"
+                             maxlength="200" required style="width:65%">
+                      <span th:unless="${canEdit}" th:text="${t.tocNm}">세부 목차</span>
+                    </td>
+                    <td>
+                      <form th:if="${canEdit}" th:action="@{/proposal/toc/assign}" method="post" style="display:inline">
+                        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                        <input type="hidden" name="tab" value="sum">
+                        <input type="hidden" name="tocSn" th:value="${t.tocSn}">
+                        <select name="picId" onchange="this.form.submit()" style="max-width:130px">
+                          <option value="">미지정</option>
+                          <option th:each="m : ${members}" th:value="${m.userId}" th:text="${m.userNm}"
+                                  th:selected="${m.userId == t.picId}">담당자</option>
+                          <option th:if="${t.picId != null && !#lists.contains(members.![userId], t.picId)}"
+                                  th:value="${t.picId}" th:text="${(t.picNm ?: t.picId) + ' (제안팀 아님)'}" selected>담당자</option>
+                        </select>
+                      </form>
+                      <th:block th:unless="${canEdit}">
+                        <span th:if="${t.picNm != null}" th:text="${t.picNm}">담당자</span>
+                        <span class="faint" th:if="${t.picNm == null}">미지정</span>
+                      </th:block>
+                    </td>
+                    <td><span class="pill" th:classappend="${t.fileStatusPill}" th:text="${t.fileStatus}">미착수</span></td>
+                    <td th:if="${canEdit}" style="white-space:nowrap">
+                      <form th:id="'e' + ${t.tocSn}" th:action="@{/proposal/toc/edit}" method="post" style="display:inline">
+                        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                        <input type="hidden" name="tab" value="sum">
+                        <input type="hidden" name="tocSn" th:value="${t.tocSn}">
+                        <button class="link" type="submit">저장</button>
+                      </form>
+                      <form th:action="@{/proposal/toc/delete}" method="post" style="display:inline"
+                            onsubmit="return confirm('이 세부 목차를 삭제할까요?')">
+                        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                        <input type="hidden" name="tab" value="sum">
+                        <input type="hidden" name="tocSn" th:value="${t.tocSn}">
+                        <button class="link" type="submit">삭제</button>
+                      </form>
+                    </td>
+                  </tr>
+                </th:block>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </th:block>
+    </th:block>
+
   </th:block>
 </th:block>
 </body>

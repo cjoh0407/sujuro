@@ -1,18 +1,20 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <!--
-  목차 SQL (FR-046~048, FR-056). 사용 테이블: TB_TOC, TB_USER, TB_RQT_MTTR, TB_ATCH_FILE, TB_QSTN_ANS
+  목차 SQL (FR-046~049, FR-056, FR-063). 사용 테이블: TB_TOC, TB_TOC_FORM, TB_USER, TB_PRP_TMMBR, TB_RQT_MTTR, TB_ATCH_FILE, TB_QSTN_ANS, TB_EVL_TOC_MPNG
   목차는 부모-자식 구조라 CONNECT BY로 "부모 바로 아래에 자식" 순서로 읽는다.
+  TB_TOC는 PBANC_SN(사업건 목차)과 TOC_FORM_SN(양식 항목) 중 하나만 채운다. 사업건 목차는 TOC_SE_CD(제안서/제안요약서)로 나눈다.
 -->
 <mapper namespace="com.ojj.sujuro.proposal.toc.TocMapper">
 
   <sql id="tocSelect">
-    SELECT T.TOC_SN AS tocSn, T.PBANC_SN AS pbancSn, T.UP_TOC_SN AS upTocSn,
-           T.TOC_NO AS tocNo, T.TOC_NM AS tocNm, T.SORT_SEQ AS sortSeq,
+    SELECT T.TOC_SN AS tocSn, T.PBANC_SN AS pbancSn, T.TOC_FORM_SN AS tocFormSn, T.UP_TOC_SN AS upTocSn,
+           T.TOC_SE_CD AS tocSeCd, T.TOC_NO AS tocNo, T.TOC_NM AS tocNm, T.SORT_SEQ AS sortSeq,
            T.PIC_ID AS picId, U.USER_NM AS picNm,
            T.EXPC_PAGE_CNT AS expcPageCnt, T.PRGRS_STTS_CD AS prgrsSttsCd,
-           (SELECT COUNT(*) FROM TB_RQT_MTTR R WHERE R.TOC_SN = T.TOC_SN) AS rqtCnt,
-           (SELECT COUNT(*) FROM TB_TOC C WHERE C.UP_TOC_SN = T.TOC_SN)   AS childCnt,
+           (SELECT COUNT(*) FROM TB_RQT_MTTR R WHERE R.TOC_SN = T.TOC_SN)  AS rqtCnt,
+           (SELECT COUNT(*) FROM TB_TOC C WHERE C.UP_TOC_SN = T.TOC_SN)    AS childCnt,
+           (SELECT COUNT(*) FROM TB_ATCH_FILE F WHERE F.TOC_SN = T.TOC_SN) AS fileCnt,
            LEVEL - 1 AS depth
       FROM TB_TOC T
       LEFT JOIN TB_USER U ON U.USER_ID = T.PIC_ID
@@ -20,64 +22,128 @@
 
   <select id="findByBid" resultType="com.ojj.sujuro.proposal.toc.TocDto">
     <include refid="tocSelect"/>
-     WHERE T.PBANC_SN = #{pbancSn}
-     START WITH T.UP_TOC_SN IS NULL
+     WHERE T.PBANC_SN = #{pbancSn} AND T.TOC_SE_CD = #{tocSeCd}
+     START WITH T.UP_TOC_SN IS NULL AND T.PBANC_SN = #{pbancSn} AND T.TOC_SE_CD = #{tocSeCd}
      CONNECT BY PRIOR T.TOC_SN = T.UP_TOC_SN
      ORDER SIBLINGS BY T.SORT_SEQ, T.TOC_SN
   </select>
 
-  <select id="findCommon" resultType="com.ojj.sujuro.proposal.toc.TocDto">
+  <!-- ===== 목차 양식 (FR-046~048) ===== -->
+
+  <!-- 기본 양식(TF010) + 본인이 저장한 커스텀 양식(TF020), 사용 중인 것만, 기본 양식 먼저 -->
+  <select id="findForms" resultType="com.ojj.sujuro.proposal.toc.TocFormDto">
+    SELECT F.TOC_FORM_SN AS tocFormSn, F.TOC_FORM_NM AS tocFormNm, F.TOC_FORM_SE_CD AS tocFormSeCd,
+           F.RGTR_ID AS rgtrId, F.USE_YN AS useYn,
+           (SELECT COUNT(*) FROM TB_TOC T WHERE T.TOC_FORM_SN = F.TOC_FORM_SN) AS itemCnt
+      FROM TB_TOC_FORM F
+     WHERE F.USE_YN = 'Y'
+       AND (F.TOC_FORM_SE_CD = 'TF010' OR F.RGTR_ID = #{userId})
+     ORDER BY F.TOC_FORM_SE_CD, F.TOC_FORM_SN
+  </select>
+
+  <select id="findForm" resultType="com.ojj.sujuro.proposal.toc.TocFormDto">
+    SELECT F.TOC_FORM_SN AS tocFormSn, F.TOC_FORM_NM AS tocFormNm, F.TOC_FORM_SE_CD AS tocFormSeCd,
+           F.RGTR_ID AS rgtrId, F.USE_YN AS useYn
+      FROM TB_TOC_FORM F
+     WHERE F.TOC_FORM_SN = #{tocFormSn}
+  </select>
+
+  <select id="findFormItems" resultType="com.ojj.sujuro.proposal.toc.TocDto">
     <include refid="tocSelect"/>
-     WHERE T.PBANC_SN IS NULL
-     START WITH T.UP_TOC_SN IS NULL AND T.PBANC_SN IS NULL
+     WHERE T.TOC_FORM_SN = #{tocFormSn}
+     START WITH T.UP_TOC_SN IS NULL AND T.TOC_FORM_SN = #{tocFormSn}
      CONNECT BY PRIOR T.TOC_SN = T.UP_TOC_SN
      ORDER SIBLINGS BY T.SORT_SEQ, T.TOC_SN
   </select>
+
+  <select id="countFormName" resultType="int">
+    SELECT COUNT(*) FROM TB_TOC_FORM
+     WHERE USE_YN = 'Y' AND TOC_FORM_NM = #{tocFormNm}
+       AND (TOC_FORM_SE_CD = 'TF010' OR RGTR_ID = #{userId})
+  </select>
+
+  <insert id="insertForm" parameterType="com.ojj.sujuro.proposal.toc.TocFormDto" useGeneratedKeys="true" keyProperty="tocFormSn" keyColumn="TOC_FORM_SN">
+    INSERT INTO TB_TOC_FORM (TOC_FORM_NM, TOC_FORM_SE_CD, RGTR_ID, USE_YN)
+    VALUES (#{tocFormNm}, #{tocFormSeCd}, #{rgtrId}, 'Y')
+  </insert>
+
+  <!-- 양식 항목: PBANC_SN은 비우고 TOC_FORM_SN을 채운다 (CK_TOC_OWNER). 담당자는 저장하지 않는다. -->
+  <insert id="insertFormItem" parameterType="com.ojj.sujuro.proposal.toc.TocDto" useGeneratedKeys="true" keyProperty="tocSn" keyColumn="TOC_SN">
+    INSERT INTO TB_TOC (TOC_FORM_SN, UP_TOC_SN, TOC_SE_CD, TOC_NO, TOC_NM, SORT_SEQ, EXPC_PAGE_CNT)
+    VALUES (#{tocFormSn}, #{upTocSn, jdbcType=NUMERIC}, #{tocSeCd}, #{tocNo, jdbcType=VARCHAR}, #{tocNm}, #{sortSeq},
+            #{expcPageCnt, jdbcType=NUMERIC})
+  </insert>
+
+  <!-- ===== 사업건 목차 ===== -->
 
   <select id="findOne" resultType="com.ojj.sujuro.proposal.toc.TocDto">
-    SELECT T.TOC_SN AS tocSn, T.PBANC_SN AS pbancSn, T.UP_TOC_SN AS upTocSn,
-           T.TOC_NO AS tocNo, T.TOC_NM AS tocNm, T.SORT_SEQ AS sortSeq,
+    SELECT T.TOC_SN AS tocSn, T.PBANC_SN AS pbancSn, T.TOC_FORM_SN AS tocFormSn, T.UP_TOC_SN AS upTocSn,
+           T.TOC_SE_CD AS tocSeCd, T.TOC_NO AS tocNo, T.TOC_NM AS tocNm, T.SORT_SEQ AS sortSeq,
            T.PIC_ID AS picId, T.EXPC_PAGE_CNT AS expcPageCnt, T.PRGRS_STTS_CD AS prgrsSttsCd
       FROM TB_TOC T
      WHERE T.TOC_SN = #{tocSn}
   </select>
 
   <select id="countByBid" resultType="int">
-    SELECT COUNT(*) FROM TB_TOC WHERE PBANC_SN = #{pbancSn}
+    SELECT COUNT(*) FROM TB_TOC WHERE PBANC_SN = #{pbancSn} AND TOC_SE_CD = #{tocSeCd}
+  </select>
+
+  <select id="countFilesByBid" resultType="int">
+    SELECT COUNT(*)
+      FROM TB_ATCH_FILE F
+      JOIN TB_TOC T ON T.TOC_SN = F.TOC_SN
+     WHERE T.PBANC_SN = #{pbancSn} AND T.TOC_SE_CD = #{tocSeCd}
   </select>
 
   <select id="nextSortSeq" resultType="int">
     SELECT NVL(MAX(SORT_SEQ), 0) + 1 FROM TB_TOC
-     WHERE PBANC_SN = #{pbancSn}
+     WHERE PBANC_SN = #{pbancSn} AND TOC_SE_CD = #{tocSeCd}
     <choose>
       <when test="upTocSn == null"> AND UP_TOC_SN IS NULL</when>
       <otherwise> AND UP_TOC_SN = #{upTocSn}</otherwise>
     </choose>
   </select>
 
+  <!-- 사업건 목차만 넣는다 (TOC_FORM_SN은 비운다). TOC_SE_CD는 서비스에서 반드시 채운다. -->
   <insert id="insert" parameterType="com.ojj.sujuro.proposal.toc.TocDto" useGeneratedKeys="true" keyProperty="tocSn" keyColumn="TOC_SN">
-    INSERT INTO TB_TOC (PBANC_SN, UP_TOC_SN, TOC_NO, TOC_NM, SORT_SEQ, PIC_ID, EXPC_PAGE_CNT, PRGRS_STTS_CD)
-    VALUES (#{pbancSn}, #{upTocSn}, #{tocNo}, #{tocNm}, #{sortSeq}, #{picId}, #{expcPageCnt}, 'TS010')
+    INSERT INTO TB_TOC (PBANC_SN, UP_TOC_SN, TOC_SE_CD, TOC_NO, TOC_NM, SORT_SEQ, PIC_ID, EXPC_PAGE_CNT, PRGRS_STTS_CD)
+    VALUES (#{pbancSn}, #{upTocSn, jdbcType=NUMERIC}, #{tocSeCd}, #{tocNo, jdbcType=VARCHAR}, #{tocNm}, #{sortSeq},
+            #{picId, jdbcType=VARCHAR}, #{expcPageCnt, jdbcType=NUMERIC}, 'TS010')
   </insert>
 
   <update id="update">
-    UPDATE TB_TOC SET TOC_NM = #{tocNm}, EXPC_PAGE_CNT = #{expcPageCnt} WHERE TOC_SN = #{tocSn}
+    UPDATE TB_TOC SET TOC_NM = #{tocNm}, EXPC_PAGE_CNT = #{expcPageCnt, jdbcType=NUMERIC} WHERE TOC_SN = #{tocSn}
   </update>
 
   <update id="updatePages">
-    UPDATE TB_TOC SET EXPC_PAGE_CNT = #{expcPageCnt} WHERE TOC_SN = #{tocSn}
+    UPDATE TB_TOC SET EXPC_PAGE_CNT = #{expcPageCnt, jdbcType=NUMERIC} WHERE TOC_SN = #{tocSn}
   </update>
 
   <update id="updateTocNo">
     UPDATE TB_TOC SET TOC_NO = #{tocNo} WHERE TOC_SN = #{tocSn}
   </update>
 
+  <update id="updatePic">
+    UPDATE TB_TOC SET PIC_ID = #{picId, jdbcType=VARCHAR} WHERE TOC_SN = #{tocSn}
+  </update>
+
+  <!-- ProposalMapper.findMembers 와 같은 조건 (주관팀·참여팀, 비활성 제외) -->
+  <select id="countAssignableMember" resultType="int">
+    SELECT COUNT(*)
+      FROM TB_PRP_TMMBR M
+      JOIN TB_USER U ON U.USER_ID = M.USER_ID
+     WHERE M.PBANC_SN = #{pbancSn}
+       AND M.USER_ID = #{userId}
+       AND M.PTCP_SE_CD IN ('PT010', 'PT020')
+       AND U.ACNT_STTS_CD &lt;&gt; 'AS050'
+  </select>
+
   <delete id="delete">
     DELETE FROM TB_TOC WHERE TOC_SN = #{tocSn}
   </delete>
 
-  <select id="countChildren" resultType="int">
-    SELECT COUNT(*) FROM TB_TOC WHERE UP_TOC_SN = #{tocSn}
+  <select id="countRequirements" resultType="int">
+    SELECT COUNT(*) FROM TB_RQT_MTTR WHERE TOC_SN = #{tocSn}
   </select>
 
   <select id="countFiles" resultType="int">
@@ -91,4 +157,8 @@
   <update id="clearQuestions">
     UPDATE TB_QSTN_ANS SET TOC_SN = NULL WHERE TOC_SN = #{tocSn}
   </update>
+
+  <delete id="clearEvaluationMappings">
+    DELETE FROM TB_EVL_TOC_MPNG WHERE TOC_SN = #{tocSn}
+  </delete>
 </mapper>

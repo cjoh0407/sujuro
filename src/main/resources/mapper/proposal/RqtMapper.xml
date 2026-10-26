@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <!--
-  요구사항 SQL (FR-050~054). 사용 테이블: TB_RQT_MTTR, TB_TOC, TB_USER
+  요구사항 SQL (FR-050~054, FR-051 매핑). 사용 테이블: TB_RQT_MTTR, TB_TOC, TB_USER
   담당자는 따로 저장하지 않고 연결된 목차의 담당자(TB_TOC.PIC_ID)를 그대로 쓴다.
 -->
 <mapper namespace="com.ojj.sujuro.proposal.rqt.RqtMapper">
@@ -46,4 +46,20 @@
   <delete id="delete">
     DELETE FROM TB_RQT_MTTR WHERE RQT_MTTR_SN = #{rqtMttrSn}
   </delete>
+
+  <update id="updateToc">
+    UPDATE TB_RQT_MTTR SET TOC_SN = #{tocSn, jdbcType=NUMERIC} WHERE RQT_MTTR_SN = #{rqtMttrSn}
+  </update>
+
+  <select id="findMapTarget" resultType="com.ojj.sujuro.proposal.toc.TocDto">
+    SELECT T.TOC_SN AS tocSn, T.PBANC_SN AS pbancSn, T.UP_TOC_SN AS upTocSn, T.TOC_SE_CD AS tocSeCd, T.PIC_ID AS picId
+      FROM TB_TOC T
+     WHERE T.TOC_SN = #{tocSn}
+  </select>
+
+
+  <!-- 제안서·제안요약서 목차 어느 쪽이든 담당하면 목차 담당자 (화면 설계 v3.4) -->
+  <select id="countOwnedTocs" resultType="int">
+    SELECT COUNT(*) FROM TB_TOC WHERE PBANC_SN = #{pbancSn} AND PIC_ID = #{userId}
+  </select>
 </mapper>

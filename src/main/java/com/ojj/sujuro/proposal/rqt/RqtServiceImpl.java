@@ -7,8 +7,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ojj.sujuro.common.exception.BusinessException;
+import com.ojj.sujuro.proposal.toc.TocDto;
 
-/** 요구사항 등록·수정·삭제와 현황 계산 (FR-050, FR-052~054). 목차 매핑·담당자 지정은 10/22에 붙인다. */
+/** 요구사항 등록·수정·삭제, 목차 매핑과 현황 계산 (FR-050~054, FR-016-1) */
 @Service
 public class RqtServiceImpl implements RqtService {
 
@@ -107,6 +108,40 @@ public class RqtServiceImpl implements RqtService {
     public void delete(Long pbancSn, Long rqtMttrSn) {
         own(pbancSn, rqtMttrSn);
         mapper.delete(rqtMttrSn);
+    }
+
+    @Override
+    public boolean canEdit(Long pbancSn, String userId, boolean leader) {
+        return leader || mapper.countOwnedTocs(pbancSn, userId) > 0;
+    }
+
+    @Override
+    public void requireEditor(Long pbancSn, String userId, boolean leader) {
+        if (!canEdit(pbancSn, userId, leader)) {
+            throw new BusinessException("요구사항은 팀장과 목차 담당자만 등록·수정할 수 있습니다.");
+        }
+    }
+
+    @Transactional
+    @Override
+    public void map(Long pbancSn, Long rqtMttrSn, Long tocSn) {
+        own(pbancSn, rqtMttrSn);
+        if (tocSn != null) {
+            TocDto t = mapper.findMapTarget(tocSn);
+            if (t == null || t.getPbancSn() == null || !t.getPbancSn().equals(pbancSn)) {
+                throw new BusinessException("이 사업건의 목차가 아닙니다.");
+            }
+            if (!TocDto.SE_PROPOSAL.equals(t.getTocSeCd())) {
+                throw new BusinessException("요구사항은 제안서 목차에만 연결할 수 있습니다.");
+            }
+            if (t.isGroup()) {
+                throw new BusinessException("큰 목차가 아니라 세부 목차에 연결해 주세요.");
+            }
+            if (t.getPicId() == null) {
+                throw new BusinessException("담당자를 지정한 세부 목차에만 요구사항을 연결할 수 있습니다.");
+            }
+        }
+        mapper.updateToc(rqtMttrSn, tocSn);
     }
 
     private RqtDto own(Long pbancSn, Long rqtMttrSn) {

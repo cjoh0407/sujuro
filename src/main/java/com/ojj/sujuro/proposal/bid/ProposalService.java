@@ -11,7 +11,10 @@ public interface ProposalService {
     /** 제안팀원인 사업건만 열 수 있다. 아니면 업무 예외 */
     ProposalBidDto openBid(Long pbancSn, String userId);
 
-    /** 편집은 팀장만 할 수 있다. 팀원·외부 인력이면 업무 예외 */
+    /** 목차 담당자로 고를 수 있는 제안팀원 (FR-049) */
+    List<ProposalMemberDto> members(Long pbancSn);
+
+    /** 목차 편집·담당자 지정은 팀장만 할 수 있다. 팀원이면 업무 예외 */
     void requireLeader(boolean leader);
 
     /** 제안서 전체 페이지 제한을 바꾼다. null이면 제한 없음 */

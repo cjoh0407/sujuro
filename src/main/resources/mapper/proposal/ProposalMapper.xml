@@ -35,6 +35,18 @@
     SELECT COUNT(*) FROM TB_PRP_TMMBR WHERE PBANC_SN = #{pbancSn} AND USER_ID = #{userId}
   </select>
 
+  <!-- 목차 담당자 후보: 주관팀(PT010)·참여팀(PT020) 인원, 비활성(AS050) 계정 제외 (FR-049) -->
+  <select id="findMembers" resultType="com.ojj.sujuro.proposal.bid.ProposalMemberDto">
+    SELECT U.USER_ID AS userId, U.USER_NM AS userNm, T.TEAM_NM AS teamNm, M.PTCP_SE_CD AS ptcpSeCd
+      FROM TB_PRP_TMMBR M
+      JOIN TB_USER U ON U.USER_ID = M.USER_ID
+      LEFT JOIN TB_TEAM T ON T.TEAM_SN = U.TEAM_SN
+     WHERE M.PBANC_SN = #{pbancSn}
+       AND M.PTCP_SE_CD IN ('PT010', 'PT020')
+       AND U.ACNT_STTS_CD &lt;&gt; 'AS050'
+     ORDER BY M.PTCP_SE_CD, U.USER_NM
+  </select>
+
   <update id="updatePageLimit">
     UPDATE TB_BID_PBANC SET LMT_PAGE_CNT = #{lmtPageCnt} WHERE PBANC_SN = #{pbancSn}
   </update>

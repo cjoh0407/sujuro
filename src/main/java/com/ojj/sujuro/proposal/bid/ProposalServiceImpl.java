@@ -32,11 +32,16 @@ public class ProposalServiceImpl implements ProposalService {
         return bid;
     }
 
-    /** 편집은 팀장만 할 수 있다. 팀원·외부 인력은 조회만 한다. */
+    @Override
+    public List<ProposalMemberDto> members(Long pbancSn) {
+        return mapper.findMembers(pbancSn);
+    }
+
+    /** 목차 편집·담당자 지정은 팀장만 할 수 있다. 팀원은 조회만 한다. (FR-014, FR-016-1) */
     @Override
     public void requireLeader(boolean leader) {
         if (!leader) {
-            throw new BusinessException("목차와 요구사항은 팀장만 수정할 수 있습니다.");
+            throw new BusinessException("목차와 담당자 지정은 팀장만 할 수 있습니다.");
         }
     }
 

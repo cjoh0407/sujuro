@@ -20,7 +20,7 @@ import org.springframework.security.web.SecurityFilterChain;
  *   사업건 단위 접근(제안팀 소속 여부)은 URL만으로 알 수 없으므로 별도 검사(AccessChecker)로 처리한다.
  * - 세션 30분 만료는 application.properties의 server.servlet.session.timeout 으로 설정한다. (NFR-003)
  *
- * 권한 값은 {@link com.ojj.sujuro.auth.Role}, 외부 인력은 EXTERNAL 권한으로 구분한다.
+ * 권한 값은 {@link com.ojj.sujuro.auth.Role}.
  */
 @Configuration
 @EnableWebSecurity
@@ -40,14 +40,14 @@ public class SecurityConfig {
                 .antMatchers("/css/**", "/js/**", "/lib/**", "/images/**", "/favicon.ico").permitAll()
                 .antMatchers("/login", "/error", "/error/**").permitAll()
 
-                // 메뉴별 접근 규칙 (HTML 목업 v3.2의 메뉴 노출 기준과 같다)
-                .antMatchers("/notices/**").access("hasAnyRole('SALES','LEADER','MGMT') and !hasAuthority('EXTERNAL')")
+                // 메뉴별 접근 규칙 (HTML 목업 v3.5의 메뉴 노출 기준과 같다)
+                .antMatchers("/notices/**").hasAnyRole("SALES", "LEADER", "MGMT")
                 .antMatchers("/proposal/**", "/files/**", "/qa/**").hasAnyRole("LEADER", "MEMBER")
                 .antMatchers("/docs/**").hasAnyRole("MGMT", "LEADER", "MEMBER")
                 .antMatchers("/results/**").hasRole("MGMT")
-                .antMatchers("/schedule/**").access("isAuthenticated() and !hasAuthority('EXTERNAL')")
-                .antMatchers("/stats/**").access("hasAnyRole('MGMT','LEADER') and !hasAuthority('EXTERNAL')")
-                .antMatchers("/users/**").access("hasRole('MGMT') and !hasAuthority('EXTERNAL')")
+                .antMatchers("/schedule/**").authenticated()
+                .antMatchers("/stats/**").hasAnyRole("MGMT", "LEADER")
+                .antMatchers("/users/**").hasRole("MGMT")
 
                 // 그 밖의 화면(대시보드, 알림, 내 정보 등)은 로그인한 사용자 모두
                 .anyRequest().authenticated())

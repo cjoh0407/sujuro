@@ -95,6 +95,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent-soft);bor
 .tab{padding:7px 13px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer}
 .tab:hover{border-color:var(--accent);color:var(--accent-s)}
 .tab.on{background:var(--accent);border-color:var(--accent);color:#fff}
+/* 탭을 <a> 로 만들 때 (주소를 북마크할 수 있는 목록 화면). 모양은 위 규칙과 같다. */
+a.tab{text-decoration:none}
 .banner{display:flex;gap:10px;align-items:center;padding:11px 15px;border-radius:10px;font-size:12.5px}
 .banner.warn{background:var(--warning-soft);color:var(--warning)}
 .banner.err{background:var(--danger-soft);color:var(--danger)}
@@ -123,6 +125,11 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent-soft);bor
 .pager button{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer}
 .pager button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
 .pager button[disabled]{opacity:.4}
+/* 페이지 이동을 <a> 로 만들 때. .off 는 더 갈 곳이 없는 화살표 (button[disabled] 자리) */
+.pager a,.pager span.off{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:12px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.pager a:hover{border-color:var(--accent);color:var(--accent-s)}
+.pager a.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.pager span.off{opacity:.4}
 .empty{padding:26px;text-align:center;color:var(--muted);font-size:12.5px}
 .lock{display:flex;flex-direction:column;gap:6px;align-items:center;padding:34px;text-align:center;color:var(--muted)}
 .qa{padding:12px 18px;border-bottom:1px solid var(--border)}

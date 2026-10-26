@@ -25,8 +25,7 @@ public class CustomUserDetailsService implements UserDetailsService {
             throw new UsernameNotFoundException("등록되지 않은 사번입니다.");
         }
         Role role = Role.fromAuthorityCode(row.getAuthrtCd());
-        boolean external = Role.isExternalCode(row.getAuthrtCd()) || "Y".equals(row.getOtsdMnpwYn());
         return new LoginUser(row.getUserId(), row.getUserNm(), row.getJbgdNm(), row.getTeamNm(),
-                role, external, row.getAcntSttsCd(), row.getEnpswd());
+                role, row.getAcntSttsCd(), row.getEnpswd());
     }
 }

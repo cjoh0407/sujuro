@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<!-- 사용자 관리 SQL (FR-002, FR-003 ~ FR-008). 테이블: TB_USER (db/01_schema.sql) -->
+<!-- 사용자 관리 SQL (FR-002, FR-003 ~ FR-008). 테이블: TB_USER, TB_TEAM, TB_COM_CD (db/01_schema.sql) -->
 <mapper namespace="com.ojj.sujuro.user.UserMapper">
+
+  <!-- ===== 비밀번호 ===== -->
 
   <select id="findPasswordHash" parameterType="string" resultType="string">
     SELECT ENPSWD FROM TB_USER WHERE USER_ID = #{userId}
@@ -15,5 +17,112 @@
            MDFCN_DT = SYSDATE
      WHERE USER_ID = #{userId}
   </update>
+
+  <!-- ===== 직원 목록 ===== -->
+
+  <sql id="userColumns">
+    U.USER_ID       AS userId,
+    U.USER_NM       AS userNm,
+    U.TEAM_SN       AS teamSn,
+    T.TEAM_NM       AS teamNm,
+    U.JBGD_CD       AS jbgdCd,
+    J.CD_NM         AS jbgdNm,
+    U.AUTHRT_CD     AS authrtCd,
+    A.CD_NM         AS authrtNm,
+    U.ACNT_STTS_CD  AS acntSttsCd,
+    S.CD_NM         AS acntSttsNm,
+    U.TELNO         AS telno,
+    U.EML_ADDR      AS emlAddr,
+    U.REG_DT        AS regDt
+  </sql>
+
+  <sql id="userJoins">
+    FROM TB_USER U
+    LEFT JOIN TB_TEAM   T ON T.TEAM_SN = U.TEAM_SN
+    LEFT JOIN TB_COM_CD J ON J.GROUP_CD = 'JBGDS' AND J.CD = U.JBGD_CD
+    LEFT JOIN TB_COM_CD A ON A.GROUP_CD = 'AUTHS' AND A.CD = U.AUTHRT_CD
+    LEFT JOIN TB_COM_CD S ON S.GROUP_CD = 'ACSTS' AND S.CD = U.ACNT_STTS_CD
+  </sql>
+
+  <!-- keyword 안의 % _ 는 서비스에서 \ 로 막아 두므로 글자 그대로 찾는다. 비활성 계정은 맨 아래에 둔다. -->
+  <select id="search" resultType="com.ojj.sujuro.user.UserDto">
+    SELECT <include refid="userColumns"/>
+    <include refid="userJoins"/>
+    <where>
+      <if test="keyword != null and keyword != ''">
+        AND (U.USER_NM LIKE '%' || #{keyword} || '%' ESCAPE '\'
+             OR UPPER(U.USER_ID) LIKE '%' || UPPER(#{keyword}) || '%' ESCAPE '\')
+      </if>
+      <if test="status != null and status != ''">
+        AND U.ACNT_STTS_CD = #{status}
+      </if>
+    </where>
+    ORDER BY CASE WHEN U.ACNT_STTS_CD = 'AS050' THEN 1 ELSE 0 END, T.TEAM_NM, U.USER_NM
+  </select>
+
+  <select id="findById" resultType="com.ojj.sujuro.user.UserDto">
+    SELECT <include refid="userColumns"/>
+    <include refid="userJoins"/>
+    WHERE U.USER_ID = #{userId}
+  </select>
+
+  <select id="countById" resultType="int">
+    SELECT COUNT(*) FROM TB_USER WHERE USER_ID = #{userId}
+  </select>
+
+  <!-- ===== 추가 · 수정 · 비활성 ===== -->
+
+  <insert id="insert">
+    INSERT INTO TB_USER (USER_ID, USER_NM, TEAM_SN, JBGD_CD, AUTHRT_CD, ENPSWD, ACNT_STTS_CD,
+                         TELNO, EML_ADDR, RGTR_ID)
+    VALUES (#{userId}, #{userNm}, #{teamSn,jdbcType=NUMERIC}, #{jbgdCd}, #{authrtCd}, #{enpswd}, #{acntSttsCd},
+            #{telno,jdbcType=VARCHAR}, #{emlAddr,jdbcType=VARCHAR}, #{rgtrId,jdbcType=VARCHAR})
+  </insert>
+
+  <update id="updateInfo">
+    UPDATE TB_USER
+       SET USER_NM = #{userNm},
+           TEAM_SN = #{teamSn,jdbcType=NUMERIC},
+           JBGD_CD = #{jbgdCd},
+           AUTHRT_CD = #{authrtCd},
+           TELNO = #{telno,jdbcType=VARCHAR},
+           EML_ADDR = #{emlAddr,jdbcType=VARCHAR},
+           MDFCN_DT = SYSDATE
+     WHERE USER_ID = #{userId}
+  </update>
+
+  <update id="updateStatus">
+    UPDATE TB_USER
+       SET ACNT_STTS_CD = #{acntSttsCd},
+           MDFCN_DT = SYSDATE
+     WHERE USER_ID = #{userId}
+  </update>
+
+  <!-- ===== 선택 목록 ===== -->
+
+  <select id="findDeptCd" resultType="string">
+    SELECT DEPT_CD FROM TB_TEAM WHERE TEAM_SN = #{teamSn} AND USE_YN = 'Y'
+  </select>
+
+  <select id="findTeams" resultType="com.ojj.sujuro.user.CodeOption">
+    SELECT TO_CHAR(TEAM_SN) AS code, TEAM_NM AS name, DEPT_CD AS extra
+      FROM TB_TEAM
+     WHERE USE_YN = 'Y'
+     ORDER BY DEPT_CD, TEAM_NM
+  </select>
+
+  <select id="findRanks" resultType="com.ojj.sujuro.user.CodeOption">
+    SELECT CD AS code, CD_NM AS name
+      FROM TB_COM_CD
+     WHERE GROUP_CD = 'JBGDS' AND USE_YN = 'Y' AND CD &lt;&gt; 'JG030'
+     ORDER BY SORT_SEQ
+  </select>
+
+  <select id="findStatuses" resultType="com.ojj.sujuro.user.CodeOption">
+    SELECT CD AS code, CD_NM AS name
+      FROM TB_COM_CD
+     WHERE GROUP_CD = 'ACSTS' AND USE_YN = 'Y' AND CD &lt;&gt; 'AS010'
+     ORDER BY SORT_SEQ
+  </select>
 
 </mapper>

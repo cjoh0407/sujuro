@@ -50,6 +50,7 @@ INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUE
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT080', '알림유형', '계정 요청', 8, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT090', '알림유형', '계정 발급', 9, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT100', '알림유형', '목차 담당', 10, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT110', '알림유형', '평가표 업로드 요청', 11, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('SCHSE', 'SC010', '일정구분', '제출 마감', 1, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('SCHSE', 'SC020', '일정구분', '내부 1차 마감', 2, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('SCHSE', 'SC030', '일정구분', '내부 2차 마감', 3, 'Y');
@@ -73,8 +74,33 @@ INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUE
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('FILSE', 'FL040', '파일구분', '제안요약서', 4, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('FILSE', 'FL050', '파일구분', '제출서류', 5, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('FILSE', 'FL060', '파일구분', '조견표', 6, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('FILSE', 'FL070', '파일구분', '평가표', 7, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('FILSE', 'FL080', '파일구분', '사전규격 규격서', 8, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('QNASE', 'QA010', '질문답변구분', '예상 Q&A', 1, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('QNASE', 'QA020', '질문답변구분', '발표 Q&A', 2, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('BDRST', 'BR010', '입찰결과', '수주', 1, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('BDRST', 'BR020', '입찰결과', '탈락', 2, 'Y');
+-- 나라장터 API 사용 프로세스(2026-10-19)에서 추가된 코드
+-- 공고단계 (10/23 회의). 조달청 API 로 추적 가능한 단계만 둔다.
+-- 회의에서 "요청접수"도 넣기로 했지만 조달요청 서비스에 용역(Servc) 오퍼레이션이 없어 뺐다.
+--   getPrcrmntReqInfoListThng(물품)·ListCnstwk(공사)·ListFrgcpt(외자)는 있고 ListServc 만 없다. (2026-10-26 실호출 확인)
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBSTP', 'PP010', '공고단계', '발주계획', '발주계획번호(R26DD…)로 등록한 상태. 공고가 나기를 기다린다', 1, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBSTP', 'PP020', '공고단계', '사전규격', '사전규격번호(R26BD…)로 등록한 상태. 입찰공고가 나기를 기다린다', 2, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBSTP', 'PP030', '공고단계', '입찰공고', '입찰공고번호(R26BK…)가 있는 상태. 참여 결정은 이 단계부터 할 수 있다', 3, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBSTP', 'PP040', '공고단계', '개찰', '개찰이 끝나 참가업체와 점수가 나온 상태', 4, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBSTP', 'PP050', '공고단계', '계약', '계약이 체결된 상태', 5, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('TRSTS', 'TR010', '추적상태', '입찰공고 대기', '발주계획·사전규격 API의 bidNtceNoList 가 비어 있다', 1, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('TRSTS', 'TR020', '추적상태', '연결됨', '입찰공고로 전환했다', 2, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('TRSTS', 'TR030', '추적상태', '추적 종료', '정해진 기간 안에 입찰공고가 없어 영업부가 종료했다', 3, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('EXCSE', 'EX010', '실행구분', '자동', '평일 오전 하루 1회 스케줄러', 1, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('EXCSE', 'EX020', '실행구분', '수동', '[지금 불러오기] 버튼', 2, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL010', '수집결과', '변경 없음', 1, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL020', '수집결과', '본공고 전환', 2, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL030', '수집결과', '정정 반영', 3, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL040', '수집결과', '취소 공고', 4, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL050', '수집결과', '개찰 결과', 5, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL090', '수집결과', '실패', 9, 'Y');
+-- UI 목업 v3.2 의 반환 표시(n.returned)에 쓰인다
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('RTRSE', 'RT010', '반환구분', '불참', '배정받은 팀장이 불참을 결정해 영업부로 돌아왔다', 1, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('RTRSE', 'RT020', '반환구분', '중도 철회', '제안 진행 중 팀장이 철회해 영업부로 돌아왔다', 2, 'Y');
 COMMIT;

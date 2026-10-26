@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layout/default}">
+<head>
+  <title>알림</title>
+</head>
+<body>
+
+<h1 layout:fragment="pageTitle">알림</h1>
+
+<th:block layout:fragment="content">
+  <div class="card">
+    <div class="card-head">
+      <h3>내 알림 <span class="faint" th:text="|안 읽음 ${unreadCount}건|">안 읽음 0건</span></h3>
+      <div style="display:flex;gap:8px;align-items:center">
+        <a class="btn sm" th:classappend="${filter == 'all'} ? 'primary'" th:href="@{/alerts}">전체</a>
+        <a class="btn sm" th:classappend="${filter == 'unread'} ? 'primary'" th:href="@{/alerts(filter='unread')}">안 읽음</a>
+        <form th:action="@{/alerts/read-all}" method="post" style="margin:0">
+          <button class="btn sm" type="submit" th:disabled="${unreadCount == 0}">모두 읽음</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="pad faint" th:if="${#lists.isEmpty(items)}"
+         th:text="${filter == 'unread'} ? '안 읽은 알림이 없습니다.' : '받은 알림이 없습니다.'">알림이 없습니다.</div>
+
+    <table th:unless="${#lists.isEmpty(items)}">
+      <thead>
+        <tr><th style="width:110px">유형</th><th>내용</th><th style="width:140px">받은 시각</th><th style="width:90px"></th></tr>
+      </thead>
+      <tbody>
+        <tr th:each="n : ${items}" th:style="${n.read} ? 'opacity:.65'">
+          <td><span class="pill neutral" th:text="${n.typeNm != null} ? ${n.typeNm} : ${n.typeCd}">유형</span></td>
+          <td>
+            <span th:text="${n.content}" th:style="${n.read} ? '' : 'font-weight:700'">알림 내용</span>
+          </td>
+          <td class="faint" th:text="${#dates.format(n.crtDt, 'MM-dd HH:mm')}">10-22 14:00</td>
+          <td>
+            <form th:action="@{/alerts/{id}/open(id=${n.notiSn})}" method="post" style="margin:0">
+              <button class="btn sm" type="submit"
+                      th:text="${n.link != null} ? '열기' : (${n.read} ? '읽음' : '읽음 처리')">열기</button>
+            </form>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</th:block>
+
+</body>
+</html>

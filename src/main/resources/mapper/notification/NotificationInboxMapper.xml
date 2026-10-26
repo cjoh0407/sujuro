@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 알림함 SQL (FR-032, FR-033). 모든 쿼리가 받은 사람(RCVR_ID)을 조건으로 걸어 남의 알림에 손대지 못한다. -->
+<mapper namespace="com.ojj.sujuro.notification.NotificationInboxMapper">
+
+  <sql id="cols">
+    N.NOTI_SN AS notiSn, N.PBANC_SN AS pbancSn, N.NOTI_TYPE_CD AS typeCd, C.CD_NM AS typeNm,
+    N.NOTI_CN AS content, N.PRSL_YN AS prslYn, N.CRT_DT AS crtDt
+  </sql>
+
+  <select id="findMine" resultType="com.ojj.sujuro.notification.NotificationDto">
+    SELECT <include refid="cols"/>
+      FROM TB_NOTI N
+      LEFT JOIN TB_COM_CD C ON C.GROUP_CD = 'NOTIT' AND C.CD = N.NOTI_TYPE_CD
+     WHERE N.RCVR_ID = #{userId}
+    <if test="unreadOnly">
+       AND N.PRSL_YN = 'N'
+    </if>
+     ORDER BY N.CRT_DT DESC, N.NOTI_SN DESC
+     FETCH FIRST 200 ROWS ONLY
+  </select>
+
+  <select id="countUnread" resultType="int">
+    SELECT COUNT(*) FROM TB_NOTI WHERE RCVR_ID = #{userId} AND PRSL_YN = 'N'
+  </select>
+
+  <select id="findMineOne" resultType="com.ojj.sujuro.notification.NotificationDto">
+    SELECT <include refid="cols"/>
+      FROM TB_NOTI N
+      LEFT JOIN TB_COM_CD C ON C.GROUP_CD = 'NOTIT' AND C.CD = N.NOTI_TYPE_CD
+     WHERE N.RCVR_ID = #{userId} AND N.NOTI_SN = #{notiSn}
+  </select>
+
+  <update id="markRead">
+    UPDATE TB_NOTI SET PRSL_YN = 'Y'
+     WHERE RCVR_ID = #{userId} AND NOTI_SN = #{notiSn} AND PRSL_YN = 'N'
+  </update>
+
+  <update id="markAllRead">
+    UPDATE TB_NOTI SET PRSL_YN = 'Y'
+     WHERE RCVR_ID = #{userId} AND PRSL_YN = 'N'
+  </update>
+
+</mapper>

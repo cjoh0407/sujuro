@@ -1,0 +1,24 @@
+/* 제안팀 · 목차·요구사항 화면 전용 스타일. 색은 common.css의 변수만 쓴다. */
+
+/* 사업명 줄 (fragments/bid-header :: bizHead) */
+.biz{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 16px;border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:10px;background:var(--alt);font-size:13px}
+
+/* 목차 표 */
+.toc-group{font-weight:700;background:var(--alt)}
+.toc-group-bg{background:var(--alt)}
+.vtop{vertical-align:top}
+.lbl-in{width:100%;min-width:170px;max-width:340px}
+.lbl-in.bold{font-weight:700}
+.toc-tools{margin-left:8px;font-weight:400;white-space:nowrap}
+.toc-tools .link{font-size:11.5px}
+tr.addrow>td{background:var(--accent-soft)}
+tr.addrow .cap{font-size:11.5px}
+.unmapped-head{font-weight:700;background:var(--danger-soft);color:var(--danger)}
+
+/* 요구사항: 이름을 누르면 정의·세부내용이 펼쳐진다 */
+details.rq>summary{cursor:pointer;font-size:12.5px;list-style:none}
+details.rq>summary::-webkit-details-marker{display:none}
+details.rq>summary::after{content:" ▾";color:var(--faint)}
+details.rq[open]>summary::after{content:" ▴"}
+.rq-def{margin-top:6px;padding:8px 10px;background:var(--alt);border-radius:7px;font-size:12px;line-height:1.65}
+.x-btn{border:0;background:none;padding:0;cursor:pointer;color:inherit}

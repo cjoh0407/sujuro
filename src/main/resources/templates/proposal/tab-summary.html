@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  제안요약서 목차 · 담당자 탭 (FR-049, FR-063). proposal.html에서 tab == 'sum'일 때 불러온다.
+  목차 양식·단계 규칙은 제안서와 같고, 요구사항 연결은 없다.
+*/-->
+<body>
+<th:block th:fragment="tab">
+  <div class="banner info"><span>제안요약서(발표본)도 제안서처럼 목차를 구성하고 목차마다 담당자를 지정합니다. 목차 양식·단계 규칙은 제안서와 같습니다. 파일은 <b>제안서 파일 관리</b>의 "제안요약서 (목차별)" 탭에서 담당자가 올립니다. 요구사항 연결은 제안서 목차에만 적용됩니다.</span></div>
+
+  <div class="card" th:if="${#lists.isEmpty(tocs)}">
+    <div class="empty">
+      아직 제안요약서 목차가 없습니다.<br><br>
+      <th:block th:replace="~{proposal/fragments/toc :: emptyToc('sum')}"></th:block>
+    </div>
+  </div>
+
+  <th:block th:unless="${#lists.isEmpty(tocs)}">
+    <th:block th:if="${perm.load}"><th:block th:replace="~{proposal/fragments/toc :: formBar('sum')}"></th:block></th:block>
+
+    <div class="card" th:with="cols=${perm.edit ? 4 : 3}">
+      <div class="card-head">
+        <h3 th:text="${bid.label} + ' · 제안요약서 목차 · 담당자 (이 사업건만 수정됨)'">제안요약서 목차</h3>
+        <th:block th:replace="~{proposal/fragments/toc :: addTop('sum')}"></th:block>
+      </div>
+      <div class="ts">
+        <table>
+          <thead>
+            <tr><th>목차</th><th>담당자</th><th>파일 상태</th><th th:if="${perm.edit}"></th></tr>
+          </thead>
+          <tbody>
+            <th:block th:each="t : ${tocs}">
+              <tr th:if="${t.group}">
+                <td th:colspan="${perm.edit ? cols - 1 : cols}" class="toc-group" th:style="'padding-left:' + ${t.indent} + 'px'">
+                  <th:block th:replace="~{proposal/fragments/toc :: labelCell(${t}, 'sum')}"></th:block>
+                  <th:block th:replace="~{proposal/fragments/toc :: tocTools(${t})}"></th:block>
+                </td>
+                <td th:if="${perm.edit}" class="toc-group-bg">
+                  <th:block th:replace="~{proposal/fragments/toc :: delBtn(${t}, 'sum')}"></th:block>
+                </td>
+              </tr>
+              <tr class="hv" th:unless="${t.group}">
+                <td th:style="'padding-left:' + ${t.indent} + 'px'">
+                  <th:block th:replace="~{proposal/fragments/toc :: labelCell(${t}, 'sum')}"></th:block>
+                  <th:block th:replace="~{proposal/fragments/toc :: tocTools(${t})}"></th:block>
+                </td>
+                <td><th:block th:replace="~{proposal/fragments/toc :: owner(${t}, 'sum')}"></th:block></td>
+                <td><span class="pill" th:classappend="${t.fileStatusPill}" th:text="${t.fileStatus}">미착수</span></td>
+                <td th:if="${perm.edit}"><th:block th:replace="~{proposal/fragments/toc :: delBtn(${t}, 'sum')}"></th:block></td>
+              </tr>
+              <th:block th:replace="~{proposal/fragments/toc :: addRow(${t}, 'sum', ${cols})}"></th:block>
+            </th:block>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </th:block>
+</th:block>
+</body>
+</html>

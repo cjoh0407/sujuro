@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  목차 화면 조각 (제안서·제안요약서 탭 공통). k는 탭 값 'prop' / 'sum', t는 목차(TocDto)
+  필요한 모델: bid, perm(load/edit/assign), forms, me, members
+    emptyToc(k)        : 목차가 없을 때 - 팀 양식 불러오기(주관팀) / 직접 목차 만들기(제안팀)
+    formBar(k)         : 주관팀 양식 바꾸기 · 지금 목차를 양식으로 저장
+    addTop(k)          : + 1단계 목차 추가
+    labelCell(t, k)    : 번호 포함 이름 (칸을 벗어나면 저장)
+    tocTools(t)        : + 하위 / + 같은 단계
+    addRow(t, k, cols) : + 하위 / + 같은 단계 입력 줄 (proposal.js가 열고 닫는다)
+    delBtn(t, k)       : 삭제 (묶음은 하위 포함)
+    owner(t, k)        : 최하위 목차 담당자 (주관팀 팀장만 지정)
+    pages(t)           : 최하위 목차 예상 쪽수
+*/-->
+<body>
+
+<th:block th:fragment="emptyToc(k)">
+  <th:block th:if="${perm.load}">
+    <form th:unless="${#lists.isEmpty(forms)}" th:action="@{/proposal/toc/import}" method="post" class="row" style="justify-content:center">
+      <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+      <input type="hidden" name="tab" th:value="${k}">
+      <select name="tocFormSn" required>
+        <option th:each="f, st : ${forms}" th:value="${f.tocFormSn}" th:text="${f.labelFor(me)}" th:selected="${st.first}">양식</option>
+      </select>
+      <button class="btn primary" type="submit">팀 양식 불러오기</button>
+    </form>
+    <div class="row" style="justify-content:center" th:if="${#lists.isEmpty(forms)}">
+      <span class="faint">우리 팀이 저장한 목차 양식이 아직 없습니다.</span>
+    </div>
+    <br>
+  </th:block>
+  <form th:if="${perm.edit}" th:action="@{/proposal/toc/add}" method="post" class="row" style="justify-content:center">
+    <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+    <input type="hidden" name="tab" th:value="${k}">
+    <input type="text" name="label" placeholder="첫 목차 이름 (번호 포함)" maxlength="250" required style="width:240px">
+    <button class="btn" type="submit">직접 목차 만들기</button>
+  </form>
+  <th:block th:unless="${perm.edit}">목차 양식을 불러오거나 직접 만들면 표시됩니다.</th:block>
+  <div class="faint" style="margin-top:8px;font-size:11.5px" th:unless="${perm.load}">양식 불러오기는 주관팀 인원만 할 수 있습니다.</div>
+</th:block>
+
+<div class="card pad" th:fragment="formBar(k)">
+  <div class="row" style="justify-content:space-between;gap:14px">
+    <form th:action="@{/proposal/toc/import}" method="post" class="row"
+          th:data-msg="${k == 'sum'} ? '현재 목차와 담당자 지정이 사라집니다. 선택한 양식으로 바꿀까요?' : '현재 목차와 담당자 지정이 사라지고, 연결된 요구사항은 모두 미매핑이 됩니다. 선택한 양식으로 바꿀까요?'"
+          onsubmit="return confirm(this.dataset.msg)">
+      <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+      <input type="hidden" name="tab" th:value="${k}">
+      <b style="font-size:12.5px">주관팀 목차 양식</b>
+      <th:block th:unless="${#lists.isEmpty(forms)}">
+        <select name="tocFormSn" required>
+          <option th:each="f, st : ${forms}" th:value="${f.tocFormSn}" th:text="${f.labelFor(me)}" th:selected="${st.first}">양식</option>
+        </select>
+        <button class="btn sm" type="submit">다른 양식으로 바꾸기</button>
+      </th:block>
+      <span class="faint" th:if="${#lists.isEmpty(forms)}">저장된 양식 없음</span>
+    </form>
+    <form th:action="@{/proposal/toc/form}" method="post" class="row">
+      <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+      <input type="hidden" name="tab" th:value="${k}">
+      <input type="text" name="tocFormNm" placeholder="저장할 양식 이름" maxlength="100" required style="width:170px">
+      <button class="btn sm" type="submit">지금 목차를 주관팀 양식으로 저장</button>
+    </form>
+  </div>
+  <div class="faint" style="font-size:11.5px;margin-top:6px">기관 대표 양식은 두지 않고, 주관팀이 저장한 양식만 그 주관팀 인원이 불러옵니다. 목차는 단계에 제한이 없고 번호는 직접 입력합니다. 불러온 뒤의 수정은 이 사업건에만 적용됩니다.</div>
+</div>
+
+<form th:fragment="addTop(k)" th:if="${perm.edit}" th:action="@{/proposal/toc/add}" method="post" class="row">
+  <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+  <input type="hidden" name="tab" th:value="${k}">
+  <input type="text" name="label" placeholder="새 1단계 목차 이름" maxlength="250" required style="width:160px">
+  <button class="btn sm" type="submit">+ 1단계 목차 추가</button>
+</form>
+
+<th:block th:fragment="labelCell(t, k)">
+  <form th:if="${perm.edit}" th:action="@{/proposal/toc/label}" method="post" style="display:inline">
+    <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+    <input type="hidden" name="tab" th:value="${k}">
+    <input type="hidden" name="tocSn" th:value="${t.tocSn}">
+    <input type="text" name="label" class="lbl-in" th:classappend="${t.group} ? 'bold'" th:value="${t.label}"
+           maxlength="250" required onchange="this.form.submit()">
+  </form>
+  <th:block th:unless="${perm.edit}">
+    <b th:if="${t.group}" th:text="${t.label}">묶음 목차</b>
+    <span th:unless="${t.group}" th:text="${t.label}">목차</span>
+  </th:block>
+</th:block>
+
+<span th:fragment="tocTools(t)" th:if="${perm.edit}" class="toc-tools">
+  <button type="button" class="link" data-m="d" onclick="openAdd(this)"
+          th:data-t="${t.tocSn}" th:data-label="${t.label}" th:data-depth="${t.depth}">+ 하위</button>
+  <button type="button" class="link" data-m="s" onclick="openAdd(this)"
+          th:data-t="${t.tocSn}" th:data-label="${t.label}" th:data-depth="${t.depth}">+ 같은 단계</button>
+</span>
+
+<tr th:fragment="addRow(t, k, cols)" th:if="${perm.edit}" class="addrow" th:id="'add-' + ${t.tocSn}" hidden>
+  <td th:colspan="${cols}">
+    <form th:action="@{/proposal/toc/add-near}" method="post" class="row" onsubmit="return confirmAdd(this)"
+          th:data-label="${t.label}" th:data-leaf="${t.leaf}" th:data-rqts="${t.rqtCnt}" th:data-pic="${t.picId != null}">
+      <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+      <input type="hidden" name="tab" th:value="${k}">
+      <input type="hidden" name="tocSn" th:value="${t.tocSn}">
+      <input type="hidden" name="mode" value="d">
+      <span class="faint cap"></span>
+      <input type="text" name="label" placeholder="번호를 포함해 입력 (예: 1.2.3 보안 방안)" maxlength="250" required style="width:280px">
+      <button class="btn sm primary" type="submit">추가</button>
+      <button class="btn sm" type="button" onclick="closeAdd(this)">취소</button>
+    </form>
+  </td>
+</tr>
+
+<form th:fragment="delBtn(t, k)" th:action="@{/proposal/toc/delete}" method="post" style="display:inline"
+      th:data-label="${t.label}" th:data-group="${t.group}" th:data-rqts="${t.group ? t.subRqtCnt : t.rqtCnt}"
+      onsubmit="return confirmDel(this)">
+  <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+  <input type="hidden" name="tab" th:value="${k}">
+  <input type="hidden" name="tocSn" th:value="${t.tocSn}">
+  <button class="link" type="submit" th:text="${t.group} ? '삭제(하위 포함)' : '삭제'">삭제</button>
+</form>
+
+<th:block th:fragment="owner(t, k)">
+  <form th:if="${perm.assign}" th:action="@{/proposal/toc/assign}" method="post" style="display:inline">
+    <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+    <input type="hidden" name="tab" th:value="${k}">
+    <input type="hidden" name="tocSn" th:value="${t.tocSn}">
+    <select name="picId" onchange="this.form.submit()" style="max-width:130px">
+      <option value="">미지정</option>
+      <option th:each="m : ${members}" th:value="${m.userId}" th:text="${m.userNm}"
+              th:selected="${m.userId == t.picId}">담당자</option>
+      <!-- 제안팀에서 빠진 사람이 담당자로 남아 있으면 그대로 보여 준다 -->
+      <option th:if="${t.picId != null and !#lists.contains(members.![userId], t.picId)}"
+              th:value="${t.picId}" th:text="${(t.picNm ?: t.picId) + ' (제안팀 아님)'}" selected>담당자</option>
+    </select>
+  </form>
+  <th:block th:unless="${perm.assign}">
+    <span th:if="${t.picNm != null}" th:text="${t.picNm}">담당자</span>
+    <span class="faint" th:if="${t.picNm == null}">미지정</span>
+  </th:block>
+</th:block>
+
+<th:block th:fragment="pages(t)">
+  <form th:if="${perm.edit}" th:action="@{/proposal/toc/pages}" method="post">
+    <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+    <input type="hidden" name="tocSn" th:value="${t.tocSn}">
+    <input type="number" name="pages" min="0" max="9999" th:value="${t.pages}" style="width:64px"
+           onchange="this.form.submit()">
+  </form>
+  <span th:unless="${perm.edit}" th:text="${t.pages}">0</span>
+</th:block>
+
+</body>
+</html>

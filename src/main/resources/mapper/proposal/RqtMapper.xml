@@ -52,13 +52,14 @@
   </update>
 
   <select id="findMapTarget" resultType="com.ojj.sujuro.proposal.toc.TocDto">
-    SELECT T.TOC_SN AS tocSn, T.PBANC_SN AS pbancSn, T.UP_TOC_SN AS upTocSn, T.TOC_SE_CD AS tocSeCd, T.PIC_ID AS picId
+    SELECT T.TOC_SN AS tocSn, T.PBANC_SN AS pbancSn, T.UP_TOC_SN AS upTocSn, T.TOC_SE_CD AS tocSeCd, T.PIC_ID AS picId,
+           (SELECT COUNT(*) FROM TB_TOC C WHERE C.UP_TOC_SN = T.TOC_SN) AS childCnt
       FROM TB_TOC T
      WHERE T.TOC_SN = #{tocSn}
   </select>
 
 
-  <!-- 제안서·제안요약서 목차 어느 쪽이든 담당하면 목차 담당자 (화면 설계 v3.4) -->
+  <!-- 제안서·제안요약서 목차 어느 쪽이든 담당하면 목차 담당자 (화면 설계 v3.2) -->
   <select id="countOwnedTocs" resultType="int">
     SELECT COUNT(*) FROM TB_TOC WHERE PBANC_SN = #{pbancSn} AND PIC_ID = #{userId}
   </select>

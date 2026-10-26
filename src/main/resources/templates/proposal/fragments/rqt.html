@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  요구사항 화면 조각 (제안서 탭). q는 요구사항(RqtDto), t는 최하위 목차(TocDto)
+  필요한 모델: bid, canReq, unmappedList, mapTargets, editRqt
+    rqId(q, can)  : 요구사항 ID 칩 (can이면 ✕로 연결 해제)
+    rqInfo(q)     : 이름(누르면 정의·세부내용) · 분류 · 원본 위치 · 수정/삭제
+    rqAdd(t)      : 최하위 목차 줄의 "+ 요구사항 추가" (미매핑 요구사항 중 선택)
+    rqPickToc(q)  : 미매핑 줄의 "세부 목차 선택" (담당자가 있는 최하위 목차만)
+    rqForm        : 요구사항 수기 등록·수정 (FR-050)
+*/-->
+<body>
+
+<span th:fragment="rqId(q, can)" class="pill neutral mono">
+  <span th:text="${q.rqtMttrNo}">SFR-001</span>
+  <form th:if="${can}" th:action="@{/proposal/rqt/map}" method="post" style="display:inline">
+    <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+    <input type="hidden" name="rqtMttrSn" th:value="${q.rqtMttrSn}">
+    <button type="submit" class="x-btn" title="연결 해제">✕</button>
+  </form>
+</span>
+
+<div th:fragment="rqInfo(q)">
+  <details class="rq">
+    <summary th:text="${q.rqtMttrNm}">요구사항명</summary>
+    <div class="rq-def">
+      <div><b>정의</b> <span th:text="${q.rqtMttrDfn ?: '-'}">-</span></div>
+      <div><b>세부내용</b> <span th:text="${q.dtlCn ?: '-'}">-</span></div>
+    </div>
+  </details>
+  <div class="faint" style="font-size:11px">
+    <span th:text="${q.clsfNm ?: '-'}">기능</span> · 원본 <span th:text="${q.pageNo ?: '-'}">-</span>쪽
+    <th:block th:if="${canReq}">
+      · <a class="link" style="font-size:11px" th:href="@{/proposal(bid=${bid.pbancSn}, edit=${q.rqtMttrSn})}">수정</a>
+      <form th:action="@{/proposal/rqt/delete}" method="post" style="display:inline" onsubmit="return confirm('이 요구사항을 삭제할까요?')">
+        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+        <input type="hidden" name="rqtMttrSn" th:value="${q.rqtMttrSn}">
+        <button class="link" style="font-size:11px" type="submit">삭제</button>
+      </form>
+    </th:block>
+  </div>
+</div>
+
+<form th:fragment="rqAdd(t)" th:action="@{/proposal/rqt/map}" method="post">
+  <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+  <input type="hidden" name="tocSn" th:value="${t.tocSn}">
+  <select name="rqtMttrSn" onchange="this.form.submit()" style="max-width:260px">
+    <option value="">+ 요구사항 추가</option>
+    <option th:each="q : ${unmappedList}" th:value="${q.rqtMttrSn}"
+            th:text="${q.rqtMttrNo + ' · ' + q.rqtMttrNm}">SFR-001 · 요구사항</option>
+  </select>
+</form>
+
+<th:block th:fragment="rqPickToc(q)">
+  <form th:if="${canReq}" th:action="@{/proposal/rqt/map}" method="post">
+    <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+    <input type="hidden" name="rqtMttrSn" th:value="${q.rqtMttrSn}">
+    <select name="tocSn" onchange="this.form.submit()" style="max-width:240px">
+      <option value="">세부 목차 선택</option>
+      <option th:each="x : ${mapTargets}" th:value="${x.tocSn}" th:text="${x.label + ' (' + x.picNm + ')'}">1.1 목차 (담당자)</option>
+    </select>
+  </form>
+  <span class="faint" th:unless="${canReq}">미매핑</span>
+</th:block>
+
+<div class="card" id="rqform" th:fragment="rqForm">
+  <div class="card-head">
+    <h3 th:text="${editRqt != null} ? '요구사항 수정 · ' + ${editRqt.rqtMttrNo} : '요구사항 수기 등록 (등록하면 위 표의 &quot;미매핑 요구사항&quot;에 나타납니다)'">요구사항 수기 등록</h3>
+  </div>
+  <form th:action="${editRqt != null} ? @{/proposal/rqt/edit} : @{/proposal/rqt/add}" method="post"
+        class="pad" style="display:flex;flex-direction:column;gap:10px">
+    <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+    <input type="hidden" name="rqtMttrSn" th:if="${editRqt != null}" th:value="${editRqt.rqtMttrSn}">
+    <div class="grid2">
+      <div class="fld">
+        <label for="rqtMttrNo">요구사항 ID (사업 안에서 중복 불가)</label>
+        <input id="rqtMttrNo" name="rqtMttrNo" type="text" maxlength="50" required
+               th:value="${editRqt?.rqtMttrNo}" th:disabled="${editRqt != null}">
+      </div>
+      <div class="fld">
+        <label for="rqtMttrNm">명칭</label>
+        <input id="rqtMttrNm" name="rqtMttrNm" type="text" maxlength="300" required th:value="${editRqt?.rqtMttrNm}"
+               th:autofocus="${editRqt != null}">
+      </div>
+    </div>
+    <div class="grid3">
+      <div class="fld">
+        <label for="clsfNm">분류</label>
+        <select id="clsfNm" name="clsfNm">
+          <option th:each="c : ${#strings.arraySplit('기능,성능,보안,인터페이스,사업관리', ',')}" th:value="${c}" th:text="${c}"
+                  th:selected="${editRqt != null and c == editRqt.clsfNm}">기능</option>
+        </select>
+      </div>
+      <div class="fld">
+        <label for="pageNo">원본 위치(RFP 쪽)</label>
+        <input id="pageNo" name="pageNo" type="text" maxlength="20" th:value="${editRqt?.pageNo}">
+      </div>
+      <div class="fld">
+        <label for="rqtMttrDfn">정의</label>
+        <input id="rqtMttrDfn" name="rqtMttrDfn" type="text" maxlength="2000" th:value="${editRqt?.rqtMttrDfn}">
+      </div>
+    </div>
+    <div class="fld">
+      <label for="dtlCn">세부내용</label>
+      <textarea id="dtlCn" name="dtlCn" rows="2" maxlength="4000" th:text="${editRqt?.dtlCn}"></textarea>
+    </div>
+    <div class="row">
+      <button class="btn primary" type="submit" th:text="${editRqt != null} ? '수정 저장' : '등록'">등록</button>
+      <a class="btn" th:if="${editRqt != null}" th:href="@{/proposal(bid=${bid.pbancSn})}">취소</a>
+    </div>
+  </form>
+</div>
+
+</body>
+</html>

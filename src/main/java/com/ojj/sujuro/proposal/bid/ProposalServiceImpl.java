@@ -37,14 +37,6 @@ public class ProposalServiceImpl implements ProposalService {
         return mapper.findMembers(pbancSn);
     }
 
-    /** 목차 편집·담당자 지정은 팀장만 할 수 있다. 팀원은 조회만 한다. (FR-014, FR-016-1) */
-    @Override
-    public void requireLeader(boolean leader) {
-        if (!leader) {
-            throw new BusinessException("목차와 담당자 지정은 팀장만 할 수 있습니다.");
-        }
-    }
-
     @Transactional
     @Override
     public void changePageLimit(Long pbancSn, Integer limit) {

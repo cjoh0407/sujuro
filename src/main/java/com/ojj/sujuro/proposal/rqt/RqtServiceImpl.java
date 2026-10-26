@@ -111,14 +111,14 @@ public class RqtServiceImpl implements RqtService {
     }
 
     @Override
-    public boolean canEdit(Long pbancSn, String userId, boolean leader) {
-        return leader || mapper.countOwnedTocs(pbancSn, userId) > 0;
+    public boolean canEdit(Long pbancSn, String userId, boolean lead) {
+        return lead || mapper.countOwnedTocs(pbancSn, userId) > 0;
     }
 
     @Override
-    public void requireEditor(Long pbancSn, String userId, boolean leader) {
-        if (!canEdit(pbancSn, userId, leader)) {
-            throw new BusinessException("요구사항은 팀장과 목차 담당자만 등록·수정할 수 있습니다.");
+    public void requireEditor(Long pbancSn, String userId, boolean lead) {
+        if (!canEdit(pbancSn, userId, lead)) {
+            throw new BusinessException("요구사항은 주관팀 팀장과 목차 담당자만 등록·수정·연결할 수 있습니다.");
         }
     }
 
@@ -135,10 +135,10 @@ public class RqtServiceImpl implements RqtService {
                 throw new BusinessException("요구사항은 제안서 목차에만 연결할 수 있습니다.");
             }
             if (t.isGroup()) {
-                throw new BusinessException("큰 목차가 아니라 세부 목차에 연결해 주세요.");
+                throw new BusinessException("요구사항은 가장 하위 목차에만 연결할 수 있습니다.");
             }
             if (t.getPicId() == null) {
-                throw new BusinessException("담당자를 지정한 세부 목차에만 요구사항을 연결할 수 있습니다.");
+                throw new BusinessException("담당자를 지정한 최하위 목차에만 요구사항을 연결할 수 있습니다.");
             }
         }
         mapper.updateToc(rqtMttrSn, tocSn);

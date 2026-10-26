@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  제안서 목차 · 담당자 · 요구사항 탭 (FR-046~056). proposal.html에서 tab == 'prop'일 때 불러온다.
+  목차 조각은 fragments/toc.html, 요구사항 조각은 fragments/rqt.html
+*/-->
+<body>
+<th:block th:fragment="tab">
+
+  <!-- 진행 단계: ① 목차 양식 불러오기 → ② 목차별 담당자 지정 → ③ 요구사항 연결 (FR-046, FR-049, FR-051) -->
+  <div class="steps"
+       th:with="s1=${!#lists.isEmpty(tocs)}, s2=${assignedAll}, s3=${assignedAll and rqtTotal > 0 and unmapped == 0}">
+    <div class="step" th:classappend="${s1} ? 'done' : 'cur'">
+      <b>① 목차 양식 불러오기</b>
+      <span th:text="${s1} ? '양식 적용됨' : '목차 양식을 불러오세요'">양식 적용됨</span>
+    </div>
+    <div class="step" th:classappend="${s2} ? 'done' : (${s1} ? 'cur' : '')">
+      <b>② 목차별 담당자 지정</b>
+      <span th:text="${s2} ? '모든 목차 지정 완료' : (${s1} ? '미지정 ' + ${unassigned} + '개' : '①이 먼저 필요')">미지정 0개</span>
+    </div>
+    <div class="step" th:classappend="${s3} ? 'done' : (${s2} ? 'cur' : '')">
+      <b>③ 요구사항 연결</b>
+      <span th:text="${s3} ? '모두 연결됨' : (${s2} ? '미매핑 ' + ${unmapped} + '건' : '②가 먼저 필요')">미매핑 0건</span>
+    </div>
+  </div>
+
+  <!-- 분량 합계 (FR-055, 초안 기능). 제한은 주관팀 팀장이 정한다. -->
+  <div class="card pad">
+    <div class="row" style="justify-content:space-between">
+      <b style="font-size:12.5px">
+        제안서 분량 합계 <span th:text="${totalPages}">0</span>
+        <th:block th:if="${bid.lmtPageCnt != null}"> / <span th:text="${bid.lmtPageCnt}">0</span></th:block>쪽
+        <span class="faint" style="font-weight:400">(초안 기능 · 제안요청서의 페이지 제한)</span>
+      </b>
+      <form th:if="${canAssign}" th:action="@{/proposal/limit}" method="post" class="row">
+        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+        <span class="lbl">제한</span>
+        <input type="number" name="limit" min="1" max="9999" th:value="${bid.lmtPageCnt}" style="width:80px"
+               onchange="this.form.submit()">
+      </form>
+    </div>
+    <div class="bar" th:classappend="${overPages > 0} ? 'red'" style="margin-top:8px" th:if="${bid.lmtPageCnt != null}">
+      <i th:style="'width:' + ${T(java.lang.Math).min(100, totalPages * 100 / bid.lmtPageCnt)} + '%'"></i>
+    </div>
+  </div>
+  <div class="banner err" th:if="${overPages > 0}">
+    목차별 예상 쪽수의 합계(<span th:text="${totalPages}">0</span>쪽)가 제한(<span th:text="${bid.lmtPageCnt}">0</span>쪽)을 넘었습니다. 분량을 조정하세요.
+  </div>
+  <div class="banner warn" th:if="${!#lists.isEmpty(tocs) and rqtTotal > 0 and unmapped > 0}">
+    <span>어느 목차에도 연결되지 않은 요구사항(미매핑)이 <b th:text="${unmapped} + '건'">0건</b> 있습니다. 모든 요구사항은 반드시 목차에 연결되어야 합니다.</span>
+  </div>
+
+  <!-- 목차가 없으면: 팀 양식 불러오기 / 직접 목차 만들기 (FR-046, FR-047) -->
+  <div class="card" th:if="${#lists.isEmpty(tocs)}">
+    <div class="empty">
+      아직 제안서 목차가 없습니다.<br><br>
+      <th:block th:replace="~{proposal/fragments/toc :: emptyToc('prop')}"></th:block>
+    </div>
+  </div>
+
+  <th:block th:unless="${#lists.isEmpty(tocs)}">
+
+    <th:block th:if="${canLoad}"><th:block th:replace="~{proposal/fragments/toc :: formBar('prop')}"></th:block></th:block>
+
+    <!-- 목차 · 담당자 · 요구사항 연결 (FR-047, FR-049, FR-051) -->
+    <div class="card" th:with="cols=${canEdit ? 6 : 5}">
+      <div class="card-head">
+        <h3 th:text="${bid.label} + ' · 제안서 목차 · 담당자 · 요구사항 (이 사업건만 수정됨)'">제안서 목차</h3>
+        <th:block th:replace="~{proposal/fragments/toc :: addTop('prop')}"></th:block>
+      </div>
+      <div class="pad" style="padding-bottom:0">
+        <span class="faint" style="font-size:11.5px">
+          요구사항 연결 진행률 <span th:text="${progress}">0</span>%
+          (<span th:text="${rqtTotal - unmapped}">0</span>/<span th:text="${rqtTotal}">0</span>)
+          · 요구사항 하나는 가장 하위 목차 하나에만 연결됩니다(비기능 요구사항 포함)
+          · 담당자를 지정한 세부 목차부터 연결할 수 있습니다 · 요구사항 이름을 누르면 정의와 세부내용이 펼쳐집니다
+        </span>
+        <div class="bar ok" style="margin-top:6px"><i th:style="'width:' + ${progress} + '%'"></i></div>
+      </div>
+      <div class="ts">
+        <table>
+          <thead>
+            <tr>
+              <th>세부 목차</th><th>담당자</th><th>요구사항 ID</th><th style="width:34%">요구사항 · 분류 · 원본 위치</th><th>예상 쪽수</th>
+              <th th:if="${canEdit}"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <th:block th:each="t : ${tocs}">
+
+              <!-- 묶음 목차 (하위가 있는 목차): 아래 최하위 목차 수·요구사항 수·쪽수만 보여 준다 -->
+              <tr th:if="${t.group}">
+                <td th:colspan="${canEdit ? cols - 1 : cols}" class="toc-group" th:style="'padding-left:' + ${t.indent} + 'px'">
+                  <th:block th:replace="~{proposal/fragments/toc :: labelCell(${t}, 'prop')}"></th:block>
+                  <span class="faint" style="font-weight:400"
+                        th:text="'· 최하위 ' + ${t.leafCnt} + '개 · 요구사항 ' + ${t.subRqtCnt} + '건 · ' + ${t.subPages} + '쪽'">· 최하위 0개</span>
+                  <th:block th:replace="~{proposal/fragments/toc :: tocTools(${t})}"></th:block>
+                </td>
+                <td th:if="${canEdit}" class="toc-group-bg">
+                  <th:block th:replace="~{proposal/fragments/toc :: delBtn(${t}, 'prop')}"></th:block>
+                </td>
+              </tr>
+
+              <!-- 최하위 목차: 요구사항마다 한 줄 (목차·담당자·쪽수 칸은 합쳐서 보여 준다) -->
+              <th:block th:unless="${t.group}"
+                        th:with="mine=${rqtsByToc[t.tocSn]}, can=${t.picId != null and canReq},
+                                 addable=${can and !#lists.isEmpty(unmappedList)},
+                                 mc=${#lists.size(mine)}, nn=${mc + (addable ? 1 : 0)}, n=${nn == 0 ? 1 : nn}">
+                <tr th:each="i : ${#numbers.sequence(0, n - 1)}">
+                  <td th:if="${i == 0}" th:rowspan="${n}" class="vtop" th:style="'padding-left:' + ${t.indent} + 'px'">
+                    <th:block th:replace="~{proposal/fragments/toc :: labelCell(${t}, 'prop')}"></th:block>
+                    <div th:if="${canEdit}"><th:block th:replace="~{proposal/fragments/toc :: tocTools(${t})}"></th:block></div>
+                  </td>
+                  <td th:if="${i == 0}" th:rowspan="${n}" class="vtop">
+                    <th:block th:replace="~{proposal/fragments/toc :: owner(${t}, 'prop')}"></th:block>
+                  </td>
+
+                  <th:block th:if="${i lt mc}" th:with="q=${mine[i]}">
+                    <td class="vtop"><th:block th:replace="~{proposal/fragments/rqt :: rqId(${q}, ${can})}"></th:block></td>
+                    <td><th:block th:replace="~{proposal/fragments/rqt :: rqInfo(${q})}"></th:block></td>
+                  </th:block>
+
+                  <td colspan="2" th:if="${addable and i == mc}">
+                    <th:block th:replace="~{proposal/fragments/rqt :: rqAdd(${t})}"></th:block>
+                  </td>
+                  <td colspan="2" class="faint" th:if="${nn == 0}"
+                      th:text="${t.picId != null} ? '연결된 요구사항 없음' : '담당자를 지정하면 요구사항을 연결할 수 있습니다'">연결된 요구사항 없음</td>
+
+                  <td th:if="${i == 0}" th:rowspan="${n}" class="vtop">
+                    <th:block th:replace="~{proposal/fragments/toc :: pages(${t})}"></th:block>
+                  </td>
+                  <td th:if="${i == 0 and canEdit}" th:rowspan="${n}" class="vtop">
+                    <th:block th:replace="~{proposal/fragments/toc :: delBtn(${t}, 'prop')}"></th:block>
+                  </td>
+                </tr>
+              </th:block>
+
+              <th:block th:replace="~{proposal/fragments/toc :: addRow(${t}, 'prop', ${cols})}"></th:block>
+            </th:block>
+
+            <!-- 미매핑 요구사항: 담당자가 있는 최하위 목차를 골라 연결 -->
+            <th:block th:unless="${#lists.isEmpty(unmappedList)}">
+              <tr>
+                <td th:colspan="${cols}" class="unmapped-head">
+                  미매핑 요구사항 <span th:text="${unmapped} + '건'">0건</span>
+                  <span style="font-weight:400">· 모든 요구사항은 세부 목차에 연결되어야 합니다</span>
+                </td>
+              </tr>
+              <tr th:each="q : ${unmappedList}">
+                <td colspan="2" class="vtop" style="padding-left:28px">
+                  <th:block th:replace="~{proposal/fragments/rqt :: rqPickToc(${q})}"></th:block>
+                </td>
+                <td class="vtop"><span class="pill danger mono" th:text="${q.rqtMttrNo}">SFR-001</span></td>
+                <td><th:block th:replace="~{proposal/fragments/rqt :: rqInfo(${q})}"></th:block></td>
+                <td th:colspan="${cols - 4}"></td>
+              </tr>
+            </th:block>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </th:block>
+
+  <!-- 요구사항 수기 등록·수정 (FR-050) -->
+  <th:block th:if="${canReq}"><th:block th:replace="~{proposal/fragments/rqt :: rqForm}"></th:block></th:block>
+
+</th:block>
+</body>
+</html>

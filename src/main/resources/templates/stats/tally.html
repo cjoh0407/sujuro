@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+  <!-- 집계표 공통 조각: 연도·팀·사업 유형·참여 형태가 같은 열을 쓴다 (stats/index.html 이 가져다 쓴다) -->
+  <table th:fragment="t(rows, head)">
+    <thead><tr><th th:text="${head}">구분</th><th>참여</th><th>수주</th><th>탈락</th><th>유찰</th><th>수주율</th><th>수주 금액</th><th>평균 기술점수</th></tr></thead>
+    <tbody>
+      <tr th:if="${#lists.isEmpty(rows)}"><td colspan="8" class="faint">자료가 없습니다.</td></tr>
+      <tr th:each="t : ${rows}">
+        <td th:text="${t.label}">2026</td>
+        <td th:text="${t.joined}">0</td>
+        <td th:text="${t.won}">0</td>
+        <td th:text="${t.lost}">0</td>
+        <td th:text="${t.failed}">0</td>
+        <td><b th:text="${t.rateText}">-</b></td>
+        <td th:text="${#numbers.formatInteger(t.amount, 1, 'COMMA')} + '원'">0원</td>
+        <td th:text="${t.avgTechText}">-</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>

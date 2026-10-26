@@ -11,12 +11,24 @@ public final class BidCode {
     private BidCode() {
     }
 
-    /** 공고단계 (PBSTP) */
-    public static final String STEP_PRE_SPEC = "PP010"; // 사전규격
-    public static final String STEP_MAIN = "PP020";     // 본공고
+    /**
+     * 공고단계 (PBSTP). 10/23 회의에서 정한 라이프사이클이다.
+     *
+     *   발주계획 ──┐
+     *   사전규격 ──┴→ 입찰공고 → 개찰 → 계약
+     *
+     * 발주계획과 사전규격은 서로를 가리키는 필드가 API 에 없어 직접 이어지지 않는다.
+     * 둘 다 응답의 bidNtceNoList 로 입찰공고에서 합류한다. (2026-10-26 실호출 확인)
+     * 회의의 "요청접수"는 조달요청 서비스에 용역 오퍼레이션이 없어 뺐다.
+     */
+    public static final String STEP_ORDER_PLAN = "PP010"; // 발주계획
+    public static final String STEP_PRE_SPEC = "PP020";   // 사전규격
+    public static final String STEP_BID_NOTICE = "PP030"; // 입찰공고
+    public static final String STEP_OPENING = "PP040";    // 개찰
+    public static final String STEP_CONTRACT = "PP050";   // 계약
 
-    /** 추적상태 (TRSTS) - 사전규격으로 등록한 공고만 쓴다 */
-    public static final String TRACK_WAITING = "TR010"; // 본공고 대기
+    /** 추적상태 (TRSTS) - 발주계획·사전규격으로 등록해 입찰공고를 기다리는 공고가 쓴다 */
+    public static final String TRACK_WAITING = "TR010"; // 입찰공고 대기
     public static final String TRACK_LINKED = "TR020";  // 연결됨
     public static final String TRACK_CLOSED = "TR030";  // 추적 종료
 

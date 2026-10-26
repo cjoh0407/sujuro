@@ -81,11 +81,17 @@ INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUE
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('BDRST', 'BR010', '입찰결과', '수주', 1, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('BDRST', 'BR020', '입찰결과', '탈락', 2, 'Y');
 -- 나라장터 API 사용 프로세스(2026-10-19)에서 추가된 코드
-INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBSTP', 'PP010', '공고단계', '사전규격', '사전규격번호로 등록한 상태. 본공고를 기다린다', 1, 'Y');
-INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBSTP', 'PP020', '공고단계', '본공고', '입찰공고번호가 있는 상태', 2, 'Y');
-INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('TRSTS', 'TR010', '추적상태', '본공고 대기', '사전규격 API의 bidNtceNoList 가 비어 있다', 1, 'Y');
-INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('TRSTS', 'TR020', '추적상태', '연결됨', '본공고로 전환했다', 2, 'Y');
-INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('TRSTS', 'TR030', '추적상태', '추적 종료', '정해진 기간 안에 본공고가 없어 영업부가 종료했다', 3, 'Y');
+-- 공고단계 (10/23 회의). 조달청 API 로 추적 가능한 단계만 둔다.
+-- 회의에서 "요청접수"도 넣기로 했지만 조달요청 서비스에 용역(Servc) 오퍼레이션이 없어 뺐다.
+--   getPrcrmntReqInfoListThng(물품)·ListCnstwk(공사)·ListFrgcpt(외자)는 있고 ListServc 만 없다. (2026-10-26 실호출 확인)
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBSTP', 'PP010', '공고단계', '발주계획', '발주계획번호(R26DD…)로 등록한 상태. 공고가 나기를 기다린다', 1, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBSTP', 'PP020', '공고단계', '사전규격', '사전규격번호(R26BD…)로 등록한 상태. 입찰공고가 나기를 기다린다', 2, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBSTP', 'PP030', '공고단계', '입찰공고', '입찰공고번호(R26BK…)가 있는 상태. 참여 결정은 이 단계부터 할 수 있다', 3, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBSTP', 'PP040', '공고단계', '개찰', '개찰이 끝나 참가업체와 점수가 나온 상태', 4, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBSTP', 'PP050', '공고단계', '계약', '계약이 체결된 상태', 5, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('TRSTS', 'TR010', '추적상태', '입찰공고 대기', '발주계획·사전규격 API의 bidNtceNoList 가 비어 있다', 1, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('TRSTS', 'TR020', '추적상태', '연결됨', '입찰공고로 전환했다', 2, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('TRSTS', 'TR030', '추적상태', '추적 종료', '정해진 기간 안에 입찰공고가 없어 영업부가 종료했다', 3, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('EXCSE', 'EX010', '실행구분', '자동', '평일 오전 하루 1회 스케줄러', 1, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('EXCSE', 'EX020', '실행구분', '수동', '[지금 불러오기] 버튼', 2, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL010', '수집결과', '변경 없음', 1, 'Y');

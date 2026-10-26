@@ -114,14 +114,14 @@
   <select id="findRanks" resultType="com.ojj.sujuro.user.CodeOption">
     SELECT CD AS code, CD_NM AS name
       FROM TB_COM_CD
-     WHERE GROUP_CD = 'JBGDS' AND USE_YN = 'Y' AND CD &lt;&gt; 'JG030'
+     WHERE GROUP_CD = 'JBGDS' AND USE_YN = 'Y'
      ORDER BY SORT_SEQ
   </select>
 
   <select id="findStatuses" resultType="com.ojj.sujuro.user.CodeOption">
     SELECT CD AS code, CD_NM AS name
       FROM TB_COM_CD
-     WHERE GROUP_CD = 'ACSTS' AND USE_YN = 'Y' AND CD &lt;&gt; 'AS010'
+     WHERE GROUP_CD = 'ACSTS' AND USE_YN = 'Y'
      ORDER BY SORT_SEQ
   </select>
 

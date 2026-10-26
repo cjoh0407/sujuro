@@ -66,12 +66,6 @@ public class LoginUser implements UserDetails {
         return role;
     }
 
-    /** 외부 인력은 쓰지 않기로 해서 항상 false다. 이 메서드를 쓰는 코드(ProposalController)를 정리하면 함께 지운다. */
-    @Deprecated
-    public boolean isExternal() {
-        return false;
-    }
-
     public String getStatus() {
         return status;
     }

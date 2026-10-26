@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <!--
   제안 업무 공통 SQL: 내 사업건 목록, 제안팀원 확인, 쪽수 제한 (FR-011, FR-055)
-  사용 테이블: TB_BID_PBANC, TB_PRP_TMMBR, TB_PTCP_TEAM, TB_TEAM, TB_USER, TB_COM_CD(PBSTS)
+  사용 테이블: TB_BID_PBANC, TB_PRP_TMMBR, TB_PTCP_TEAM, TB_TEAM, TB_COM_CD(PBSTS)
   주관팀 = TB_BID_PBANC.SPRVSN_TEAM_SN (개발하는 팀), 참여팀 = TB_PTCP_TEAM (제안서 작성을 함께하는 팀)
 -->
 <mapper namespace="com.ojj.sujuro.proposal.bid.ProposalMapper">
@@ -19,10 +19,7 @@
     ST.TEAM_NM       AS sprvsnTeamNm,
     (SELECT LISTAGG(PT.TEAM_NM, ', ') WITHIN GROUP (ORDER BY PT.TEAM_NM)
        FROM TB_PTCP_TEAM P JOIN TB_TEAM PT ON PT.TEAM_SN = P.TEAM_SN
-      WHERE P.PBANC_SN = B.PBANC_SN)                        AS ptcpTeamNms,
-    (SELECT MU.TEAM_SN FROM TB_USER MU WHERE MU.USER_ID = #{userId})   AS myTeamSn,
-    (SELECT MIN(MM.PTCP_SE_CD) FROM TB_PRP_TMMBR MM
-      WHERE MM.PBANC_SN = B.PBANC_SN AND MM.USER_ID = #{userId})      AS myPtcpSeCd
+      WHERE P.PBANC_SN = B.PBANC_SN)                        AS ptcpTeamNms
   </sql>
 
   <!-- 내가 제안팀원인 사업건만 (제안팀에 없으면 볼 수 없다) -->

@@ -35,7 +35,7 @@
     <th:block th:replace="~{proposal/fragments/bid-header :: teamCard}"></th:block>
 
     <!-- 주관팀이 아니면 할 수 있는 일을 안내 -->
-    <div class="banner info" th:unless="${perm.load}">
+    <div class="banner info" th:unless="${canLoad}">
       <span>제안팀(주관팀·참여팀 인원)은 목차를 추가·수정할 수 있습니다. 양식 불러오기·저장은 주관팀 인원만 할 수 있습니다. 담당자는 최하위 목차에만 두며 주관팀 팀장이 지정합니다.</span>
     </div>
 

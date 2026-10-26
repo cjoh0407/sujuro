@@ -32,7 +32,7 @@
         <th:block th:if="${bid.lmtPageCnt != null}"> / <span th:text="${bid.lmtPageCnt}">0</span></th:block>쪽
         <span class="faint" style="font-weight:400">(초안 기능 · 제안요청서의 페이지 제한)</span>
       </b>
-      <form th:if="${perm.assign}" th:action="@{/proposal/limit}" method="post" class="row">
+      <form th:if="${canAssign}" th:action="@{/proposal/limit}" method="post" class="row">
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
         <span class="lbl">제한</span>
         <input type="number" name="limit" min="1" max="9999" th:value="${bid.lmtPageCnt}" style="width:80px"
@@ -60,10 +60,10 @@
 
   <th:block th:unless="${#lists.isEmpty(tocs)}">
 
-    <th:block th:if="${perm.load}"><th:block th:replace="~{proposal/fragments/toc :: formBar('prop')}"></th:block></th:block>
+    <th:block th:if="${canLoad}"><th:block th:replace="~{proposal/fragments/toc :: formBar('prop')}"></th:block></th:block>
 
     <!-- 목차 · 담당자 · 요구사항 연결 (FR-047, FR-049, FR-051) -->
-    <div class="card" th:with="cols=${perm.edit ? 6 : 5}">
+    <div class="card" th:with="cols=${canEdit ? 6 : 5}">
       <div class="card-head">
         <h3 th:text="${bid.label} + ' · 제안서 목차 · 담당자 · 요구사항 (이 사업건만 수정됨)'">제안서 목차</h3>
         <th:block th:replace="~{proposal/fragments/toc :: addTop('prop')}"></th:block>
@@ -82,7 +82,7 @@
           <thead>
             <tr>
               <th>세부 목차</th><th>담당자</th><th>요구사항 ID</th><th style="width:34%">요구사항 · 분류 · 원본 위치</th><th>예상 쪽수</th>
-              <th th:if="${perm.edit}"></th>
+              <th th:if="${canEdit}"></th>
             </tr>
           </thead>
           <tbody>
@@ -90,13 +90,13 @@
 
               <!-- 묶음 목차 (하위가 있는 목차): 아래 최하위 목차 수·요구사항 수·쪽수만 보여 준다 -->
               <tr th:if="${t.group}">
-                <td th:colspan="${perm.edit ? cols - 1 : cols}" class="toc-group" th:style="'padding-left:' + ${t.indent} + 'px'">
+                <td th:colspan="${canEdit ? cols - 1 : cols}" class="toc-group" th:style="'padding-left:' + ${t.indent} + 'px'">
                   <th:block th:replace="~{proposal/fragments/toc :: labelCell(${t}, 'prop')}"></th:block>
                   <span class="faint" style="font-weight:400"
                         th:text="'· 최하위 ' + ${t.leafCnt} + '개 · 요구사항 ' + ${t.subRqtCnt} + '건 · ' + ${t.subPages} + '쪽'">· 최하위 0개</span>
                   <th:block th:replace="~{proposal/fragments/toc :: tocTools(${t})}"></th:block>
                 </td>
-                <td th:if="${perm.edit}" class="toc-group-bg">
+                <td th:if="${canEdit}" class="toc-group-bg">
                   <th:block th:replace="~{proposal/fragments/toc :: delBtn(${t}, 'prop')}"></th:block>
                 </td>
               </tr>
@@ -109,7 +109,7 @@
                 <tr th:each="i : ${#numbers.sequence(0, n - 1)}">
                   <td th:if="${i == 0}" th:rowspan="${n}" class="vtop" th:style="'padding-left:' + ${t.indent} + 'px'">
                     <th:block th:replace="~{proposal/fragments/toc :: labelCell(${t}, 'prop')}"></th:block>
-                    <div th:if="${perm.edit}"><th:block th:replace="~{proposal/fragments/toc :: tocTools(${t})}"></th:block></div>
+                    <div th:if="${canEdit}"><th:block th:replace="~{proposal/fragments/toc :: tocTools(${t})}"></th:block></div>
                   </td>
                   <td th:if="${i == 0}" th:rowspan="${n}" class="vtop">
                     <th:block th:replace="~{proposal/fragments/toc :: owner(${t}, 'prop')}"></th:block>
@@ -129,7 +129,7 @@
                   <td th:if="${i == 0}" th:rowspan="${n}" class="vtop">
                     <th:block th:replace="~{proposal/fragments/toc :: pages(${t})}"></th:block>
                   </td>
-                  <td th:if="${i == 0 and perm.edit}" th:rowspan="${n}" class="vtop">
+                  <td th:if="${i == 0 and canEdit}" th:rowspan="${n}" class="vtop">
                     <th:block th:replace="~{proposal/fragments/toc :: delBtn(${t}, 'prop')}"></th:block>
                   </td>
                 </tr>

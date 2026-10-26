@@ -7,7 +7,7 @@ import java.util.List;
  * 목차 양식은 읽기만 하고, 불러오면 사업건 전용 복사본이 만들어진다. 복사본을 고쳐도 저장된 양식은 바뀌지 않는다.
  * 제안서와 제안요약서 목차는 tocSeCd(TocDto.SE_PROPOSAL / SE_SUMMARY)로 나눠 따로 관리하고, 단계 규칙은 같다.
  * 목차 단계에는 제한이 없고 번호는 사용자가 입력한다. 담당자·쪽수·요구사항은 최하위 목차에만 둔다.
- * 누가 할 수 있는지(주관팀·제안팀·주관팀 팀장)는 컨트롤러에서 ProposalPerm으로 먼저 확인한다.
+ * 누가 할 수 있는지(주관팀·제안팀·주관팀 팀장)는 컨트롤러에서 AccessChecker로 먼저 확인한다.
  */
 public interface TocService {
 

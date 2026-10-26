@@ -1,6 +1,6 @@
 package com.ojj.sujuro.proposal.bid;
 
-/** 제안팀이 볼 수 있는 사업건(입찰공고) 요약. 목차·요구사항 화면의 사업건 선택과 권한 판단에 쓴다. */
+/** 제안팀이 볼 수 있는 사업건(입찰공고) 요약. 목차·요구사항 화면의 사업건 선택과 사업명 줄·제안팀 구성 표시에 쓴다. */
 public class ProposalBidDto {
 
     private Long pbancSn;
@@ -13,11 +13,6 @@ public class ProposalBidDto {
     private Long sprvsnTeamSn;
     private String sprvsnTeamNm;
     private String ptcpTeamNms;
-
-    /** 로그인한 사용자의 소속 팀 (조회 때 채움) */
-    private Long myTeamSn;
-    /** 로그인한 사용자의 이 사업건 참여구분 PT010 주관팀 / PT020 참여팀 / PT040 수행인력. 제안팀이 아니면 null */
-    private String myPtcpSeCd;
 
     public Long getPbancSn() { return pbancSn; }
     public void setPbancSn(Long pbancSn) { this.pbancSn = pbancSn; }
@@ -54,24 +49,8 @@ public class ProposalBidDto {
     public String getPtcpTeamNms() { return ptcpTeamNms; }
     public void setPtcpTeamNms(String ptcpTeamNms) { this.ptcpTeamNms = ptcpTeamNms; }
 
-    public Long getMyTeamSn() { return myTeamSn; }
-    public void setMyTeamSn(Long myTeamSn) { this.myTeamSn = myTeamSn; }
-
-    public String getMyPtcpSeCd() { return myPtcpSeCd; }
-    public void setMyPtcpSeCd(String myPtcpSeCd) { this.myPtcpSeCd = myPtcpSeCd == null ? null : myPtcpSeCd.trim(); }
-
     /** 선택 목록에 보여 줄 이름. 공고명이 아직 없으면 공고번호를 쓴다. */
     public String getLabel() {
         return pbancNm != null && !pbancNm.isEmpty() ? pbancNm : bidPbancNo;
-    }
-
-    /** 로그인한 사용자가 이 사업건 주관팀 소속인지 */
-    public boolean isMySupervisingTeam() {
-        return sprvsnTeamSn != null && sprvsnTeamSn.equals(myTeamSn);
-    }
-
-    /** 로그인한 사용자가 제안팀(주관팀·참여팀 인원)인지. 수행인력(PT040)은 제안서 작성에 들어가지 않는다. */
-    public boolean isProposalWriter() {
-        return "PT010".equals(myPtcpSeCd) || "PT020".equals(myPtcpSeCd);
     }
 }

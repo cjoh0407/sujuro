@@ -16,9 +16,9 @@
   </div>
 
   <th:block th:unless="${#lists.isEmpty(tocs)}">
-    <th:block th:if="${perm.load}"><th:block th:replace="~{proposal/fragments/toc :: formBar('sum')}"></th:block></th:block>
+    <th:block th:if="${canLoad}"><th:block th:replace="~{proposal/fragments/toc :: formBar('sum')}"></th:block></th:block>
 
-    <div class="card" th:with="cols=${perm.edit ? 4 : 3}">
+    <div class="card" th:with="cols=${canEdit ? 4 : 3}">
       <div class="card-head">
         <h3 th:text="${bid.label} + ' · 제안요약서 목차 · 담당자 (이 사업건만 수정됨)'">제안요약서 목차</h3>
         <th:block th:replace="~{proposal/fragments/toc :: addTop('sum')}"></th:block>
@@ -26,16 +26,16 @@
       <div class="ts">
         <table>
           <thead>
-            <tr><th>목차</th><th>담당자</th><th>파일 상태</th><th th:if="${perm.edit}"></th></tr>
+            <tr><th>목차</th><th>담당자</th><th>파일 상태</th><th th:if="${canEdit}"></th></tr>
           </thead>
           <tbody>
             <th:block th:each="t : ${tocs}">
               <tr th:if="${t.group}">
-                <td th:colspan="${perm.edit ? cols - 1 : cols}" class="toc-group" th:style="'padding-left:' + ${t.indent} + 'px'">
+                <td th:colspan="${canEdit ? cols - 1 : cols}" class="toc-group" th:style="'padding-left:' + ${t.indent} + 'px'">
                   <th:block th:replace="~{proposal/fragments/toc :: labelCell(${t}, 'sum')}"></th:block>
                   <th:block th:replace="~{proposal/fragments/toc :: tocTools(${t})}"></th:block>
                 </td>
-                <td th:if="${perm.edit}" class="toc-group-bg">
+                <td th:if="${canEdit}" class="toc-group-bg">
                   <th:block th:replace="~{proposal/fragments/toc :: delBtn(${t}, 'sum')}"></th:block>
                 </td>
               </tr>
@@ -46,7 +46,7 @@
                 </td>
                 <td><th:block th:replace="~{proposal/fragments/toc :: owner(${t}, 'sum')}"></th:block></td>
                 <td><span class="pill" th:classappend="${t.fileStatusPill}" th:text="${t.fileStatus}">미착수</span></td>
-                <td th:if="${perm.edit}"><th:block th:replace="~{proposal/fragments/toc :: delBtn(${t}, 'sum')}"></th:block></td>
+                <td th:if="${canEdit}"><th:block th:replace="~{proposal/fragments/toc :: delBtn(${t}, 'sum')}"></th:block></td>
               </tr>
               <th:block th:replace="~{proposal/fragments/toc :: addRow(${t}, 'sum', ${cols})}"></th:block>
             </th:block>

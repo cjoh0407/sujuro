@@ -25,7 +25,7 @@ public class ProposalServiceImpl implements ProposalService {
     /** 제안팀원인 사업건만 열 수 있다. 아니면 업무 예외로 안내한다. */
     @Override
     public ProposalBidDto openBid(Long pbancSn, String userId) {
-        ProposalBidDto bid = mapper.findBid(pbancSn, userId);
+        ProposalBidDto bid = mapper.findBid(pbancSn);
         if (bid == null || mapper.countMember(pbancSn, userId) == 0) {
             throw new BusinessException("제안팀에 속한 사업건만 볼 수 있습니다.");
         }
@@ -35,13 +35,6 @@ public class ProposalServiceImpl implements ProposalService {
     @Override
     public List<ProposalMemberDto> members(Long pbancSn) {
         return mapper.findMembers(pbancSn);
-    }
-
-    @Override
-    public void require(boolean allowed, String message) {
-        if (!allowed) {
-            throw new BusinessException(message);
-        }
     }
 
     @Transactional

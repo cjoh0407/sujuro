@@ -12,8 +12,8 @@ public interface ProposalMapper {
     /** 내가 제안팀원으로 들어가 있는 사업건 (FR-011) */
     List<ProposalBidDto> findMyBids(@Param("userId") String userId);
 
-    /** 사업건 한 건 (제안팀원 여부와 관계없이). userId로 내 소속 팀·참여구분을 함께 채운다. */
-    ProposalBidDto findBid(@Param("pbancSn") Long pbancSn, @Param("userId") String userId);
+    /** 사업건 한 건 (제안팀원 여부와 관계없이) */
+    ProposalBidDto findBid(@Param("pbancSn") Long pbancSn);
 
     /** 사용자가 이 사업건의 제안팀원이면 1, 아니면 0 */
     int countMember(@Param("pbancSn") Long pbancSn, @Param("userId") String userId);

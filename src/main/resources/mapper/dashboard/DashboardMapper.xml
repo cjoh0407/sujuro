@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  대시보드 SQL (FR-089, 090). 테이블: TB_BID_PBANC, TB_TEAM, TB_USER, TB_PTCP_TEAM, TB_TOC, TB_RQT_MTTR, TB_ATCH_FILE,
+  TB_SBMSN_DCMNT, TB_COM_CD (db/01_schema.sql)
+  공고 상태 PS010 신규, PS020 배정 완료, PS030 참여 확정, PS040 제안 작성 중, PS050 제출 완료, PS060 결과 등록, PS090 불참
+-->
+<mapper namespace="com.ojj.sujuro.dashboard.DashboardMapper">
+
+  <!-- 로그인한 사용자의 소속 팀 -->
+  <sql id="myTeam">(SELECT U.TEAM_SN FROM TB_USER U WHERE U.USER_ID = #{userId})</sql>
+
+  <!-- 공고 P 가 내 팀의 사업인가: 주관팀이거나 참여팀 -->
+  <sql id="myTeamBid">
+    (P.SPRVSN_TEAM_SN = <include refid="myTeam"/>
+     OR EXISTS (SELECT 1 FROM TB_PTCP_TEAM PT WHERE PT.PBANC_SN = P.PBANC_SN AND PT.TEAM_SN = <include refid="myTeam"/>))
+  </sql>
+
+  <sql id="bidCols">
+    P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, P.PBANC_STTS_CD AS statusCd, S.CD_NM AS statusNm,
+    R.CD_NM AS returnNm, TM.TEAM_NM AS teamNm,
+    TO_CHAR(P.BID_DDLN_DT, 'YYYY-MM-DD HH24:MI') AS ddlnText,
+    TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE) AS dday
+  </sql>
+
+  <sql id="bidJoins">
+    FROM TB_BID_PBANC P
+    LEFT JOIN TB_COM_CD S ON S.GROUP_CD = 'PBSTS' AND S.CD = P.PBANC_STTS_CD
+    LEFT JOIN TB_COM_CD R ON R.GROUP_CD = 'RTRSE' AND R.CD = P.RTRN_SE_CD
+    LEFT JOIN TB_TEAM TM ON TM.TEAM_SN = P.SPRVSN_TEAM_SN
+  </sql>
+
+  <!-- ===== 영업부 ===== -->
+  <select id="salesCounts" resultType="com.ojj.sujuro.dashboard.DashboardRows$SalesCounts">
+    SELECT NVL(SUM(CASE WHEN PBANC_STTS_CD = 'PS010' AND PBANC_STEP_CD = 'PP030' THEN 1 ELSE 0 END), 0) AS assignWait,
+           NVL(SUM(CASE WHEN PBANC_STTS_CD = 'PS020' THEN 1 ELSE 0 END), 0) AS awaitingTeam,
+           NVL(SUM(CASE WHEN PBANC_STTS_CD = 'PS010' AND RTRN_SE_CD IS NOT NULL THEN 1 ELSE 0 END), 0) AS returned,
+           NVL(SUM(CASE WHEN TRCK_STTS_CD = 'TR010' THEN 1 ELSE 0 END), 0) AS tracking
+      FROM TB_BID_PBANC
+  </select>
+
+  <select id="salesTodo" resultType="com.ojj.sujuro.dashboard.DashboardRows$Bid">
+    SELECT <include refid="bidCols"/>
+    <include refid="bidJoins"/>
+     WHERE (P.PBANC_STTS_CD = 'PS010' AND P.PBANC_STEP_CD = 'PP030') OR P.PBANC_STTS_CD = 'PS020'
+     ORDER BY P.BID_DDLN_DT, P.PBANC_SN
+     FETCH FIRST 30 ROWS ONLY
+  </select>
+
+  <!-- ===== 팀장 ===== -->
+  <select id="leaderCounts" resultType="com.ojj.sujuro.dashboard.DashboardRows$LeaderCounts">
+    SELECT (SELECT COUNT(*) FROM TB_BID_PBANC P
+             WHERE P.PBANC_STTS_CD = 'PS020' AND P.SPRVSN_TEAM_SN = <include refid="myTeam"/>) AS decisionWait,
+           (SELECT COUNT(*) FROM TB_BID_PBANC P
+             WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040') AND <include refid="myTeamBid"/>) AS inProgress,
+           (SELECT COUNT(*) FROM TB_RQT_MTTR Q JOIN TB_BID_PBANC P ON P.PBANC_SN = Q.PBANC_SN
+             WHERE Q.TOC_SN IS NULL AND P.PBANC_STTS_CD IN ('PS030', 'PS040') AND <include refid="myTeamBid"/>) AS unmapped,
+           (SELECT COUNT(*) FROM TB_BID_PBANC P
+             WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040') AND <include refid="myTeamBid"/>
+               AND TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE) BETWEEN 0 AND 7) AS dueSoon
+      FROM DUAL
+  </select>
+
+  <select id="leaderDecisionWait" resultType="com.ojj.sujuro.dashboard.DashboardRows$Bid">
+    SELECT <include refid="bidCols"/>
+    <include refid="bidJoins"/>
+     WHERE P.PBANC_STTS_CD = 'PS020' AND P.SPRVSN_TEAM_SN = <include refid="myTeam"/>
+     ORDER BY P.BID_DDLN_DT, P.PBANC_SN
+     FETCH FIRST 30 ROWS ONLY
+  </select>
+
+  <select id="teamProposals" resultType="com.ojj.sujuro.dashboard.DashboardRows$Bid">
+    SELECT <include refid="bidCols"/>
+    <include refid="bidJoins"/>
+     WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040', 'PS050') AND <include refid="myTeamBid"/>
+     ORDER BY P.BID_DDLN_DT, P.PBANC_SN
+     FETCH FIRST 30 ROWS ONLY
+  </select>
+
+  <!-- ===== 팀원 ===== -->
+  <select id="myTocs" resultType="com.ojj.sujuro.dashboard.DashboardRows$MyToc">
+    SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, T.TOC_NO AS tocNo, T.TOC_NM AS tocNm,
+           T.EXPC_PAGE_CNT AS expcPageCnt, C.CD_NM AS tocStatusNm,
+           (SELECT COUNT(*) FROM TB_ATCH_FILE F WHERE F.TOC_SN = T.TOC_SN) AS fileCnt,
+           TO_CHAR(P.BID_DDLN_DT, 'YYYY-MM-DD HH24:MI') AS ddlnText,
+           TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE) AS dday
+      FROM TB_TOC T
+      JOIN TB_BID_PBANC P ON P.PBANC_SN = T.PBANC_SN
+      LEFT JOIN TB_COM_CD C ON C.GROUP_CD = 'TOCST' AND C.CD = T.PRGRS_STTS_CD
+     WHERE T.PIC_ID = #{userId}
+       AND P.PBANC_STTS_CD IN ('PS030', 'PS040')
+     ORDER BY P.BID_DDLN_DT, P.PBANC_SN, T.SORT_SEQ
+     FETCH FIRST 50 ROWS ONLY
+  </select>
+
+  <!-- ===== 경영지원실 ===== -->
+  <select id="docRows" resultType="com.ojj.sujuro.dashboard.DashboardRows$DocRow">
+    SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, TM.TEAM_NM AS teamNm,
+           (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D WHERE D.PBANC_SN = P.PBANC_SN) AS docTotal,
+           (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D WHERE D.PBANC_SN = P.PBANC_SN AND D.PRGRS_STTS_CD = 'DS030') AS docReady,
+           (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D
+             WHERE D.PBANC_SN = P.PBANC_SN AND D.ESNTL_YN = 'Y' AND D.PRGRS_STTS_CD &lt;&gt; 'DS030') AS missingRequired,
+           CASE WHEN P.SBMSN_DT IS NOT NULL THEN 1 ELSE 0 END AS registered
+      FROM TB_BID_PBANC P
+      LEFT JOIN TB_TEAM TM ON TM.TEAM_SN = P.SPRVSN_TEAM_SN
+     WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040')
+     ORDER BY P.BID_DDLN_DT, P.PBANC_SN
+     FETCH FIRST 100 ROWS ONLY
+  </select>
+
+  <select id="resultWaitCount" resultType="int">
+    SELECT COUNT(*) FROM TB_BID_PBANC WHERE PBANC_STTS_CD = 'PS050'
+  </select>
+
+  <!-- ===== 팀별 현황 ===== -->
+  <select id="teamStats" resultType="com.ojj.sujuro.dashboard.DashboardRows$TeamStat">
+    SELECT TM.TEAM_NM AS teamNm,
+           NVL(SUM(CASE WHEN P.PBANC_STTS_CD = 'PS020' THEN 1 ELSE 0 END), 0) AS assigned,
+           NVL(SUM(CASE WHEN P.PBANC_STTS_CD IN ('PS030', 'PS040') THEN 1 ELSE 0 END), 0) AS inProgress,
+           NVL(SUM(CASE WHEN P.PBANC_STTS_CD = 'PS050' THEN 1 ELSE 0 END), 0) AS submitted,
+           NVL(SUM(CASE WHEN P.PBANC_STTS_CD = 'PS060' THEN 1 ELSE 0 END), 0) AS resulted
+      FROM TB_TEAM TM
+      LEFT JOIN TB_BID_PBANC P ON P.SPRVSN_TEAM_SN = TM.TEAM_SN
+     WHERE TM.USE_YN = 'Y'
+    <if test="onlyMine">
+       AND TM.TEAM_SN = (SELECT U.TEAM_SN FROM TB_USER U WHERE U.USER_ID = #{userId})
+    </if>
+    <if test="!onlyMine">
+       AND TM.DEPT_CD = 'DP030'
+    </if>
+     GROUP BY TM.TEAM_SN, TM.TEAM_NM
+     ORDER BY TM.TEAM_SN
+  </select>
+
+</mapper>

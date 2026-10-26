@@ -12,15 +12,134 @@
 <h1 layout:fragment="pageTitle">대시보드</h1>
 
 <th:block layout:fragment="content">
-  <div class="banner info">공통 레이아웃을 확인하기 위한 임시 화면입니다. 대시보드는 10/24에 구현합니다.</div>
+  <!-- 인사말 -->
+  <div class="pad" style="padding-left:0;padding-top:0">
+    <div style="font-size:17px;font-weight:700">안녕하세요, <span sec:authentication="principal.name">이름</span>님</div>
+    <div class="faint" th:text="${view.subtitle}">소속 · 역할</div>
+  </div>
 
+  <!-- 숫자 카드: 역할별 할 일 요약 (FR-090) -->
+  <div class="stats" th:if="${!#lists.isEmpty(view.stats)}" style="margin-bottom:16px">
+    <div class="stat" th:each="s : ${view.stats}">
+      <div class="l" th:text="${s.label}">배정 대기</div>
+      <div class="v" th:text="${s.value}">0</div>
+      <div class="h" th:text="${s.hint}">설명</div>
+    </div>
+  </div>
+
+  <!-- 영업부: 처리할 공고 -->
+  <div class="card" th:if="${view.roleKey == 'SALES'}" style="margin-bottom:16px">
+    <div class="card-head"><h3>처리할 공고</h3><a class="btn sm" th:href="@{/notices}">공고 관리</a></div>
+    <div class="empty pad faint" th:if="${#lists.isEmpty(view.todoBids)}">처리할 공고가 없습니다.</div>
+    <div class="item" th:each="b : ${view.todoBids}">
+      <a class="sl" th:href="@{/notices}" th:text="${b.pbancNm}">공고명</a>
+      <span class="t">
+        <span class="pill" th:classappend="${b.statusPill}" th:text="${b.statusNm}">신규</span>
+        <span class="pill danger" th:if="${b.returnNm != null}" th:text="|${b.returnNm} 반환|">불참 반환</span>
+        <span th:text="${b.teamNm != null} ? ${b.teamNm} : ''"></span>
+        <span th:text="${b.ddayLabel}">D-3</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- 팀장: 참여 결정 대기 / 우리 팀 제안 사업 -->
+  <div class="two" th:if="${view.roleKey == 'LEADER'}" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-head"><h3>참여 결정 대기</h3></div>
+      <div class="empty pad faint" th:if="${#lists.isEmpty(view.todoBids)}">대기 공고가 없습니다.</div>
+      <div class="item" th:each="b : ${view.todoBids}">
+        <span class="sl" th:text="${b.pbancNm}">공고명</span>
+        <span class="t" th:text="|${b.ddlnText ?: '-'} 마감 · ${b.ddayLabel}|">마감</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>우리 팀 제안 사업</h3></div>
+      <div class="empty pad faint" th:if="${#lists.isEmpty(view.teamBids)}">진행 사업이 없습니다.</div>
+      <div class="item" th:each="b : ${view.teamBids}">
+        <a class="sl" th:href="@{/proposal(bid=${b.pbancSn})}" th:text="${b.pbancNm}">공고명</a>
+        <span class="t">
+          <span class="pill" th:classappend="${b.statusPill}" th:text="${b.statusNm}">제안 작성 중</span>
+          <span th:text="${b.ddayLabel}">D-3</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 팀원: 내 담당 목차 · 마감 -->
+  <div class="card" th:if="${view.roleKey == 'MEMBER'}" style="margin-bottom:16px">
+    <div class="card-head"><h3>내 담당 목차 · 마감</h3></div>
+    <div class="ts">
+      <table>
+        <thead><tr><th>사업건</th><th>담당 목차</th><th>분량</th><th>진행</th><th>파일</th><th>제출 마감</th></tr></thead>
+        <tbody>
+          <tr th:if="${#lists.isEmpty(view.myTocs)}"><td colspan="6" class="faint">담당 목차가 없습니다.</td></tr>
+          <tr th:each="t : ${view.myTocs}">
+            <td><a class="sl" th:href="@{/proposal(bid=${t.pbancSn})}" th:text="${t.pbancNm}">사업건</a></td>
+            <td th:text="|${t.tocNo ?: ''} ${t.tocNm}|">1.1 제안 배경</td>
+            <td th:text="${t.expcPageCnt != null} ? ${t.expcPageCnt} + '쪽' : '-'">3쪽</td>
+            <td th:text="${t.tocStatusNm}">미착수</td>
+            <td>
+              <span class="pill success" th:if="${t.fileCnt > 0}" th:text="|파일 ${t.fileCnt}건|">파일 1건</span>
+              <span class="pill warning" th:if="${t.fileCnt == 0}">미업로드</span>
+            </td>
+            <td th:text="|${t.ddlnText ?: '-'} (${t.ddayLabel})|">마감</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 경영지원실: 제출서류 준비 현황 -->
+  <div class="card" th:if="${view.roleKey == 'MGMT'}" style="margin-bottom:16px">
+    <div class="card-head"><h3>제출서류 준비 현황</h3><a class="btn sm" th:href="@{/docs}">제출서류 관리</a></div>
+    <div class="ts">
+      <table>
+        <thead><tr><th>사업건</th><th>팀</th><th>서류</th><th>누락 필수</th><th>상태</th></tr></thead>
+        <tbody>
+          <tr th:if="${#lists.isEmpty(view.docRows)}"><td colspan="5" class="faint">준비 중인 사업건이 없습니다.</td></tr>
+          <tr th:each="r : ${view.docRows}">
+            <td><a class="sl" th:href="@{/docs}" th:text="${r.pbancNm}">사업건</a></td>
+            <td th:text="${r.teamNm}">팀</td>
+            <td th:text="|${r.docReady} / ${r.docTotal}|">1 / 3</td>
+            <td>
+              <span class="pill danger" th:if="${r.missingRequired > 0}" th:text="|${r.missingRequired}건|">1건</span>
+              <span class="pill success" th:if="${r.missingRequired == 0}">없음</span>
+            </td>
+            <td><span class="pill" th:classappend="${r.statePill}" th:text="${r.stateLabel}">작성 중</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 팀별 현황 (FR-089): 영업부·경영지원실은 전체 개발팀, 팀장·팀원은 내 팀 -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head"><h3 th:text="${view.roleKey == 'SALES' or view.roleKey == 'MGMT'} ? '팀별 현황' : '우리 팀 현황'">팀별 현황</h3></div>
+    <div class="ts">
+      <table>
+        <thead><tr><th>팀</th><th>결정 대기</th><th>진행 중</th><th>제출 완료</th><th>결과 등록</th></tr></thead>
+        <tbody>
+          <tr th:if="${#lists.isEmpty(view.teamStats)}"><td colspan="5" class="faint">표시할 팀이 없습니다.</td></tr>
+          <tr th:each="t : ${view.teamStats}">
+            <td th:text="${t.teamNm}">개발1팀</td>
+            <td th:text="${t.assigned}">0</td>
+            <td th:text="${t.inProgress}">0</td>
+            <td th:text="${t.submitted}">0</td>
+            <td th:text="${t.resulted}">0</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 최근 알림 -->
   <div class="card">
-    <div class="card-head"><h3>로그인 정보</h3></div>
-    <div class="info-grid">
-      <div><div class="k">이름</div><div class="v" sec:authentication="principal.name">이름</div></div>
-      <div><div class="k">사번</div><div class="v" sec:authentication="principal.empNo">사번</div></div>
-      <div><div class="k">소속</div><div class="v" sec:authentication="principal.team">소속</div></div>
-      <div><div class="k">권한</div><div class="v" sec:authentication="principal.roleLabel">권한</div></div>
+    <div class="card-head"><h3>최근 알림</h3><a class="btn sm" th:href="@{/alerts}">전체 보기</a></div>
+    <div class="empty pad faint" th:if="${#lists.isEmpty(view.alerts)}">알림이 없습니다.</div>
+    <div class="item" th:each="n : ${view.alerts}" th:classappend="${n.read} ? '' : 'unread'">
+      <span class="pill neutral" th:text="${n.typeNm != null} ? ${n.typeNm} : ${n.typeCd}">유형</span>
+      <span th:text="${n.content}">내용</span>
+      <span class="t" th:text="${#dates.format(n.crtDt, 'MM-dd HH:mm')}">10-26 14:00</span>
     </div>
   </div>
 </th:block>

@@ -13,9 +13,11 @@ import com.ojj.sujuro.auth.Role;
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationMapper notificationMapper;
+    private final NotificationPublisher publisher;
 
-    public NotificationServiceImpl(NotificationMapper notificationMapper) {
+    public NotificationServiceImpl(NotificationMapper notificationMapper, NotificationPublisher publisher) {
         this.notificationMapper = notificationMapper;
+        this.publisher = publisher;
     }
 
     @Override
@@ -25,6 +27,7 @@ public class NotificationServiceImpl implements NotificationService {
             return;
         }
         notificationMapper.insert(receiverId, typeCd, pbancSn, content);
+        publisher.publish(receiverId, typeCd, pbancSn, content); // 접속 중이면 바로 보여 준다. 커밋된 뒤에 나간다. (FR-034)
     }
 
     @Override

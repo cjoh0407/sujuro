@@ -34,8 +34,9 @@
     </where>
   </sql>
 
-  <select id="findNotices" resultType="com.ojj.sujuro.bid.dto.BidNoticeDTO">
-    SELECT P.PBANC_SN                                AS pbancSn,
+  <!-- 목록 한 줄의 칸 (BidNoticeDTO). 상세(findDetail)도 이 칸에 상세 칸을 더해 쓴다. -->
+  <sql id="noticeColumns">
+           P.PBANC_SN                                AS pbancSn,
            COALESCE(P.BID_PBANC_NO,
                     P.BF_SPEC_RGST_NO,
                     P.ORDER_PLAN_NO)              AS pbancNo,
@@ -55,12 +56,21 @@
            P.PBANC_STTS_CD                           AS pbancSttsCd,
            STTS.CD_NM                                AS pbancSttsNm,
            RTRN.CD_NM                                AS rtrnSeNm
-      FROM TB_BID_PBANC P
+  </sql>
+
+  <!-- noticeColumns 가 쓰는 조인 -->
+  <sql id="noticeJoins">
       LEFT JOIN TB_TEAM   TEAM ON TEAM.TEAM_SN = P.SPRVSN_TEAM_SN
       LEFT JOIN TB_COM_CD STEP ON STEP.GROUP_CD = 'PBSTP' AND STEP.CD = P.PBANC_STEP_CD
       LEFT JOIN TB_COM_CD PTYP ON PTYP.GROUP_CD = 'PBTYP' AND PTYP.CD = P.PBANC_TYPE_CD
       LEFT JOIN TB_COM_CD STTS ON STTS.GROUP_CD = 'PBSTS' AND STTS.CD = P.PBANC_STTS_CD
       LEFT JOIN TB_COM_CD RTRN ON RTRN.GROUP_CD = 'RTRSE' AND RTRN.CD  = P.RTRN_SE_CD
+  </sql>
+
+  <select id="findNotices" resultType="com.ojj.sujuro.bid.dto.BidNoticeDTO">
+    SELECT <include refid="noticeColumns"/>
+      FROM TB_BID_PBANC P
+    <include refid="noticeJoins"/>
     <include refid="searchWhere"/>
     <choose>
       <!-- 최신 순은 등록 역순이다. 수집일시(CLCT_DT)는 정정이 날 때마다 바뀌어 목록 순서가 흔들린다. -->
@@ -93,6 +103,62 @@
      WHERE C.GROUP_CD = 'PBSTS'
        AND C.USE_YN = 'Y'
      ORDER BY C.SORT_SEQ
+  </select>
+
+  <!-- 공고 상세 (FR-035). 목록 한 줄의 칸에 상세 칸을 더한다. 없는 공고면 결과가 없다. -->
+  <select id="findDetail" parameterType="long" resultType="com.ojj.sujuro.bid.dto.NoticeDetailDTO">
+    SELECT <include refid="noticeColumns"/>,
+           P.ORDER_PLAN_NO                           AS orderPlanNo,
+           P.BF_SPEC_RGST_NO                         AS bfSpecRgstNo,
+           P.BID_PBANC_NO                            AS bidPbancNo,
+           P.BID_PBANC_CYCL                          AS bidPbancCycl,
+           P.TRCK_STTS_CD                            AS trckSttsCd,
+           TRCK.CD_NM                                AS trckSttsNm,
+           P.DMND_INST_NM                            AS dmndInstNm,
+           PTFM.CD_NM                                AS ptcpShpNm,
+           P.SW_BIZ_YN                               AS swBizYn,
+           P.BIZ_PRD_CN                              AS bizPrdCn,
+           P.OPNN_DDLN_DT                            AS opnnDdlnDt,
+           P.OPENG_DT                                AS opengDt,
+           P.PRSNTN_DT                               AS prsntnDt,
+           P.EVL_MTHD_NM                             AS evlMthdNm,
+           P.LMT_PAGE_CNT                            AS lmtPageCnt,
+           P.PBANC_DTL_URL                           AS pbancDtlUrl,
+           P.SPRVSN_TEAM_SN                          AS sprvsnTeamSn,
+           RGTR.USER_NM                              AS rgtrNm,
+           P.REG_DT                                  AS regDt,
+           P.CLCT_DT                                 AS clctDt,
+           P.LAST_CFMTN_DT                           AS lastCfmtnDt
+      FROM TB_BID_PBANC P
+    <include refid="noticeJoins"/>
+      LEFT JOIN TB_COM_CD TRCK ON TRCK.GROUP_CD = 'TRSTS' AND TRCK.CD = P.TRCK_STTS_CD
+      LEFT JOIN TB_COM_CD PTFM ON PTFM.GROUP_CD = 'PTFRM' AND PTFM.CD = P.PTCP_SHP_CD
+      LEFT JOIN TB_USER   RGTR ON RGTR.USER_ID = P.RGTR_ID
+     WHERE P.PBANC_SN = #{pbancSn}
+  </select>
+
+  <!--
+    공고수집이력 (FR-035 단계 이력, FR-035-1 변경 비교). 오래된 순이다.
+    API 원문(CLOB)도 같이 읽는다. 공고명·첨부파일처럼 이력 컬럼에 없는 값은 원문에서 꺼낸다.
+  -->
+  <select id="findCollectHistories" parameterType="long" resultType="com.ojj.sujuro.bid.dto.CollectHistoryDTO">
+    SELECT H.CLCT_SEQ        AS clctSeq,
+           H.PBANC_STEP_CD   AS pbancStepCd,
+           STEP.CD_NM        AS pbancStepNm,
+           H.PBANC_NO        AS pbancNo,
+           H.BID_PBANC_CYCL  AS bidPbancCycl,
+           H.PBANC_TYPE_CD   AS pbancTypeCd,
+           PTYP.CD_NM        AS pbancTypeNm,
+           H.ALTMNT_BGT_AMT  AS altmntBgtAmt,
+           H.BID_DDLN_DT     AS bidDdlnDt,
+           H.OPENG_DT        AS opengDt,
+           H.API_RSPNS_CN    AS apiRspnsCn,
+           H.CLCT_DT         AS clctDt
+      FROM TB_PBANC_CLCT_HSTRY H
+      LEFT JOIN TB_COM_CD STEP ON STEP.GROUP_CD = 'PBSTP' AND STEP.CD = H.PBANC_STEP_CD
+      LEFT JOIN TB_COM_CD PTYP ON PTYP.GROUP_CD = 'PBTYP' AND PTYP.CD = H.PBANC_TYPE_CD
+     WHERE H.PBANC_SN = #{pbancSn}
+     ORDER BY H.CLCT_SEQ
   </select>
 
   <!-- 중복 등록 차단 (FR-021). 번호에 UNIQUE 제약이 걸려 있지만, 제약 위반 화면 대신
@@ -189,6 +255,59 @@
      WHERE PBANC_SN          = #{pbancSn}
        AND PBANC_STEP_CD     = #{fromStepCd}
        AND BF_SPEC_RGST_NO IS NULL
+  </update>
+
+  <!--
+    입찰공고를 기다리는 공고 목록. 발주계획·사전규격 어느 단계든 추적상태가 '입찰공고 대기'이고
+    아직 입찰공고번호가 없는 행이다. 수집이 이 번호들로 통합공개 API 에 입찰공고가 났는지 묻는다.
+  -->
+  <select id="findBidWaitingNotices" resultType="com.ojj.sujuro.bid.dto.TrackingNoticeDTO">
+    SELECT P.PBANC_SN        AS pbancSn,
+           P.ORDER_PLAN_NO   AS orderPlanNo,
+           P.BF_SPEC_RGST_NO AS bfSpecRgstNo,
+           P.PBANC_STEP_CD   AS pbancStepCd,
+           P.PBANC_NM        AS pbancNm,
+           P.ORDER_INST_NM   AS orderInstNm,
+           P.ALTMNT_BGT_AMT  AS altmntBgtAmt
+      FROM TB_BID_PBANC P
+     WHERE P.TRCK_STTS_CD = #{trckSttsCd}
+       AND P.BID_PBANC_NO IS NULL
+     ORDER BY P.PBANC_SN
+  </select>
+
+  <!--
+    발주계획·사전규격 행을 입찰공고 단계로 올린다 (FR-025-1). 새 행을 만들지 않고 이 행을 고친다.
+    추적상태는 '연결됨'이 된다. 이전 단계의 값은 수집이력에 남아 있다 (FR-035-1).
+
+    공고명·수요기관·예산·마감일 같은 값은 입찰공고 쪽이 최종이라 덮는다. 다만 API 가 빈 값을 주면 덮지 않는다.
+    발주기관명은 덮지 않는다. 조달청 위탁 건은 입찰공고의 공고기관이 '조달청 ○○지방조달청'이라,
+    발주계획·사전규격 때 받아 둔 실제 발주기관이 지워지기 때문이다.
+    비어 있던 사전규격번호·발주계획번호는 이때 채운다 (NVL 이라 있던 값은 그대로다).
+
+    WHERE 에 추적상태와 "입찰공고번호가 비어 있음"을 같이 걸어, 같은 전이가 두 번 일어나지 않게 한다.
+  -->
+  <update id="updateToBidNotice" parameterType="com.ojj.sujuro.bid.dto.BidLinkDTO">
+    UPDATE TB_BID_PBANC
+       SET BID_PBANC_NO    = #{bidPbancNo},
+           BID_PBANC_CYCL  = NVL(#{bidPbancCycl}, 0),
+           PBANC_STEP_CD   = #{toStepCd},
+           TRCK_STTS_CD    = #{toTrckSttsCd},
+           BF_SPEC_RGST_NO = NVL(BF_SPEC_RGST_NO, #{bfSpecRgstNo}),
+           ORDER_PLAN_NO   = NVL(ORDER_PLAN_NO, #{orderPlanNo}),
+           PBANC_TYPE_CD   = NVL(#{pbancTypeCd}, PBANC_TYPE_CD),
+           PBANC_NM        = NVL(#{pbancNm}, PBANC_NM),
+           ORDER_INST_NM   = NVL(ORDER_INST_NM, #{orderInstNm}),
+           DMND_INST_NM    = NVL(#{dmndInstNm}, DMND_INST_NM),
+           ALTMNT_BGT_AMT  = NVL(#{altmntBgtAmt}, ALTMNT_BGT_AMT),
+           BID_DDLN_DT     = NVL(#{bidDdlnDt}, BID_DDLN_DT),
+           OPENG_DT        = NVL(#{opengDt}, OPENG_DT),
+           EVL_MTHD_NM     = NVL(#{evlMthdNm}, EVL_MTHD_NM),
+           PBANC_DTL_URL   = NVL(#{pbancDtlUrl}, PBANC_DTL_URL),
+           CLCT_DT         = SYSDATE,
+           LAST_CFMTN_DT   = SYSDATE
+     WHERE PBANC_SN        = #{pbancSn}
+       AND TRCK_STTS_CD    = #{fromTrckSttsCd}
+       AND BID_PBANC_NO IS NULL
   </update>
 
   <!-- 공고마다 1부터 센다. 수집이력의 (공고, 순번)이 UNIQUE 라서 미리 다음 번호를 받아 둔다. -->

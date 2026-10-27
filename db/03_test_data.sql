@@ -6,6 +6,8 @@
 -- 다시 실행해도 된다. (테스트 계정만 지우고 다시 넣는다.) 배포 DB에는 넣지 않는다.
 --
 -- [변경 이력]
+-- v1.6  2026-10-27  김종민  4-3 공고 수집이력 2건에 API 원문(공고명·첨부파일·사업 내용·평가 비율)을 넣음. 공고 상세의
+--                           변경 비교(FR-035-1)와 제안요청서 목록(FR-036) 확인용.
 -- v1.5  2026-10-26  김종민  공고 9건 추가 (사전규격 2 · 본공고 7, 공고상태 7종 전부 + 반환 1건).
 --                           공고 목록 탭·검색·정렬과 영업부 대시보드 집계 확인용.
 --                           지우는 공고를 번호 목록으로 한정해 03_sample_data.sql 의 샘플 공고
@@ -244,13 +246,28 @@ VALUES ('R26BK00942500', 0, 'PP040', 'PY010', '해양 안전관리 플랫폼 구
        TO_DATE('2026-09-28', 'YYYY-MM-DD'));
 
 -- 6) 공고수집이력: 4-3 공고가 사전규격에서 본공고로 전환된 흐름 (예산이 7억 -> 7.6억으로 바뀌었다)
-INSERT INTO TB_PBANC_CLCT_HSTRY (PBANC_SN, CLCT_SEQ, PBANC_STEP_CD, PBANC_NO, ALTMNT_BGT_AMT, CLCT_DT)
-SELECT PBANC_SN, 1, 'PP020', 'R26BD00011088', 700000000, TO_DATE('2026-09-29 09:05', 'YYYY-MM-DD HH24:MI')
+--    API 원문(API_RSPNS_CN)은 공고 상세가 공고명 비교(FR-035-1)와 첨부파일(FR-036)을 꺼내는 곳이다.
+--    실제 응답의 필드 이름만 따서 줄인 것이다. 첨부 주소는 가짜라 눌러도 받아지지 않는다.
+INSERT INTO TB_PBANC_CLCT_HSTRY (PBANC_SN, CLCT_SEQ, PBANC_STEP_CD, PBANC_NO, ALTMNT_BGT_AMT, API_RSPNS_CN, CLCT_DT)
+SELECT PBANC_SN, 1, 'PP020', 'R26BD00011088', 700000000,
+       '{"bfSpecRgstNo":"R26BD00011088","prdctClsfcNoNm":"통합민원 포털 고도화","orderInsttNm":"국민권익위원회","asignBdgtAmt":"700000000",'
+       || '"swBizObjYn":"Y","dlvrTmlmtDt":"2027-06-30 00:00:00"}',
+       TO_DATE('2026-09-29 09:05', 'YYYY-MM-DD HH24:MI')
   FROM TB_BID_PBANC WHERE BID_PBANC_NO = 'R26BK00945112';
 INSERT INTO TB_PBANC_CLCT_HSTRY (PBANC_SN, CLCT_SEQ, PBANC_STEP_CD, PBANC_NO, BID_PBANC_CYCL,
-       PBANC_TYPE_CD, ALTMNT_BGT_AMT, BID_DDLN_DT, OPENG_DT, CLCT_DT)
+       PBANC_TYPE_CD, ALTMNT_BGT_AMT, BID_DDLN_DT, OPENG_DT, API_RSPNS_CN, CLCT_DT)
 SELECT PBANC_SN, 2, 'PP030', 'R26BK00945112', 0, 'PY010', 760000000,
        TO_DATE('2026-11-05 10:00', 'YYYY-MM-DD HH24:MI'), TO_DATE('2026-11-05 11:00', 'YYYY-MM-DD HH24:MI'),
+       '{"bidNtceNo":"R26BK00945112","bidNtceOrd":"000","ntceKindNm":"등록공고","bidNtceNm":"통합민원 포털 고도화 사업",'
+       || '"refNo":"국민권익위원회 공고 제2026-112호","pubPrcrmntLrgClsfcNm":"ICT 서비스","pubPrcrmntMidClsfcNm":"소프트웨어 개발",'
+       || '"cntrctCnclsMthdNm":"제한경쟁","cmmnSpldmdMethdNm":"(전자)공동이행","presmptPrce":"690909091",'
+       || '"sucsfbidMthdNm":"협상에의한계약-협상에 의한 낙찰자 결정(SW사업)","techAbltEvlRt":"90","bidPrceEvlRt":"10",'
+       || '"ntceInsttOfclNm":"김담당","ntceInsttOfclTelNo":"044-200-0000",'
+       || '"ntceSpecFileNm1":"[입찰공고문] 통합민원 포털 고도화 사업.hwp",'
+       || '"ntceSpecDocUrl1":"https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK00945112&bidPbancOrd=000&fileSeq=1",'
+       || '"ntceSpecFileNm2":"[제안요청서] 통합민원 포털 고도화 사업.hwpx",'
+       || '"ntceSpecDocUrl2":"https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK00945112&bidPbancOrd=000&fileSeq=2",'
+       || '"ntceSpecFileNm3":"","ntceSpecDocUrl3":""}',
        TO_DATE('2026-10-16 08:09', 'YYYY-MM-DD HH24:MI')
   FROM TB_BID_PBANC WHERE BID_PBANC_NO = 'R26BK00945112';
 

@@ -20,6 +20,12 @@ public class TrackingNoticeDTO {
     /** 발주계획번호 (R26DD…) */
     private String orderPlanNo;
 
+    /** 사전규격등록번호 (R26BD…). 입찰공고 전환 때 통합공개 API 에 이 번호로 묻는다. */
+    private String bfSpecRgstNo;
+
+    /** 지금 단계 (발주계획 PP010 / 사전규격 PP020) */
+    private String pbancStepCd;
+
     /** 사업명. 발주계획 API 의 bizNm 을 넣어 둔 값이다. */
     private String pbancNm;
 

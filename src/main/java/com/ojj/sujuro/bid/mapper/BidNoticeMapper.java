@@ -5,10 +5,12 @@ import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import com.ojj.sujuro.bid.dto.BidLinkDTO;
 import com.ojj.sujuro.bid.dto.BidNoticeDTO;
 import com.ojj.sujuro.bid.dto.BidNoticeSearchDTO;
 import com.ojj.sujuro.bid.dto.CollectHistoryDTO;
 import com.ojj.sujuro.bid.dto.CollectLogDTO;
+import com.ojj.sujuro.bid.dto.NoticeDetailDTO;
 import com.ojj.sujuro.bid.dto.NoticeRegisterDTO;
 import com.ojj.sujuro.bid.dto.PreSpecLinkDTO;
 import com.ojj.sujuro.bid.dto.ProcessHistoryDTO;
@@ -31,6 +33,12 @@ public interface BidNoticeMapper {
      * UI 목업 v3.2 와 같게 검색어와 무관하게 전체를 센다.
      */
     List<StatusCountDTO> findStatusCounts();
+
+    /** 공고 상세 한 건 (FR-035). 없으면 null */
+    NoticeDetailDTO findDetail(Long pbancSn);
+
+    /** 공고수집이력, 오래된 순 (FR-035 단계 이력, FR-035-1 변경 비교). API 원문도 같이 읽는다. */
+    List<CollectHistoryDTO> findCollectHistories(Long pbancSn);
 
     /** 같은 사전규격번호가 이미 등록돼 있는지 (FR-021 중복 등록 차단) */
     int countByBfSpecRgstNo(String bfSpecRgstNo);
@@ -56,6 +64,12 @@ public interface BidNoticeMapper {
 
     /** 발주계획 행을 사전규격 단계로 올린다. 이미 올라갔으면 0을 돌려준다. */
     int updateToPreSpec(PreSpecLinkDTO param);
+
+    /** 입찰공고를 기다리는 공고 (추적상태가 이 값이고 입찰공고번호가 없는 행). 발주계획·사전규격 둘 다다. */
+    List<TrackingNoticeDTO> findBidWaitingNotices(@Param("trckSttsCd") String trckSttsCd);
+
+    /** 발주계획·사전규격 행을 입찰공고 단계로 올린다. 이미 올라갔으면 0을 돌려준다. */
+    int updateToBidNotice(BidLinkDTO param);
 
     /** 이 공고의 다음 수집이력 순번 */
     int nextCollectSeq(Long pbancSn);

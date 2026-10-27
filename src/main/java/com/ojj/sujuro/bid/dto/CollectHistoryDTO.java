@@ -10,6 +10,9 @@ import lombok.Setter;
  * 공고수집이력 한 행 (TB_PBANC_CLCT_HSTRY).
  * API에서 가져온 값의 스냅샷이고, 한 번 넣으면 고치지 않는다.
  *
+ * 넣을 때(insertCollectHistory)와 공고 상세에서 읽을 때(findCollectHistories) 같이 쓴다.
+ * 이름 칸(pbancStepNm, pbancTypeNm)과 수집일시는 읽을 때만 채워진다.
+ *
  * 필드 이름은 컬럼명을 그대로 따른다. insert SQL 이 #{clctSeq} 처럼 직접 참조하기 때문이다.
  */
 @Getter
@@ -22,16 +25,24 @@ public class CollectHistoryDTO {
     private int clctSeq;
 
     private String pbancStepCd;
+    private String pbancStepNm;
 
-    /** 그 시점에 조회한 번호 (사전규격번호 또는 입찰공고번호) */
+    /** 그 시점에 조회한 번호 (발주계획번호, 사전규격번호 또는 입찰공고번호) */
     private String pbancNo;
 
     private Integer bidPbancCycl;
     private String pbancTypeCd;
+    private String pbancTypeNm;
     private BigDecimal altmntBgtAmt;
     private LocalDateTime bidDdlnDt;
     private LocalDateTime opengDt;
 
-    /** API 응답 원문(JSON). 나중에 원인을 따질 때 쓴다. */
+    /**
+     * API 응답 원문(JSON). 나중에 원인을 따질 때 쓴다.
+     * 등록 때는 응답 전체, 수집 때는 공고 한 건(item)만 들어 있다. 읽을 때는 G2bSnapshot 이 둘 다 받는다.
+     */
     private String apiRspnsCn;
+
+    /** 수집일시. DB 가 넣는다. */
+    private LocalDateTime clctDt;
 }

@@ -70,7 +70,7 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
     /**
      * 등록 시점에 이미 입찰공고가 올라와 있을 수 있다(응답의 bidNtceNoList). 그 경우에도 여기서
      * 입찰공고로 바꾸지는 않고 사전규격으로 넣은 뒤 추적 상태를 "입찰공고 대기"로 둔다.
-     * 입찰공고 연결은 수집이 맡을 일이다. 지금 수집은 발주계획 → 사전규격 전환만 한다.
+     * 입찰공고 연결은 수집(collectBidNotice)이 맡는다.
      */
     @Override
     @Transactional
@@ -161,10 +161,16 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
         JsonNode latest = res.latestOrd();
         JsonNode item = latest != null ? latest : first;
 
-        rejectIfSameBizRegistered(no);
+        // 입찰공고 응답에 같은 사업의 사전규격번호·발주계획번호가 들어 있다.
+        String specNo = G2bResponse.textOf(item, "bfSpecRgstNo");
+        String planNo = G2bResponse.textOf(item, "orderPlanUntyNo");
+        rejectIfSameBizRegistered(specNo, planNo);
 
         NoticeRegisterDTO regist = new NoticeRegisterDTO();
         regist.setBidPbancNo(no);
+        // 앞 단계 번호도 같은 행에 넣어 둔다. 나중에 그 번호로 따로 등록하려 하면 중복으로 막힌다.
+        regist.setBfSpecRgstNo(specNo);
+        regist.setOrderPlanNo(planNo);
         regist.setBidPbancCycl(G2bResponse.intOf(item, "bidNtceOrd", 0));
         regist.setPbancStepCd(BidCode.STEP_BID_NOTICE);
         // 추적상태(trckSttsCd)는 비워 둔다. 발주계획·사전규격으로 등록해 입찰공고를 기다리는 공고만 쓴다.
@@ -186,27 +192,14 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
 
     /**
      * 이 입찰공고가 이미 등록한 발주계획·사전규격과 같은 사업이면 막는다. 같은 사업은 한 행으로 둔다.
-     * 통합공개 API 는 입찰공고번호로 물으면 그 사업의 발주계획번호·사전규격번호를 같은 행에 준다.
-     *
-     * 이 확인은 덤이다. 통합공개 API 가 응답하지 않으면 확인 없이 등록을 이어 간다.
-     * 확인 못 했다고 영업부의 등록까지 막을 이유는 없다.
+     * 두 번호는 입찰공고 API 응답(bfSpecRgstNo, orderPlanUntyNo)에서 꺼낸다. 통합공개 API 와 실측
+     * 59건이 모두 같아서(2026-10-27) 따로 묻지 않는다.
      */
-    private void rejectIfSameBizRegistered(String bidNo) {
-        JsonNode process;
-        try {
-            process = g2bApiClient.findProcessByBidNo(bidNo).first();
-        } catch (BusinessException e) {
-            return;
-        }
-        if (process == null) {
-            return;
-        }
-        String specNo = G2bResponse.textOf(process, "bfSpecRgstNo");
+    private void rejectIfSameBizRegistered(String specNo, String planNo) {
         if (specNo != null && bidNoticeMapper.countByBfSpecRgstNo(specNo) > 0) {
             throw new BusinessException("이 입찰공고는 이미 등록된 사전규격(" + specNo + ")과 같은 사업입니다. "
                     + "같은 사업은 한 줄로 관리하므로 새로 등록하지 않습니다.");
         }
-        String planNo = G2bResponse.textOf(process, "orderPlanNo");
         if (planNo != null && bidNoticeMapper.countByOrderPlanNo(planNo) > 0) {
             throw new BusinessException("이 입찰공고는 이미 등록된 발주계획(" + planNo + ")과 같은 사업입니다. "
                     + "같은 사업은 한 줄로 관리하므로 새로 등록하지 않습니다.");

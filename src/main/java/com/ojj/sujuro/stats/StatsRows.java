@@ -15,7 +15,7 @@ public final class StatsRows {
         private long joined;    // 참여: 제출 완료 이상인 공고
         private long won;       // 수주
         private long lost;      // 탈락 (유찰 제외)
-        private long failed;    // 유찰 (점수·순위가 없는 결과)
+        private long failed;    // 유찰 (공고 상태 PS070)
         private long amount;    // 수주 금액
         private Double avgTech; // 평균 기술점수 (유찰 제외, 점수가 없으면 null)
 

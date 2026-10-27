@@ -21,14 +21,13 @@ import com.ojj.sujuro.bid.service.BidNoticeService;
 import com.ojj.sujuro.bid.service.NoticeRegisterService;
 
 /**
- * 공고 관리 (FR-017 ~ 022). 목록을 탭·검색·정렬·페이지로 보여 주고, 사전규격번호로 등록한다.
+ * 공고 관리 (FR-017 ~ 022). 목록을 탭·검색·정렬·페이지로 보여 주고, 공고번호 하나로 등록한다.
  *
  * 볼 수 있는 사람은 영업부·팀장·경영지원실이고 팀원과 외부 인력은 들어올 수 없다.
  * 이 규칙은 SecurityConfig 의 /notices/** URL 규칙에서 막으므로 여기서 다시 검사하지 않는다.
  *
  * 아직 붙이지 않은 것
- * - 본공고(입찰공고번호)로 등록               : 다음 단계
- * - [지금 불러오기] (본공고 연결·정정 확인)   : 10/22
+ * - [지금 불러오기] (입찰공고 연결·정정 확인) : 10/22
  * - 공고 상세                                 : 10/23
  */
 @Controller
@@ -56,24 +55,21 @@ public class NoticeController {
     }
 
     /**
-     * 사전규격등록번호로 관심 공고를 등록한다 (FR-021). 등록은 영업부만 한다.
-     * 메뉴 접근은 SecurityConfig 가 영업부·팀장·경영지원실까지 열어 두므로 여기서 한 번 더 좁힌다.
+     * 공고번호 하나로 등록한다 (FR-021, 022). 번호 형식을 보고 발주계획·사전규격·입찰공고 중 단계를 정한다.
+     * 등록은 영업부만 한다. 메뉴 접근은 SecurityConfig 가 영업부·팀장·경영지원실까지 열어 두므로
+     * 여기서 한 번 더 좁힌다.
      */
-    @PostMapping("/pre-spec")
+    @PostMapping("/register")
     @PreAuthorize("hasRole('SALES')")
-    public String registerPreSpec(@RequestParam String bfSpecRgstNo,
-                                  @AuthenticationPrincipal LoginUser user,
-                                  RedirectAttributes redirect) {
-        NoticeRegisterResultDTO result =
-                noticeRegisterService.registerByPreSpecNo(bfSpecRgstNo, user.getEmpNo());
+    public String register(@RequestParam String pbancNo,
+                           @AuthenticationPrincipal LoginUser user,
+                           RedirectAttributes redirect) {
+        NoticeRegisterResultDTO result = noticeRegisterService.register(pbancNo, user.getEmpNo());
 
         StringBuilder msg = new StringBuilder();
-        msg.append("등록했습니다: ").append(result.getPbancNm());
+        msg.append(result.getStepNm()).append(" 단계로 등록했습니다: ").append(result.getPbancNm());
         if (result.isAlreadyHasBidNotice()) {
-            msg.append(" · 본공고(").append(result.getLinkedBidNo())
-               .append(")가 이미 올라와 있어 다음 수집에서 연결됩니다.");
-        } else {
-            msg.append(" · 본공고가 올라오면 알려 드립니다.");
+            msg.append(" · 입찰공고(").append(result.getLinkedBidNo()).append(")가 이미 나 있습니다.");
         }
         redirect.addFlashAttribute("registMessage", msg.toString());
         return "redirect:/notices";

@@ -3,13 +3,17 @@ package com.ojj.sujuro.bid.mapper;
 import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import com.ojj.sujuro.bid.dto.BidNoticeDTO;
 import com.ojj.sujuro.bid.dto.BidNoticeSearchDTO;
 import com.ojj.sujuro.bid.dto.CollectHistoryDTO;
+import com.ojj.sujuro.bid.dto.CollectLogDTO;
 import com.ojj.sujuro.bid.dto.NoticeRegisterDTO;
+import com.ojj.sujuro.bid.dto.PreSpecLinkDTO;
 import com.ojj.sujuro.bid.dto.ProcessHistoryDTO;
 import com.ojj.sujuro.bid.dto.StatusCountDTO;
+import com.ojj.sujuro.bid.dto.TrackingNoticeDTO;
 
 /** 공고 SQL. 쿼리는 src/main/resources/mapper/bid/BidNoticeMapper.xml 에 있다. */
 @Mapper
@@ -42,4 +46,20 @@ public interface BidNoticeMapper {
 
     /** 공고처리이력 한 행. 사람이 한 일을 남긴다. */
     int insertProcessHistory(ProcessHistoryDTO param);
+
+    /** 같은 발주계획번호가 이미 등록돼 있는지 (FR-021 중복 등록 차단) */
+    int countByOrderPlanNo(String orderPlanNo);
+
+    /** 이 단계·추적상태에 있는 공고 중 발주계획번호가 있는 것. 수집이 신규 사전규격과 맞춰 볼 대상이다. */
+    List<TrackingNoticeDTO> findTrackingNotices(@Param("stepCd") String stepCd,
+                                                @Param("trckSttsCd") String trckSttsCd);
+
+    /** 발주계획 행을 사전규격 단계로 올린다. 이미 올라갔으면 0을 돌려준다. */
+    int updateToPreSpec(PreSpecLinkDTO param);
+
+    /** 이 공고의 다음 수집이력 순번 */
+    int nextCollectSeq(Long pbancSn);
+
+    /** 수집로그 한 행 */
+    int insertCollectLog(CollectLogDTO param);
 }

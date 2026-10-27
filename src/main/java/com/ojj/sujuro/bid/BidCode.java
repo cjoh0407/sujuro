@@ -12,7 +12,7 @@ public final class BidCode {
     }
 
     /**
-     * 공고단계 (PBSTP). 10/23 회의에서 정한 라이프사이클이다.
+     * 공고단계 (PBSTP)
      *
      *   발주계획 ──┐
      *   사전규격 ──┴→ 입찰공고 → 개찰 → 계약
@@ -32,6 +32,15 @@ public final class BidCode {
     public static final String TRACK_LINKED = "TR020";  // 연결됨
     public static final String TRACK_CLOSED = "TR030";  // 추적 종료
 
+    /**
+     * 공고유형 (PBTYP) - API ntceKindNm 을 코드로 옮긴 값. 입찰공고 단계부터 값이 있다.
+     * 실측 300건에서 네 가지만 나왔다: 등록공고 246 / 재공고 28 / 취소공고 16 / 변경공고 10. (2026-10-26)
+     */
+    public static final String TYPE_NORMAL = "PY010";   // 일반공고 (API 는 '등록공고'라고 한다)
+    public static final String TYPE_CHANGED = "PY020";  // 변경공고
+    public static final String TYPE_RE = "PY030";       // 재공고
+    public static final String TYPE_CANCELED = "PY040"; // 취소공고
+
     /** 공고상태 (PBSTS) */
     public static final String STTS_NEW = "PS010";       // 신규
     public static final String STTS_ASSIGNED = "PS020";  // 배정 완료
@@ -39,11 +48,21 @@ public final class BidCode {
     public static final String STTS_WRITING = "PS040";   // 제안 작성 중
     public static final String STTS_SUBMITTED = "PS050"; // 제출 완료
     public static final String STTS_RESULT = "PS060";    // 결과 등록
+    public static final String STTS_FAILED_BID = "PS070"; // 유찰 - 개찰했으나 입찰이 성립하지 않았다
     public static final String STTS_DECLINED = "PS090";  // 불참
 
     /** 반환구분 (RTRSE) - 팀에서 영업부로 돌아온 공고만 값이 있다 */
     public static final String RTRN_DECLINE = "RT010";  // 불참
     public static final String RTRN_WITHDRAW = "RT020"; // 중도 철회
+
+    /** 실행구분 (EXCSE) - 수집을 누가 돌렸는지 */
+    public static final String EXCN_AUTO = "EX010";   // 자동 (스케줄러)
+    public static final String EXCN_MANUAL = "EX020"; // 수동 ([지금 불러오기])
+
+    /** 수집결과 (CLRST) - 수집로그에 남기는 결과 */
+    public static final String CLCT_NO_CHANGE = "CL010";   // 변경 없음
+    public static final String CLCT_TO_PRE_SPEC = "CL060"; // 사전규격 전환
+    public static final String CLCT_FAILED = "CL090";      // 실패
 
     /** 처리구분 (PRCSE) - 공고처리이력에 남기는 사람의 행동 */
     public static final String PRCS_REGIST = "PC010";    // 관심 공고 등록
@@ -69,10 +88,123 @@ public final class BidCode {
         if (STTS_JOINED.equals(cd) || STTS_SUBMITTED.equals(cd)) {
             return "success";
         }
+        if (STTS_FAILED_BID.equals(cd)) {
+            // 유찰은 입찰이 없어진 것이라 눈에 걸려야 한다. 재공고를 기다릴지 판단해야 하기 때문이다.
+            return "danger";
+        }
         if (STTS_WRITING.equals(cd)) {
             return "accent";
         }
         return "neutral"; // 결과 등록, 불참, 그 밖의 값
+    }
+
+    /**
+     * API 의 공고종류명(ntceKindNm)을 공고유형코드로 옮긴다.
+     * 02_code_data.sql 의 PBTYP 설명과 같은 규칙이니, 규칙을 바꾸면 양쪽을 함께 고친다.
+     *
+     * 앞글자만 보는 이유: 예전 테스트 데이터에 '등록'처럼 '공고'가 빠진 값이 있어서다.
+     * 모르는 값이면 null 을 돌려준다. 코드가 비면 화면에 '-' 로 나오고, 원문은 수집이력에 남는다.
+     */
+    public static String pbancTypeCdOf(String ntceKindNm) {
+        String nm = trim(ntceKindNm);
+        if (nm == null || nm.isEmpty()) {
+            return null;
+        }
+        if (nm.startsWith("등록")) {
+            return TYPE_NORMAL;
+        }
+        if (nm.startsWith("변경")) {
+            return TYPE_CHANGED;
+        }
+        if (nm.startsWith("재공고")) {
+            return TYPE_RE;
+        }
+        if (nm.startsWith("취소")) {
+            return TYPE_CANCELED;
+        }
+        return null;
+    }
+
+    /**
+     * 공고유형 pill 색 이름. common.css 의 {@code .pill.<색>} 에 쓴다.
+     * 취소는 입찰이 없어진 것이라 눈에 걸려야 하므로 danger, 변경은 다시 확인해야 하므로 warning 을 쓴다.
+     */
+    public static String pbancTypePillClass(String pbancTypeCd) {
+        String cd = trim(pbancTypeCd);
+        if (TYPE_CANCELED.equals(cd)) {
+            return "danger";
+        }
+        if (TYPE_CHANGED.equals(cd)) {
+            return "warning";
+        }
+        if (TYPE_RE.equals(cd)) {
+            return "info";
+        }
+        return "neutral"; // 일반공고, 그리고 아직 입찰공고가 아니라 유형이 없는 공고
+    }
+
+    /**
+     * 사업명을 비교용으로 다듬는다. 발주계획과 사전규격이 같은 사업을 서로 다르게 적는 패턴을 지운다.
+     *
+     * 발주계획과 사전규격은 서로를 가리키는 번호가 없어서, 같은 사업인지를 값으로 맞춰 봐야 한다.
+     * 실측한 61쌍(통합공개 API 로 정답을 아는 쌍)에서 그냥 비교하면 92%, 이 정규화를 거치면 100% 붙었다.
+     * 어긋나던 패턴은 네 가지였다. (2026-10-26)
+     *   괄호   발주 "…역량강화사업(2026-2030, 995만불) PMC 용역" / 사전 "…역량강화사업 PMC 용역"
+     *   괄호   발주 "…실시설계용역(장기계속)"                  / 사전 "…실시설계용역"
+     *   대괄호 사전 "[긴급] (가칭)여주특수학교…"                / 발주 "(가칭)여주특수학교…"
+     *   공백   사전 "폐기물 처리 용역"                         / 발주 "폐기물 처리용역"
+     *
+     * 유사도(Levenshtein 등)는 쓰지 않는다. 정규화만으로 전부 붙는데, 유사도를 쓰면 다른 사업을
+     * 잘못 붙일 위험만 생긴다. 비교할 때는 기관명도 반드시 함께 봐야 한다.
+     */
+    public static String normalizeBizNm(String bizNm) {
+        if (bizNm == null) {
+            return null;
+        }
+        return bizNm.replaceAll("\\([^)]*\\)", "")
+                    .replaceAll("\\[[^\\]]*\\]", "")
+                    .replaceAll("\\s", "");
+    }
+
+    /**
+     * 발주계획과 사전규격이 같은 사업인지 본다. 기관명은 완전일치, 사업명은 정규화 후 완전일치다.
+     *
+     * 사전규격 쪽 기관은 실수요기관명(rlDminsttNm)을 넘겨야 한다. 발주기관명(orderInsttNm)은
+     * 조달청 위탁 건에서 ''조달청 서울지방조달청''으로 와서 발주계획의 기관명과 달라 92%만 맞는다.
+     *
+     * 이 조건을 만족하는 발주계획이 하나면 그 건으로 확정해도 된다. 둘 이상이면 사람이 골라야 한다.
+     * 같은 기관이 같은 사업명·같은 예산으로 권역을 쪼개 발주하는 경우가 있고(실측 4.7%),
+     * API 가 구별할 필드를 주지 않아 어떤 방법으로도 자동으로는 가릴 수 없다.
+     */
+    public static boolean sameBizCase(String orderInstNm, String orderBizNm,
+                                      String specInstNm, String specBizNm) {
+        if (orderInstNm == null || specInstNm == null) {
+            return false;
+        }
+        if (!orderInstNm.trim().equals(specInstNm.trim())) {
+            return false;
+        }
+        String a = normalizeBizNm(orderBizNm);
+        String b = normalizeBizNm(specBizNm);
+        return a != null && !a.isEmpty() && a.equals(b);
+    }
+
+    /**
+     * 공고단계 pill 색 이름. 입찰공고가 나기 전(발주계획·사전규격)은 회색으로 두고,
+     * 참여 결정을 할 수 있는 입찰공고부터 색을 준다.
+     */
+    public static String stepPillClass(String pbancStepCd) {
+        String cd = trim(pbancStepCd);
+        if (STEP_BID_NOTICE.equals(cd)) {
+            return "accent";
+        }
+        if (STEP_OPENING.equals(cd)) {
+            return "info";
+        }
+        if (STEP_CONTRACT.equals(cd)) {
+            return "success";
+        }
+        return "neutral"; // 발주계획, 사전규격 - 아직 입찰공고를 기다리는 단계
     }
 
     /** CHAR 컬럼이라 뒤에 공백이 붙어 올 수 있어 잘라서 비교한다. */

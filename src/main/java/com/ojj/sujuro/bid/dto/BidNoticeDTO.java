@@ -34,6 +34,10 @@ public class BidNoticeDTO {
     private String pbancStepCd;
     private String pbancStepNm;
 
+    /** 공고유형코드 (PBTYP). 입찰공고 단계부터 값이 있고 그 앞 단계에서는 비어 있다. */
+    private String pbancTypeCd;
+    private String pbancTypeNm;
+
     /** 공고명. 사전규격을 등록한 직후에는 아직 비어 있을 수 있다. */
     private String pbancNm;
 
@@ -58,7 +62,12 @@ public class BidNoticeDTO {
     /** 반환구분명 (불참/중도 철회). 영업부로 돌아온 공고만 값이 있다. */
     private String rtrnSeNm;
 
-    /** 사전규격 단계인지. 단계구분 칸의 색을 정할 때 쓴다. */
+    /** 공고단계 pill 색 이름 */
+    public String getStepPillClass() {
+        return BidCode.stepPillClass(pbancStepCd);
+    }
+
+    /** 사전규격 단계인지. 참여 결정을 막는 등 단계별 분기에 쓴다. */
     public boolean isPreSpec() {
         return BidCode.is(pbancStepCd, BidCode.STEP_PRE_SPEC);
     }
@@ -71,6 +80,11 @@ public class BidNoticeDTO {
     /** 공고상태 pill 색 이름 */
     public String getSttsPillClass() {
         return BidCode.sttsPillClass(pbancSttsCd);
+    }
+
+    /** 공고유형 pill 색 이름 */
+    public String getPbancTypePillClass() {
+        return BidCode.pbancTypePillClass(pbancTypeCd);
     }
 
     /** 예산을 억 단위로 보여 준다. 예: 760000000 → "7.6억". 값이 없으면 "-" */

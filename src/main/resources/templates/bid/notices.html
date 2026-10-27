@@ -38,16 +38,16 @@
       <span class="faint" style="font-size:11.5px">영업부가 나라장터에서 찾은 공고를 번호로 등록합니다</span>
     </div>
     <div class="pad" style="display:flex;flex-direction:column;gap:10px">
-      <form class="row" method="post" th:action="@{/notices/pre-spec}">
-        <span class="lbl">사전규격등록번호</span>
-        <input type="text" name="bfSpecRgstNo" placeholder="R26BD00283794"
+      <form class="row" method="post" th:action="@{/notices/register}">
+        <span class="lbl">공고번호</span>
+        <input type="text" name="pbancNo" placeholder="R26DD… · R26BD… · R26BK…"
                style="flex:1;min-width:180px;max-width:320px" required>
         <button class="btn primary sm" type="submit">등록</button>
       </form>
       <div class="faint" style="font-size:11.5px">
-        번호만 넣으면 사업명·발주기관·실수요기관·예산·의견등록마감일시를 나라장터에서 가져옵니다.
-        본공고가 올라오면 자동으로 본공고로 바뀌고 알림이 갑니다.
-        입찰공고번호(R26BK…)로 바로 등록하는 경로는 다음 단계에서 붙입니다.
+        발주계획번호(R26DD…)·사전규격등록번호(R26BD…)·입찰공고번호(R26BK…) 중 아무거나 넣으면
+        번호를 보고 단계를 정해 등록하고, 사업명·발주기관·예산을 나라장터에서 가져옵니다.
+        발주계획으로 등록한 공고는 사전규격이 올라오면 매일 오후 5시 수집 때 사전규격 단계로 바뀝니다.
       </div>
     </div>
   </div>
@@ -92,6 +92,7 @@
           <tr>
             <th>공고번호</th>
             <th>단계구분</th>
+            <th>공고종류</th>
             <th>공고명</th>
             <th>발주기관</th>
             <th>마감일</th>
@@ -104,9 +105,16 @@
           <tr class="hv" th:each="row : ${result.rows}">
             <td class="mono faint" th:text="${row.pbancNo}">R26BK00000000</td>
             <td>
-              <!-- 사전규격은 아직 본공고를 기다리는 단계라 회색, 본공고는 진행 중이라 파랑 -->
-              <span class="pill" th:classappend="${row.preSpec} ? 'neutral' : 'accent'"
-                    th:text="${row.pbancStepNm}">본공고</span>
+              <!-- 입찰공고 전(발주계획·사전규격)은 회색. 색은 BidCode.stepPillClass 가 정한다. -->
+              <span class="pill" th:classappend="${row.stepPillClass}"
+                    th:text="${row.pbancStepNm}">입찰공고</span>
+            </td>
+            <td>
+              <!-- 공고유형은 입찰공고 단계부터 생긴다. 그 앞 단계(발주계획·사전규격)에는 없으므로 '-' 로 둔다.
+                   취소공고는 빨강, 변경공고는 주황으로 눈에 걸리게 한다. 색은 BidCode.pbancTypePillClass 가 정한다. -->
+              <span class="pill" th:if="${row.pbancTypeNm}"
+                    th:classappend="${row.pbancTypePillClass}" th:text="${row.pbancTypeNm}">일반공고</span>
+              <span class="faint" th:unless="${row.pbancTypeNm}">-</span>
             </td>
             <td>
               <b th:if="${row.pbancNm}" th:text="${row.pbancNm}">공고명</b>
@@ -127,7 +135,7 @@
             </td>
           </tr>
           <tr th:if="${result.empty}">
-            <td colspan="8" class="empty">조건에 맞는 공고가 없습니다.</td>
+            <td colspan="9" class="empty">조건에 맞는 공고가 없습니다.</td>
           </tr>
         </tbody>
       </table>

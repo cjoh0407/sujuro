@@ -117,8 +117,11 @@
               <span class="faint" th:unless="${row.pbancTypeNm}">-</span>
             </td>
             <td>
-              <b th:if="${row.pbancNm}" th:text="${row.pbancNm}">공고명</b>
-              <span class="faint" th:unless="${row.pbancNm}">공고명 미수집</span>
+              <!-- 공고명을 누르면 상세로 간다 (FR-026) -->
+              <a class="sl" th:href="@{/notices/{sn}(sn=${row.pbancSn})}">
+                <th:block th:if="${row.pbancNm}" th:text="${row.pbancNm}">공고명</th:block>
+                <span class="faint" th:unless="${row.pbancNm}">공고명 미수집</span>
+              </a>
             </td>
             <td class="muted" th:text="${row.orderInstNm}">발주기관</td>
             <td class="mono"

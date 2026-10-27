@@ -60,8 +60,9 @@ public final class BidCode {
     public static final String EXCN_MANUAL = "EX020"; // 수동 ([지금 불러오기])
 
     /** 수집결과 (CLRST) - 수집로그에 남기는 결과 */
-    public static final String CLCT_NO_CHANGE = "CL010";   // 변경 없음
-    public static final String CLCT_TO_PRE_SPEC = "CL060"; // 사전규격 전환
+    public static final String CLCT_NO_CHANGE = "CL010";     // 변경 없음
+    public static final String CLCT_TO_BID_NOTICE = "CL020"; // 입찰공고 전환
+    public static final String CLCT_TO_PRE_SPEC = "CL060";   // 사전규격 전환
     public static final String CLCT_FAILED = "CL090";      // 실패
 
     /** 처리구분 (PRCSE) - 공고처리이력에 남기는 사람의 행동 */

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<!--/*
+  공고 상세 (FR-026, 035, 035-1, 036, 041). UI 목업 v3.2 의 rNotice() 화면과 같은 구성이다.
+  왼쪽은 공고 정보, 오른쪽은 담당 팀과 배정·결정 이력이다.
+  배정 · 참여 결정 · 중도 철회 입력은 아직 없다. 붙이면 오른쪽 '담당 팀' 카드 자리에 들어간다.
+
+  모델: notice (NoticeDetailDTO), histories (history.HistoryDto 목록, 오래된 순)
+*/-->
+<head>
+  <title>공고 상세</title>
+</head>
+<body>
+
+<h1 layout:fragment="pageTitle">공고 상세</h1>
+
+<th:block layout:fragment="content">
+
+  <div class="crumb"><a class="link" th:href="@{/notices}">공고 관리</a> / 공고 상세</div>
+
+  <!-- 사업 타이틀 (NFR-023). 어떤 사업을 보고 있는지 항상 위에 보인다. -->
+  <div class="page-head">
+    <div>
+      <h2 th:text="${notice.pbancNm ?: '공고명 미수집'}">공고명</h2>
+      <div class="sub" th:text="|${notice.pbancNo} · ${notice.orderInstNm ?: '-'}|">R26BK00000000 · 발주기관</div>
+    </div>
+    <div class="row">
+      <span class="pill" th:classappend="${notice.stepPillClass}" th:text="${notice.pbancStepNm}">입찰공고</span>
+      <span class="pill" th:if="${notice.pbancTypeNm}" th:classappend="${notice.pbancTypePillClass}"
+            th:text="${notice.pbancTypeNm}">일반공고</span>
+      <span class="pill" th:classappend="${notice.sttsPillClass}" th:text="${notice.pbancSttsNm}">신규</span>
+      <span class="pill danger" th:if="${notice.returned}" th:text="|${notice.rtrnSeNm} 반환|">불참 반환</span>
+      <a class="btn sm" th:if="${notice.pbancDtlUrl}" th:href="${notice.pbancDtlUrl}"
+         target="_blank" rel="noopener noreferrer">나라장터 원문</a>
+    </div>
+  </div>
+
+  <div class="two">
+    <div class="col">
+
+      <!-- 공고 정보 (FR-035) -->
+      <div class="card">
+        <div class="card-head"><h3>공고 정보</h3></div>
+        <div class="info-grid">
+          <div>
+            <div class="k">공고 단계</div>
+            <div class="v" th:text="${notice.pbancStepNm} + (${notice.correctionCnt > 0} ? ' · 정정 ' + ${notice.correctionCnt} + '회' : '')">입찰공고</div>
+          </div>
+          <div th:if="${notice.trckSttsNm != null and !notice.bidNoticeOrLater}">
+            <div class="k">추적 상태</div>
+            <div class="v" th:text="${notice.trckSttsNm}">입찰공고 대기</div>
+          </div>
+          <div>
+            <div class="k">공고 종류</div>
+            <div class="v" th:text="${notice.pbancTypeNm ?: '-'}">일반공고</div>
+          </div>
+          <div>
+            <div class="k">진행 상태</div>
+            <div class="v" th:text="${notice.pbancSttsNm}">신규</div>
+          </div>
+          <div>
+            <div class="k">발주기관</div>
+            <div class="v" th:text="${notice.orderInstNm ?: '-'}">발주기관</div>
+          </div>
+          <div th:if="${notice.dmndInstDifferent}">
+            <div class="k">수요기관</div>
+            <div class="v" th:text="${notice.dmndInstNm}">수요기관</div>
+          </div>
+          <div>
+            <div class="k">참여 형태</div>
+            <div class="v" th:text="${notice.ptcpShpNm ?: '미지정'}">주관</div>
+          </div>
+          <div>
+            <div class="k">사업 예산</div>
+            <div class="v mono" th:text="${notice.budgetWonText}">0원</div>
+          </div>
+          <div>
+            <div class="k">제출 마감</div>
+            <div class="v mono" th:if="${notice.bidDdlnDt}"
+                 th:text="|${#dates.format(notice.bidDdlnDt, 'yyyy-MM-dd HH:mm')} (${notice.ddlnDdayText})|">2026-11-05 10:00 (D-9)</div>
+            <div class="v" th:unless="${notice.bidDdlnDt}">-</div>
+          </div>
+          <div th:if="${notice.opengDt}">
+            <div class="k">개찰일시</div>
+            <div class="v mono" th:text="${#dates.format(notice.opengDt, 'yyyy-MM-dd HH:mm')}">2026-11-05 11:00</div>
+          </div>
+          <div th:if="${notice.opnnDdlnDt}">
+            <div class="k">사전규격 의견 마감</div>
+            <div class="v mono" th:text="${#dates.format(notice.opnnDdlnDt, 'yyyy-MM-dd HH:mm')}">2026-10-20 18:00</div>
+          </div>
+          <!-- 평가 방식 = API 낙찰방법(sucsfbidMthdNm). 협상에 의한 계약이면 기술:가격 비율을 붙인다. -->
+          <div>
+            <div class="k">평가 방식</div>
+            <div class="v" th:text="${notice.evlMthdMain ?: '-'} + (${notice.evlRatioText} != null ? ' · ' + ${notice.evlRatioText} : '')">협상에 의한 계약 · 기술 80 : 가격 20</div>
+            <div class="faint" style="font-size:11.5px" th:if="${notice.evlMthdDetail}" th:text="${notice.evlMthdDetail}">협상에 의한 낙찰자 결정</div>
+          </div>
+          <div th:if="${notice.lmtPageCnt}">
+            <div class="k">제한 쪽수</div>
+            <div class="v" th:text="|${notice.lmtPageCnt}쪽|">150쪽</div>
+          </div>
+          <!-- 이전 단계 번호 연결 여부. 지금 단계보다 앞선 단계만 보여 준다. 지금 단계의 번호는 맨 위에 있다.
+               뒤 단계로 넘어가도 앞 번호는 지우지 않으므로 번호가 있으면 그 단계를 거쳐 온 것이다. -->
+          <div th:if="${notice.afterOrderPlan}">
+            <div class="k">발주계획 연결</div>
+            <div class="v" th:if="${notice.orderPlanNo}" th:text="|연결됨 (${notice.orderPlanNo})|">연결됨</div>
+            <div class="v faint" th:unless="${notice.orderPlanNo}">없음</div>
+          </div>
+          <div th:if="${notice.bidNoticeOrLater}">
+            <div class="k">사전규격 연결</div>
+            <div class="v" th:if="${notice.bfSpecRgstNo}" th:text="|연결됨 (${notice.bfSpecRgstNo})|">연결됨</div>
+            <div class="v faint" th:unless="${notice.bfSpecRgstNo}">없음 (입찰공고부터 시작)</div>
+          </div>
+          <div>
+            <div class="k">등록</div>
+            <div class="v" th:text="|${notice.rgtrNm ?: '-'} · ${#dates.format(notice.regDt, 'yyyy-MM-dd')}|">박서연 · 2026-10-01</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 사업 내용. 나라장터 API 가 주는 사업 설명 항목 중 값이 있는 것만 보여 준다.
+           사업 목적·과업 범위 같은 서술은 API 에 없어 첨부 문서(과업지시서·제안요청서)로 안내한다. -->
+      <div class="card">
+        <div class="card-head"><h3>사업 내용</h3></div>
+        <div class="info-grid" th:unless="${#lists.isEmpty(notice.bizInfos)}">
+          <div th:each="info : ${notice.bizInfos}">
+            <div class="k" th:text="${info.label}">사업 분야</div>
+            <div class="v" th:text="${info.value}">연구조사서비스</div>
+          </div>
+        </div>
+        <div class="empty" th:if="${#lists.isEmpty(notice.bizInfos)}">나라장터에서 받은 사업 정보가 없습니다.</div>
+        <div class="pad faint" style="padding-top:0;font-size:11.5px"
+             th:text="${notice.bidNoticeOrLater}
+                      ? '사업 목적과 과업 범위는 나라장터가 따로 주지 않습니다. 아래 첨부의 과업지시서·제안요청서에서 확인하세요.'
+                      : '사업 목적과 과업 범위는 나라장터가 따로 주지 않습니다. 입찰공고가 나면 첨부되는 과업지시서·제안요청서에서 확인할 수 있습니다.'">
+          안내
+        </div>
+      </div>
+
+      <!-- 단계 전환·정정 때 바뀐 값 (FR-035-1). 수집이 두 번 이상이어야 나온다. -->
+      <div class="card" th:if="${notice.stageChange}" th:with="chg=${notice.stageChange}">
+        <div class="card-head">
+          <h3>변경 내용</h3>
+          <span class="faint" style="font-size:11.5px"
+                th:text="${chg.changedCnt > 0} ? |바뀐 항목 ${chg.changedCnt}개| : '바뀐 값 없음'">바뀐 항목 1개</span>
+        </div>
+        <div class="ts">
+          <table>
+            <thead>
+              <tr>
+                <th>항목</th>
+                <th>
+                  <span th:text="${chg.beforeLabel}">사전규격</span>
+                  <div class="faint" th:if="${chg.beforeClctDt}"
+                       th:text="${#temporals.format(chg.beforeClctDt, 'MM-dd HH:mm')}">09-29 09:05</div>
+                </th>
+                <th>
+                  <span th:text="${chg.afterLabel}">입찰공고</span>
+                  <div class="faint" th:if="${chg.afterClctDt}"
+                       th:text="${#temporals.format(chg.afterClctDt, 'MM-dd HH:mm')}">10-16 08:09</div>
+                </th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="item : ${chg.items}">
+                <td class="muted" th:text="${item.itemNm}">예산</td>
+                <td th:classappend="${item.changed} ? '' : 'muted'" th:text="${item.before ?: '-'}">700,000,000원</td>
+                <td>
+                  <b th:if="${item.changed}" th:text="${item.after}">760,000,000원</b>
+                  <span th:unless="${item.changed}" th:classappend="${item.after == null} ? 'faint' : 'muted'"
+                        th:text="${item.after ?: '-'}">같음</span>
+                </td>
+                <td><span class="pill warning" th:if="${item.changed}">변경</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 단계 이력 (FR-035). 공고수집이력 오래된 순. 첫 줄은 등록할 때 받은 값이다. -->
+      <div class="card">
+        <div class="card-head"><h3>단계 이력</h3></div>
+        <div class="tl" th:unless="${#lists.isEmpty(notice.stageHistories)}">
+          <div class="it" th:each="h, st : ${notice.stageHistories}">
+            <span class="at" th:text="${h.clctDt != null} ? ${#temporals.format(h.clctDt, 'MM-dd HH:mm')} : '-'">10-16 08:09</span>
+            <span>
+              <b th:text="${h.pbancStepNm}">입찰공고</b>
+              <span class="mono" th:text="${h.pbancNo}">R26BK00000000</span>
+              <span th:if="${h.bidPbancCycl != null and h.bidPbancCycl > 0}" th:text="|· ${h.bidPbancCycl}차|">· 1차</span>
+              <span th:if="${h.pbancTypeNm}" th:text="|· ${h.pbancTypeNm}|">· 일반공고</span>
+              <span class="faint" th:text="${st.first} ? '· 등록' : '· 수집'">· 수집</span>
+            </span>
+          </div>
+        </div>
+        <div class="empty" th:if="${#lists.isEmpty(notice.stageHistories)}">수집 이력이 없습니다.</div>
+      </div>
+
+      <!-- 제안요청서 (FR-036). 파일은 받아 두지 않고 나라장터 내려받기 주소로 바로 보낸다. 파싱하지 않는다. -->
+      <div class="card">
+        <div class="card-head">
+          <h3>제안요청서 · 첨부파일</h3>
+          <span class="faint" style="font-size:11.5px" th:unless="${#lists.isEmpty(notice.rfpFiles)}">
+            나라장터 첨부 · 용량은 API가 주지 않습니다
+          </span>
+        </div>
+        <th:block th:if="${notice.bidNoticeOrLater}">
+          <div class="item" th:each="f : ${notice.rfpFiles}">
+            <div>
+              <b th:text="${f.fileNm}">[제안요청서] 사업.hwpx</b>
+              <div class="faint" style="font-size:11.5px">
+                <span th:text="${f.format}">HWPX</span>
+                <span class="pill accent" th:if="${f.rfp}">제안요청서</span>
+              </div>
+            </div>
+            <span class="t">
+              <a class="btn sm" th:href="${f.fileUrl}" target="_blank" rel="noopener noreferrer">내려받기</a>
+            </span>
+          </div>
+          <div class="empty" th:if="${#lists.isEmpty(notice.rfpFiles)}">
+            첨부파일 정보가 없습니다.
+            <th:block th:if="${notice.pbancDtlUrl}">
+              <a class="link" th:href="${notice.pbancDtlUrl}" target="_blank" rel="noopener noreferrer">나라장터 원문</a>에서 확인하세요.
+            </th:block>
+          </div>
+        </th:block>
+        <div class="empty" th:unless="${notice.bidNoticeOrLater}">
+          입찰공고 전 단계입니다. 제안요청서는 입찰공고가 나면 붙습니다.
+        </div>
+      </div>
+
+    </div>
+
+    <div class="col">
+
+      <!-- 담당 팀. 배정·참여 결정 입력은 이 카드 자리에 붙인다. -->
+      <div class="card">
+        <div class="card-head"><h3>담당 팀</h3></div>
+        <div class="info-grid">
+          <div>
+            <div class="k">주관 팀</div>
+            <div class="v" th:if="${notice.sprvsnTeamNm}" th:text="${notice.sprvsnTeamNm}">개발1팀</div>
+            <div class="v faint" th:unless="${notice.sprvsnTeamNm}">미배정</div>
+          </div>
+          <div>
+            <div class="k">참여 팀</div>
+            <div class="v" th:if="${notice.joinTeamNms}" th:text="${notice.joinTeamNms}">개발2팀</div>
+            <div class="v faint" th:unless="${notice.joinTeamNms}">없음</div>
+          </div>
+        </div>
+        <div class="pad" style="padding-top:0" th:if="${notice.returned}">
+          <div class="banner warn" th:text="|${notice.rtrnSeNm}(으)로 영업부에 반환된 공고입니다. 다른 팀에 재배정하거나 불참 처리합니다.|">반환</div>
+        </div>
+        <div class="pad" style="padding-top:0" th:if="${!notice.returned and notice.sprvsnTeamNm == null}">
+          <div class="banner info">영업부가 담당 팀을 배정하면 해당 팀 팀장이 참여 여부를 결정합니다.</div>
+        </div>
+      </div>
+
+      <!-- 배정·결정 이력 (FR-041). 누가·언제·어떤 사유로 했는지 시간순. 등록도 여기에 남는다. -->
+      <div class="card">
+        <div class="card-head"><h3>배정·결정 이력</h3></div>
+        <div class="tl" th:unless="${#lists.isEmpty(histories)}">
+          <div class="it" th:each="h : ${histories}">
+            <span class="at" th:text="${#dates.format(h.prcsDt, 'MM-dd HH:mm')}">10-16 08:09</span>
+            <span>
+              <b th:text="${h.prcsSeNm}">배정</b>
+              <span th:text="|· ${h.prcrNm ?: h.prcrId}|">· 박서연</span>
+              <span th:if="${h.trgtTeamNm}" th:text="|· ${h.trgtTeamNm}|">· 개발1팀</span>
+              <span class="muted" th:if="${h.prcsRsn}" th:text="|· ${h.prcsRsn}|">· 사유</span>
+            </span>
+          </div>
+        </div>
+        <div class="empty" th:if="${#lists.isEmpty(histories)}">이력이 없습니다.</div>
+      </div>
+
+    </div>
+  </div>
+
+</th:block>
+
+</body>
+</html>

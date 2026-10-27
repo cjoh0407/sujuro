@@ -42,6 +42,10 @@ public class G2bApiClient {
     private final String bidPath;
     private final String preSpecInqryDiv;
     private final String bidInqryDiv;
+    private final String awardPath;
+    private final String awardInqryDiv;
+    private final String contractProcessPath;
+    private final String orderPlanPath;
 
     public G2bApiClient(RestTemplateBuilder builder,
                         @Value("${g2b.service-key}") String serviceKey,
@@ -50,6 +54,10 @@ public class G2bApiClient {
                         @Value("${g2b.path.bid}") String bidPath,
                         @Value("${g2b.inqry-div.pre-spec}") String preSpecInqryDiv,
                         @Value("${g2b.inqry-div.bid}") String bidInqryDiv,
+                        @Value("${g2b.path.award}") String awardPath,
+                        @Value("${g2b.inqry-div.award}") String awardInqryDiv,
+                        @Value("${g2b.path.contract-process}") String contractProcessPath,
+                        @Value("${g2b.path.order-plan}") String orderPlanPath,
                         @Value("${g2b.connect-timeout}") Duration connectTimeout,
                         @Value("${g2b.read-timeout}") Duration readTimeout) {
         this.restTemplate = builder
@@ -62,6 +70,10 @@ public class G2bApiClient {
         this.bidPath = bidPath;
         this.preSpecInqryDiv = preSpecInqryDiv;
         this.bidInqryDiv = bidInqryDiv;
+        this.awardPath = awardPath;
+        this.awardInqryDiv = awardInqryDiv;
+        this.contractProcessPath = contractProcessPath;
+        this.orderPlanPath = orderPlanPath;
     }
 
     /**
@@ -93,6 +105,84 @@ public class G2bApiClient {
         return call(url, "입찰공고");
     }
 
+    /**
+     * 발주계획번호로 발주계획을 가져온다. (용역)
+     * 조회구분 2 가 번호 조회다. 파라미터 이름은 orderPlanNo 가 아니라 orderPlanUntyNo(통합번호)다.
+     */
+    public G2bResponse findOrderPlan(String orderPlanUntyNo) {
+        String url = baseUrl + orderPlanPath + "/getOrderPlanSttusListServc"
+                + "?inqryDiv=2"
+                + "&orderPlanUntyNo=" + orderPlanUntyNo
+                + "&numOfRows=10&pageNo=1&type=json"
+                + "&ServiceKey=" + serviceKey;
+        return call(url, "발주계획");
+    }
+
+    /**
+     * 기간 안에 등록된 사전규격 목록을 가져온다. (용역)
+     * 발주계획과 사전규격을 잇는 번호가 없어서, 매일 이 목록을 받아 추적 중인 발주계획과
+     * 값으로 맞춰 본다. ({@link com.ojj.sujuro.bid.BidCode#sameBizCase})
+     *
+     * 날짜는 12자리(yyyyMMddHHmm)이고 파라미터 이름은 inqryBgnDt·inqryEndDt 다.
+     * 발주계획 서비스만 8자리 inqryBgnDate 를 쓰므로 섞지 않도록 주의한다.
+     */
+    public G2bResponse findPreSpecsRegistered(String inqryBgnDt, String inqryEndDt, int numOfRows, int pageNo) {
+        String url = baseUrl + preSpecPath + "/getPublicPrcureThngInfoServc"
+                + "?inqryDiv=1"
+                + "&inqryBgnDt=" + inqryBgnDt
+                + "&inqryEndDt=" + inqryEndDt
+                + "&numOfRows=" + numOfRows + "&pageNo=" + pageNo + "&type=json"
+                + "&ServiceKey=" + serviceKey;
+        return call(url, "사전규격 목록");
+    }
+
+    /**
+     * 계약과정통합공개. 어떤 번호로 묻든 한 행에 발주계획번호·사전규격번호·입찰공고번호와
+     * 낙찰자목록·계약정보목록까지 같이 온다. (용역)
+     *
+     * 주의: 입찰공고가 나기 전에는 행이 아예 없다(totalCount 0). 그래서 발주계획이나 사전규격만
+     * 있는 시점의 내용은 이 서비스로 받을 수 없고, 각 단계의 서비스를 따로 불러야 한다.
+     * 거꾸로 "공고가 났는지" 를 묻는 데는 0 이냐 1 이냐가 그대로 신호가 된다.
+     * (2026-10-26 실제 호출로 확인)
+     */
+    public G2bResponse findProcessByBidNo(String bidNtceNo) {
+        return findProcess("1", "bidNtceNo", bidNtceNo);
+    }
+
+    /** 사전규격번호로 묻는다. 결과가 0 건이면 아직 입찰공고가 나지 않은 것이다. */
+    public G2bResponse findProcessByPreSpecNo(String bfSpecRgstNo) {
+        return findProcess("2", "bfSpecRgstNo", bfSpecRgstNo);
+    }
+
+    /** 발주계획번호로 묻는다. 사전규격을 건너뛰고 바로 입찰공고가 난 경우를 잡는 데 쓴다(실측 14%). */
+    public G2bResponse findProcessByOrderNo(String orderPlanNo) {
+        return findProcess("3", "orderPlanNo", orderPlanNo);
+    }
+
+    private G2bResponse findProcess(String inqryDiv, String noParam, String no) {
+        String url = baseUrl + contractProcessPath + "/getCntrctProcssIntgOpenServc"
+                + "?inqryDiv=" + inqryDiv
+                + "&" + noParam + "=" + no
+                + "&numOfRows=50&pageNo=1&type=json"
+                + "&ServiceKey=" + serviceKey;
+        return call(url, "계약과정통합공개");
+    }
+
+    /**
+     * 입찰공고번호로 개찰 결과를 가져온다. (용역)
+     * 통합공개의 낙찰자목록만 보면 유찰 건을 놓친다. 낙찰자가 없어서 목록이 비기 때문에
+     * "아직 개찰 안 함" 과 구별되지 않는다. 이 서비스의 progrsDivCdNm 으로 낙찰·유찰을 가린다.
+     * (R26BK01553009 = 개찰했지만 "단독 응찰로 경쟁입찰 불성립" 유찰. 2026-10-26 확인)
+     */
+    public G2bResponse findOpeningResult(String bidNtceNo) {
+        String url = baseUrl + awardPath + "/getOpengResultListInfoServc"
+                + "?inqryDiv=" + awardInqryDiv
+                + "&bidNtceNo=" + bidNtceNo
+                + "&numOfRows=10&pageNo=1&type=json"
+                + "&ServiceKey=" + serviceKey;
+        return call(url, "개찰결과");
+    }
+
     private G2bResponse call(String url, String what) {
         String body;
         try {
@@ -121,7 +211,8 @@ public class G2bApiClient {
             throw new BusinessException("나라장터 " + what + " 조회가 거부되었습니다. (" + msg + ")");
         }
 
-        return new G2bResponse(root.path("response").path("body").path("items"), body);
+        JsonNode resBody = root.path("response").path("body");
+        return new G2bResponse(resBody.path("items"), body, resBody.path("totalCount").asInt(0));
     }
 
     /** 로그에 인증키가 남지 않게 지운다. */

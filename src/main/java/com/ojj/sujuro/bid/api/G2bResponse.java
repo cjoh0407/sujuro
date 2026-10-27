@@ -19,9 +19,17 @@ public class G2bResponse {
     private final JsonNode items;
     private final String rawJson;
 
-    public G2bResponse(JsonNode items, String rawJson) {
+    /** 조건에 맞는 전체 건수 (body.totalCount). 목록을 페이지로 넘길 때 끝을 알려고 쓴다. */
+    private final int totalCount;
+
+    public G2bResponse(JsonNode items, String rawJson, int totalCount) {
         this.items = items;
         this.rawJson = rawJson;
+        this.totalCount = totalCount;
+    }
+
+    public int getTotalCount() {
+        return totalCount;
     }
 
     public String getRawJson() {

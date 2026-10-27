@@ -20,7 +20,8 @@
         <choose>
           <when test="searchBy == 'no'">
             AND ( UPPER(NVL(P.BID_PBANC_NO, ' '))    LIKE '%' || UPPER(#{keyword}) || '%'
-               OR UPPER(NVL(P.BF_SPEC_RGST_NO, ' ')) LIKE '%' || UPPER(#{keyword}) || '%' )
+               OR UPPER(NVL(P.BF_SPEC_RGST_NO, ' ')) LIKE '%' || UPPER(#{keyword}) || '%'
+               OR UPPER(NVL(P.ORDER_PLAN_NO, ' '))        LIKE '%' || UPPER(#{keyword}) || '%' )
           </when>
           <when test="searchBy == 'org'">
             AND UPPER(NVL(P.ORDER_INST_NM, ' ')) LIKE '%' || UPPER(#{keyword}) || '%'
@@ -35,9 +36,13 @@
 
   <select id="findNotices" resultType="com.ojj.sujuro.bid.dto.BidNoticeDTO">
     SELECT P.PBANC_SN                                AS pbancSn,
-           NVL(P.BID_PBANC_NO, P.BF_SPEC_RGST_NO)    AS pbancNo,
+           COALESCE(P.BID_PBANC_NO,
+                    P.BF_SPEC_RGST_NO,
+                    P.ORDER_PLAN_NO)              AS pbancNo,
            P.PBANC_STEP_CD                           AS pbancStepCd,
            STEP.CD_NM                                AS pbancStepNm,
+           P.PBANC_TYPE_CD                           AS pbancTypeCd,
+           PTYP.CD_NM                                AS pbancTypeNm,
            P.PBANC_NM                                AS pbancNm,
            P.ORDER_INST_NM                           AS orderInstNm,
            P.ALTMNT_BGT_AMT                          AS altmntBgtAmt,
@@ -53,6 +58,7 @@
       FROM TB_BID_PBANC P
       LEFT JOIN TB_TEAM   TEAM ON TEAM.TEAM_SN = P.SPRVSN_TEAM_SN
       LEFT JOIN TB_COM_CD STEP ON STEP.GROUP_CD = 'PBSTP' AND STEP.CD = P.PBANC_STEP_CD
+      LEFT JOIN TB_COM_CD PTYP ON PTYP.GROUP_CD = 'PBTYP' AND PTYP.CD = P.PBANC_TYPE_CD
       LEFT JOIN TB_COM_CD STTS ON STTS.GROUP_CD = 'PBSTS' AND STTS.CD = P.PBANC_STTS_CD
       LEFT JOIN TB_COM_CD RTRN ON RTRN.GROUP_CD = 'RTRSE' AND RTRN.CD  = P.RTRN_SE_CD
     <include refid="searchWhere"/>
@@ -104,13 +110,13 @@
   <insert id="insertNotice" parameterType="com.ojj.sujuro.bid.dto.NoticeRegisterDTO"
           useGeneratedKeys="true" keyProperty="pbancSn" keyColumn="PBANC_SN">
     INSERT INTO TB_BID_PBANC (
-      BF_SPEC_RGST_NO, BID_PBANC_NO, BID_PBANC_CYCL, PBANC_STEP_CD, TRCK_STTS_CD,
-      NTCE_KIND_NM, PBANC_NM, ORDER_INST_NM, DMND_INST_NM, SW_BIZ_YN,
+      ORDER_PLAN_NO, BF_SPEC_RGST_NO, BID_PBANC_NO, BID_PBANC_CYCL, PBANC_STEP_CD, TRCK_STTS_CD,
+      PBANC_TYPE_CD, PBANC_NM, ORDER_INST_NM, DMND_INST_NM, SW_BIZ_YN,
       ALTMNT_BGT_AMT, OPNN_DDLN_DT, BID_DDLN_DT, OPENG_DT, EVL_MTHD_NM,
-      PBANC_DTL_URL, PBANC_STTS_CD, RGTR_ID, CLCT_DT, LAST_CFM_DT
+      PBANC_DTL_URL, PBANC_STTS_CD, RGTR_ID, CLCT_DT, LAST_CFMTN_DT
     ) VALUES (
-      #{bfSpecRgstNo}, #{bidPbancNo}, NVL(#{bidPbancCycl}, 0), #{pbancStepCd}, #{trckSttsCd},
-      #{ntceKindNm}, #{pbancNm}, #{orderInstNm}, #{dmndInstNm}, #{swBizYn},
+      #{orderPlanNo}, #{bfSpecRgstNo}, #{bidPbancNo}, NVL(#{bidPbancCycl}, 0), #{pbancStepCd}, #{trckSttsCd},
+      #{pbancTypeCd}, #{pbancNm}, #{orderInstNm}, #{dmndInstNm}, #{swBizYn},
       #{altmntBgtAmt}, #{opnnDdlnDt}, #{bidDdlnDt}, #{opengDt}, #{evlMthdNm},
       #{pbancDtlUrl}, #{pbancSttsCd}, #{rgtrId}, SYSDATE, SYSDATE
     )
@@ -119,10 +125,10 @@
   <insert id="insertCollectHistory" parameterType="com.ojj.sujuro.bid.dto.CollectHistoryDTO">
     INSERT INTO TB_PBANC_CLCT_HSTRY (
       PBANC_SN, CLCT_SEQ, PBANC_STEP_CD, PBANC_NO, BID_PBANC_CYCL,
-      NTCE_KIND_NM, ALTMNT_BGT_AMT, BID_DDLN_DT, OPENG_DT, API_RSPNS_CN
+      PBANC_TYPE_CD, ALTMNT_BGT_AMT, BID_DDLN_DT, OPENG_DT, API_RSPNS_CN
     ) VALUES (
       #{pbancSn}, #{clctSeq}, #{pbancStepCd}, #{pbancNo}, #{bidPbancCycl},
-      #{ntceKindNm}, #{altmntBgtAmt}, #{bidDdlnDt}, #{opengDt}, #{apiRspnsCn}
+      #{pbancTypeCd}, #{altmntBgtAmt}, #{bidDdlnDt}, #{opengDt}, #{apiRspnsCn}
     )
   </insert>
 
@@ -134,4 +140,70 @@
     )
   </insert>
 
+
+  <!-- 같은 발주계획번호가 이미 등록돼 있는지 (FR-021 중복 등록 차단) -->
+  <select id="countByOrderPlanNo" resultType="int">
+    SELECT COUNT(*)
+      FROM TB_BID_PBANC
+     WHERE ORDER_PLAN_NO = #{orderPlanNo}
+  </select>
+
+  <!--
+    사전규격을 기다리는 발주계획 목록. 매일 수집이 이 목록과 신규 사전규격을 맞춰 본다.
+    발주계획과 사전규격은 서로를 가리키는 번호가 API 에 없어서 값으로 맞추는 수밖에 없다.
+    (실측 61쌍에서 실수요기관명 + 정규화 사업명으로 100% 찾아냈다. 2026-10-26)
+  -->
+  <select id="findTrackingNotices" resultType="com.ojj.sujuro.bid.dto.TrackingNoticeDTO">
+    SELECT P.PBANC_SN       AS pbancSn,
+           P.ORDER_PLAN_NO  AS orderPlanNo,
+           P.PBANC_NM       AS pbancNm,
+           P.ORDER_INST_NM  AS orderInstNm,
+           P.ALTMNT_BGT_AMT AS altmntBgtAmt
+      FROM TB_BID_PBANC P
+     WHERE P.PBANC_STEP_CD   = #{stepCd}
+       AND P.TRCK_STTS_CD    = #{trckSttsCd}
+       AND P.ORDER_PLAN_NO IS NOT NULL
+     ORDER BY P.PBANC_SN
+  </select>
+
+  <!--
+    발주계획 행에 사전규격 정보를 채우고 단계를 사전규격으로 올린다 (FR-025-1).
+    같은 사업은 한 행으로 두기로 했으므로 새 행을 만들지 않고 이 행을 고친다.
+    이전 단계의 값은 수집이력에 남아 있어 나중에 나란히 보여 줄 수 있다 (FR-035-1).
+
+    추적상태는 그대로 '입찰공고 대기'다. 입찰공고가 나야 '연결됨'이 된다.
+    WHERE 에 현재 단계와 "사전규격번호가 비어 있음"을 같이 걸어, 같은 전이가 두 번 일어나지
+    않게 한다 (NFR-012 상태 전이 규칙). 두 번째 호출은 0행을 고치고 조용히 끝난다.
+  -->
+  <update id="updateToPreSpec" parameterType="com.ojj.sujuro.bid.dto.PreSpecLinkDTO">
+    UPDATE TB_BID_PBANC
+       SET BF_SPEC_RGST_NO = #{bfSpecRgstNo},
+           PBANC_STEP_CD   = #{toStepCd},
+           PBANC_NM        = NVL(#{pbancNm}, PBANC_NM),
+           DMND_INST_NM    = NVL(#{dmndInstNm}, DMND_INST_NM),
+           SW_BIZ_YN       = NVL(#{swBizYn}, SW_BIZ_YN),
+           ALTMNT_BGT_AMT  = NVL(#{altmntBgtAmt}, ALTMNT_BGT_AMT),
+           OPNN_DDLN_DT    = NVL(#{opnnDdlnDt}, OPNN_DDLN_DT),
+           CLCT_DT         = SYSDATE,
+           LAST_CFMTN_DT   = SYSDATE
+     WHERE PBANC_SN          = #{pbancSn}
+       AND PBANC_STEP_CD     = #{fromStepCd}
+       AND BF_SPEC_RGST_NO IS NULL
+  </update>
+
+  <!-- 공고마다 1부터 센다. 수집이력의 (공고, 순번)이 UNIQUE 라서 미리 다음 번호를 받아 둔다. -->
+  <select id="nextCollectSeq" resultType="int">
+    SELECT NVL(MAX(CLCT_SEQ), 0) + 1
+      FROM TB_PBANC_CLCT_HSTRY
+     WHERE PBANC_SN = #{pbancSn}
+  </select>
+
+  <!-- 수집 실행 기록 (FR-025). 자동·수동 구분과 결과를 남긴다. 실패도 남긴다. -->
+  <insert id="insertCollectLog" parameterType="com.ojj.sujuro.bid.dto.CollectLogDTO">
+    INSERT INTO TB_CLCT_LOG (
+      PBANC_SN, EXCN_SE_CD, EXCTR_ID, CLCT_RSLT_CD, ERR_MSG_CN
+    ) VALUES (
+      #{pbancSn}, #{excnSeCd}, #{exctrId}, #{clctRsltCd}, #{errMsgCn}
+    )
+  </insert>
 </mapper>

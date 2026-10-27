@@ -41,10 +41,13 @@ public class NoticeRegisterDTO {
     private String bfSpecRgstNo;
     private LocalDateTime opnnDdlnDt;
 
-    // 본공고로 등록할 때
+    // 발주계획으로 등록할 때
+    private String orderPlanNo;
+
+    // 입찰공고로 등록할 때
     private String bidPbancNo;
     private Integer bidPbancCycl;
-    private String ntceKindNm;
+    private String pbancTypeCd;
     private LocalDateTime bidDdlnDt;
     private LocalDateTime opengDt;
     private String evlMthdNm;

@@ -29,7 +29,12 @@ INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUE
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('PBSTS', 'PS040', '공고상태', '제안 작성 중', 4, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('PBSTS', 'PS050', '공고상태', '제출 완료', 5, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('PBSTS', 'PS060', '공고상태', '결과 등록', 6, 'Y');
-INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('PBSTS', 'PS090', '공고상태', '불참', 7, 'Y');
+-- 유찰(PS070). 개찰 결과가 유찰일 때만 이 상태가 된다(NFR-012). 입찰 자체가 성립하지 않은 것이라
+-- 참여를 안 한 불참(PS090)과 다르다. 유찰 뒤 재공고가 나면 기존 사업건의 단계를 바꾸지 않고
+-- 새 사업건으로 등록한다(FR-024-1). 개찰결과 API 의 progrsDivCdNm 이 '유찰'이면 여기에 해당한다.
+--   예) R26BK01553009 = 개찰일시는 있고 progrsDivCdNm '유찰', '단독 응찰로 경쟁입찰 불성립' (2026-10-26 확인)
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBSTS', 'PS070', '공고상태', '유찰', '개찰했으나 입찰이 성립하지 않았다. 단독 응찰·참가업체 부족 등', 7, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('PBSTS', 'PS090', '공고상태', '불참', 8, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('PRCSE', 'PC010', '처리구분', '관심 공고 등록', 1, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('PRCSE', 'PC020', '처리구분', '공고 정정', 2, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('PRCSE', 'PC030', '처리구분', '배정', 3, 'Y');
@@ -92,13 +97,25 @@ INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('TRSTS', 'TR010', '추적상태', '입찰공고 대기', '발주계획·사전규격 API의 bidNtceNoList 가 비어 있다', 1, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('TRSTS', 'TR020', '추적상태', '연결됨', '입찰공고로 전환했다', 2, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('TRSTS', 'TR030', '추적상태', '추적 종료', '정해진 기간 안에 입찰공고가 없어 영업부가 종료했다', 3, 'Y');
+-- 공고유형 (PBTYP). API ntceKindNm 을 코드로 옮긴 것이다. 실제로 오는 값은 네 가지뿐이다.
+--   2026-10 실측 300건: 등록공고 246 / 재공고 28 / 취소공고 16 / 변경공고 10.
+--   API 는 '등록공고'라고 하지만 화면에는 '일반공고'로 보여 주기로 했다(10/26). 그 매핑을 이 코드표가 맡는다.
+--   코드로 옮기는 규칙은 BidCode.pbancTypeCdOf 에도 같이 있다. 규칙을 바꾸면 양쪽을 함께 고친다.
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBTYP', 'PY010', '공고유형', '일반공고', 'API ntceKindNm = 등록공고. 차수 000 이고 정정·취소가 없는 보통 공고. 실측 전체의 82%', 1, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBTYP', 'PY020', '공고유형', '변경공고', 'API ntceKindNm = 변경공고. 반드시 차수가 올라간다(실측 10/10). 마감일·예산이 바뀌었을 수 있어 담당 팀에 다시 알려야 한다', 2, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBTYP', 'PY030', '공고유형', '재공고', 'API ntceKindNm = 재공고. 유찰 뒤 다시 낸 공고라 차수는 000 부터 새로 시작한다. reNtceYn=Y 와 정확히 일치한다(실측 28/28)', 3, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBTYP', 'PY040', '공고유형', '취소공고', 'API ntceKindNm = 취소공고. 입찰이 없어졌으므로 영업부에 알리고 목록에서 걸러낸다. 취소도 정정의 한 형태라 차수가 올라간다(실측 16/16)', 4, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('EXCSE', 'EX010', '실행구분', '자동', '평일 오전 하루 1회 스케줄러', 1, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('EXCSE', 'EX020', '실행구분', '수동', '[지금 불러오기] 버튼', 2, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL010', '수집결과', '변경 없음', 1, 'Y');
-INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL020', '수집결과', '본공고 전환', 2, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL020', '수집결과', '입찰공고 전환', 2, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL030', '수집결과', '정정 반영', 3, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL040', '수집결과', '취소 공고', 4, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL050', '수집결과', '개찰 결과', 5, 'Y');
+-- 사전규격 전환(CL060). 발주계획으로 등록한 공고가 사전규격 단계로 올라간 경우다.
+--   발주계획과 사전규격은 서로를 가리키는 번호가 API 에 없어서, 신규 사전규격 목록을 받아
+--   실수요기관명 + 사업명(정규화)으로 맞춘 결과다. BidCode.sameBizCase 참고.
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL060', '수집결과', '사전규격 전환', 6, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL090', '수집결과', '실패', 9, 'Y');
 -- UI 목업 v3.2 의 반환 표시(n.returned)에 쓰인다
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('RTRSE', 'RT010', '반환구분', '불참', '배정받은 팀장이 불참을 결정해 영업부로 돌아왔다', 1, 'Y');

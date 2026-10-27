@@ -27,7 +27,7 @@ public class CollectHistoryDTO {
     private String pbancNo;
 
     private Integer bidPbancCycl;
-    private String ntceKindNm;
+    private String pbancTypeCd;
     private BigDecimal altmntBgtAmt;
     private LocalDateTime bidDdlnDt;
     private LocalDateTime opengDt;

@@ -33,6 +33,7 @@ import com.ojj.sujuro.proposal.toc.TocService;
  *   목차 양식 불러오기·저장            — requireLeadTeamMember (주관팀 인원)
  *   목차 추가·이름·쪽수·삭제            — requireProposalMember (제안팀 = 주관+참여 전원)
  *   최하위 목차 담당자 지정·페이지 제한 — requireLeadTeamLeader (주관팀 팀장. 참여팀 팀장은 제외)
+ *   제안팀 인원 추가·제외, 참여팀 지정  — requireLeadTeamLeader (FR-043~044)
  *   요구사항 등록·수정·삭제·연결        — 제안팀원 중 주관팀 팀장 또는 목차 담당자 (FR-050, FR-016-1, RqtService.canEdit)
  * 업무 규칙 위반(BusinessException)은 화면 위쪽 안내 띠로 보여 주고 같은 사업건·같은 탭 화면으로 돌아온다.
  */
@@ -86,6 +87,10 @@ public class ProposalController {
         model.addAttribute("canAssign", canAssign);
         model.addAttribute("canReq", canReq);
         model.addAttribute("members", proposalService.members(pbancSn));
+        if (canAssign) { // 제안팀 구성 카드의 추가·참여팀 선택
+            model.addAttribute("addableUsers", proposalService.addableUsers(pbancSn));
+            model.addAttribute("teamOptions", proposalService.teamOptions(pbancSn));
+        }
         if (canLoad) {
             model.addAttribute("forms", tocService.forms(current.getSprvsnTeamSn(), se));
         }
@@ -245,6 +250,37 @@ public class ProposalController {
         return run(user, bid, TAB_PROPOSAL, ra, accessChecker::requireLeadTeamLeader, b -> () -> {
             proposalService.changePageLimit(bid, limit);
             return "제한 쪽수를 저장했습니다.";
+        });
+    }
+
+    /* ---------- 제안팀 구성 (FR-043~044): 주관팀 팀장 ---------- */
+
+    /** 제안팀 인원 추가 (다른 팀 인원이면 그 팀이 참여팀으로 함께 지정된다) */
+    @PostMapping("/proposal/team/member/add")
+    public String addMember(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
+                            @RequestParam(value = "tab", defaultValue = TAB_PROPOSAL) String tab,
+                            @RequestParam(value = "userId", required = false) String userId, RedirectAttributes ra) {
+        return run(user, bid, tab, ra, accessChecker::requireLeadTeamLeader, b -> () ->
+                "'" + proposalService.addMember(bid, userId) + "'을(를) 제안팀에 추가했습니다.");
+    }
+
+    /** 제안팀 인원 제외 (주관팀 팀장은 제외 불가, 담당 목차가 있으면 담당자를 먼저 바꾼다) */
+    @PostMapping("/proposal/team/member/remove")
+    public String removeMember(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
+                               @RequestParam(value = "tab", defaultValue = TAB_PROPOSAL) String tab,
+                               @RequestParam("userId") String userId, RedirectAttributes ra) {
+        return run(user, bid, tab, ra, accessChecker::requireLeadTeamLeader, b -> () ->
+                "'" + proposalService.removeMember(bid, userId) + "'을(를) 제안팀에서 뺐습니다.");
+    }
+
+    /** 참여팀 지정 (체크한 팀만 참여팀으로 남는다) */
+    @PostMapping("/proposal/team/teams")
+    public String saveTeams(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
+                            @RequestParam(value = "tab", defaultValue = TAB_PROPOSAL) String tab,
+                            @RequestParam(value = "teamSn", required = false) List<Long> teamSns, RedirectAttributes ra) {
+        return run(user, bid, tab, ra, accessChecker::requireLeadTeamLeader, b -> () -> {
+            proposalService.saveTeams(bid, teamSns);
+            return "참여팀을 저장했습니다.";
         });
     }
 

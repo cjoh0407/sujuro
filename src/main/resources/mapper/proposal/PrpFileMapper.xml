@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  제안서 파일 SQL (FR-057~066). 사용 테이블: TB_ATCH_FILE, TB_USER
+  파일구분 FL020 제안서 파트(목차별) / FL030 제안서 통합본 / FL040 제안요약서(목차별)
+  같은 대상에 다시 올리면 새 행으로 쌓고 이전 버전은 지우지 않는다. (FR-059, NFR-009)
+  화면의 삭제는 DEL_YN='Y'로 숨기기만 한다. 목록은 DEL_YN='N'만, 버전·차수 계산은 삭제한 것까지 센다.
+-->
+<mapper namespace="com.ojj.sujuro.proposal.file.PrpFileMapper">
+
+  <sql id="fileCols">
+    F.FILE_SN AS fileSn, F.PBANC_SN AS pbancSn, F.FILE_SE_CD AS fileSeCd, F.TOC_SN AS tocSn,
+    F.INTG_CYCL AS intgCycl, F.VER_NO AS verNo, F.LAST_YN AS lastYn,
+    F.DCSMKR_ID AS dcsmkrId, D.USER_NM AS dcsmkrNm, F.CFMTN_DT AS cfmtnDt,
+    F.ORGNL_FILE_NM AS orgnlFileNm, F.STRG_FILE_NM AS strgFileNm, F.FILE_PATH_NM AS filePathNm,
+    F.FILE_SZ AS fileSz, F.FILE_EXTN_NM AS fileExtnNm, F.MEMO_CN AS memoCn,
+    F.RGTR_ID AS rgtrId, U.USER_NM AS rgtrNm, F.REG_DT AS regDt,
+    F.DEL_YN AS delYn, F.DLTR_ID AS dltrId, X.USER_NM AS dltrNm, F.DEL_DT AS delDt, F.DEL_RSN AS delRsn,
+    CASE WHEN F.FILE_SE_CD = 'FL030' THEN F.INTG_CYCL || '차 통합본'
+         ELSE TRIM(T.TOC_NO || ' ' || T.TOC_NM) END AS targetNm
+  </sql>
+
+  <sql id="fileFrom">
+      FROM TB_ATCH_FILE F
+      LEFT JOIN TB_USER U ON U.USER_ID = F.RGTR_ID
+      LEFT JOIN TB_USER D ON D.USER_ID = F.DCSMKR_ID
+      LEFT JOIN TB_USER X ON X.USER_ID = F.DLTR_ID
+      LEFT JOIN TB_TOC T ON T.TOC_SN = F.TOC_SN
+  </sql>
+
+  <select id="findByBid" resultType="com.ojj.sujuro.proposal.file.PrpFileDto">
+    SELECT <include refid="fileCols"/>
+    <include refid="fileFrom"/>
+     WHERE F.PBANC_SN = #{pbancSn}
+       AND F.FILE_SE_CD = #{fileSeCd}
+       AND F.DEL_YN = 'N'
+     ORDER BY F.TOC_SN, F.INTG_CYCL DESC, F.FILE_SN DESC
+  </select>
+
+  <select id="findDeleted" resultType="com.ojj.sujuro.proposal.file.PrpFileDto">
+    SELECT <include refid="fileCols"/>
+    <include refid="fileFrom"/>
+     WHERE F.PBANC_SN = #{pbancSn}
+       AND F.FILE_SE_CD = #{fileSeCd}
+       AND F.DEL_YN = 'Y'
+     ORDER BY F.DEL_DT DESC, F.FILE_SN DESC
+  </select>
+
+  <select id="findOne" resultType="com.ojj.sujuro.proposal.file.PrpFileDto">
+    SELECT <include refid="fileCols"/>
+    <include refid="fileFrom"/>
+     WHERE F.FILE_SN = #{fileSn}
+  </select>
+
+  <select id="findBidStatus" resultType="string">
+    SELECT PBANC_STTS_CD FROM TB_BID_PBANC WHERE PBANC_SN = #{pbancSn}
+  </select>
+
+  <update id="markDeleted">
+    UPDATE TB_ATCH_FILE
+       SET DEL_YN = 'Y', DLTR_ID = #{userId}, DEL_DT = SYSDATE, DEL_RSN = #{reason}
+     WHERE FILE_SN = #{fileSn} AND DEL_YN = 'N'
+  </update>
+
+  <!-- 버전은 그 목차에 올라간 파일 수 + 1. 삭제(숨김)한 파일도 세므로 번호가 되돌아가지 않는다 -->
+  <select id="nextTocVersion" resultType="int">
+    SELECT COUNT(*) + 1 FROM TB_ATCH_FILE
+     WHERE PBANC_SN = #{pbancSn} AND FILE_SE_CD = #{fileSeCd} AND TOC_SN = #{tocSn}
+  </select>
+
+  <!-- 통합본 차수도 삭제한 것까지 포함해 계속 올라간다 -->
+  <select id="nextIntgCycl" resultType="int">
+    SELECT NVL(MAX(INTG_CYCL), 0) + 1 FROM TB_ATCH_FILE
+     WHERE PBANC_SN = #{pbancSn} AND FILE_SE_CD = 'FL030'
+  </select>
+
+  <insert id="insert" parameterType="com.ojj.sujuro.proposal.file.PrpFileDto" useGeneratedKeys="true" keyProperty="fileSn" keyColumn="FILE_SN">
+    INSERT INTO TB_ATCH_FILE (PBANC_SN, FILE_SE_CD, TOC_SN, INTG_CYCL, VER_NO, LAST_YN,
+                              ORGNL_FILE_NM, STRG_FILE_NM, FILE_PATH_NM, FILE_SZ, FILE_EXTN_NM, MEMO_CN, RGTR_ID)
+    VALUES (#{pbancSn}, #{fileSeCd}, #{tocSn, jdbcType=NUMERIC}, #{intgCycl, jdbcType=NUMERIC}, #{verNo}, 'N',
+            #{orgnlFileNm}, #{strgFileNm}, #{filePathNm}, #{fileSz}, #{fileExtnNm, jdbcType=VARCHAR},
+            #{memoCn, jdbcType=VARCHAR}, #{rgtrId})
+  </insert>
+
+  <update id="clearFinal">
+    UPDATE TB_ATCH_FILE SET LAST_YN = 'N', DCSMKR_ID = NULL, CFMTN_DT = NULL
+     WHERE PBANC_SN = #{pbancSn} AND FILE_SE_CD = 'FL030' AND LAST_YN = 'Y'
+  </update>
+
+  <update id="markFinal">
+    UPDATE TB_ATCH_FILE SET LAST_YN = 'Y', DCSMKR_ID = #{userId}, CFMTN_DT = SYSDATE
+     WHERE FILE_SN = #{fileSn}
+  </update>
+</mapper>

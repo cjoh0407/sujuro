@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  제출서류·조견표·나라장터 등록 SQL (FR-067~073).
+  사용 테이블: TB_BID_PBANC, TB_SBMSN_DCMNT, TB_ATCH_FILE(FL050 제출서류 / FL060 조견표), TB_TEAM, TB_USER, TB_COM_CD
+  파일 삭제는 DEL_YN='Y'로 숨기기만 한다(원본·이력 보관, NFR-009). 목록·최신 파일·파일 수는 삭제하지 않은 것만, 버전 계산은 전부 센다.
+  조견표는 파일로만 주고받는다 (평가 항목은 나라장터 API로 받을 수 없어 웹 입력(FR-071)과 TB_EVL_TOC_MPNG는 쓰지 않는다, 10/27 결정)
+-->
+<mapper namespace="com.ojj.sujuro.proposal.doc.DocMapper">
+
+  <!-- ===== 사업건 ===== -->
+
+  <!-- ProposalMapper.bidCols 와 같은 모양 (사업명 줄·사업건 선택에 같이 쓴다) -->
+  <sql id="bidCols">
+    B.PBANC_SN       AS pbancSn,
+    B.BID_PBANC_NO   AS bidPbancNo,
+    B.PBANC_NM       AS pbancNm,
+    B.PBANC_STTS_CD  AS pbancSttsCd,
+    C.CD_NM          AS pbancSttsNm,
+    B.LMT_PAGE_CNT   AS lmtPageCnt,
+    NVL(B.DMND_INST_NM, B.ORDER_INST_NM) AS instNm,
+    B.SPRVSN_TEAM_SN AS sprvsnTeamSn,
+    ST.TEAM_NM       AS sprvsnTeamNm,
+    (SELECT LISTAGG(PT.TEAM_NM, ', ') WITHIN GROUP (ORDER BY PT.TEAM_NM)
+       FROM TB_PTCP_TEAM P JOIN TB_TEAM PT ON PT.TEAM_SN = P.TEAM_SN
+      WHERE P.PBANC_SN = B.PBANC_SN)                        AS ptcpTeamNms
+  </sql>
+
+  <select id="findBidsForMgmt" resultType="com.ojj.sujuro.proposal.bid.ProposalBidDto">
+    SELECT <include refid="bidCols"/>
+      FROM TB_BID_PBANC B
+      LEFT JOIN TB_COM_CD C ON C.GROUP_CD = 'PBSTS' AND C.CD = B.PBANC_STTS_CD
+      LEFT JOIN TB_TEAM ST ON ST.TEAM_SN = B.SPRVSN_TEAM_SN
+     WHERE B.PBANC_STTS_CD IN ('PS030', 'PS040', 'PS050', 'PS060')
+     ORDER BY B.PBANC_SN DESC
+  </select>
+
+  <select id="findBid" resultType="com.ojj.sujuro.proposal.bid.ProposalBidDto">
+    SELECT <include refid="bidCols"/>
+      FROM TB_BID_PBANC B
+      LEFT JOIN TB_COM_CD C ON C.GROUP_CD = 'PBSTS' AND C.CD = B.PBANC_STTS_CD
+      LEFT JOIN TB_TEAM ST ON ST.TEAM_SN = B.SPRVSN_TEAM_SN
+     WHERE B.PBANC_SN = #{pbancSn}
+  </select>
+
+  <select id="findSubmission" resultType="com.ojj.sujuro.proposal.doc.SubmissionDto">
+    SELECT B.PBANC_SN AS pbancSn, B.PBANC_STTS_CD AS pbancSttsCd, B.SBMSN_DT AS sbmsnDt,
+           B.PRSNR_ID AS prsnrId, U.USER_NM AS prsnrNm
+      FROM TB_BID_PBANC B
+      LEFT JOIN TB_USER U ON U.USER_ID = B.PRSNR_ID
+     WHERE B.PBANC_SN = #{pbancSn}
+  </select>
+
+  <!-- 참여 확정·제안 작성 중일 때만 바꾼다 (NFR-012). 바뀐 행 수가 0이면 이미 제출됐거나 순서가 맞지 않는 것 -->
+  <update id="updateSubmitted">
+    UPDATE TB_BID_PBANC
+       SET PBANC_STTS_CD = 'PS050', SBMSN_DT = SYSDATE, PRSNR_ID = #{userId}
+     WHERE PBANC_SN = #{pbancSn}
+       AND PBANC_STTS_CD IN ('PS030', 'PS040')
+  </update>
+
+  <!-- ===== 제출서류 체크리스트 (FR-067~070) ===== -->
+
+  <sql id="docCols">
+    D.DCMNT_SN AS dcmntSn, D.PBANC_SN AS pbancSn, D.DCMNT_NM AS dcmntNm, D.ESNTL_YN AS esntlYn,
+    D.TKCG_SE_CD AS tkcgSeCd, D.PRGRS_STTS_CD AS prgrsSttsCd, D.SBMSN_DDLN_DT AS sbmsnDdlnDt, D.RMRK_CN AS rmrkCn,
+    F.FILE_SN AS fileSn, F.RGTR_ID AS fileRgtrId, F.ORGNL_FILE_NM AS orgnlFileNm, F.FILE_SZ AS fileSz,
+    FU.USER_NM AS fileRgtrNm, F.REG_DT AS fileRegDt,
+    (SELECT COUNT(*) FROM TB_ATCH_FILE X WHERE X.DCMNT_SN = D.DCMNT_SN AND X.DEL_YN = 'N') AS fileCnt,
+    (SELECT COUNT(*) FROM TB_ATCH_FILE X WHERE X.DCMNT_SN = D.DCMNT_SN) AS fileTotal
+  </sql>
+
+  <!-- 서류마다 삭제하지 않은 가장 최근 파일 하나를 붙인다 -->
+  <sql id="docFrom">
+      FROM TB_SBMSN_DCMNT D
+      LEFT JOIN TB_ATCH_FILE F
+             ON F.FILE_SN = (SELECT MAX(X.FILE_SN) FROM TB_ATCH_FILE X WHERE X.DCMNT_SN = D.DCMNT_SN AND X.DEL_YN = 'N')
+      LEFT JOIN TB_USER FU ON FU.USER_ID = F.RGTR_ID
+  </sql>
+
+  <select id="findDocs" resultType="com.ojj.sujuro.proposal.doc.DocDto">
+    SELECT <include refid="docCols"/>
+    <include refid="docFrom"/>
+     WHERE D.PBANC_SN = #{pbancSn}
+     ORDER BY CASE WHEN D.ESNTL_YN = 'Y' THEN 0 ELSE 1 END, D.DCMNT_SN
+  </select>
+
+  <select id="findDoc" resultType="com.ojj.sujuro.proposal.doc.DocDto">
+    SELECT <include refid="docCols"/>
+    <include refid="docFrom"/>
+     WHERE D.DCMNT_SN = #{dcmntSn}
+  </select>
+
+  <insert id="insertDoc" parameterType="com.ojj.sujuro.proposal.doc.DocDto" useGeneratedKeys="true" keyProperty="dcmntSn" keyColumn="DCMNT_SN">
+    INSERT INTO TB_SBMSN_DCMNT (PBANC_SN, DCMNT_NM, ESNTL_YN, TKCG_SE_CD, PRGRS_STTS_CD, SBMSN_DDLN_DT)
+    VALUES (#{pbancSn}, #{dcmntNm}, #{esntlYn}, #{tkcgSeCd}, 'DS010', #{sbmsnDdlnDt, jdbcType=DATE})
+  </insert>
+
+  <update id="updateDocStatus">
+    UPDATE TB_SBMSN_DCMNT SET PRGRS_STTS_CD = #{prgrsSttsCd} WHERE DCMNT_SN = #{dcmntSn}
+  </update>
+
+  <update id="updateDocDue">
+    UPDATE TB_SBMSN_DCMNT SET SBMSN_DDLN_DT = #{sbmsnDdlnDt, jdbcType=DATE} WHERE DCMNT_SN = #{dcmntSn}
+  </update>
+
+  <delete id="deleteDoc">
+    DELETE FROM TB_SBMSN_DCMNT WHERE DCMNT_SN = #{dcmntSn}
+  </delete>
+
+  <!-- ===== 파일 (FL050 제출서류 / FL060 조견표) ===== -->
+
+  <insert id="insertFile" useGeneratedKeys="true" keyProperty="f.fileSn" keyColumn="FILE_SN">
+    INSERT INTO TB_ATCH_FILE (PBANC_SN, FILE_SE_CD, DCMNT_SN, VER_NO, LAST_YN,
+                              ORGNL_FILE_NM, STRG_FILE_NM, FILE_PATH_NM, FILE_SZ, FILE_EXTN_NM, MEMO_CN, RGTR_ID)
+    VALUES (#{f.pbancSn}, #{f.fileSeCd}, #{dcmntSn, jdbcType=NUMERIC}, #{f.verNo}, 'N',
+            #{f.orgnlFileNm}, #{f.strgFileNm}, #{f.filePathNm}, #{f.fileSz}, #{f.fileExtnNm, jdbcType=VARCHAR},
+            #{f.memoCn, jdbcType=VARCHAR}, #{f.rgtrId})
+  </insert>
+
+  <sql id="fileCols">
+    F.FILE_SN AS fileSn, F.PBANC_SN AS pbancSn, F.FILE_SE_CD AS fileSeCd, F.TOC_SN AS tocSn,
+    F.VER_NO AS verNo, F.ORGNL_FILE_NM AS orgnlFileNm, F.STRG_FILE_NM AS strgFileNm, F.FILE_PATH_NM AS filePathNm,
+    F.FILE_SZ AS fileSz, F.FILE_EXTN_NM AS fileExtnNm, F.MEMO_CN AS memoCn,
+    F.RGTR_ID AS rgtrId, U.USER_NM AS rgtrNm, F.REG_DT AS regDt,
+    F.DEL_YN AS delYn, F.DLTR_ID AS dltrId, X.USER_NM AS dltrNm, F.DEL_DT AS delDt, F.DEL_RSN AS delRsn,
+    CASE WHEN F.FILE_SE_CD = 'FL060' THEN '조견표' ELSE DC.DCMNT_NM END AS targetNm
+  </sql>
+
+  <sql id="fileFrom">
+      FROM TB_ATCH_FILE F
+      LEFT JOIN TB_USER U ON U.USER_ID = F.RGTR_ID
+      LEFT JOIN TB_USER X ON X.USER_ID = F.DLTR_ID
+      LEFT JOIN TB_SBMSN_DCMNT DC ON DC.DCMNT_SN = F.DCMNT_SN
+  </sql>
+
+  <select id="findCheatFiles" resultType="com.ojj.sujuro.proposal.file.PrpFileDto">
+    SELECT <include refid="fileCols"/>
+    <include refid="fileFrom"/>
+     WHERE F.PBANC_SN = #{pbancSn} AND F.FILE_SE_CD = 'FL060' AND F.DEL_YN = 'N'
+     ORDER BY F.FILE_SN DESC
+  </select>
+
+  <select id="findDeletedFiles" resultType="com.ojj.sujuro.proposal.file.PrpFileDto">
+    SELECT <include refid="fileCols"/>
+    <include refid="fileFrom"/>
+     WHERE F.PBANC_SN = #{pbancSn} AND F.FILE_SE_CD IN ('FL050', 'FL060') AND F.DEL_YN = 'Y'
+     ORDER BY F.DEL_DT DESC, F.FILE_SN DESC
+  </select>
+
+  <update id="markFileDeleted">
+    UPDATE TB_ATCH_FILE
+       SET DEL_YN = 'Y', DLTR_ID = #{userId}, DEL_DT = SYSDATE, DEL_RSN = #{reason}
+     WHERE FILE_SN = #{fileSn} AND DEL_YN = 'N'
+  </update>
+
+  <select id="countCheatFiles" resultType="int">
+    SELECT COUNT(*) FROM TB_ATCH_FILE WHERE PBANC_SN = #{pbancSn} AND FILE_SE_CD = 'FL060'
+  </select>
+
+  <select id="findFile" resultType="com.ojj.sujuro.proposal.file.PrpFileDto">
+    SELECT <include refid="fileCols"/>
+    <include refid="fileFrom"/>
+     WHERE F.FILE_SN = #{fileSn}
+  </select>
+</mapper>

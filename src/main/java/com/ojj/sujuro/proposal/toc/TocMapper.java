@@ -60,6 +60,9 @@ public interface TocMapper {
     /** 목차 담당자를 바꾼다. picId가 null이면 미지정 (FR-049) */
     int updatePic(@Param("tocSn") Long tocSn, @Param("picId") String picId);
 
+    /** 목차 진행 상태를 바꾼다. TS020 작성 중 / TS030 검토 완료 (FR-066) */
+    int updateProgress(@Param("tocSn") Long tocSn, @Param("prgrsSttsCd") String prgrsSttsCd);
+
     /** 최하위 목차가 하위를 갖게 되면 담당자·쪽수를 비운다. */
     int clearLeafInfo(@Param("tocSn") Long tocSn);
 
@@ -71,7 +74,7 @@ public interface TocMapper {
     /** 이 목차에 연결된 요구사항 수 */
     int countRequirements(@Param("tocSn") Long tocSn);
 
-    /** 이 목차에 올라간 파일 수 (파일은 지우지 않으므로 있으면 목차를 못 지운다, NFR-009) */
+    /** 이 목차에 올라간 파일 수 (삭제(숨김)한 파일 포함. 파일은 지우지 않으므로 있으면 목차를 못 지운다, NFR-009) */
     int countFiles(@Param("tocSn") Long tocSn);
 
     /** 이 목차에 연결된 요구사항을 미매핑으로 돌린다. (FR-056) */

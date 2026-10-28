@@ -141,4 +141,13 @@ public interface BidNoticeMapper {
     /** 제안팀원 한 명 (이미 있으면 넣지 않는다) */
     int insertProposalLeader(@Param("pbancSn") Long pbancSn, @Param("userId") String userId,
                              @Param("ptcpSeCd") String ptcpSeCd);
+
+    /** 중도 철회: 이 사업건의 제안팀원을 모두 뺀다. 뺀 인원 수 */
+    int deleteProposalMembers(@Param("pbancSn") Long pbancSn);
+
+    /** 중도 철회: 이 사업건의 참여팀을 모두 뺀다 */
+    int deleteJoinTeams(@Param("pbancSn") Long pbancSn);
+
+    /** 중도 철회: 이 사업건 목차의 담당자 지정을 푼다. 목차 내용은 그대로다 */
+    int clearTocOwners(@Param("pbancSn") Long pbancSn);
 }

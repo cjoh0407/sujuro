@@ -133,6 +133,11 @@ public class NoticeDetailDTO extends BidNoticeDTO {
         return null;
     }
 
+    /** 팀장이 중도 철회할 수 있는 상태인지 (FR-042). 참여 확정·제안 작성 중만이다. 제출한 뒤에는 철회하지 않는다. */
+    public boolean isWithdrawable() {
+        return BidCode.is(getPbancSttsCd(), BidCode.STTS_JOINED) || BidCode.is(getPbancSttsCd(), BidCode.STTS_WRITING);
+    }
+
     /** 취소공고인지. 취소된 공고에는 참여할 수 없고, 불참으로 영업부에 돌려준다. */
     public boolean isCanceled() {
         return BidCode.is(getPbancTypeCd(), BidCode.TYPE_CANCELED);

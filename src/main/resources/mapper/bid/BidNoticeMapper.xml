@@ -557,4 +557,21 @@
       FROM DUAL
      WHERE NOT EXISTS (SELECT 1 FROM TB_PRP_TMMBR M WHERE M.PBANC_SN = #{pbancSn} AND M.USER_ID = #{userId})
   </insert>
+
+  <!--
+    중도 철회 (FR-042) 때 제안팀을 푼다. 아래 세 문장을 같은 트랜잭션에서 차례로 부른다.
+    철회한 팀이 더 이상 이 사업건을 보지 않게 하고(제안 업무 화면·대시보드는 아래 세 가지로 사업건을 찾는다),
+    다른 팀이 새로 맡을 때 이전 팀의 지정이 섞이지 않게 한다. 목차·요구사항·올린 파일 같은 작업물은 남긴다.
+  -->
+  <delete id="deleteProposalMembers">
+    DELETE FROM TB_PRP_TMMBR WHERE PBANC_SN = #{pbancSn}
+  </delete>
+
+  <delete id="deleteJoinTeams">
+    DELETE FROM TB_PTCP_TEAM WHERE PBANC_SN = #{pbancSn}
+  </delete>
+
+  <update id="clearTocOwners">
+    UPDATE TB_TOC SET PIC_ID = NULL WHERE PBANC_SN = #{pbancSn} AND PIC_ID IS NOT NULL
+  </update>
 </mapper>

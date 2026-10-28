@@ -115,6 +115,7 @@
            P.TRCK_STTS_CD                            AS trckSttsCd,
            TRCK.CD_NM                                AS trckSttsNm,
            P.DMND_INST_NM                            AS dmndInstNm,
+           P.PTCP_SHP_CD                             AS ptcpShpCd,
            PTFM.CD_NM                                AS ptcpShpNm,
            P.SW_BIZ_YN                               AS swBizYn,
            P.BIZ_PRD_CN                              AS bizPrdCn,
@@ -310,6 +311,141 @@
        AND BID_PBANC_NO IS NULL
   </update>
 
+  <!--
+    나라장터 공고 첨부 한 건 (FR-036). 파일은 받아 두지 않고 내려받기 주소만 넣는다.
+    TB_ATCH_FILE 은 제안팀이 올리는 파일(목차별 파트·통합본 등)과 같이 쓰는 표라, 나라장터 첨부는
+    파일구분 FL010(RFP)·FL080(사전규격 규격서)·FL090(입찰공고 첨부)으로만 넣는다.
+    등록자가 없는 수집은 공고를 등록한 영업부 직원으로 넣는다(RGTR_ID 가 NOT NULL).
+  -->
+  <insert id="insertAtchFile" parameterType="com.ojj.sujuro.bid.dto.AtchFileDTO">
+    INSERT INTO TB_ATCH_FILE (
+      PBANC_SN, FILE_SE_CD, VER_NO, ORGNL_FILE_NM, ORGNL_URL, FILE_SZ, FILE_EXTN_NM, RGTR_ID
+    ) VALUES (
+      #{pbancSn}, #{fileSeCd}, NVL(#{verNo}, '1'), #{orgnlFileNm}, #{orgnlUrl}, #{fileSz}, #{fileExtnNm},
+      NVL(#{rgtrId}, (SELECT RGTR_ID FROM TB_BID_PBANC WHERE PBANC_SN = #{pbancSn}))
+    )
+  </insert>
+
+  <!-- 공고 상세의 첨부 목록. 입찰공고 첨부(FL010·FL090)를 먼저, 사전규격 규격서(FL080)를 뒤에. 각각 받은 순서대로 -->
+  <select id="findNoticeFiles" parameterType="long" resultType="com.ojj.sujuro.bid.dto.AtchFileDTO">
+    SELECT F.FILE_SN       AS fileSn,
+           F.PBANC_SN      AS pbancSn,
+           F.FILE_SE_CD    AS fileSeCd,
+           C.CD_NM         AS fileSeNm,
+           F.VER_NO        AS verNo,
+           F.ORGNL_FILE_NM AS orgnlFileNm,
+           F.ORGNL_URL     AS orgnlUrl,
+           F.FILE_SZ       AS fileSz,
+           F.FILE_EXTN_NM  AS fileExtnNm,
+           F.REG_DT        AS regDt
+      FROM TB_ATCH_FILE F
+      LEFT JOIN TB_COM_CD C ON C.GROUP_CD = 'FILSE' AND C.CD = F.FILE_SE_CD
+     WHERE F.PBANC_SN = #{pbancSn}
+       AND F.FILE_SE_CD IN ('FL010', 'FL080', 'FL090')
+     ORDER BY CASE WHEN F.FILE_SE_CD = 'FL080' THEN 1 ELSE 0 END, F.FILE_SN
+  </select>
+
+  <!--
+    입찰공고번호가 있는 공고 중 이 단계에 있는 것. 수집이 정정·개찰(입찰공고 PP030)과 계약(개찰 PP040)을 확인할 대상이다.
+    비교에 쓰는 지금 값(차수·유형·공고명·예산·마감·개찰)을 같이 읽는다.
+  -->
+  <select id="findBidStageNotices" resultType="com.ojj.sujuro.bid.dto.TrackingNoticeDTO">
+    SELECT P.PBANC_SN       AS pbancSn,
+           P.BID_PBANC_NO   AS bidPbancNo,
+           P.BID_PBANC_CYCL AS bidPbancCycl,
+           P.PBANC_STEP_CD  AS pbancStepCd,
+           P.PBANC_STTS_CD  AS pbancSttsCd,
+           P.PBANC_TYPE_CD  AS pbancTypeCd,
+           P.PBANC_NM       AS pbancNm,
+           P.ALTMNT_BGT_AMT AS altmntBgtAmt,
+           P.BID_DDLN_DT    AS bidDdlnDt,
+           P.OPENG_DT       AS opengDt
+      FROM TB_BID_PBANC P
+     WHERE P.PBANC_STEP_CD = #{stepCd}
+       AND P.BID_PBANC_NO IS NOT NULL
+     ORDER BY P.PBANC_SN
+  </select>
+
+  <!--
+    나라장터 첨부(FL010·FL080·FL090)가 하나도 없는 사전규격·입찰공고 단계 공고. 수집이 첨부를 다시 받아 볼 대상이다.
+    첨부 기능(10/28) 전에 등록한 공고, 등록·전환 때 나라장터가 응답하지 않아 첨부를 못 받은 공고가 여기 걸린다.
+  -->
+  <select id="findNoticesWithoutFiles" resultType="com.ojj.sujuro.bid.dto.TrackingNoticeDTO">
+    SELECT P.PBANC_SN        AS pbancSn,
+           P.PBANC_STEP_CD   AS pbancStepCd,
+           P.BF_SPEC_RGST_NO AS bfSpecRgstNo,
+           P.BID_PBANC_NO    AS bidPbancNo
+      FROM TB_BID_PBANC P
+     WHERE ((P.PBANC_STEP_CD = #{preSpecStepCd} AND P.BF_SPEC_RGST_NO IS NOT NULL)
+         OR (P.PBANC_STEP_CD = #{bidStepCd} AND P.BID_PBANC_NO IS NOT NULL))
+       AND NOT EXISTS (SELECT 1
+                         FROM TB_ATCH_FILE F
+                        WHERE F.PBANC_SN = P.PBANC_SN
+                          AND F.FILE_SE_CD IN ('FL010', 'FL080', 'FL090'))
+     ORDER BY P.PBANC_SN
+  </select>
+
+  <!--
+    입찰공고 정정·취소를 반영한다 (FR-028, FR-035-1). 같은 번호에 차수가 올라간 공고가 오면 그 값으로 고친다.
+    이전 값은 수집이력에 남아 있어 상세의 변경 내용에서 나란히 보인다.
+    발주기관명은 덮지 않는다(조달청 위탁 건은 공고기관이 조달청이다). API 가 빈 값을 주면 덮지 않는다.
+    WHERE 에 고치기 전 차수를 걸어 같은 정정이 두 번 반영되지 않게 한다.
+  -->
+  <update id="updateBidCorrection" parameterType="com.ojj.sujuro.bid.dto.BidLinkDTO">
+    UPDATE TB_BID_PBANC
+       SET BID_PBANC_CYCL  = NVL(#{bidPbancCycl}, BID_PBANC_CYCL),
+           PBANC_TYPE_CD   = NVL(#{pbancTypeCd}, PBANC_TYPE_CD),
+           PBANC_NM        = NVL(#{pbancNm}, PBANC_NM),
+           DMND_INST_NM    = NVL(#{dmndInstNm}, DMND_INST_NM),
+           ALTMNT_BGT_AMT  = NVL(#{altmntBgtAmt}, ALTMNT_BGT_AMT),
+           BID_DDLN_DT     = NVL(#{bidDdlnDt}, BID_DDLN_DT),
+           OPENG_DT        = NVL(#{opengDt}, OPENG_DT),
+           EVL_MTHD_NM     = NVL(#{evlMthdNm}, EVL_MTHD_NM),
+           PBANC_DTL_URL   = NVL(#{pbancDtlUrl}, PBANC_DTL_URL),
+           CLCT_DT         = SYSDATE,
+           LAST_CFMTN_DT   = SYSDATE
+     WHERE PBANC_SN       = #{pbancSn}
+       AND PBANC_STEP_CD  = #{toStepCd}
+       AND BID_PBANC_CYCL = #{fromBidPbancCycl}
+  </update>
+
+  <!--
+    단계만 올린다 (입찰공고 → 개찰, 개찰 → 계약). 유찰이면 공고상태도 유찰(PS070)로 바꾼다 (FR-024-1).
+    다만 우리가 불참(PS090)한 공고는 불참으로 둔다. 불참은 우리 결정이라 유찰보다 먼저 보여야 한다.
+    WHERE 에 고치기 전 단계를 걸어 같은 전이가 두 번 일어나지 않게 한다.
+  -->
+  <update id="updateStep">
+    UPDATE TB_BID_PBANC
+       SET PBANC_STEP_CD = #{toStepCd},
+           PBANC_STTS_CD = CASE WHEN #{sttsCd} IS NOT NULL AND PBANC_STTS_CD &lt;&gt; 'PS090'
+                                THEN #{sttsCd} ELSE PBANC_STTS_CD END,
+           CLCT_DT       = SYSDATE,
+           LAST_CFMTN_DT = SYSDATE
+     WHERE PBANC_SN      = #{pbancSn}
+       AND PBANC_STEP_CD = #{fromStepCd}
+  </update>
+
+  <!-- 최근 N분 안에 이 실행구분으로 돈 수집 수. [지금 수집] 을 연달아 누르지 못하게 막는 데 쓴다. -->
+  <select id="countRecentRuns" resultType="int">
+    SELECT COUNT(*)
+      FROM TB_CLCT_LOG
+     WHERE EXCN_SE_CD = #{excnSeCd}
+       AND EXCN_DT &gt; SYSDATE - #{minutes} / 1440
+  </select>
+
+  <!-- 마지막 수집 실행. 공고와 상관없는 실행 단위 행(PBANC_SN 이 빈 행) 중 가장 최근 것. 없으면 결과가 없다. -->
+  <select id="findLastRun" resultType="com.ojj.sujuro.bid.dto.CollectRunDTO">
+    SELECT L.EXCN_DT  AS excnDt,
+           C.CD_NM    AS excnSeNm,
+           U.USER_NM  AS exctrNm
+      FROM TB_CLCT_LOG L
+      LEFT JOIN TB_COM_CD C ON C.GROUP_CD = 'EXCSE' AND C.CD = L.EXCN_SE_CD
+      LEFT JOIN TB_USER   U ON U.USER_ID = L.EXCTR_ID
+     WHERE L.PBANC_SN IS NULL
+     ORDER BY L.EXCN_DT DESC, L.CLCT_LOG_SN DESC
+     FETCH FIRST 1 ROWS ONLY
+  </select>
+
   <!-- 공고마다 1부터 센다. 수집이력의 (공고, 순번)이 UNIQUE 라서 미리 다음 번호를 받아 둔다. -->
   <select id="nextCollectSeq" resultType="int">
     SELECT NVL(MAX(CLCT_SEQ), 0) + 1
@@ -324,5 +460,101 @@
     ) VALUES (
       #{pbancSn}, #{excnSeCd}, #{exctrId}, #{clctRsltCd}, #{errMsgCn}
     )
+  </insert>
+
+  <!-- ============ 담당 팀 배정 · 참여 결정 (FR-037~040) ============ -->
+
+  <!-- 배정할 수 있는 팀 (개발부). 배정 알림을 받을 팀장 이름을 같이 읽는다. 비활성 계정은 빼고 센다. -->
+  <select id="findTeamOptions" resultType="com.ojj.sujuro.bid.dto.TeamOptionDTO">
+    SELECT T.TEAM_SN AS teamSn,
+           T.TEAM_NM AS teamNm,
+           (SELECT LISTAGG(U.USER_NM, ', ') WITHIN GROUP (ORDER BY U.USER_NM)
+              FROM TB_USER U
+             WHERE U.TEAM_SN = T.TEAM_SN
+               AND U.AUTHRT_CD = #{leaderCd}
+               AND U.ACNT_STTS_CD &lt;&gt; #{inactiveCd}) AS leaderNm
+      FROM TB_TEAM T
+     WHERE T.DEPT_CD = #{deptCd}
+       AND T.USE_YN = 'Y'
+     ORDER BY T.TEAM_NM
+  </select>
+
+  <!-- 공통코드 한 그룹 (고르는 칸). 정렬순서대로 -->
+  <select id="findCodeOptions" resultType="com.ojj.sujuro.bid.dto.CodeOptionDTO">
+    SELECT CD    AS cd,
+           CD_NM AS cdNm
+      FROM TB_COM_CD
+     WHERE GROUP_CD = #{groupCd}
+       AND USE_YN = 'Y'
+     ORDER BY SORT_SEQ
+  </select>
+
+  <!--
+    배정·재배정. 화면을 연 뒤 다른 사람이 먼저 배정했거나 팀장이 결정했으면 0행이다(상태·팀을 WHERE 에 건다).
+    반환구분은 지운다. 다시 배정되면 더 이상 '돌아온 공고'가 아니다 (01_schema.sql 의 RTRN_SE_CD 설명).
+  -->
+  <update id="updateAssign">
+    UPDATE TB_BID_PBANC
+       SET SPRVSN_TEAM_SN = #{teamSn},
+           PTCP_SHP_CD    = #{ptcpShpCd},
+           PBANC_STTS_CD  = #{toSttsCd},
+           RTRN_SE_CD     = NULL
+     WHERE PBANC_SN = #{pbancSn}
+       AND PBANC_STTS_CD = #{fromSttsCd}
+       AND NVL(SPRVSN_TEAM_SN, -1) = NVL(#{fromTeamSn}, -1)
+  </update>
+
+  <!-- 영업부의 불참 종결. 신규 공고만이다. 종결하면 더 이상 '돌아온 공고'가 아니므로 반환구분도 지운다. -->
+  <update id="updateClosed">
+    UPDATE TB_BID_PBANC
+       SET PBANC_STTS_CD = #{toSttsCd},
+           RTRN_SE_CD    = NULL
+     WHERE PBANC_SN = #{pbancSn}
+       AND PBANC_STTS_CD = #{fromSttsCd}
+  </update>
+
+  <!-- 이 사용자가 이 공고에 배정된 팀의 팀장인지 (FR-039). 0 또는 1 -->
+  <select id="countAssignedLeader" resultType="int">
+    SELECT COUNT(*)
+      FROM TB_BID_PBANC P
+      JOIN TB_USER U ON U.TEAM_SN = P.SPRVSN_TEAM_SN
+     WHERE P.PBANC_SN = #{pbancSn}
+       AND U.USER_ID = #{userId}
+       AND U.AUTHRT_CD = #{leaderCd}
+  </select>
+
+  <!-- 팀장의 참여 결정. 배정 완료이고 이 팀이 배정된 공고만 바꾼다. 이미 결정했거나 재배정됐으면 0행이다. -->
+  <update id="updateJoined">
+    UPDATE TB_BID_PBANC
+       SET PBANC_STTS_CD = #{toSttsCd}
+     WHERE PBANC_SN = #{pbancSn}
+       AND SPRVSN_TEAM_SN = #{teamSn}
+       AND PBANC_STTS_CD = #{fromSttsCd}
+  </update>
+
+  <!--
+    팀장의 불참 결정 (FR-040). 공고가 영업부로 돌아가 배정 전(신규) 상태가 된다. 담당 팀을 비우고 반환구분을 남긴다.
+    어느 팀이 불참했는지는 공고처리이력(대상 팀)에 남는다.
+  -->
+  <update id="updateReturned">
+    UPDATE TB_BID_PBANC
+       SET PBANC_STTS_CD  = #{toSttsCd},
+           RTRN_SE_CD     = #{rtrnSeCd},
+           SPRVSN_TEAM_SN = NULL
+     WHERE PBANC_SN = #{pbancSn}
+       AND SPRVSN_TEAM_SN = #{teamSn}
+       AND PBANC_STTS_CD = #{fromSttsCd}
+  </update>
+
+  <!--
+    참여를 결정한 팀장을 제안팀의 주관팀(PT010)으로 넣는다 (FR-043 의 시작점).
+    제안 업무 화면은 제안팀원에게만 사업건을 보여 주고, 주관팀 팀장이 거기서 나머지 인원을 넣는다.
+    이미 들어 있으면 넣지 않는다.
+  -->
+  <insert id="insertProposalLeader">
+    INSERT INTO TB_PRP_TMMBR (PBANC_SN, USER_ID, PTCP_SE_CD)
+    SELECT #{pbancSn}, #{userId}, #{ptcpSeCd}
+      FROM DUAL
+     WHERE NOT EXISTS (SELECT 1 FROM TB_PRP_TMMBR M WHERE M.PBANC_SN = #{pbancSn} AND M.USER_ID = #{userId})
   </insert>
 </mapper>

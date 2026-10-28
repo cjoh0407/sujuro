@@ -7,7 +7,7 @@
 <!--/*
   공고 관리 - 목록 (FR-017 ~ 020). UI 목업 v3.2 의 rNotices() 화면과 같은 구성이다.
   탭·검색·정렬·페이지 이동은 모두 GET 주소로 옮겨 다닌다. 그래서 주소를 그대로 북마크할 수 있다.
-  등록 · [지금 불러오기] · 공고 상세는 아직 없다. NoticeController 주석에 붙일 날짜를 적어 두었다.
+  공고명을 누르면 상세(/notices/{번호})로 간다. 영업부는 번호로 등록하고 [지금 수집] 을 누를 수 있다.
 */-->
 <head>
   <title>공고 관리</title>
@@ -23,13 +23,22 @@
       <h2>공고 관리</h2>
       <div class="sub">공고 정보는 경영지원실·영업부·팀장만 봅니다 · 팀원에게는 노출되지 않습니다</div>
     </div>
-    <div class="row" sec:authorize="hasRole('SALES')">
-      <button class="btn" type="button" disabled
-              title="본공고 연결·정정 확인은 10/22에 붙입니다">지금 불러오기</button>
+    <!-- [지금 수집] (FR-025). 오후 5시 자동 수집과 같은 일을 지금 한다. 영업부만 누른다.
+         나라장터를 여러 번 불러 수십 초 걸릴 수 있어, 누르면 버튼을 막고 '수집 중' 으로 바꾼다. -->
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+      <form method="post" th:action="@{/notices/collect}" sec:authorize="hasRole('SALES')" data-collect-form>
+        <!-- autocomplete="off": Firefox 가 새로고침 뒤에도 막아 둔(disabled) 상태를 기억하지 않게 한다 -->
+        <button class="btn" type="submit" autocomplete="off">지금 수집</button>
+      </form>
+      <span class="faint" style="font-size:11.5px" th:if="${lastRun}"
+            th:text="|마지막 수집 ${#dates.format(lastRun.excnDt, 'MM-dd HH:mm')} · ${lastRun.excnSeNm}${lastRun.exctrNm != null ? ' (' + lastRun.exctrNm + ')' : ''}|">마지막 수집 10-28 17:00 · 자동</span>
+      <span class="faint" style="font-size:11.5px" th:unless="${lastRun}">평일 오후 5시 자동 수집</span>
     </div>
   </div>
 
   <div class="banner ok" th:if="${registMessage}" th:text="${registMessage}">등록했습니다</div>
+  <div class="banner ok" th:if="${collectMessage}" th:text="${collectMessage}">지금 수집을 마쳤습니다</div>
+  <div class="banner warn" th:if="${collectError}" th:text="${collectError}">방금 지금 수집을 했습니다</div>
 
   <!-- 공고 등록 (영업부). 번호만 넣으면 나라장터 API로 내용을 가져온다. 키워드 검색은 없다. -->
   <div class="card" sec:authorize="hasRole('SALES')">
@@ -167,6 +176,24 @@
     // 정렬을 고르면 바로 검색 폼을 보낸다. (목업의 onchange 정렬과 같은 동작)
     document.querySelectorAll('[data-auto-submit]').forEach(function (el) {
       el.addEventListener('change', function () { el.form.submit(); });
+    });
+
+    // [지금 수집] 은 끝날 때까지 수십 초 걸릴 수 있다. 두 번 눌리지 않게 막고 진행 중임을 보여 준다.
+    document.querySelectorAll('[data-collect-form]').forEach(function (form) {
+      form.addEventListener('submit', function () {
+        var btn = form.querySelector('button');
+        btn.disabled = true;
+        btn.textContent = '수집 중…';
+      });
+    });
+
+    // 결과를 본 뒤 [뒤로 가기] 로 돌아오면 브라우저가 누르던 순간의 화면(막힌 버튼)을 그대로 되살린다.
+    // 화면이 다시 보일 때마다 버튼을 풀어 둔다. 수집이 정말 돌고 있으면 서버가 '진행 중' 으로 막는다.
+    window.addEventListener('pageshow', function () {
+      document.querySelectorAll('[data-collect-form] button').forEach(function (btn) {
+        btn.disabled = false;
+        btn.textContent = '지금 수집';
+      });
     });
   </script>
 </th:block>

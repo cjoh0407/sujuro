@@ -2,6 +2,9 @@
 -- 실행: sqlplus 계정/비밀번호@//localhost:1521/XEPDB1 @02_code_data.sql
 -- v3.2(2026-10-26, 이세종): 외부 인력 코드 삭제(JG030 직급 외부, AU050 권한 외부, AS010 계정 발급 요청, NT080 계정 요청, NT090 계정 발급, PT030 참여구분 외부인력),
 --                          목차구분(TOCSE) 추가, FL040 설명 변경
+-- v3.3(2026-10-28, 김종민): 처리구분 PC010 이름 '관심 공고 등록' → '공고 등록' (요구사항 v3.2 용어 통일, 공고 상세 배정·결정 이력에 그대로 보임)
+--                          파일구분 FL090 '입찰공고 첨부' 추가. 나라장터 공고 첨부를 TB_ATCH_FILE 에 넣을 때 제안요청서는 FL010, 사전규격 규격서는 FL080, 나머지는 FL090
+--                          수집결과 CL070 '계약 전환' 추가, 실행구분 설명을 '평일 오후 5시' · '[지금 수집] 버튼'으로 바꿈
 SET DEFINE OFF
 DELETE FROM TB_COM_CD;
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('DEPTS', 'DP010', '부서', '경영지원실', 1, 'Y');
@@ -34,7 +37,7 @@ INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUE
 --   예) R26BK01553009 = 개찰일시는 있고 progrsDivCdNm '유찰', '단독 응찰로 경쟁입찰 불성립' (2026-10-26 확인)
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBSTS', 'PS070', '공고상태', '유찰', '개찰했으나 입찰이 성립하지 않았다. 단독 응찰·참가업체 부족 등', 7, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('PBSTS', 'PS090', '공고상태', '불참', 8, 'Y');
-INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('PRCSE', 'PC010', '처리구분', '관심 공고 등록', 1, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('PRCSE', 'PC010', '처리구분', '공고 등록', 1, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('PRCSE', 'PC020', '처리구분', '공고 정정', 2, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('PRCSE', 'PC030', '처리구분', '배정', 3, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('PRCSE', 'PC040', '처리구분', '재배정', 4, 'Y');
@@ -79,6 +82,7 @@ INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUE
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('FILSE', 'FL060', '파일구분', '조견표', 6, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('FILSE', 'FL070', '파일구분', '평가표', 7, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('FILSE', 'FL080', '파일구분', '사전규격 규격서', 8, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('FILSE', 'FL090', '파일구분', '입찰공고 첨부', '나라장터 입찰공고에 붙은 공고서·과업지시서·협약서 등. 제안요청서는 FL010', 9, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('QNASE', 'QA010', '질문답변구분', '예상 Q&A', 1, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('QNASE', 'QA020', '질문답변구분', '발표 Q&A', 2, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('BDRST', 'BR010', '입찰결과', '수주', 1, 'Y');
@@ -103,8 +107,8 @@ INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBTYP', 'PY020', '공고유형', '변경공고', 'API ntceKindNm = 변경공고. 반드시 차수가 올라간다(실측 10/10). 마감일·예산이 바뀌었을 수 있어 담당 팀에 다시 알려야 한다', 2, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBTYP', 'PY030', '공고유형', '재공고', 'API ntceKindNm = 재공고. 유찰 뒤 다시 낸 공고라 차수는 000 부터 새로 시작한다. reNtceYn=Y 와 정확히 일치한다(실측 28/28)', 3, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('PBTYP', 'PY040', '공고유형', '취소공고', 'API ntceKindNm = 취소공고. 입찰이 없어졌으므로 영업부에 알리고 목록에서 걸러낸다. 취소도 정정의 한 형태라 차수가 올라간다(실측 16/16)', 4, 'Y');
-INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('EXCSE', 'EX010', '실행구분', '자동', '평일 오전 하루 1회 스케줄러', 1, 'Y');
-INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('EXCSE', 'EX020', '실행구분', '수동', '[지금 불러오기] 버튼', 2, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('EXCSE', 'EX010', '실행구분', '자동', '평일 오후 5시 하루 1회 스케줄러', 1, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('EXCSE', 'EX020', '실행구분', '수동', '공고 목록의 [지금 수집] 버튼', 2, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL010', '수집결과', '변경 없음', 1, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL020', '수집결과', '입찰공고 전환', 2, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL030', '수집결과', '정정 반영', 3, 'Y');
@@ -114,6 +118,7 @@ INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUE
 --   발주계획과 사전규격은 서로를 가리키는 번호가 API 에 없어서, 신규 사전규격 목록을 받아
 --   실수요기관명 + 사업명(정규화)으로 맞춘 결과다. BidCode.sameBizCase 참고.
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL060', '수집결과', '사전규격 전환', 6, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL070', '수집결과', '계약 전환', 7, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('CLRST', 'CL090', '수집결과', '실패', 9, 'Y');
 -- UI 목업 v3.2 의 반환 표시(n.returned)에 쓰인다
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('RTRSE', 'RT010', '반환구분', '불참', '배정받은 팀장이 불참을 결정해 영업부로 돌아왔다', 1, 'Y');

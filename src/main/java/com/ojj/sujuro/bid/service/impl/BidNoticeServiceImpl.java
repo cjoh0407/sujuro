@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ojj.sujuro.bid.dto.BidNoticeDTO;
 import com.ojj.sujuro.bid.dto.BidNoticePageDTO;
+import com.ojj.sujuro.bid.dto.CollectRunDTO;
 import com.ojj.sujuro.bid.dto.BidNoticeSearchDTO;
 import com.ojj.sujuro.bid.dto.StatusCountDTO;
 import com.ojj.sujuro.bid.mapper.BidNoticeMapper;
@@ -43,5 +44,10 @@ public class BidNoticeServiceImpl implements BidNoticeService {
     @Override
     public List<StatusCountDTO> findStatusCounts() {
         return bidNoticeMapper.findStatusCounts();
+    }
+
+    @Override
+    public CollectRunDTO findLastRun() {
+        return bidNoticeMapper.findLastRun();
     }
 }

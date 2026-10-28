@@ -17,7 +17,7 @@ public class CollectLogDTO {
     /** 실행구분 (EXCSE) - 자동 EX010 / 수동 EX020 */
     private final String excnSeCd;
 
-    /** [지금 불러오기] 를 누른 사람. 자동 실행이면 null */
+    /** [지금 수집] 을 누른 사람. 자동 실행이면 null */
     private final String exctrId;
 
     /** 수집결과 (CLRST) */

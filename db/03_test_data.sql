@@ -6,8 +6,11 @@
 -- 다시 실행해도 된다. (테스트 계정만 지우고 다시 넣는다.) 배포 DB에는 넣지 않는다.
 --
 -- [변경 이력]
--- v1.6  2026-10-27  김종민  4-3 공고 수집이력 2건에 API 원문(공고명·첨부파일·사업 내용·평가 비율)을 넣음. 공고 상세의
---                           변경 비교(FR-035-1)와 제안요청서 목록(FR-036) 확인용.
+-- v1.7  2026-10-28  김종민  4-3 공고 나라장터 첨부 3건(TB_ATCH_FILE: 사전규격 규격서·입찰공고 첨부·제안요청서)을 넣음.
+--                           첨부는 이제 API 원문이 아니라 TB_ATCH_FILE 에서 읽어서 원문의 첨부 필드는 뺐다.
+--                           공고를 지울 때 TB_ATCH_FILE 도 먼저 지운다.
+-- v1.6  2026-10-27  김종민  4-3 공고 수집이력 2건에 API 원문(공고명·사업 내용·평가 비율)을 넣음. 공고 상세의
+--                           변경 비교(FR-035-1)와 사업 내용 확인용.
 -- v1.5  2026-10-26  김종민  공고 9건 추가 (사전규격 2 · 본공고 7, 공고상태 7종 전부 + 반환 1건).
 --                           공고 목록 탭·검색·정렬과 영업부 대시보드 집계 확인용.
 --                           지우는 공고를 번호 목록으로 한정해 03_sample_data.sql 의 샘플 공고
@@ -51,6 +54,14 @@ DELETE FROM TB_PBANC_CLCT_HSTRY
                         OR BF_SPEC_RGST_NO IN ('R26BD00012345','R26BD00013902','R26BD00011088')
                         OR ORDER_PLAN_NO         IN ('R26DD20900001'));
 DELETE FROM TB_PBANC_PRCS_HSTRY
+ WHERE PBANC_SN IN (SELECT PBANC_SN FROM TB_BID_PBANC
+                     WHERE BID_PBANC_NO    IN ('R26BK00945112','R26BK00946730','R26BK00947181',
+                                               'R26BK00941055','R26BK00938420','R26BK00944003',
+                                               'R26BK00948820','R26BK00949310','R26BK00942500')
+                        OR BF_SPEC_RGST_NO IN ('R26BD00012345','R26BD00013902','R26BD00011088')
+                        OR ORDER_PLAN_NO         IN ('R26DD20900001'));
+-- 나라장터 공고 첨부(FL010·FL080·FL090). 공고를 등록하면 함께 생긴다.
+DELETE FROM TB_ATCH_FILE
  WHERE PBANC_SN IN (SELECT PBANC_SN FROM TB_BID_PBANC
                      WHERE BID_PBANC_NO    IN ('R26BK00945112','R26BK00946730','R26BK00947181',
                                                'R26BK00941055','R26BK00938420','R26BK00944003',
@@ -262,13 +273,27 @@ SELECT PBANC_SN, 2, 'PP030', 'R26BK00945112', 0, 'PY010', 760000000,
        || '"refNo":"국민권익위원회 공고 제2026-112호","pubPrcrmntLrgClsfcNm":"ICT 서비스","pubPrcrmntMidClsfcNm":"소프트웨어 개발",'
        || '"cntrctCnclsMthdNm":"제한경쟁","cmmnSpldmdMethdNm":"(전자)공동이행","presmptPrce":"690909091",'
        || '"sucsfbidMthdNm":"협상에의한계약-협상에 의한 낙찰자 결정(SW사업)","techAbltEvlRt":"90","bidPrceEvlRt":"10",'
-       || '"ntceInsttOfclNm":"김담당","ntceInsttOfclTelNo":"044-200-0000",'
-       || '"ntceSpecFileNm1":"[입찰공고문] 통합민원 포털 고도화 사업.hwp",'
-       || '"ntceSpecDocUrl1":"https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK00945112&bidPbancOrd=000&fileSeq=1",'
-       || '"ntceSpecFileNm2":"[제안요청서] 통합민원 포털 고도화 사업.hwpx",'
-       || '"ntceSpecDocUrl2":"https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK00945112&bidPbancOrd=000&fileSeq=2",'
-       || '"ntceSpecFileNm3":"","ntceSpecDocUrl3":""}',
+       || '"ntceInsttOfclNm":"김담당","ntceInsttOfclTelNo":"044-200-0000"}',
        TO_DATE('2026-10-16 08:09', 'YYYY-MM-DD HH24:MI')
+  FROM TB_BID_PBANC WHERE BID_PBANC_NO = 'R26BK00945112';
+
+-- 4-3 공고의 나라장터 첨부 (FR-036). 등록·전환 때 받아 TB_ATCH_FILE 에 넣는 것과 같은 모양이다.
+--   FL080 사전규격 규격서(제안요청서 초안) / FL090 입찰공고 첨부 / FL010 제안요청서
+--   주소는 가짜라 눌러도 받아지지 않는다. 크기는 지어낸 값이다.
+INSERT INTO TB_ATCH_FILE (PBANC_SN, FILE_SE_CD, ORGNL_FILE_NM, ORGNL_URL, FILE_SZ, FILE_EXTN_NM, RGTR_ID, REG_DT)
+SELECT PBANC_SN, 'FL080', '제안요청서(안)_통합민원 포털 고도화.hwpx',
+       'https://www.g2b.go.kr/pn/pnz/pnza/UntyAtchFile/downloadFile.do?bfSpecRegNo=R26BD00011088&fileType=BFDTL&fileSeq=1',
+       1843200, 'hwpx', '2023-0067', TO_DATE('2026-09-29 09:05', 'YYYY-MM-DD HH24:MI')
+  FROM TB_BID_PBANC WHERE BID_PBANC_NO = 'R26BK00945112';
+INSERT INTO TB_ATCH_FILE (PBANC_SN, FILE_SE_CD, ORGNL_FILE_NM, ORGNL_URL, FILE_SZ, FILE_EXTN_NM, RGTR_ID, REG_DT)
+SELECT PBANC_SN, 'FL090', '[입찰공고문] 통합민원 포털 고도화 사업.hwp',
+       'https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK00945112&bidPbancOrd=000&fileSeq=1',
+       96256, 'hwp', '2023-0067', TO_DATE('2026-10-16 08:09', 'YYYY-MM-DD HH24:MI')
+  FROM TB_BID_PBANC WHERE BID_PBANC_NO = 'R26BK00945112';
+INSERT INTO TB_ATCH_FILE (PBANC_SN, FILE_SE_CD, ORGNL_FILE_NM, ORGNL_URL, FILE_SZ, FILE_EXTN_NM, RGTR_ID, REG_DT)
+SELECT PBANC_SN, 'FL010', '[제안요청서] 통합민원 포털 고도화 사업.hwpx',
+       'https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK00945112&bidPbancOrd=000&fileSeq=2',
+       2097152, 'hwpx', '2023-0067', TO_DATE('2026-10-16 08:09', 'YYYY-MM-DD HH24:MI')
   FROM TB_BID_PBANC WHERE BID_PBANC_NO = 'R26BK00945112';
 
 -- 4-4 공고의 정정 이력 (차수 0 -> 1, 마감일이 11/05 에서 11/12 로 밀렸다)

@@ -14,16 +14,18 @@ import com.ojj.sujuro.bid.dto.NoticeRegisterDTO;
 import com.ojj.sujuro.bid.dto.NoticeRegisterResultDTO;
 import com.ojj.sujuro.bid.dto.ProcessHistoryDTO;
 import com.ojj.sujuro.bid.mapper.BidNoticeMapper;
+import com.ojj.sujuro.bid.service.NoticeAttachmentService;
 import com.ojj.sujuro.bid.service.NoticeRegisterService;
 import com.ojj.sujuro.common.exception.BusinessException;
 
 /**
  * 공고 최초 등록 (FR-021, 022).
  *
- * 등록 한 번에 세 표가 함께 바뀌므로 한 트랜잭션으로 묶는다.
+ * 등록 한 번에 네 표가 함께 바뀌므로 한 트랜잭션으로 묶는다.
  *   TB_BID_PBANC          현재값
  *   TB_PBANC_CLCT_HSTRY   API 응답 스냅샷 (원문 포함)
- *   TB_PBANC_PRCS_HSTRY   사람이 한 일 (관심 공고 등록)
+ *   TB_PBANC_PRCS_HSTRY   사람이 한 일 (공고 등록)
+ *   TB_ATCH_FILE          나라장터 첨부 (사전규격 규격서, 입찰공고 첨부). 발주계획은 첨부를 주지 않는다
  */
 @Service
 public class NoticeRegisterServiceImpl implements NoticeRegisterService {
@@ -39,10 +41,13 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
 
     private final BidNoticeMapper bidNoticeMapper;
     private final G2bApiClient g2bApiClient;
+    private final NoticeAttachmentService attachmentService;
 
-    public NoticeRegisterServiceImpl(BidNoticeMapper bidNoticeMapper, G2bApiClient g2bApiClient) {
+    public NoticeRegisterServiceImpl(BidNoticeMapper bidNoticeMapper, G2bApiClient g2bApiClient,
+                                     NoticeAttachmentService attachmentService) {
         this.bidNoticeMapper = bidNoticeMapper;
         this.g2bApiClient = g2bApiClient;
+        this.attachmentService = attachmentService;
     }
 
     /**
@@ -101,6 +106,8 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
         regist.setRgtrId(userId);
 
         Long pbancSn = saveNew(regist, "사전규격등록번호", no, res);
+        // 규격서에는 제안요청서 초안이 들어 있는 경우가 많다 (실측 21건 중 17건)
+        attachmentService.save(pbancSn, userId, attachmentService.readPreSpecFiles(item));
         return new NoticeRegisterResultDTO(pbancSn, regist.getPbancNm(), "사전규격", no, linkedBidNoOf(item));
     }
 
@@ -187,6 +194,7 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
         regist.setRgtrId(userId);
 
         Long pbancSn = saveNew(regist, "입찰공고번호", no, res);
+        attachmentService.save(pbancSn, userId, attachmentService.readBidFiles(item));
         return new NoticeRegisterResultDTO(pbancSn, regist.getPbancNm(), "입찰공고", no, null);
     }
 
@@ -208,7 +216,7 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
 
     /**
      * 새 공고를 세 표에 함께 넣는다. 어떤 번호로 등록하든 절차는 같다.
-     *   공고 → 수집이력 1번(API 응답 원문) → 처리이력(관심 공고 등록)
+     *   공고 → 수집이력 1번(API 응답 원문) → 처리이력(공고 등록)
      * 단계는 regist 에 채워 둔 값을 수집이력에도 그대로 쓴다.
      *
      * @param regist API 응답을 옮겨 둔 공고. 단계(pbancStepCd)·등록자(rgtrId)가 채워져 있어야 한다
@@ -226,7 +234,12 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
         history.setClctSeq(1);
         history.setPbancStepCd(regist.getPbancStepCd());
         history.setPbancNo(no);
+        // 나중에 정정·전환이 나면 상세의 '변경 내용' 이 이 값들을 이전 값으로 보여 준다.
+        history.setBidPbancCycl(regist.getBidPbancCycl());
+        history.setPbancTypeCd(regist.getPbancTypeCd());
         history.setAltmntBgtAmt(regist.getAltmntBgtAmt());
+        history.setBidDdlnDt(regist.getBidDdlnDt());
+        history.setOpengDt(regist.getOpengDt());
         history.setApiRspnsCn(res.getRawJson());
         bidNoticeMapper.insertCollectHistory(history);
 

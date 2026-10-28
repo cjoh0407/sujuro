@@ -9,11 +9,13 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 발주계획·사전규격 행을 입찰공고 단계로 올릴 때 넘기는 값 (BidNoticeMapper.updateToBidNotice).
+ * 입찰공고 값으로 공고 행을 고칠 때 넘기는 값. 두 곳에서 쓴다.
+ *   발주계획·사전규격 → 입찰공고 전환 (BidNoticeMapper.updateToBidNotice)
+ *   입찰공고 정정·취소 반영          (BidNoticeMapper.updateBidCorrection)
  *
  * 필드 이름은 컬럼명을 그대로 따른다. update SQL 이 #{bidPbancNo} 처럼 직접 참조하기 때문이다.
- * {@code fromTrckSttsCd} 는 WHERE 에만 쓴다. 입찰공고를 기다리는 행일 때만 고치게 해서
- * 같은 전이가 두 번 일어나지 않게 한다 (NFR-012 상태 전이 규칙).
+ * {@code fromTrckSttsCd}, {@code fromBidPbancCycl} 은 WHERE 에만 쓴다. 고치기 전 상태가 맞을 때만 고치게 해서
+ * 같은 전이·정정이 두 번 일어나지 않게 한다 (NFR-012 상태 전이 규칙).
  */
 @Getter
 @Setter
@@ -35,6 +37,9 @@ public class BidLinkDTO {
 
     /** 입찰공고 차수. 정정이 났으면 0보다 크다. */
     private Integer bidPbancCycl;
+
+    /** 정정 반영 때만: 고치기 전에 저장돼 있던 차수. 이 차수일 때만 고친다. */
+    private Integer fromBidPbancCycl;
 
     /**
      * 비어 있던 번호를 채울 때만 값이 있다. 발주계획으로 등록했는데 사전규격 매칭을 거치지 않은 경우

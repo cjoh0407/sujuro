@@ -17,13 +17,18 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.ojj.sujuro.auth.LoginUser;
+import com.ojj.sujuro.auth.Role;
 import com.ojj.sujuro.bid.dto.BidNoticeSearchDTO;
+import com.ojj.sujuro.bid.dto.CollectResultDTO;
 import com.ojj.sujuro.bid.dto.NoticeDetailDTO;
 import com.ojj.sujuro.bid.dto.NoticeRegisterResultDTO;
 import com.ojj.sujuro.bid.dto.StatusCountDTO;
 import com.ojj.sujuro.bid.service.BidNoticeService;
+import com.ojj.sujuro.bid.service.NoticeCollectService;
 import com.ojj.sujuro.bid.service.NoticeDetailService;
 import com.ojj.sujuro.bid.service.NoticeRegisterService;
+import com.ojj.sujuro.bid.service.NoticeTeamService;
+import com.ojj.sujuro.common.exception.BusinessException;
 import com.ojj.sujuro.history.HistoryService;
 
 /**
@@ -33,9 +38,10 @@ import com.ojj.sujuro.history.HistoryService;
  * 볼 수 있는 사람은 영업부·팀장·경영지원실이고 팀원은 들어올 수 없다.
  * 이 규칙은 SecurityConfig 의 /notices/** URL 규칙에서 막으므로 여기서 다시 검사하지 않는다.
  *
+ * 상세에서 영업부는 담당 팀을 배정하고, 배정된 팀의 팀장은 참여 여부를 결정한다 (FR-037~040, NoticeTeamService).
+ *
  * 아직 붙이지 않은 것
- * - [지금 불러오기] (입찰공고 연결·정정 확인)
- * - 상세의 담당 팀 배정 · 참여 결정 · 중도 철회 입력
+ * - 상세의 중도 철회 입력 (FR-042)
  */
 @Controller
 @RequestMapping("/notices")
@@ -44,15 +50,21 @@ public class NoticeController {
     private final BidNoticeService bidNoticeService;
     private final NoticeRegisterService noticeRegisterService;
     private final NoticeDetailService noticeDetailService;
+    private final NoticeCollectService noticeCollectService;
+    private final NoticeTeamService noticeTeamService;
     private final HistoryService historyService;
 
     public NoticeController(BidNoticeService bidNoticeService,
                             NoticeRegisterService noticeRegisterService,
                             NoticeDetailService noticeDetailService,
+                            NoticeCollectService noticeCollectService,
+                            NoticeTeamService noticeTeamService,
                             HistoryService historyService) {
         this.bidNoticeService = bidNoticeService;
         this.noticeRegisterService = noticeRegisterService;
         this.noticeDetailService = noticeDetailService;
+        this.noticeCollectService = noticeCollectService;
+        this.noticeTeamService = noticeTeamService;
         this.historyService = historyService;
     }
 
@@ -61,6 +73,7 @@ public class NoticeController {
         List<StatusCountDTO> tabs = bidNoticeService.findStatusCounts();
 
         model.addAttribute("result", bidNoticeService.findPage(search));
+        model.addAttribute("lastRun", bidNoticeService.findLastRun());
         model.addAttribute("tabs", tabs);
         // 전체 탭의 숫자. 상태별 건수를 더한 값이라 따로 세지 않는다.
         model.addAttribute("totalAll", tabs.stream().mapToInt(tab -> tab.getCnt()).sum());
@@ -68,18 +81,100 @@ public class NoticeController {
     }
 
     /**
+     * [지금 수집] (FR-025). 오후 5시 자동 수집과 같은 일을 지금 한다. 영업부만 누른다.
+     * 방금 누른 경우와 다른 수집이 도는 중이면 수집하지 않고 그 이유를 목록 위에 보여 준다.
+     * 나라장터를 여러 번 부르므로 끝날 때까지 수십 초 걸릴 수 있다.
+     */
+    @PostMapping("/collect")
+    @PreAuthorize("hasRole('SALES')")
+    public String collect(@AuthenticationPrincipal LoginUser user, RedirectAttributes redirect) {
+        try {
+            CollectResultDTO result = noticeCollectService.collectNow(user.getEmpNo());
+            redirect.addFlashAttribute("collectMessage", "지금 수집을 마쳤습니다: " + result.getSummary());
+            if (!result.getFailures().isEmpty()) {
+                redirect.addFlashAttribute("collectError",
+                        "일부는 나라장터가 응답하지 않아 확인하지 못했습니다. " + String.join(" / ", result.getFailures()));
+            }
+        } catch (BusinessException e) {
+            redirect.addFlashAttribute("collectError", e.getMessage());
+        }
+        return "redirect:/notices";
+    }
+
+    /**
      * 공고 상세 (FR-026, 035, 035-1, 036, 041). 목록에서 공고명을 누르면 온다.
      * 배정·결정 이력은 오창준 님 공통 이력(HistoryService)에서 읽는다. 등록 이력도 같은 표에 있다.
      */
     @GetMapping("/{pbancSn}")
-    public String detail(@PathVariable Long pbancSn, Model model) {
+    public String detail(@PathVariable Long pbancSn, @AuthenticationPrincipal LoginUser user, Model model) {
         NoticeDetailDTO notice = noticeDetailService.findDetail(pbancSn);
         if (notice == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "공고를 찾을 수 없습니다.");
         }
         model.addAttribute("notice", notice);
         model.addAttribute("histories", historyService.findByPbanc(pbancSn));
+        // 배정 칸은 영업부에게만, 참여 결정 입력은 배정된 팀의 팀장에게만 보인다 (FR-037, FR-039)
+        if (user.getRole() == Role.SALES && notice.isAssignable()) {
+            model.addAttribute("teamOptions", noticeTeamService.findTeamOptions());
+            model.addAttribute("ptcpShpOptions", noticeTeamService.findPtcpShpOptions());
+        }
+        model.addAttribute("canDecide", notice.isAwaitingDecision() && noticeTeamService.isAssignedLeader(pbancSn, user));
         return "bid/notice-detail";
+    }
+
+    /** 담당 팀 배정·재배정 (FR-037, 024, 040). 영업부만 한다. */
+    @PostMapping("/{pbancSn}/assign")
+    @PreAuthorize("hasRole('SALES')")
+    public String assign(@PathVariable Long pbancSn,
+                         @RequestParam(required = false) Long teamSn,
+                         @RequestParam(required = false) String ptcpShpCd,
+                         @AuthenticationPrincipal LoginUser user,
+                         RedirectAttributes redirect) {
+        try {
+            redirect.addFlashAttribute("teamMessage", noticeTeamService.assign(pbancSn, teamSn, ptcpShpCd, user.getEmpNo()));
+        } catch (BusinessException e) {
+            redirect.addFlashAttribute("teamError", e.getMessage());
+        }
+        return "redirect:/notices/" + pbancSn;
+    }
+
+    /** 다른 팀에도 맡기지 않고 불참으로 종결한다. 영업부만, 신규 공고만, 사유 필수 */
+    @PostMapping("/{pbancSn}/close")
+    @PreAuthorize("hasRole('SALES')")
+    public String close(@PathVariable Long pbancSn,
+                        @RequestParam(required = false) String reason,
+                        @AuthenticationPrincipal LoginUser user,
+                        RedirectAttributes redirect) {
+        try {
+            redirect.addFlashAttribute("teamMessage", noticeTeamService.close(pbancSn, reason, user.getEmpNo()));
+        } catch (BusinessException e) {
+            redirect.addFlashAttribute("teamError", e.getMessage());
+            redirect.addFlashAttribute("closeReason", reason); // 입력한 사유를 다시 채워 준다
+        }
+        return "redirect:/notices/" + pbancSn;
+    }
+
+    /**
+     * 팀장의 참여·불참 결정 (FR-038~040). result 는 join(참여) 또는 decline(불참)이다.
+     * 배정된 팀의 팀장이 아니면 서비스가 403 으로 막는다.
+     */
+    @PostMapping("/{pbancSn}/decision")
+    @PreAuthorize("hasRole('LEADER')")
+    public String decide(@PathVariable Long pbancSn,
+                         @RequestParam(required = false) String result,
+                         @RequestParam(required = false) String reason,
+                         @AuthenticationPrincipal LoginUser user,
+                         RedirectAttributes redirect) {
+        try {
+            if (!"join".equals(result) && !"decline".equals(result)) {
+                throw new BusinessException("참여 또는 불참을 눌러 주세요.");
+            }
+            redirect.addFlashAttribute("teamMessage", noticeTeamService.decide(pbancSn, "join".equals(result), reason, user));
+        } catch (BusinessException e) {
+            redirect.addFlashAttribute("teamError", e.getMessage());
+            redirect.addFlashAttribute("decideReason", reason);
+        }
+        return "redirect:/notices/" + pbancSn;
     }
 
     /**

@@ -5,16 +5,20 @@ import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import com.ojj.sujuro.bid.dto.AtchFileDTO;
 import com.ojj.sujuro.bid.dto.BidLinkDTO;
 import com.ojj.sujuro.bid.dto.BidNoticeDTO;
 import com.ojj.sujuro.bid.dto.BidNoticeSearchDTO;
+import com.ojj.sujuro.bid.dto.CodeOptionDTO;
 import com.ojj.sujuro.bid.dto.CollectHistoryDTO;
 import com.ojj.sujuro.bid.dto.CollectLogDTO;
+import com.ojj.sujuro.bid.dto.CollectRunDTO;
 import com.ojj.sujuro.bid.dto.NoticeDetailDTO;
 import com.ojj.sujuro.bid.dto.NoticeRegisterDTO;
 import com.ojj.sujuro.bid.dto.PreSpecLinkDTO;
 import com.ojj.sujuro.bid.dto.ProcessHistoryDTO;
 import com.ojj.sujuro.bid.dto.StatusCountDTO;
+import com.ojj.sujuro.bid.dto.TeamOptionDTO;
 import com.ojj.sujuro.bid.dto.TrackingNoticeDTO;
 
 /** 공고 SQL. 쿼리는 src/main/resources/mapper/bid/BidNoticeMapper.xml 에 있다. */
@@ -71,9 +75,70 @@ public interface BidNoticeMapper {
     /** 발주계획·사전규격 행을 입찰공고 단계로 올린다. 이미 올라갔으면 0을 돌려준다. */
     int updateToBidNotice(BidLinkDTO param);
 
+    /** 나라장터 공고 첨부 한 건 (FR-036). 등록자가 null 이면 공고 등록자로 넣는다. */
+    int insertAtchFile(AtchFileDTO param);
+
+    /** 공고 상세의 첨부 목록. 입찰공고 첨부 먼저, 사전규격 규격서 뒤 */
+    List<AtchFileDTO> findNoticeFiles(Long pbancSn);
+
+    /** 입찰공고번호가 있고 이 단계에 있는 공고. 정정·개찰(PP030), 계약(PP040) 확인 대상 */
+    List<TrackingNoticeDTO> findBidStageNotices(@Param("stepCd") String stepCd);
+
+    /** 나라장터 첨부가 하나도 없는 사전규격·입찰공고 단계 공고. 수집이 첨부를 다시 받아 볼 대상 */
+    List<TrackingNoticeDTO> findNoticesWithoutFiles(@Param("preSpecStepCd") String preSpecStepCd,
+                                                    @Param("bidStepCd") String bidStepCd);
+
+    /** 입찰공고 정정·취소 반영. 저장된 차수가 fromBidPbancCycl 이 아니면 0을 돌려준다. */
+    int updateBidCorrection(BidLinkDTO param);
+
+    /** 단계만 올린다 (개찰·계약). sttsCd 가 있으면 공고상태도 바꾼다(유찰). 이미 바뀌었으면 0 */
+    int updateStep(@Param("pbancSn") Long pbancSn, @Param("fromStepCd") String fromStepCd,
+                   @Param("toStepCd") String toStepCd, @Param("sttsCd") String sttsCd);
+
+    /** 최근 minutes 분 안에 이 실행구분으로 남은 수집로그 수 */
+    int countRecentRuns(@Param("excnSeCd") String excnSeCd, @Param("minutes") int minutes);
+
+    /** 마지막 수집 실행. 없으면 null */
+    CollectRunDTO findLastRun();
+
     /** 이 공고의 다음 수집이력 순번 */
     int nextCollectSeq(Long pbancSn);
 
     /** 수집로그 한 행 */
     int insertCollectLog(CollectLogDTO param);
+
+    /* ---------- 담당 팀 배정 · 참여 결정 (FR-037~040) ---------- */
+
+    /** 배정할 수 있는 팀 (이 부서, 사용 중인 팀). 팀장 이름 포함 */
+    List<TeamOptionDTO> findTeamOptions(@Param("deptCd") String deptCd, @Param("leaderCd") String leaderCd,
+                                        @Param("inactiveCd") String inactiveCd);
+
+    /** 공통코드 한 그룹 */
+    List<CodeOptionDTO> findCodeOptions(@Param("groupCd") String groupCd);
+
+    /** 배정·재배정. 지금 상태·팀이 fromSttsCd·fromTeamSn 이 아니면(그사이 바뀌었으면) 0 */
+    int updateAssign(@Param("pbancSn") Long pbancSn, @Param("teamSn") Long teamSn,
+                     @Param("ptcpShpCd") String ptcpShpCd, @Param("toSttsCd") String toSttsCd,
+                     @Param("fromSttsCd") String fromSttsCd, @Param("fromTeamSn") Long fromTeamSn);
+
+    /** 영업부의 불참 종결. 지금 상태가 fromSttsCd 가 아니면 0 */
+    int updateClosed(@Param("pbancSn") Long pbancSn, @Param("fromSttsCd") String fromSttsCd,
+                     @Param("toSttsCd") String toSttsCd);
+
+    /** 이 사용자가 이 공고에 배정된 팀의 팀장이면 1 */
+    int countAssignedLeader(@Param("pbancSn") Long pbancSn, @Param("userId") String userId,
+                            @Param("leaderCd") String leaderCd);
+
+    /** 팀장의 참여 결정. 이 팀이 배정된 결정 대기 공고가 아니면 0 */
+    int updateJoined(@Param("pbancSn") Long pbancSn, @Param("teamSn") Long teamSn,
+                     @Param("fromSttsCd") String fromSttsCd, @Param("toSttsCd") String toSttsCd);
+
+    /** 팀장의 불참 결정. 영업부로 돌려보낸다. 이 팀이 배정된 결정 대기 공고가 아니면 0 */
+    int updateReturned(@Param("pbancSn") Long pbancSn, @Param("teamSn") Long teamSn,
+                       @Param("fromSttsCd") String fromSttsCd, @Param("toSttsCd") String toSttsCd,
+                       @Param("rtrnSeCd") String rtrnSeCd);
+
+    /** 제안팀원 한 명 (이미 있으면 넣지 않는다) */
+    int insertProposalLeader(@Param("pbancSn") Long pbancSn, @Param("userId") String userId,
+                             @Param("ptcpSeCd") String ptcpSeCd);
 }

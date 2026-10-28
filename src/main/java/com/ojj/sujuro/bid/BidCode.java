@@ -55,24 +55,45 @@ public final class BidCode {
     public static final String RTRN_DECLINE = "RT010";  // 불참
     public static final String RTRN_WITHDRAW = "RT020"; // 중도 철회
 
+    /** 참여형태 (PTFRM) - 팀 배정 때 영업부가 고른다. 고르는 칸은 공통코드에서 읽는다. */
+    public static final String GROUP_PTCP_SHP = "PTFRM";
+
+    /** 부서 (DEPTS) - 공고를 배정받는 팀은 개발부 팀이다 */
+    public static final String DEPT_DEV = "DP030";
+
+    /** 참여구분 (PTCSE) - 참여를 결정한 팀장이 주관팀(PT010)으로 제안팀에 처음 들어간다 */
+    public static final String PTCP_LEAD = "PT010";
+
     /** 실행구분 (EXCSE) - 수집을 누가 돌렸는지 */
-    public static final String EXCN_AUTO = "EX010";   // 자동 (스케줄러)
-    public static final String EXCN_MANUAL = "EX020"; // 수동 ([지금 불러오기])
+    public static final String EXCN_AUTO = "EX010";   // 자동 (스케줄러, 평일 오후 5시)
+    public static final String EXCN_MANUAL = "EX020"; // 수동 ([지금 수집])
 
     /** 수집결과 (CLRST) - 수집로그에 남기는 결과 */
     public static final String CLCT_NO_CHANGE = "CL010";     // 변경 없음
     public static final String CLCT_TO_BID_NOTICE = "CL020"; // 입찰공고 전환
+    public static final String CLCT_CORRECTED = "CL030";     // 정정 반영
+    public static final String CLCT_CANCELED = "CL040";      // 취소 공고
+    public static final String CLCT_OPENING = "CL050";       // 개찰 결과 (유찰 포함)
     public static final String CLCT_TO_PRE_SPEC = "CL060";   // 사전규격 전환
+    public static final String CLCT_TO_CONTRACT = "CL070";   // 계약 전환
     public static final String CLCT_FAILED = "CL090";      // 실패
 
     /** 처리구분 (PRCSE) - 공고처리이력에 남기는 사람의 행동 */
-    public static final String PRCS_REGIST = "PC010";    // 관심 공고 등록
+    public static final String PRCS_REGIST = "PC010";    // 공고 등록
     public static final String PRCS_CORRECT = "PC020";   // 공고 정정
     public static final String PRCS_ASSIGN = "PC030";    // 배정
     public static final String PRCS_REASSIGN = "PC040";  // 재배정
     public static final String PRCS_DECIDE = "PC050";    // 참여 결정
     public static final String PRCS_DECLINE = "PC060";   // 불참 처리
     public static final String PRCS_WITHDRAW = "PC070";  // 중도 철회
+
+    /**
+     * 파일구분 (FILSE) - 나라장터에서 받아 TB_ATCH_FILE 에 넣는 공고 첨부. 제안팀이 올리는 파일(FL020~070)과 같은 표를 쓴다.
+     * 입찰공고 첨부 중 제안요청서만 FL010 이고 공고서·과업지시서 같은 나머지는 FL090 이다.
+     */
+    public static final String FILE_RFP = "FL010";       // RFP (입찰공고의 제안요청서)
+    public static final String FILE_PRE_SPEC = "FL080";  // 사전규격 규격서 (제안요청서 초안 포함)
+    public static final String FILE_BID_ATCH = "FL090";  // 입찰공고 첨부 (제안요청서 말고 나머지)
 
     /**
      * 공고상태에 맞는 pill 색 이름. common.css 의 {@code .pill.<색>} 에 쓴다.

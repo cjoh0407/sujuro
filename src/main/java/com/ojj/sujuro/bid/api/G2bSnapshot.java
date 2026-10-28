@@ -1,15 +1,12 @@
 package com.ojj.sujuro.bid.api;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ojj.sujuro.bid.dto.RfpFileDTO;
 
 /**
  * 공고수집이력에 넣어 둔 API 원문(TB_PBANC_CLCT_HSTRY.API_RSPNS_CN)을 다시 읽는다.
- * 공고명이나 첨부파일처럼 이력 컬럼에 따로 두지 않은 값을 공고 상세에서 보여 줄 때 쓴다.
+ * 공고명·사업 내용처럼 이력 컬럼에 따로 두지 않은 값을 공고 상세에서 보여 줄 때 쓴다.
+ * 첨부파일은 원문이 아니라 TB_ATCH_FILE 에서 읽는다 (NoticeAttachmentService).
  *
  * 원문은 두 모양으로 들어 있다.
  *   등록 때 : 응답 전체 {"response":{"body":{"items":[ … ]}}}
@@ -19,9 +16,6 @@ import com.ojj.sujuro.bid.dto.RfpFileDTO;
 public final class G2bSnapshot {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-
-    /** 입찰공고 첨부는 1~10번까지 온다. 빈 번호는 "" 로 온다. */
-    private static final int MAX_ATTACHMENTS = 10;
 
     private G2bSnapshot() {
     }
@@ -59,18 +53,5 @@ public final class G2bSnapshot {
             nm = G2bResponse.textOf(item, "bizNm");
         }
         return nm;
-    }
-
-    /** 입찰공고 첨부파일 (ntceSpecFileNm1~10 / ntceSpecDocUrl1~10). 이름이나 주소가 빈 번호는 건너뛴다. */
-    public static List<RfpFileDTO> attachmentsOf(JsonNode item) {
-        List<RfpFileDTO> files = new ArrayList<>();
-        for (int i = 1; i <= MAX_ATTACHMENTS; i++) {
-            String nm = G2bResponse.textOf(item, "ntceSpecFileNm" + i);
-            String url = G2bResponse.textOf(item, "ntceSpecDocUrl" + i);
-            if (nm != null && url != null) {
-                files.add(new RfpFileDTO(nm, url));
-            }
-        }
-        return files;
     }
 }

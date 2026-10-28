@@ -1,7 +1,16 @@
 package com.ojj.sujuro.bid.api;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
+import java.net.URLDecoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,8 +42,16 @@ public class G2bApiClient {
     /** 정상 응답 코드 */
     private static final String RESULT_OK = "00";
 
+    /** Content-Disposition 의 filename= 값 (따옴표·filename*=UTF-8'' 형식도 받는다) */
+    private static final Pattern FILE_NAME =
+            Pattern.compile("filename\\*?=(?:UTF-8'')?\"?([^\";]+)\"?", Pattern.CASE_INSENSITIVE);
+
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    /** 첨부 헤더 읽기용. RestTemplate 은 응답을 닫을 때 본문을 끝까지 읽어 버려서 따로 둔다. */
+    private final HttpClient fileClient;
+    private final Duration readTimeout;
 
     private final String serviceKey;
     private final String baseUrl;
@@ -64,6 +81,11 @@ public class G2bApiClient {
                 .setConnectTimeout(connectTimeout)
                 .setReadTimeout(readTimeout)
                 .build();
+        this.fileClient = HttpClient.newBuilder()
+                .connectTimeout(connectTimeout)
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .build();
+        this.readTimeout = readTimeout;
         this.serviceKey = serviceKey;
         this.baseUrl = baseUrl;
         this.preSpecPath = preSpecPath;
@@ -103,6 +125,121 @@ public class G2bApiClient {
                 + "&numOfRows=50&pageNo=1&type=json"
                 + "&ServiceKey=" + serviceKey;
         return call(url, "입찰공고");
+    }
+
+    /** 입찰공고 목록 조회구분: 등록일시 기간 */
+    public static final String BID_BY_REG_DT = "1";
+
+    /** 입찰공고 목록 조회구분: 변경일시 기간 */
+    public static final String BID_BY_CHG_DT = "3";
+
+    /**
+     * 기간 안에 등록(또는 변경)된 입찰공고 목록 (용역). 정정·취소 확인에 쓴다.
+     *
+     * 정정·취소는 같은 번호에 새 차수로 '등록'되므로 등록일시 목록에 섞여 온다(실측 300건 중 변경공고 10·취소 16).
+     * 변경일시(조회구분 3)는 차수를 올리지 않고 값만 고친 공고라 하루 몇 건뿐이다(10/27 2건).
+     * 공고별로 번호를 묻지 않고 목록으로 받으면, 우리가 등록한 공고가 몇 건이든 호출 수가 같다.
+     *
+     * @param inqryDiv {@link #BID_BY_REG_DT} 또는 {@link #BID_BY_CHG_DT}
+     */
+    public G2bResponse findBidNoticesBetween(String inqryDiv, String inqryBgnDt, String inqryEndDt,
+                                             int numOfRows, int pageNo) {
+        String url = baseUrl + bidPath + "/getBidPblancListInfoServc"
+                + "?inqryDiv=" + inqryDiv
+                + "&inqryBgnDt=" + inqryBgnDt
+                + "&inqryEndDt=" + inqryEndDt
+                + "&numOfRows=" + numOfRows + "&pageNo=" + pageNo + "&type=json"
+                + "&ServiceKey=" + serviceKey;
+        return call(url, "입찰공고 목록");
+    }
+
+    /**
+     * 입찰공고의 e발주 첨부파일 목록 (getBidPblancListInfoEorderAtchFileInfo, 조회구분 2 = 공고번호).
+     *
+     * 조달청 위탁 공고(공고기관이 '조달청 ○○지방조달청')는 입찰공고 응답의 첨부 칸(ntceSpecFileNm1~10)에
+     * 공고서만 있고 제안요청서·협약서 같은 나머지 파일은 여기에만 있다. 기관이 직접 낸 공고는 0 건이다.
+     * 응답의 eorderDocDivNm 이 '제안요청서'·'기타문서' 같은 문서구분이다. 파일명이 비어 오는 행도 있다.
+     * (2026-10-28 실호출: R26BK01771602·01771039·01757104 세 건 모두 제안요청서가 여기에만 있었다)
+     */
+    public G2bResponse findEorderAttachments(String bidNtceNo, String bidNtceOrd) {
+        String url = baseUrl + bidPath + "/getBidPblancListInfoEorderAtchFileInfo"
+                + "?inqryDiv=2"
+                + "&bidNtceNo=" + bidNtceNo
+                + "&bidNtceOrd=" + bidNtceOrd
+                + "&numOfRows=50&pageNo=1&type=json"
+                + "&ServiceKey=" + serviceKey;
+        return call(url, "e발주 첨부파일");
+    }
+
+    /**
+     * 나라장터 첨부 내려받기 주소에서 파일명과 크기만 읽는다. 사전규격 API 는 파일명을 주지 않고,
+     * 어느 API 도 크기를 주지 않아서 내려받기 응답 헤더(Content-Disposition, Content-Length)로 얻는다.
+     *
+     * HEAD 요청은 403 으로 막혀 있고 Range 요청은 무시돼 파일 전체가 온다(2026-10-28 확인).
+     * 그래서 GET 을 열어 헤더만 읽고 본문은 읽지 않은 채 닫는다.
+     *
+     * @return 못 읽으면 null. 첨부 저장은 이 값 없이도 진행한다
+     */
+    public FileHeader peekFile(String fileUrl) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder(URI.create(fileUrl)).timeout(readTimeout).GET().build();
+            HttpResponse<InputStream> response = fileClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+            try (InputStream body = response.body()) {
+                if (response.statusCode() != 200) {
+                    return null;
+                }
+                String name = fileNameOf(response.headers().firstValue("Content-Disposition").orElse(null));
+                long size = response.headers().firstValueAsLong("Content-Length").orElse(-1);
+                return new FileHeader(name, size < 0 ? null : size);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
+        } catch (IOException | RuntimeException e) {
+            log.warn("나라장터 첨부 헤더를 읽지 못했습니다: {} ({})", fileUrl, e.toString());
+            return null;
+        }
+    }
+
+    /**
+     * Content-Disposition 의 파일명. 나라장터는 UTF-8 퍼센트 인코딩으로 준다.
+     *   attachment;filename=%5B%EC%A0%9C%EC%95%88%EC%9A%94%EC%B2%AD%EC%84%9C%5D%20….hwpx;
+     * 공백은 %20 으로 오므로 '+' 는 글자 그대로 둔다.
+     */
+    static String fileNameOf(String disposition) {
+        if (disposition == null) {
+            return null;
+        }
+        Matcher m = FILE_NAME.matcher(disposition);
+        if (!m.find()) {
+            return null;
+        }
+        String raw = m.group(1).trim();
+        try {
+            String name = URLDecoder.decode(raw.replace("+", "%2B"), StandardCharsets.UTF_8).trim();
+            return name.isEmpty() ? null : name;
+        } catch (IllegalArgumentException e) {
+            return raw;
+        }
+    }
+
+    /** 내려받기 응답 헤더에서 읽은 파일명·크기. 둘 다 없을 수 있다. */
+    public static final class FileHeader {
+        private final String fileNm;
+        private final Long fileSz;
+
+        FileHeader(String fileNm, Long fileSz) {
+            this.fileNm = fileNm;
+            this.fileSz = fileSz;
+        }
+
+        public String getFileNm() {
+            return fileNm;
+        }
+
+        public Long getFileSz() {
+            return fileSz;
+        }
     }
 
     /**

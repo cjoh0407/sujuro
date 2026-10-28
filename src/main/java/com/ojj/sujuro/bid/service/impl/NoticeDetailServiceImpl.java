@@ -18,9 +18,9 @@ import com.ojj.sujuro.bid.api.G2bSnapshot;
 import com.ojj.sujuro.bid.dto.CollectHistoryDTO;
 import com.ojj.sujuro.bid.dto.InfoItemDTO;
 import com.ojj.sujuro.bid.dto.NoticeDetailDTO;
-import com.ojj.sujuro.bid.dto.RfpFileDTO;
 import com.ojj.sujuro.bid.dto.StageChangeDTO;
 import com.ojj.sujuro.bid.mapper.BidNoticeMapper;
+import com.ojj.sujuro.bid.service.NoticeAttachmentService;
 import com.ojj.sujuro.bid.service.NoticeDetailService;
 
 /**
@@ -36,9 +36,11 @@ public class NoticeDetailServiceImpl implements NoticeDetailService {
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final BidNoticeMapper bidNoticeMapper;
+    private final NoticeAttachmentService attachmentService;
 
-    public NoticeDetailServiceImpl(BidNoticeMapper bidNoticeMapper) {
+    public NoticeDetailServiceImpl(BidNoticeMapper bidNoticeMapper, NoticeAttachmentService attachmentService) {
         this.bidNoticeMapper = bidNoticeMapper;
+        this.attachmentService = attachmentService;
     }
 
     @Override
@@ -50,7 +52,7 @@ public class NoticeDetailServiceImpl implements NoticeDetailService {
         List<CollectHistoryDTO> histories = bidNoticeMapper.findCollectHistories(pbancSn);
         detail.setStageHistories(histories);
         detail.setStageChange(compareLastTwo(histories));
-        detail.setRfpFiles(rfpFilesOf(histories));
+        detail.setAtchFiles(attachmentService.findFiles(pbancSn));
 
         JsonNode plan = latestItemOf(histories, BidCode.STEP_ORDER_PLAN);
         JsonNode spec = latestItemOf(histories, BidCode.STEP_PRE_SPEC);
@@ -66,7 +68,10 @@ public class NoticeDetailServiceImpl implements NoticeDetailService {
      * 발주 시기·납품 기한 같은 앞 단계 항목이 빠진다.
      *
      * 사업 목적·과업 범위 같은 서술 필드는 세 API 어디에도 없다 (2026-10-27 실호출 확인).
+     * 발주계획의 규격내용·비고내용(specCntnts·rmrkCntnts)은 물품·공사용이라 용역 235건에서 모두 비어 있었다 (10/28).
      * 그 내용은 첨부된 과업지시서·제안요청서에 있다.
+     * SW사업 여부는 10/28 사용자 요청으로 뺐다. 평가 방식의 "(SW사업)" 과 기술:가격 90:10 으로 드러난다.
+     * 기관 공고번호(refNo)도 10/28 뺐다. 기관 내부 문서번호·"1" 같은 값이 섞여 오고 업무에 쓰지 않는다.
      */
     private static List<InfoItemDTO> bizInfosOf(NoticeDetailDTO detail, JsonNode plan, JsonNode spec, JsonNode bid) {
         List<InfoItemDTO> infos = new ArrayList<>();
@@ -79,7 +84,6 @@ public class NoticeDetailServiceImpl implements NoticeDetailService {
         add(infos, "추정가격", presmpt == null ? null : presmpt + " (부가세 별도)");
         add(infos, "계약 방법", firstNonNull(text(bid, "cntrctCnclsMthdNm"), text(plan, "cntrctMthdNm")));
         add(infos, "공동수급", jointOf(text(bid, "cmmnSpldmdMethdNm")));
-        add(infos, "SW사업", swOf(firstNonNull(detail.getSwBizYn(), text(spec, "swBizObjYn"))));
         String orderYear = text(plan, "orderYear");
         String orderMnth = text(plan, "orderMnth");
         add(infos, "발주 시기", orderYear == null || orderMnth == null ? null : orderYear + "년 " + orderMnth + "월");
@@ -89,7 +93,6 @@ public class NoticeDetailServiceImpl implements NoticeDetailService {
                 contactOf(text(bid, "ntceInsttOfclNm"), text(bid, "ntceInsttOfclTelNo")),
                 contactOf(text(spec, "ofclNm"), text(spec, "ofclTelNo")),
                 contactOf(text(plan, "ofclNm"), text(plan, "telNo"))));
-        add(infos, "기관 공고번호", firstNonNull(text(bid, "refNo"), text(spec, "refNo")));
         return infos;
     }
 
@@ -133,13 +136,6 @@ public class NoticeDetailServiceImpl implements NoticeDetailService {
         return method.contains("불허") ? "불허 (단독 참여만)" : "허용 · " + method;
     }
 
-    private static String swOf(String yn) {
-        if (yn == null) {
-            return null;
-        }
-        return "Y".equals(yn.trim()) ? "해당" : "해당 없음";
-    }
-
     private static String contactOf(String name, String telNo) {
         if (name == null) {
             return null;
@@ -179,11 +175,16 @@ public class NoticeDetailServiceImpl implements NoticeDetailService {
     /**
      * 마지막 수집과 그 직전 수집을 나란히 놓는다 (FR-035-1).
      * 수집이력은 등록할 때 한 번, 그 뒤로는 단계가 바뀌거나 정정이 날 때만 쌓이므로
-     * 마지막 두 건이 곧 "이전 단계(또는 이전 차수)와 지금"이다.
+     * 마지막 두 건이 곧 "이전 단계(또는 이전 차수)와 지금"이다. 개찰·계약 수집은 빼고 센다.
      *
      * @return 수집이 한 번뿐이거나 비교할 값이 하나도 없으면 null
      */
-    private StageChangeDTO compareLastTwo(List<CollectHistoryDTO> histories) {
+    private StageChangeDTO compareLastTwo(List<CollectHistoryDTO> allHistories) {
+        // 개찰·계약 수집은 다른 API 원문이라 공고 값이 없다. 입찰공고까지의 수집끼리만 비교한다.
+        List<CollectHistoryDTO> histories = allHistories.stream()
+                .filter(h -> !BidCode.is(h.getPbancStepCd(), BidCode.STEP_OPENING)
+                          && !BidCode.is(h.getPbancStepCd(), BidCode.STEP_CONTRACT))
+                .collect(Collectors.toList());
         if (histories.size() < 2) {
             return null;
         }
@@ -206,25 +207,6 @@ public class NoticeDetailServiceImpl implements NoticeDetailService {
         // 양쪽 다 값이 없는 항목은 비교할 것이 없다. (예: 발주계획 → 사전규격은 마감일이 둘 다 없다)
         items.removeIf(item -> item.getBefore() == null && item.getAfter() == null);
         return items.isEmpty() ? null : change;
-    }
-
-    /**
-     * 입찰공고 첨부파일 (FR-036). 입찰공고 단계 수집 중 가장 최근 것의 원문에서 꺼낸다.
-     * 정정이 나면 첨부가 바뀔 수 있어 최근 것부터 본다. 개찰 단계 수집은 다른 API 라서 첨부가 없다.
-     */
-    private List<RfpFileDTO> rfpFilesOf(List<CollectHistoryDTO> histories) {
-        for (int i = histories.size() - 1; i >= 0; i--) {
-            CollectHistoryDTO history = histories.get(i);
-            if (!BidCode.is(history.getPbancStepCd(), BidCode.STEP_BID_NOTICE)) {
-                continue;
-            }
-            JsonNode item = G2bSnapshot.itemOf(history.getApiRspnsCn());
-            List<RfpFileDTO> files = G2bSnapshot.attachmentsOf(item);
-            if (!files.isEmpty()) {
-                return files;
-            }
-        }
-        return List.of();
     }
 
     /** 예: "사전규격 R26BD00011088", 입찰공고면 차수까지 "입찰공고 R26BK00946730 · 1차" */

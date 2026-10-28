@@ -6,12 +6,14 @@
       layout:decorate="~{layout/default}">
 <!--/*
   공고 상세 (FR-026, 035, 035-1, 036, 037~041). UI 목업 v3.2 의 rNotice() 화면과 같은 구성이다.
-  왼쪽은 공고 정보, 오른쪽은 담당 팀(영업부 배정), 참여 결정(팀장), 배정·결정 이력이다.
-  중도 철회(FR-042) 입력은 아직 없다.
+  왼쪽은 공고 정보, 오른쪽은 담당 팀(영업부 배정), 참여 결정(팀장), 중도 철회(팀장), 배정·결정 이력이다.
+  참여 결정·중도 철회 카드는 팀 단위 화면이라 배정된 팀의 팀장에게만 보인다.
 
   모델: notice (NoticeDetailDTO), histories (history.HistoryDto 목록, 오래된 순)
-        teamOptions·ptcpShpOptions (영업부이고 배정할 수 있을 때만), canDecide (배정된 팀의 팀장이고 결정 대기일 때 true)
-        teamMessage·teamError (배정·결정 결과, 한 번만), closeReason·decideReason (실패했을 때 입력하던 사유)
+        teamOptions·ptcpShpOptions (영업부이고 배정할 수 있을 때만), assignedLeader (이 공고에 배정된 팀의 팀장이면 true)
+        canDecide (배정된 팀의 팀장이고 결정 대기일 때 true)
+        canWithdraw (배정된 팀의 팀장이고 참여 확정·제안 작성 중일 때 true)
+        teamMessage·teamError (배정·결정·철회 결과, 한 번만), closeReason·decideReason·withdrawReason (실패했을 때 입력하던 사유)
 */-->
 <head>
   <title>공고 상세</title>
@@ -327,34 +329,31 @@
         </th:block>
       </div>
 
-      <!-- 참여 결정 (FR-038~040). 입력은 배정된 팀의 팀장에게만 보인다 (FR-039). 다른 사람은 진행 상황만 본다. -->
-      <div class="card">
+      <!-- 참여 결정 (FR-038~040). 팀 단위 화면이라 배정된 팀의 팀장에게만 보인다 (FR-039).
+           영업부·경영지원실·다른 팀 팀장에게는 카드가 없고, 머리의 상태 표시와 담당 팀 카드로 진행을 본다.
+           팀이 배정되지 않은 공고(신규·반환)는 배정된 팀이 없으니 아무에게도 보이지 않는다. -->
+      <div class="card" th:if="${assignedLeader}">
         <div class="card-head"><h3>참여 결정 (팀장)</h3></div>
         <div class="pad" style="display:flex;flex-direction:column;gap:10px">
-          <th:block th:if="${notice.awaitingDecision}">
-            <th:block th:if="${canDecide}">
-              <div class="banner warn" th:if="${notice.decideBlockReason}" th:text="${notice.decideBlockReason}">아직 사전규격 단계입니다.</div>
-              <div class="banner warn" th:if="${notice.decideBlockReason == null and notice.canceled}">취소된 공고라 참여할 수 없습니다. 불참으로 영업부에 돌려주세요.</div>
-              <form method="post" th:action="@{/notices/{sn}/decision(sn=${notice.pbancSn})}"
-                    style="display:flex;flex-direction:column;gap:10px">
-                <div class="fld">
-                  <label for="dc-note">결정 사유 (불참 시 필수)</label>
-                  <textarea id="dc-note" name="reason" rows="3" maxlength="1000" th:text="${decideReason}"></textarea>
-                </div>
-                <div class="row">
-                  <button class="btn primary" type="submit" name="result" value="join"
-                          th:disabled="${notice.decideBlockReason != null or notice.canceled}"
-                          data-confirm="참여를 확정합니다. 확정한 뒤에는 중도 철회로만 되돌릴 수 있습니다. 진행할까요?">참여</button>
-                  <button class="btn danger" type="submit" name="result" value="decline"
-                          th:disabled="${notice.decideBlockReason != null}"
-                          data-confirm="불참하면 공고가 영업부로 돌아갑니다. 진행할까요?">불참</button>
-                </div>
-              </form>
-            </th:block>
-            <div class="banner info" th:unless="${canDecide}"
-                 th:text="|${notice.sprvsnTeamNm} 팀장의 결정을 기다리는 중입니다.|">개발1팀 팀장의 결정을 기다리는 중입니다.</div>
+          <th:block th:if="${canDecide}">
+            <div class="banner warn" th:if="${notice.decideBlockReason}" th:text="${notice.decideBlockReason}">아직 사전규격 단계입니다.</div>
+            <div class="banner warn" th:if="${notice.decideBlockReason == null and notice.canceled}">취소된 공고라 참여할 수 없습니다. 불참으로 영업부에 돌려주세요.</div>
+            <form method="post" th:action="@{/notices/{sn}/decision(sn=${notice.pbancSn})}"
+                  style="display:flex;flex-direction:column;gap:10px">
+              <div class="fld">
+                <label for="dc-note">결정 사유 (불참 시 필수)</label>
+                <textarea id="dc-note" name="reason" rows="3" maxlength="1000" th:text="${decideReason}"></textarea>
+              </div>
+              <div class="row">
+                <button class="btn primary" type="submit" name="result" value="join"
+                        th:disabled="${notice.decideBlockReason != null or notice.canceled}"
+                        data-confirm="참여를 확정합니다. 확정한 뒤에는 중도 철회로만 되돌릴 수 있습니다. 진행할까요?">참여</button>
+                <button class="btn danger" type="submit" name="result" value="decline"
+                        th:disabled="${notice.decideBlockReason != null}"
+                        data-confirm="불참하면 공고가 영업부로 돌아갑니다. 진행할까요?">불참</button>
+              </div>
+            </form>
           </th:block>
-          <div class="faint" th:if="${notice.closable}">영업부가 담당 팀을 배정하면 해당 팀 팀장이 결정합니다.</div>
           <div class="banner warn" th:if="${notice.closedDeclined}">불참으로 종결된 공고입니다.</div>
           <div class="banner warn" th:if="${notice.failedBid}"
                th:text="'유찰된 공고입니다.' + (${notice.sprvsnTeamNm} != null ? ' 담당 팀 ' + ${notice.sprvsnTeamNm} : '')">유찰된 공고입니다.</div>
@@ -368,6 +367,26 @@
             </div>
           </th:block>
         </div>
+      </div>
+
+      <!-- 중도 철회 (FR-042). 참여 확정·제안 작성 중일 때 배정된 팀의 팀장에게만 보인다. -->
+      <div class="card" th:if="${canWithdraw}">
+        <div class="card-head"><h3>중도 철회</h3></div>
+        <form class="pad" method="post" th:action="@{/notices/{sn}/withdraw(sn=${notice.pbancSn})}"
+              style="display:flex;flex-direction:column;gap:10px">
+          <div class="faint" style="font-size:11.5px">
+            철회하면 공고가 영업부로 넘어갑니다. 영업부가 확인 후 다른 팀에 재배정하거나 불참으로 종결합니다.
+            제안팀 인원·참여팀·목차 담당자 지정은 풀리고, 목차·요구사항·올린 파일은 남습니다.
+          </div>
+          <div class="fld">
+            <label for="wd-note">철회 사유 (필수)</label>
+            <textarea id="wd-note" name="reason" rows="3" maxlength="1000" th:text="${withdrawReason}"></textarea>
+          </div>
+          <div class="row">
+            <button class="btn danger" type="submit"
+                    data-confirm="중도 철회하면 제안팀이 풀리고 공고가 영업부로 넘어갑니다. 진행할까요?">중도 철회 신청</button>
+          </div>
+        </form>
       </div>
 
       <!-- 배정·결정 이력 (FR-041). 누가·언제·어떤 사유로 했는지 시간순. 등록도 여기에 남는다. -->

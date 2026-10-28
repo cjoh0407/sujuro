@@ -186,6 +186,34 @@ public class NoticeTeamServiceImpl implements NoticeTeamService {
         return "불참을 결정했습니다. 공고가 영업부로 돌아갑니다.";
     }
 
+    @Override
+    @Transactional
+    public String withdraw(Long pbancSn, String reason, LoginUser user) {
+        if (!isAssignedLeader(pbancSn, user)) {
+            throw new AccessDeniedException("이 공고에 배정된 팀의 팀장만 중도 철회할 수 있습니다.");
+        }
+        NoticeDetailDTO notice = load(pbancSn);
+        String why = requireReason(reason, "철회 사유를 입력하세요.");
+        if (!notice.isWithdrawable()) {
+            throw new BusinessException("참여 확정·제안 작성 중인 공고만 중도 철회할 수 있습니다. 지금은 '" + notice.getPbancSttsNm() + "'입니다.");
+        }
+        Long teamSn = notice.getSprvsnTeamSn();
+        // WHERE 에 지금 상태를 걸어, 그사이 제출 완료로 넘어갔으면 철회하지 않는다
+        if (bidNoticeMapper.updateReturned(pbancSn, teamSn, notice.getPbancSttsCd().trim(), BidCode.STTS_NEW,
+                BidCode.RTRN_WITHDRAW) == 0) {
+            throw new BusinessException(CHANGED_MEANWHILE);
+        }
+        // 제안팀을 푼다. 철회한 팀은 이 사업건을 더 보지 않고, 새로 맡는 팀은 빈 제안팀에서 시작한다.
+        int members = bidNoticeMapper.deleteProposalMembers(pbancSn);
+        bidNoticeMapper.deleteJoinTeams(pbancSn);
+        bidNoticeMapper.clearTocOwners(pbancSn);
+
+        historyService.record(pbancSn, BidCode.PRCS_WITHDRAW, user.getEmpNo(), teamSn, why + " (영업부로 이동)");
+        notificationService.sendToRole(Role.SALES, NotificationType.WITHDRAWN, pbancSn,
+                "'" + nameOf(notice) + "' " + notice.getSprvsnTeamNm() + " 팀장이 중도 철회를 신청했습니다. 다른 팀에 재배정하거나 불참으로 종결하세요.");
+        return "중도 철회했습니다. 공고가 영업부로 넘어갔고, 제안팀 " + members + "명의 배정이 풀렸습니다.";
+    }
+
     private NoticeDetailDTO load(Long pbancSn) {
         NoticeDetailDTO notice = bidNoticeMapper.findDetail(pbancSn);
         if (notice == null) {

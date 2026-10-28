@@ -38,10 +38,8 @@ import com.ojj.sujuro.history.HistoryService;
  * 볼 수 있는 사람은 영업부·팀장·경영지원실이고 팀원은 들어올 수 없다.
  * 이 규칙은 SecurityConfig 의 /notices/** URL 규칙에서 막으므로 여기서 다시 검사하지 않는다.
  *
- * 상세에서 영업부는 담당 팀을 배정하고, 배정된 팀의 팀장은 참여 여부를 결정한다 (FR-037~040, NoticeTeamService).
- *
- * 아직 붙이지 않은 것
- * - 상세의 중도 철회 입력 (FR-042)
+ * 상세에서 영업부는 담당 팀을 배정하고, 배정된 팀의 팀장은 참여 여부를 결정하거나 중도 철회한다
+ * (FR-037~042, NoticeTeamService).
  */
 @Controller
 @RequestMapping("/notices")
@@ -113,12 +111,17 @@ public class NoticeController {
         }
         model.addAttribute("notice", notice);
         model.addAttribute("histories", historyService.findByPbanc(pbancSn));
-        // 배정 칸은 영업부에게만, 참여 결정 입력은 배정된 팀의 팀장에게만 보인다 (FR-037, FR-039)
+        // 배정 칸은 영업부에게만 보인다 (FR-037)
         if (user.getRole() == Role.SALES && notice.isAssignable()) {
             model.addAttribute("teamOptions", noticeTeamService.findTeamOptions());
             model.addAttribute("ptcpShpOptions", noticeTeamService.findPtcpShpOptions());
         }
-        model.addAttribute("canDecide", notice.isAwaitingDecision() && noticeTeamService.isAssignedLeader(pbancSn, user));
+        // 참여 결정 카드는 팀 단위 화면이다. 배정된 팀의 팀장에게만 보이고,
+        // 영업부·경영지원실·다른 팀 팀장은 머리의 상태 표시와 담당 팀 카드로 진행을 본다 (FR-039)
+        boolean assignedLeader = noticeTeamService.isAssignedLeader(pbancSn, user);
+        model.addAttribute("assignedLeader", assignedLeader);
+        model.addAttribute("canDecide", notice.isAwaitingDecision() && assignedLeader);
+        model.addAttribute("canWithdraw", notice.isWithdrawable() && assignedLeader);
         return "bid/notice-detail";
     }
 
@@ -173,6 +176,22 @@ public class NoticeController {
         } catch (BusinessException e) {
             redirect.addFlashAttribute("teamError", e.getMessage());
             redirect.addFlashAttribute("decideReason", reason);
+        }
+        return "redirect:/notices/" + pbancSn;
+    }
+
+    /** 중도 철회 (FR-042). 참여 확정 뒤 배정된 팀의 팀장이 사유를 넣어 신청하면 공고가 영업부로 넘어간다. */
+    @PostMapping("/{pbancSn}/withdraw")
+    @PreAuthorize("hasRole('LEADER')")
+    public String withdraw(@PathVariable Long pbancSn,
+                           @RequestParam(required = false) String reason,
+                           @AuthenticationPrincipal LoginUser user,
+                           RedirectAttributes redirect) {
+        try {
+            redirect.addFlashAttribute("teamMessage", noticeTeamService.withdraw(pbancSn, reason, user));
+        } catch (BusinessException e) {
+            redirect.addFlashAttribute("teamError", e.getMessage());
+            redirect.addFlashAttribute("withdrawReason", reason);
         }
         return "redirect:/notices/" + pbancSn;
     }

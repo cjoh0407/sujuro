@@ -15,7 +15,7 @@
     T.EXPC_PAGE_CNT AS expcPageCnt, T.PRGRS_STTS_CD AS prgrsSttsCd,
     (SELECT COUNT(*) FROM TB_RQT_MTTR R WHERE R.TOC_SN = T.TOC_SN)  AS rqtCnt,
     (SELECT COUNT(*) FROM TB_TOC C WHERE C.UP_TOC_SN = T.TOC_SN)    AS childCnt,
-    (SELECT COUNT(*) FROM TB_ATCH_FILE F WHERE F.TOC_SN = T.TOC_SN) AS fileCnt
+    (SELECT COUNT(*) FROM TB_ATCH_FILE F WHERE F.TOC_SN = T.TOC_SN AND F.DEL_YN = 'N') AS fileCnt
   </sql>
 
   <select id="findByBid" resultType="com.ojj.sujuro.proposal.toc.TocDto">
@@ -138,6 +138,10 @@
     UPDATE TB_TOC SET PIC_ID = #{picId, jdbcType=VARCHAR} WHERE TOC_SN = #{tocSn}
   </update>
 
+  <update id="updateProgress">
+    UPDATE TB_TOC SET PRGRS_STTS_CD = #{prgrsSttsCd} WHERE TOC_SN = #{tocSn}
+  </update>
+
   <update id="clearLeafInfo">
     UPDATE TB_TOC SET PIC_ID = NULL, EXPC_PAGE_CNT = NULL WHERE TOC_SN = #{tocSn}
   </update>
@@ -161,6 +165,7 @@
     SELECT COUNT(*) FROM TB_RQT_MTTR WHERE TOC_SN = #{tocSn}
   </select>
 
+  <!-- 삭제(숨김)한 파일도 센다. 파일이 목차를 참조하고 있어 하나라도 있으면 목차를 지울 수 없다 -->
   <select id="countFiles" resultType="int">
     SELECT COUNT(*) FROM TB_ATCH_FILE WHERE TOC_SN = #{tocSn}
   </select>

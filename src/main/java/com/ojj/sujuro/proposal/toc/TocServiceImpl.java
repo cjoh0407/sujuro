@@ -108,7 +108,7 @@ public class TocServiceImpl implements TocService {
         }
         if (mapper.countByBid(pbancSn, se) > 0) {
             if (mapper.countFilesByBid(pbancSn, se) > 0) {
-                throw new BusinessException("이미 올린 파일이 있어 양식을 바꿀 수 없습니다. 필요한 목차만 직접 수정하세요.");
+                throw new BusinessException("이미 올린 파일(삭제한 파일 기록 포함)이 있어 양식을 바꿀 수 없습니다. 필요한 목차만 직접 수정하세요.");
             }
             removeAll(pbancSn, se);
         }
@@ -197,8 +197,8 @@ public class TocServiceImpl implements TocService {
         }
         int unmapped = 0;
         if (base.isLeaf()) { // 최하위 목차에 하위를 만들면 이 목차는 더 이상 최하위가 아니다
-            if (base.getFileCnt() > 0) {
-                throw new BusinessException("'" + base.getLabel() + "'에 올린 파일이 있어 하위 목차를 만들 수 없습니다.");
+            if (mapper.countFiles(baseTocSn) > 0) {
+                throw new BusinessException("'" + base.getLabel() + "'에 올린 파일(삭제한 파일 기록 포함)이 있어 하위 목차를 만들 수 없습니다.");
             }
             unmapped = mapper.countRequirements(baseTocSn);
             mapper.clearRequirements(baseTocSn);
@@ -245,8 +245,8 @@ public class TocServiceImpl implements TocService {
             }
         }
         for (TocDto x : targets) {
-            if (x.getFileCnt() > 0) {
-                throw new BusinessException("'" + x.getLabel() + "'에 올린 파일이 있어 지울 수 없습니다.");
+            if (mapper.countFiles(x.getTocSn()) > 0) { // 삭제(숨김)한 파일 기록도 목차를 참조한다
+                throw new BusinessException("'" + x.getLabel() + "'에 올린 파일(삭제한 파일 기록 포함)이 있어 지울 수 없습니다.");
             }
         }
         int unmapped = 0;

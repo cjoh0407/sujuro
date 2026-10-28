@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 코드 받기
+        uses: actions/checkout@v4
+
+      - name: JDK 11 설치
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: maven
+
+      - name: 빌드와 단위 테스트
+        # DB 연결 테스트(DbConnectionTest)는 Oracle이 필요해서 CI에서는 제외한다.
+        run: mvn -B -Dtest='!DbConnectionTest' -DfailIfNoTests=false test

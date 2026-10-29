@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.ojj.sujuro.auth.LoginUser;
-import com.ojj.sujuro.proposal.file.FileStorage;
+import com.ojj.sujuro.common.file.FileStorage;
 import com.ojj.sujuro.result.dto.StatsArchiveDTO;
 import com.ojj.sujuro.result.dto.StatsFileDTO;
 import com.ojj.sujuro.result.service.StatsService;

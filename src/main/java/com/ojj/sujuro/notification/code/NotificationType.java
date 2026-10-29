@@ -14,6 +14,7 @@ public final class NotificationType {
     public static final String WITHDRAWN = "NT060";              // 중도 철회
     public static final String SUBMITTED = "NT070";              // 제출 완료
     public static final String TOC_ASSIGNED = "NT100";           // 목차 담당
+    public static final String EVL_TABLE_REQUEST = "NT110";      // 평가표 업로드 요청
 
     private NotificationType() {
     }

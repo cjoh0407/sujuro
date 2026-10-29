@@ -14,8 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.auth.code.Role;
-import com.ojj.sujuro.result.code.ResultCode;
 import com.ojj.sujuro.result.support.StatsFormat;
+import com.ojj.sujuro.result.dto.EvaluationFileDTO;
+import com.ojj.sujuro.result.dto.EvaluationForm;
 import com.ojj.sujuro.result.dto.StatsArchiveDTO;
 import com.ojj.sujuro.result.dto.StatsChartDTO;
 import com.ojj.sujuro.result.dto.StatsFileDTO;
@@ -72,8 +73,7 @@ public class StatsServiceImpl implements StatsService {
         v.setSummary(byYear.getOrDefault(picked, StatsTallyDTO.empty(picked, team.getTeamSn(), team.getTeamNm())));
         v.setChart(StatsChartDTO.of(years.subList(Math.max(0, years.size() - CHART_YEARS), years.size()), byYear, picked));
 
-        v.setBizTypeRates(statsMapper.rateBy(ResultCode.GROUP_BIZ_TYPE, team.getTeamSn(), picked));
-        v.setPtcpShpRates(statsMapper.rateBy(ResultCode.GROUP_PTCP_SHP, team.getTeamSn(), picked));
+        v.setPtcpShpRates(statsMapper.ptcpShpRates(team.getTeamSn(), picked));
         v.setArticles(statsMapper.articleRates(team.getTeamSn(), picked, null));
         v.setHistory(statsMapper.history(team.getTeamSn()));
         return v;
@@ -114,12 +114,20 @@ public class StatsServiceImpl implements StatsService {
         }
         a.setArticles(statsMapper.articleRates(null, null, pbancSn));
         a.setFinalFile(statsMapper.findFinalFile(pbancSn));
+        a.setEvaluationFile(statsMapper.findEvaluationFile(pbancSn));
+        a.setOurCompanyListed(statsMapper.countOurCompany(pbancSn) > 0);
+        a.setEvaluationForm(EvaluationForm.fromSaved(statsMapper.findEvaluationScores(pbancSn)));
         return a;
     }
 
     @Override
     public StatsFileDTO findFinalFile(LoginUser user, Long pbancSn) {
         return readable(user, pbancSn) == null ? null : statsMapper.findFinalFile(pbancSn);
+    }
+
+    @Override
+    public EvaluationFileDTO findEvaluationFile(LoginUser user, Long pbancSn) {
+        return readable(user, pbancSn) == null ? null : statsMapper.findEvaluationFile(pbancSn);
     }
 
     /** 사업 하나를 이 사용자가 볼 수 있는지. 없는 사업이면 null, 볼 수 없으면 403 */

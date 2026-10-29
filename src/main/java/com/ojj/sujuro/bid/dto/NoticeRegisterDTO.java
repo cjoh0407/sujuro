@@ -51,6 +51,9 @@ public class NoticeRegisterDTO {
     private LocalDateTime bidDdlnDt;
     private LocalDateTime opengDt;
     private String evlMthdNm;
+    /** 기술·가격 배점(비율). 입찰공고 API techAbltEvlRt·bidPrceEvlRt. 협상에 의한 계약만 값이 있다 */
+    private BigDecimal techScorScr;
+    private BigDecimal prcScorScr;
     private String pbancDtlUrl;
 
     /** "2026-10-19 23:59:00" 을 날짜로 바꾼다. 형식이 다르거나 비었으면 null */

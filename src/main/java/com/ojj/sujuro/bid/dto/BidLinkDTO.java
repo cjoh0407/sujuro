@@ -56,5 +56,8 @@ public class BidLinkDTO {
     private LocalDateTime bidDdlnDt;
     private LocalDateTime opengDt;
     private String evlMthdNm;
+    /** 기술·가격 배점(비율). 입찰공고 API techAbltEvlRt·bidPrceEvlRt */
+    private BigDecimal techScorScr;
+    private BigDecimal prcScorScr;
     private String pbancDtlUrl;
 }

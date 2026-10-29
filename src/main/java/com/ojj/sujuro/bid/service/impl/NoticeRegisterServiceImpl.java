@@ -190,6 +190,8 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
         regist.setBidDdlnDt(NoticeRegisterDTO.parseDate(G2bResponse.textOf(item, "bidClseDt")));
         regist.setOpengDt(NoticeRegisterDTO.parseDate(G2bResponse.textOf(item, "opengDt")));
         regist.setEvlMthdNm(G2bResponse.textOf(item, "sucsfbidMthdNm"));
+        regist.setTechScorScr(G2bResponse.amountOf(item, "techAbltEvlRt"));
+        regist.setPrcScorScr(G2bResponse.amountOf(item, "bidPrceEvlRt"));
         regist.setPbancDtlUrl(G2bResponse.textOf(item, "bidNtceDtlUrl"));
         regist.setRgtrId(userId);
 

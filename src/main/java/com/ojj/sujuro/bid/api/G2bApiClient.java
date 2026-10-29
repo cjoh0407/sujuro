@@ -320,6 +320,32 @@ public class G2bApiClient {
         return call(url, "개찰결과");
     }
 
+    /**
+     * 입찰공고번호로 개찰완료 목록을 가져온다. 참가 업체마다 한 행이고 개찰순위·사업자번호·투찰금액이 온다.
+     * 협상에 의한 계약이면 기술평가점수(techEvlVal)·가격점수(bidPrceEvlVal)·종합점수(totalEvlAmtVal)도 온다.
+     * 점수 칸은 2025-09 에 추가됐다. (R26BK01541118 로 2026-10-29 확인)
+     */
+    public G2bResponse findOpeningCompanies(String bidNtceNo) {
+        String url = baseUrl + awardPath + "/getOpengResultListInfoOpengCompt"
+                + "?bidNtceNo=" + bidNtceNo
+                + "&numOfRows=100&pageNo=1&type=json"
+                + "&ServiceKey=" + serviceKey;
+        return call(url, "개찰 업체 목록");
+    }
+
+    /**
+     * 입찰공고번호로 최종 낙찰자를 가져온다. (용역) 낙찰자가 정해지기 전에는 행이 없다.
+     * 협상에 의한 계약은 개찰 몇 주 뒤에 올라온다. (R26BK01541118: 개찰 06-23, 최종 낙찰 07-15)
+     */
+    public G2bResponse findAward(String bidNtceNo) {
+        String url = baseUrl + awardPath + "/getScsbidListSttusServc"
+                + "?inqryDiv=" + awardInqryDiv
+                + "&bidNtceNo=" + bidNtceNo
+                + "&numOfRows=10&pageNo=1&type=json"
+                + "&ServiceKey=" + serviceKey;
+        return call(url, "낙찰자");
+    }
+
     private G2bResponse call(String url, String what) {
         String body;
         try {

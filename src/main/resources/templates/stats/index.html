@@ -5,7 +5,7 @@
       layout:decorate="~{layout/default}">
 <!--/*
   통계 (FR-016, 083~088). UI 목업 v3.5 의 rStats() 화면과 같은 구성이다.
-  연도·팀 탭 → 요약 카드 5개 → 연도별 참여·수주 차트, 유형·형태별 수주율 → 평가 항목별 분석 → 과거 사업 이력.
+  연도·팀 탭 → 요약 카드 5개 → 연도별 참여·수주 차트, 참여 형태별 수주율 → 평가 항목별 분석 → 과거 사업 이력.
   경영지원실은 개발팀을 골라 보고(전체 합계 없음), 팀장은 자기 팀만 본다.
 
   모델: view (result.dto.StatsViewDTO)
@@ -108,25 +108,14 @@
         </div>
       </div>
 
-      <!-- 사업 유형·참여 형태별 수주율 (FR-085) -->
+      <!-- 참여 형태별 수주율 (FR-085) -->
       <div class="card">
-        <div class="card-head"><h3 th:text="|사업 유형·참여 형태별 수주율 (${view.year}년)|">사업 유형·참여 형태별 수주율</h3></div>
+        <div class="card-head"><h3 th:text="|참여 형태별 수주율 (${view.year}년)|">참여 형태별 수주율</h3></div>
         <div class="pad">
-          <div class="rate-group">
-            <div class="lbl">사업 유형</div>
-            <div class="lossrow rate" th:each="r : ${view.bizTypeRates}">
-              <b th:text="${r.label}">SI</b>
-              <div class="bar"><i th:style="|width:${r.barWidth}%|"></i></div>
-              <span class="mono" th:text="${r.rateText}">결과 없음</span>
-            </div>
-          </div>
-          <div class="rate-group">
-            <div class="lbl">참여 형태</div>
-            <div class="lossrow rate" th:each="r : ${view.ptcpShpRates}">
-              <b th:text="${r.label}">주관</b>
-              <div class="bar"><i th:style="|width:${r.barWidth}%|"></i></div>
-              <span class="mono" th:text="${r.rateText}">결과 없음</span>
-            </div>
+          <div class="lossrow rate" th:each="r : ${view.ptcpShpRates}">
+            <b th:text="${r.label}">주관</b>
+            <div class="bar"><i th:style="|width:${r.barWidth}%|"></i></div>
+            <span class="mono" th:text="${r.rateText}">결과 없음</span>
           </div>
         </div>
       </div>

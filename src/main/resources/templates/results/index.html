@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<!--/*
+  평가·결과 입력 (FR-077~081). 경영지원실 전용. UI 목업 v3.5 의 rResults() 화면과 같은 구성이다.
+  사업건 선택 → 머리 줄 → 상태별 안내 →
+    제출 완료 : 입찰 결과 카드 + [나라장터에서 결과 가져오기] (평일 오후 5시 수집도 같은 일을 한다)
+    결과 등록 : 입찰 결과(순위·점수·원점수·비교) → 개찰 업체 점수 → 평가표(엑셀 올리기 → 항목·배점·위원별 점수 입력)
+               → 평가 항목별 점수·득점률 → 장단점 분석
+    유찰      : 점수 없음 안내
+  목업의 '수행 인력 기록'은 넣지 않았다 (사업별 결과 분석의 PM/투입을 빼기로 한 것과 같은 결정, 2026-10-29).
+
+  모델: view (result.dto.ResultsViewDTO), evaluationForm (result.dto.EvaluationForm, 결과 등록 사업만)
+        저장 뒤 안내(flash): resultMessage·resultError, evaluationMessage·evaluationError, analysisMessage·analysisError·analysisForm
+*/-->
+<head>
+  <title>평가·결과 입력</title>
+  <th:block layout:fragment="head">
+    <link rel="stylesheet" th:href="@{/css/stats.css}">
+  </th:block>
+</head>
+<body>
+
+<h1 layout:fragment="pageTitle">평가·결과 입력</h1>
+
+<th:block layout:fragment="content">
+<th:block th:with="b=${view.bid}, a=${view.archive}">
+
+  <div class="page-head">
+    <div>
+      <h2>평가·결과 입력</h2>
+      <div class="sub" th:if="${b}">
+        <span th:text="${b.pbancNm}">사업명</span> ·
+        <span class="pill" th:classappend="${b.sttsPill}" th:text="${b.pbancSttsNm}">결과 등록</span> · 경영지원실 전용
+      </div>
+    </div>
+    <form class="row" method="get" th:action="@{/results}" th:unless="${#lists.isEmpty(view.bids)}">
+      <label class="lbl" for="bidSel">사업건</label>
+      <select id="bidSel" name="bid" onchange="this.form.submit()" style="min-width:320px">
+        <option th:each="o : ${view.bids}" th:value="${o.pbancSn}" th:text="${o.label}"
+                th:selected="${b != null and o.pbancSn == b.pbancSn}">사업건</option>
+      </select>
+    </form>
+  </div>
+
+  <div class="card" th:if="${b == null}">
+    <div class="lock"><div style="font-size:26px">🔒</div><b>참여를 확정한 사업건이 없습니다.</b></div>
+  </div>
+
+  <th:block th:if="${b}">
+
+    <!-- 사업명 줄 (NFR-023) -->
+    <div class="biz">
+      <b th:text="${b.pbancNm}">사업명</b>
+      <span class="faint" th:text="|${b.orderInstNm ?: '-'} · ${b.bidPbancNo ?: '-'} · ${b.teamNm ?: '-'}|">기관 · 공고번호 · 팀</span>
+      <span class="faint" th:if="${b.opengDt}" th:text="|개찰 ${#dates.format(b.opengDt, 'yyyy-MM-dd')}|">개찰</span>
+      <span class="pill neutral" th:if="${b.scoringText}" th:text="${b.scoringText}">기술 90 : 가격 10</span>
+      <span class="pill" th:classappend="${b.sttsPill}" th:text="${b.pbancSttsNm}">결과 등록</span>
+    </div>
+
+    <div class="banner ok" th:if="${resultMessage}" th:text="${resultMessage}">결과를 등록했습니다.</div>
+    <div class="banner warn" th:if="${resultError}" th:text="${resultError}">아직 낙찰자가 없습니다.</div>
+
+    <!-- 유찰: 점수 없음 -->
+    <div class="banner err" th:if="${b.failed}">
+      <span><b>유찰</b>된 사업입니다. 낙찰자가 없어 입찰 결과·항목별 점수가 없습니다(<b>점수 없음</b>).
+        참여 기록은 남고, 수주율과 평균 점수 계산에서는 뺍니다.</span>
+    </div>
+
+    <!-- 제출 전 -->
+    <div class="banner info" th:if="${b.beforeSubmit}">
+      <span>입찰 결과와 평가표는 나라장터 등록이 끝나 "제출 완료"가 된 뒤, 결과 단계에서 입력합니다.</span>
+    </div>
+
+    <th:block th:if="${b.submitted or b.resulted}">
+      <div class="banner info">
+        <span><b>입찰 결과·순위·기술·가격·종합 점수</b>는 나라장터 API 에서 우리 회사 사업자번호로 가져옵니다.
+          <b>평가 항목·배점·항목별 점수</b>는 API 에 없어서 <b>평가표 엑셀을 올린 뒤</b> 그 엑셀을 보며 입력합니다.</span>
+      </div>
+      <div class="banner warn" th:unless="${view.ready}">
+        우리 회사 사업자번호(company.biz-no)가 설정되지 않아 나라장터에서 결과를 가져올 수 없습니다.
+      </div>
+    </th:block>
+
+    <!-- 제출 완료: 아직 결과 전 -->
+    <div class="card" th:if="${b.submitted}">
+      <div class="card-head">
+        <h3>입찰 결과 · 기술·가격·종합 점수 (API)</h3>
+        <form method="post" th:action="@{/results/import}">
+          <input type="hidden" name="bid" th:value="${b.pbancSn}">
+          <button class="btn sm primary" type="submit" th:disabled="${!view.ready}">나라장터에서 결과 가져오기</button>
+        </form>
+      </div>
+      <div class="pad faint" style="font-size:12.5px">
+        아직 가져오지 않았습니다. 최종 낙찰자가 나라장터에 올라오면 평일 오후 5시 수집 때 자동으로 가져오고
+        상태가 "결과 등록"으로 바뀝니다. 협상에 의한 계약은 개찰 몇 주 뒤에 낙찰자가 정해집니다.
+      </div>
+    </div>
+
+    <div class="banner warn" th:if="${b.resulted and a == null}">
+      결과 데이터를 찾을 수 없습니다. 개발팀이 맡은 사업인지, 입찰 결과가 수주·탈락으로 등록됐는지 확인하세요.
+    </div>
+
+    <th:block th:if="${b.resulted and a != null}">
+
+      <!-- FR-077 입찰 결과: 우리 회사 순위·점수와 비교할 업체와의 차이 -->
+      <div class="card">
+        <div class="card-head">
+          <h3>입찰 결과 · 기술·가격·종합 점수 (API)</h3>
+          <a class="btn sm" th:href="@{/stats/bids/{sn}(sn=${b.pbancSn})}">사업별 결과 분석</a>
+        </div>
+        <div class="pad" style="display:flex;flex-direction:column;gap:8px">
+          <div class="result-row">
+            <span class="pill" th:classappend="${a.won} ? 'success' : 'neutral'" th:text="${a.rsltNm}">수주</span>
+            <span th:if="${a.evlRnk}">순위 <b th:text="|${a.evlRnk}위|">1위</b></span>
+            <span th:each="s : ${a.scores}"><span th:text="${s.label}">기술점수</span> <b class="mono" th:text="${s.text}">88.5 / 90</b></span>
+            <span th:if="${a.techOrgnlText}">기술 원점수 <b class="mono" th:text="${a.techOrgnlText}">85.284</b></span>
+          </div>
+          <div class="faint" style="font-size:12px" th:if="${view.compare}" th:with="c=${view.compare}">
+            <span th:text="|${c.otherRank}위 ${c.otherNm} 대비: 종합 ${c.totalDiff ?: '-'} (기술 ${c.techDiff ?: '-'}, 가격 ${c.prcDiff ?: '-'})|">대비</span>
+            <span th:if="${c.orgnlDiff}" th:text="| · 기술 원점수 ${c.orgnlDiff}|"> · 원점수</span>
+          </div>
+          <div class="faint" style="font-size:11.5px" th:if="${a.techMaxAssumed}">
+            공고에 기술 배점이 없어 기술 90 : 가격 10 으로 보고 만점을 정했습니다.
+          </div>
+        </div>
+      </div>
+
+      <!-- 개찰 업체 점수: 결과를 등록할 때 개찰 목록 전체를 받아 둔다 -->
+      <div class="card" th:unless="${#lists.isEmpty(view.companies)}">
+        <div class="card-head">
+          <h3>개찰 업체 점수</h3>
+          <span class="faint" style="font-size:11.5px">기술 원점수는 차등점수제 적용 전, 기술점수는 적용 후</span>
+        </div>
+        <div class="ts">
+          <table>
+            <thead>
+              <tr><th>순위</th><th>업체</th><th>사업자번호</th><th>투찰금액(원)</th><th>기술 원점수</th><th>기술</th><th>가격</th><th>종합</th></tr>
+            </thead>
+            <tbody>
+              <tr class="hv" th:each="c : ${view.companies}" th:classappend="${c.ours} ? 'ours'">
+                <td class="mono" th:text="${c.opengRnk ?: '-'}">1</td>
+                <td>
+                  <span th:text="${c.coNm}">업체</span>
+                  <span class="pill accent" th:if="${c.ours}">우리 회사</span>
+                  <span class="pill success" th:if="${c.winner}">낙찰</span>
+                </td>
+                <td class="mono muted" th:text="${c.bizNoText}">107-87-28988</td>
+                <td class="mono" th:text="${c.bidAmtText}">260,000,000</td>
+                <td class="mono" th:text="${c.techOrgnlText}">85.284</td>
+                <td class="mono" th:text="${c.techText}">90</td>
+                <td class="mono" th:text="${c.prcText}">10</td>
+                <td class="mono"><b th:text="${c.totalText}">100</b></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- FR-078·079 평가표: 1) 엑셀 올리기 → 2) 엑셀을 보며 항목·배점·위원별 점수 적기 (우리 회사) -->
+      <div class="card">
+        <div class="card-head">
+          <h3>평가 항목·배점 (평가표)</h3>
+          <span class="faint" style="font-size:11.5px">우리 회사 점수만 적습니다</span>
+        </div>
+        <div class="pad" style="display:flex;flex-direction:column;gap:12px">
+          <div class="banner ok" th:if="${evaluationMessage}" th:text="${evaluationMessage}">저장했습니다.</div>
+          <div class="banner warn" th:if="${evaluationError}" th:text="${evaluationError}">칸이 비었습니다.</div>
+
+          <div class="banner warn" th:unless="${a.ourCompanyListed}">
+            개찰 목록에 우리 회사 행이 없어 평가표를 넣을 수 없습니다. 나라장터 개찰 결과로 자동 등록된 사업만 넣을 수 있습니다.
+          </div>
+
+          <th:block th:if="${a.ourCompanyListed}">
+            <form class="row" method="post" enctype="multipart/form-data" th:action="@{/results/evaluation-file}">
+              <input type="hidden" name="bid" th:value="${b.pbancSn}">
+              <b style="font-size:12.5px">1. 평가표 엑셀</b>
+              <input type="file" name="file" accept=".xls,.xlsx" required>
+              <button class="btn sm" type="submit" th:text="${a.evaluationFile} ? '다시 올리기' : '평가표 올리기'">평가표 올리기</button>
+              <span class="faint" style="font-size:11.5px">나라장터 개찰결과 → 기술평가점수 조회 → 우리 회사 → [엑셀다운로드] 로 받은 파일</span>
+            </form>
+            <th:block th:replace="~{stats/fragments/result-parts :: evaluationFile(${a})}"></th:block>
+
+            <div class="empty" th:unless="${a.evaluationFile}">
+              아직 평가표가 없습니다. 엑셀을 올리면 그 엑셀을 보며 평가 항목, 배점, 위원별 점수를 입력할 수 있습니다.
+            </div>
+
+            <form id="evl-form" method="post" th:if="${a.evaluationFile}" th:action="@{/results/evaluation}"
+                  th:with="n=${evaluationForm.cmsnrCount}" style="display:flex;flex-direction:column;gap:10px">
+              <input type="hidden" name="bid" th:value="${b.pbancSn}">
+              <div class="row">
+                <b style="font-size:12.5px">2. 항목·배점·위원별 점수</b>
+                <label for="evl-cnt" class="lbl">평가위원 수</label>
+                <input id="evl-cnt" name="cmsnrCnt" type="number" min="1" max="20" step="1" th:value="${n}" style="width:72px">
+                <button type="button" class="btn sm" id="evl-add">항목 추가</button>
+              </div>
+              <div class="ts">
+                <table class="evl-grid">
+                  <thead>
+                    <tr>
+                      <th>평가항목</th><th>배점</th>
+                      <th class="cm" th:each="j : ${#numbers.sequence(1, n)}" th:text="|위원${j}|">위원1</th>
+                    </tr>
+                  </thead>
+                  <tbody id="evl-rows">
+                    <tr th:each="r, st : ${evaluationForm.items}">
+                      <td><input class="nm" maxlength="100" th:name="|items[${st.index}].nm|" th:value="${r.nm}"></td>
+                      <td><input class="num" type="number" min="0" max="100" step="any"
+                                 th:name="|items[${st.index}].max|" th:value="${r.max}"></td>
+                      <td class="cm" th:each="j : ${#numbers.sequence(0, n - 1)}">
+                        <input class="num" type="number" min="0" step="any"
+                               th:name="|items[${st.index}].scores[${j}]|" th:value="${r.scoreAt(j)}"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="row">
+                <button class="btn primary sm" type="submit">평가표 저장</button>
+                <span class="faint" style="font-size:11.5px">
+                  다 비운 줄은 저장하지 않습니다. "전략 및 방법론(15)" 처럼 이름 끝의 배점은 떼고 저장합니다. 저장하면 이 사업의 항목과 점수를 통째로 바꿉니다.
+                </span>
+              </div>
+            </form>
+          </th:block>
+        </div>
+      </div>
+
+      <!-- FR-079·080 평가 항목별 점수와 득점률 비교. 득점 = 위원 점수 평균 -->
+      <div class="two even" th:unless="${#lists.isEmpty(a.articles)}">
+        <div class="card">
+          <div class="card-head"><h3>평가 항목별 점수</h3></div>
+          <div class="ts">
+            <table>
+              <thead><tr><th>평가 항목</th><th>배점</th><th>득점 (위원 평균)</th><th>손실</th></tr></thead>
+              <tbody>
+                <tr class="hv" th:each="x : ${a.articles}">
+                  <td th:text="${x.catNm}">전략 및 방법론</td>
+                  <td class="mono" th:text="${x.maxText}">15</td>
+                  <td class="mono" th:text="${x.scoreSumText}">14.5</td>
+                  <td class="mono" th:text="|−${x.lossText}|">−0.5</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>항목별 득점률 비교</h3>
+            <span th:if="${a.mostLost}" th:with="m=${a.mostLost}">가장 많이 잃은 항목:
+              <span class="pill danger" th:text="|${m.catNm} (−${m.lossText}점)|">항목</span></span>
+          </div>
+          <div class="pad">
+            <div class="lossrow" th:each="x : ${a.articles}">
+              <span th:text="${x.catNm}">전략 및 방법론</span>
+              <div class="bar" th:classappend="${x.low} ? 'red' : 'ok'"><i th:style="|width:${x.rate}%|"></i></div>
+              <span class="mono" th:text="|득점률 ${x.rateText}|">득점률 96.7%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="banner info" th:if="${#lists.isEmpty(a.articles)}">
+        <span>항목별 점수와 득점률 비교는 평가표를 올리고 항목과 점수를 입력하면 표시됩니다.</span>
+      </div>
+
+      <!-- FR-081 장단점 분석 -->
+      <div class="card">
+        <div class="card-head"><h3>장단점 분석</h3></div>
+        <form class="pad" method="post" th:action="@{/results/analysis}" style="display:flex;flex-direction:column;gap:10px">
+          <input type="hidden" name="bid" th:value="${b.pbancSn}">
+          <div class="banner ok" th:if="${analysisMessage}" th:text="${analysisMessage}">장단점 분석을 저장했습니다.</div>
+          <div class="banner warn" th:if="${analysisError}" th:text="${analysisError}">강점은 한글 기준 1,300자까지 입력할 수 있습니다.</div>
+          <div class="grid3">
+            <div class="fld">
+              <label for="an-strpt">강점</label>
+              <textarea id="an-strpt" name="strptCn" rows="5" maxlength="1300"
+                        th:text="${analysisForm != null} ? ${analysisForm.strptCn} : ${a.strptCn}"></textarea>
+            </div>
+            <div class="fld">
+              <label for="an-sbpt">탈락·감점 원인</label>
+              <textarea id="an-sbpt" name="sbptCsCn" rows="5" maxlength="1300"
+                        th:text="${analysisForm != null} ? ${analysisForm.sbptCsCn} : ${a.sbptCsCn}"></textarea>
+            </div>
+            <div class="fld">
+              <label for="an-splmnt">차기 보완점</label>
+              <textarea id="an-splmnt" name="splmntCn" rows="5" maxlength="1300"
+                        th:text="${analysisForm != null} ? ${analysisForm.splmntCn} : ${a.splmntCn}"></textarea>
+            </div>
+          </div>
+          <div class="row">
+            <button class="btn primary sm" type="submit">장단점 저장</button>
+            <span class="faint" style="font-size:11.5px">빈 칸으로 저장하면 그 내용을 지웁니다. 팀장은 사업별 결과 분석에서 읽기만 합니다.</span>
+          </div>
+        </form>
+      </div>
+
+    </th:block>
+  </th:block>
+
+</th:block>
+</th:block>
+
+<th:block layout:fragment="scripts">
+  <script>
+    // 평가표 입력 칸: 위원 수를 바꾸면 위원 칸을 늘리거나 줄이고, [항목 추가] 는 빈 줄을 붙인다.
+    // 이름은 서버가 묶는 모양(items[i].nm, items[i].max, items[i].scores[j])과 같아야 한다.
+    (function () {
+      var form = document.getElementById('evl-form');
+      if (!form) {
+        return;
+      }
+      var cnt = document.getElementById('evl-cnt');
+      var body = document.getElementById('evl-rows');
+      var head = form.querySelector('thead tr');
+
+      function scoreCell(i, j) {
+        var td = document.createElement('td');
+        td.className = 'cm';
+        var input = document.createElement('input');
+        input.className = 'num';
+        input.type = 'number';
+        input.min = '0';
+        input.step = 'any';
+        input.name = 'items[' + i + '].scores[' + j + ']';
+        td.appendChild(input);
+        return td;
+      }
+
+      function resize() {
+        var n = parseInt(cnt.value, 10);
+        if (!(n >= 1 && n <= 20)) {
+          return;
+        }
+        var ths = head.querySelectorAll('th.cm');
+        for (var k = ths.length; k < n; k++) {
+          var th = document.createElement('th');
+          th.className = 'cm';
+          th.textContent = '위원' + (k + 1);
+          head.appendChild(th);
+        }
+        for (var m = ths.length - 1; m >= n; m--) {
+          head.removeChild(ths[m]);
+        }
+        body.querySelectorAll('tr').forEach(function (tr, i) {
+          var tds = tr.querySelectorAll('td.cm');
+          for (var j = tds.length; j < n; j++) {
+            tr.appendChild(scoreCell(i, j));
+          }
+          for (var x = tds.length - 1; x >= n; x--) {
+            tr.removeChild(tds[x]);
+          }
+        });
+      }
+
+      cnt.addEventListener('input', resize);
+      document.getElementById('evl-add').addEventListener('click', function () {
+        var i = body.querySelectorAll('tr').length;
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td><input class="nm" maxlength="100"></td>'
+            + '<td><input class="num" type="number" min="0" max="100" step="any"></td>';
+        tr.querySelector('.nm').name = 'items[' + i + '].nm';
+        tr.querySelector('.num').name = 'items[' + i + '].max';
+        var n = head.querySelectorAll('th.cm').length;
+        for (var j = 0; j < n; j++) {
+          tr.appendChild(scoreCell(i, j));
+        }
+        body.appendChild(tr);
+        tr.querySelector('.nm').focus();
+      });
+    })();
+  </script>
+</th:block>
+
+</body>
+</html>

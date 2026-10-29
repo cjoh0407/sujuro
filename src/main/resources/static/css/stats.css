@@ -1,5 +1,5 @@
 /*
-  통계 · 사업별 결과 분석 화면 전용 (templates/stats). 공통 모양은 common.css 를 쓴다.
+  통계 · 사업별 결과 분석 · 평가·결과 입력 화면 전용 (templates/stats, templates/results). 공통 모양은 common.css 를 쓴다.
 
   차트 색: 참여 = --chart-join, 수주 = --chart-won.
   밝은 화면은 common.css 의 --accent · --success 그대로, 어두운 화면은 차트 바탕(#171C23)에서
@@ -31,10 +31,24 @@
 .legend .sw.s-join{background:var(--chart-join)}
 .legend .sw.s-won{background:var(--chart-won)}
 
-/* 유형·형태별 수주율, 점수 막대: 이름 칸을 좁게 */
+/* 참여 형태별 수주율, 점수 막대: 이름 칸을 좁게 */
 .lossrow.rate{grid-template-columns:110px 1fr 120px}
 .lossrow.score{grid-template-columns:90px 1fr 110px}
-.rate-group + .rate-group{margin-top:10px}
+
+/* 평가 항목별 득점률 아래의 평가표 파일 한 줄 */
+.evl-file{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:11.5px}
+.evl-file .btn{margin-left:auto}
+
+/* 평가표 입력 표 (경영지원실). 위원이 많으면 옆으로 넘긴다 */
+.evl-grid td{padding:4px 6px}
+.evl-grid input.nm{width:100%;min-width:180px}
+.evl-grid input.num{width:76px}
+.evl-grid th.cm,.evl-grid td.cm{text-align:center}
+
+/* 평가·결과 입력: 사업명 줄(제안 화면 proposal.css 의 .biz 와 같은 모양), 결과 한 줄, 개찰 업체 중 우리 회사 행 */
+.biz{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 16px;border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:10px;background:var(--alt);font-size:13px}
+.result-row{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:13px}
+tr.ours td{background:var(--accent-soft)}
 
 /* 장단점 분석은 입력한 줄바꿈을 그대로 보여 준다 */
 .note{font-size:12.5px;margin-top:4px;white-space:pre-line}

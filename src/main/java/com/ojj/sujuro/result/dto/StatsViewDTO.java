@@ -31,7 +31,6 @@ public class StatsViewDTO {
     /** 고른 연도·팀의 요약 카드 */
     private StatsTallyDTO summary;
     private StatsChartDTO chart;
-    private List<StatsRateDTO> bizTypeRates = new ArrayList<>();
     private List<StatsRateDTO> ptcpShpRates = new ArrayList<>();
     private List<StatsArticleDTO> articles = new ArrayList<>();
     private List<StatsHistoryDTO> history = new ArrayList<>();

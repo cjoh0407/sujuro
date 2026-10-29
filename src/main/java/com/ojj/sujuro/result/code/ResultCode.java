@@ -11,8 +11,4 @@ public final class ResultCode {
     /* 입찰결과 BDRST */
     public static final String WON = "BR010";   // 수주
     public static final String LOST = "BR020";  // 탈락
-
-    /* 사업유형 BZTYP · 참여형태 PTFRM: 유형·형태별 수주율에서 줄 이름으로 쓴다 */
-    public static final String GROUP_BIZ_TYPE = "BZTYP";
-    public static final String GROUP_PTCP_SHP = "PTFRM";
 }

@@ -1,6 +1,7 @@
 package com.ojj.sujuro.result.service;
 
 import com.ojj.sujuro.auth.dto.LoginUser;
+import com.ojj.sujuro.result.dto.EvaluationFileDTO;
 import com.ojj.sujuro.result.dto.StatsArchiveDTO;
 import com.ojj.sujuro.result.dto.StatsFileDTO;
 import com.ojj.sujuro.result.dto.StatsViewDTO;
@@ -33,4 +34,7 @@ public interface StatsService {
 
     /** 사업별 결과 분석의 최종 제안서. 사업을 볼 수 없거나 파일이 없으면 null (권한은 findArchive 와 같다) */
     StatsFileDTO findFinalFile(LoginUser user, Long pbancSn);
+
+    /** 사업별 결과 분석의 평가표 엑셀. 사업을 볼 수 없거나 파일이 없으면 null (권한은 findArchive 와 같다) */
+    EvaluationFileDTO findEvaluationFile(LoginUser user, Long pbancSn);
 }

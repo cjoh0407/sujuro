@@ -36,6 +36,9 @@ import com.ojj.sujuro.bid.mapper.BidNoticeMapper;
 import com.ojj.sujuro.bid.service.NoticeAttachmentService;
 import com.ojj.sujuro.bid.service.NoticeCollectService;
 import com.ojj.sujuro.common.exception.BusinessException;
+import com.ojj.sujuro.result.dto.ResultOutcomeDTO;
+import com.ojj.sujuro.result.dto.ResultTargetDTO;
+import com.ojj.sujuro.result.service.ResultCollectService;
 
 /**
  * 공고 수집 (FR-025, FR-025-1, FR-028). 단계별 확인 순서는 인터페이스(NoticeCollectService)에 있다.
@@ -74,6 +77,7 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
     private final BidNoticeMapper bidNoticeMapper;
     private final G2bApiClient g2bApiClient;
     private final NoticeAttachmentService attachmentService;
+    private final ResultCollectService resultCollectService;
     private final TransactionTemplate tx;
     private final int lookbackDays;
     private final int manualCooldownMinutes;
@@ -84,12 +88,14 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
     public NoticeCollectServiceImpl(BidNoticeMapper bidNoticeMapper,
                                     G2bApiClient g2bApiClient,
                                     NoticeAttachmentService attachmentService,
+                                    ResultCollectService resultCollectService,
                                     PlatformTransactionManager transactionManager,
                                     @Value("${g2b.collect.lookback-days}") int lookbackDays,
                                     @Value("${g2b.collect.manual-cooldown-minutes}") int manualCooldownMinutes) {
         this.bidNoticeMapper = bidNoticeMapper;
         this.g2bApiClient = g2bApiClient;
         this.attachmentService = attachmentService;
+        this.resultCollectService = resultCollectService;
         this.tx = new TransactionTemplate(transactionManager);
         this.lookbackDays = lookbackDays;
         this.manualCooldownMinutes = manualCooldownMinutes;
@@ -129,6 +135,7 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
             collectCorrections(excnSeCd, exctrId, result);
             collectOpenings(excnSeCd, exctrId, result);
             collectContracts(excnSeCd, exctrId, result);
+            collectResults(excnSeCd, exctrId, result);
             fillMissingFiles(excnSeCd, exctrId, result);
             return result;
         } finally {
@@ -601,7 +608,53 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
     }
 
     /**
-     * 6. 첨부가 하나도 없는 사전규격·입찰공고 공고의 첨부를 받는다 (FR-036).
+     * 6. 결과 등록 (FR-077). 제출 완료한 공고에 최종 낙찰자가 올라왔으면 개찰 목록의 우리 회사(사업자번호) 순위·점수로
+     * 수주/탈락을 등록한다. 규칙은 ResultCollectService. 낙찰자는 개찰 몇 주 뒤에 올라와서 매 수집마다 다시 묻는다.
+     * 개찰·계약 단계 전환 뒤에 돌아, 같은 수집에서 개찰된 공고도 바로 확인한다.
+     */
+    private void collectResults(String excnSeCd, String exctrId, CollectResultDTO result) {
+        List<ResultTargetDTO> targets = resultCollectService.findTargets();
+        if (targets.isEmpty()) {
+            return;
+        }
+        if (!resultCollectService.isReady()) {
+            String msg = "우리 회사 사업자번호(company.biz-no)가 설정되지 않아 제출 완료 공고 " + targets.size()
+                    + "건의 결과를 확인하지 않았습니다.";
+            writeLog(null, excnSeCd, exctrId, BidCode.CLCT_FAILED, msg);
+            result.addFailure("결과 확인", msg);
+            return;
+        }
+
+        int registered = 0;
+        for (ResultTargetDTO target : targets) {
+            ResultOutcomeDTO out;
+            try {
+                out = resultCollectService.register(target);
+            } catch (BusinessException e) {
+                log.warn("결과 확인 실패: {}", e.getMessage());
+                writeLog(null, excnSeCd, exctrId, BidCode.CLCT_FAILED, e.getMessage());
+                result.addFailure("결과 확인", e.getMessage());
+                break;
+            } catch (RuntimeException e) {
+                log.warn("결과 등록 실패: 입찰공고 {}", target.getBidPbancNo(), e);
+                writeLog(target.getPbancSn(), excnSeCd, exctrId, BidCode.CLCT_FAILED,
+                        "입찰공고 " + target.getBidPbancNo() + " 결과를 등록하지 못했습니다: " + e.getMessage());
+                continue;
+            }
+            if (out.getKind() == ResultOutcomeDTO.Kind.REGISTERED) {
+                registered++;
+                log.info("결과 등록: 입찰공고 {} ({})", target.getBidPbancNo(), out.getMessage());
+                writeLog(target.getPbancSn(), excnSeCd, exctrId, BidCode.CLCT_OPENING, out.getMessage());
+            } else if (out.getKind() == ResultOutcomeDTO.Kind.NOT_LISTED) {
+                // 자동으로 가릴 수 없다. 잇지 않고 수집로그에 남겨 사람이 보게 한다
+                writeLog(target.getPbancSn(), excnSeCd, exctrId, BidCode.CLCT_NO_CHANGE, out.getMessage());
+            }
+        }
+        result.setResulted(registered);
+    }
+
+    /**
+     * 7. 첨부가 하나도 없는 사전규격·입찰공고 공고의 첨부를 받는다 (FR-036).
      * 첨부 기능(10/28) 전에 등록한 공고나, 등록·전환 때 나라장터가 응답하지 않아 첨부를 못 받은 공고가 대상이다.
      * 정정·전환이 받은 첨부와 겹치지 않게 맨 마지막에 돈다. 첨부가 정말 없는 공고는 수집마다 다시 묻는다(공고당 1번).
      */
@@ -685,6 +738,8 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
         values.setBidDdlnDt(NoticeRegisterDTO.parseDate(G2bResponse.textOf(item, "bidClseDt")));
         values.setOpengDt(NoticeRegisterDTO.parseDate(G2bResponse.textOf(item, "opengDt")));
         values.setEvlMthdNm(G2bResponse.textOf(item, "sucsfbidMthdNm"));
+        values.setTechScorScr(G2bResponse.amountOf(item, "techAbltEvlRt"));
+        values.setPrcScorScr(G2bResponse.amountOf(item, "bidPrceEvlRt"));
         values.setPbancDtlUrl(G2bResponse.textOf(item, "bidNtceDtlUrl"));
         return values;
     }

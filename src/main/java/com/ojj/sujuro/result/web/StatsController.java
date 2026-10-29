@@ -18,21 +18,25 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.ojj.sujuro.auth.code.Role;
 import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.common.file.FileStorage;
+import com.ojj.sujuro.result.dto.EvaluationFileDTO;
 import com.ojj.sujuro.result.dto.StatsArchiveDTO;
 import com.ojj.sujuro.result.dto.StatsFileDTO;
 import com.ojj.sujuro.result.service.StatsService;
 
 /**
- * 통계 (FR-083~088)와 사업별 결과 분석 (FR-087).
+ * 통계 (FR-083~088)와 사업별 결과 분석 (FR-080, 081, 087).
  *
- *   /stats                              통계 (team: 경영지원실이 고른 팀, year: 네 자리 연도)
- *   /stats/export                       CSV 내려받기
- *   /stats/bids/{pbancSn}               사업별 결과 분석
- *   /stats/bids/{pbancSn}/final-file    그 사업의 최종 제안서 내려받기
+ *   /stats                                    통계 (team: 경영지원실이 고른 팀, year: 네 자리 연도)
+ *   /stats/export                             CSV 내려받기
+ *   /stats/bids/{pbancSn}                     사업별 결과 분석
+ *   /stats/bids/{pbancSn}/final-file          그 사업의 최종 제안서 내려받기
+ *   /stats/bids/{pbancSn}/evaluation-file     평가표 엑셀 내려받기
  *
  * 경영지원실·팀장만 들어온다 (SecurityConfig 의 /stats/** 규칙). 볼 수 있는 팀 범위는 StatsService 가 정한다.
+ * 모두 읽기 화면이다. 결과·평가표·장단점 입력은 평가·결과 입력(ResultController, /results)에서 한다.
  */
 @Controller
 @RequestMapping("/stats")
@@ -75,6 +79,8 @@ public class StatsController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "결과가 등록된 사업을 찾을 수 없습니다.");
         }
         model.addAttribute("archive", archive);
+        // 이 화면은 모두 읽기만 한다. 경영지원실에게는 평가·결과 입력으로 가는 버튼을 보여 준다
+        model.addAttribute("canEdit", user.getRole() == Role.MGMT);
         return "stats/archive";
     }
 
@@ -84,10 +90,23 @@ public class StatsController {
         if (f == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "보관된 제출 파일이 없습니다.");
         }
+        return download(f.getOrgnlFileNm(), storage.load(f.getFilePathNm(), f.getStrgFileNm()));
+    }
+
+    @GetMapping("/bids/{pbancSn}/evaluation-file")
+    public ResponseEntity<Resource> evaluationFile(@AuthenticationPrincipal LoginUser user, @PathVariable Long pbancSn) {
+        EvaluationFileDTO f = statsService.findEvaluationFile(user, pbancSn);
+        if (f == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "올린 평가표가 없습니다.");
+        }
+        return download(f.getOrgnlFileNm(), storage.load(f.getFilePathNm(), f.getStrgFileNm()));
+    }
+
+    private static ResponseEntity<Resource> download(String name, Resource body) {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment().filename(f.getOrgnlFileNm(), StandardCharsets.UTF_8).build().toString())
+                        ContentDisposition.attachment().filename(name, StandardCharsets.UTF_8).build().toString())
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .body(storage.load(f.getFilePathNm(), f.getStrgFileNm()));
+                .body(body);
     }
 }

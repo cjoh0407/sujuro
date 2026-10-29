@@ -8,18 +8,18 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.ojj.sujuro.auth.LoginUser;
-import com.ojj.sujuro.auth.Role;
-import com.ojj.sujuro.bid.BidCode;
+import com.ojj.sujuro.auth.dto.LoginUser;
+import com.ojj.sujuro.auth.code.Role;
+import com.ojj.sujuro.bid.code.BidCode;
 import com.ojj.sujuro.bid.dto.CodeOptionDTO;
 import com.ojj.sujuro.bid.dto.NoticeDetailDTO;
 import com.ojj.sujuro.bid.dto.TeamOptionDTO;
 import com.ojj.sujuro.bid.mapper.BidNoticeMapper;
 import com.ojj.sujuro.bid.service.NoticeTeamService;
 import com.ojj.sujuro.common.exception.BusinessException;
-import com.ojj.sujuro.history.HistoryService;
-import com.ojj.sujuro.notification.NotificationService;
-import com.ojj.sujuro.notification.NotificationType;
+import com.ojj.sujuro.history.service.HistoryService;
+import com.ojj.sujuro.notification.service.NotificationService;
+import com.ojj.sujuro.notification.code.NotificationType;
 
 /**
  * 담당 팀 배정 · 참여 결정. 흐름은 인터페이스(NoticeTeamService)에 있다.

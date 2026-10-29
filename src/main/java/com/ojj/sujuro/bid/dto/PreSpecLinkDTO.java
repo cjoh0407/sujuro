@@ -3,7 +3,7 @@ package com.ojj.sujuro.bid.dto;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import com.ojj.sujuro.bid.BidCode;
+import com.ojj.sujuro.bid.code.BidCode;
 
 import lombok.Getter;
 import lombok.Setter;

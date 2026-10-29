@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <!-- 공고 처리 이력 SQL (NFR-008). 테이블: TB_PBANC_PRCS_HSTRY, TB_TEAM, TB_USER, TB_COM_CD (db/01_schema.sql) -->
-<mapper namespace="com.ojj.sujuro.history.HistoryMapper">
+<mapper namespace="com.ojj.sujuro.history.mapper.HistoryMapper">
 
   <insert id="insert">
     INSERT INTO TB_PBANC_PRCS_HSTRY (PBANC_SN, TRGT_TEAM_SN, PRCS_SE_CD, PRCS_RSN, PRCR_ID)
     VALUES (#{pbancSn}, #{trgtTeamSn,jdbcType=NUMERIC}, #{prcsSeCd}, #{prcsRsn,jdbcType=VARCHAR}, #{prcrId})
   </insert>
 
-  <select id="findByPbanc" resultType="com.ojj.sujuro.history.HistoryDto">
+  <select id="findByPbanc" resultType="com.ojj.sujuro.history.dto.HistoryDto">
     SELECT H.PRCS_HSTRY_SN AS prcsHstrySn,
            H.PRCS_SE_CD    AS prcsSeCd,
            C.CD_NM         AS prcsSeNm,

@@ -16,8 +16,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import com.ojj.sujuro.auth.LoginUser;
-import com.ojj.sujuro.auth.Role;
+import com.ojj.sujuro.auth.dto.LoginUser;
+import com.ojj.sujuro.auth.code.Role;
 import com.ojj.sujuro.bid.dto.BidNoticeSearchDTO;
 import com.ojj.sujuro.bid.dto.CollectResultDTO;
 import com.ojj.sujuro.bid.dto.NoticeDetailDTO;
@@ -29,7 +29,7 @@ import com.ojj.sujuro.bid.service.NoticeDetailService;
 import com.ojj.sujuro.bid.service.NoticeRegisterService;
 import com.ojj.sujuro.bid.service.NoticeTeamService;
 import com.ojj.sujuro.common.exception.BusinessException;
-import com.ojj.sujuro.history.HistoryService;
+import com.ojj.sujuro.history.service.HistoryService;
 
 /**
  * 공고 관리 (FR-017 ~ 022, 026, 035). 목록을 탭·검색·정렬·페이지로 보여 주고, 공고번호 하나로 등록하고,

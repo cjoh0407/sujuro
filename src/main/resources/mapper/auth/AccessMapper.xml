@@ -4,7 +4,7 @@
   사업건 단위 접근 검사 SQL (FR-011, NFR-001, NFR-004)
   "이 사람이 이 사업건의 제안팀원인가", "그중 주관팀(PT010)인가"를 확인한다. (db/01_schema.sql 의 TB_PRP_TMMBR)
 -->
-<mapper namespace="com.ojj.sujuro.auth.AccessMapper">
+<mapper namespace="com.ojj.sujuro.auth.mapper.AccessMapper">
 
   <select id="countProposalMember" resultType="int">
     SELECT COUNT(*)

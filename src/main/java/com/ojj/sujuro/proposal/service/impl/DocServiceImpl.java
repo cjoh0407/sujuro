@@ -10,13 +10,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.ojj.sujuro.auth.Role;
+import com.ojj.sujuro.auth.code.Role;
 import com.ojj.sujuro.common.exception.BusinessException;
 import com.ojj.sujuro.common.file.FileStorage;
-import com.ojj.sujuro.history.HistoryService;
-import com.ojj.sujuro.history.ProcessType;
-import com.ojj.sujuro.notification.NotificationService;
-import com.ojj.sujuro.notification.NotificationType;
+import com.ojj.sujuro.history.service.HistoryService;
+import com.ojj.sujuro.history.code.ProcessType;
+import com.ojj.sujuro.notification.service.NotificationService;
+import com.ojj.sujuro.notification.code.NotificationType;
 import com.ojj.sujuro.proposal.dto.DocDto;
 import com.ojj.sujuro.proposal.dto.ProposalBidDto;
 import com.ojj.sujuro.proposal.dto.PrpFileDto;

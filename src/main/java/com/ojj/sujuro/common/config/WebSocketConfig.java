@@ -5,7 +5,7 @@ import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
-import com.ojj.sujuro.notification.NotificationSocketHandler;
+import com.ojj.sujuro.notification.support.NotificationSocketHandler;
 
 /**
  * 웹소켓 설정 (FR-034 실시간 알림).

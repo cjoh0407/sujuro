@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.ojj.sujuro.bid.BidCode;
+import com.ojj.sujuro.bid.code.BidCode;
 import com.ojj.sujuro.bid.api.G2bApiClient;
 import com.ojj.sujuro.bid.api.G2bResponse;
 import com.ojj.sujuro.bid.dto.CollectHistoryDTO;

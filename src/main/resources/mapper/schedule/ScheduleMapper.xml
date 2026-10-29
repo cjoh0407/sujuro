@@ -6,27 +6,27 @@
   그래서 마감일이 바뀌거나 재공고로 새 사업건이 들어와도 항상 최신 날짜로 보인다. (FR-092)
   PS010 신규(아직 팀에 배정 전)와 PS090 불참은 일정에 넣지 않는다.
 -->
-<mapper namespace="com.ojj.sujuro.schedule.ScheduleMapper">
+<mapper namespace="com.ojj.sujuro.schedule.mapper.ScheduleMapper">
 
   <select id="findMyTeamSn" resultType="long">
     SELECT TEAM_SN FROM TB_USER WHERE USER_ID = #{userId}
   </select>
 
-  <select id="findDevTeams" resultType="com.ojj.sujuro.user.CodeOption">
+  <select id="findDevTeams" resultType="com.ojj.sujuro.user.dto.CodeOption">
     SELECT TO_CHAR(TEAM_SN) AS code, TEAM_NM AS name
       FROM TB_TEAM
      WHERE USE_YN = 'Y' AND DEPT_CD = 'DP030'
      ORDER BY TEAM_SN
   </select>
 
-  <select id="findKinds" resultType="com.ojj.sujuro.user.CodeOption">
+  <select id="findKinds" resultType="com.ojj.sujuro.user.dto.CodeOption">
     SELECT CD AS code, CD_NM AS name
       FROM TB_COM_CD
      WHERE GROUP_CD = 'SCHSE' AND USE_YN = 'Y'
      ORDER BY SORT_SEQ
   </select>
 
-  <select id="findAutoEvents" resultType="com.ojj.sujuro.schedule.ScheduleEvent">
+  <select id="findAutoEvents" resultType="com.ojj.sujuro.schedule.dto.ScheduleEvent">
     SELECT CAST(NULL AS NUMBER) AS id,
            TO_CHAR(P.BID_DDLN_DT, 'YYYY-MM-DD') AS eventDate,
            TO_CHAR(P.BID_DDLN_DT, 'HH24:MI') AS timeText,
@@ -80,7 +80,7 @@
     S.SCHDL_TTL AS title, S.SCHDL_SE_CD AS kindCd, TM.TEAM_NM AS teamNm, S.PBANC_SN AS pbancSn
   </sql>
 
-  <select id="findInternalEvents" resultType="com.ojj.sujuro.schedule.ScheduleEvent">
+  <select id="findInternalEvents" resultType="com.ojj.sujuro.schedule.dto.ScheduleEvent">
     SELECT <include refid="internalCols"/>
       FROM TB_SCHDL S
       JOIN TB_TEAM TM ON TM.TEAM_SN = S.TEAM_SN
@@ -93,7 +93,7 @@
      ORDER BY S.SCHDL_BGNG_DT, S.SCHDL_SN
   </select>
 
-  <select id="findInternalOne" resultType="com.ojj.sujuro.schedule.ScheduleEvent">
+  <select id="findInternalOne" resultType="com.ojj.sujuro.schedule.dto.ScheduleEvent">
     SELECT <include refid="internalCols"/>
       FROM TB_SCHDL S
       JOIN TB_TEAM TM ON TM.TEAM_SN = S.TEAM_SN

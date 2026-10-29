@@ -4,10 +4,10 @@
   로그인·권한 관련 SQL (FR-001, FR-007, NFR-003)
   테이블 구조가 바뀌면 이 파일만 고친다. (db/01_schema.sql 의 TB_USER, TB_TEAM, TB_COM_CD 사용)
 -->
-<mapper namespace="com.ojj.sujuro.auth.AuthMapper">
+<mapper namespace="com.ojj.sujuro.auth.mapper.AuthMapper">
 
   <!-- 사번으로 로그인 정보 조회. 직급명은 공통코드(JBGDS), 팀명은 TB_TEAM에서 가져온다. -->
-  <select id="findByUserId" parameterType="string" resultType="com.ojj.sujuro.auth.AuthUser">
+  <select id="findByUserId" parameterType="string" resultType="com.ojj.sujuro.auth.dto.AuthUser">
     SELECT U.USER_ID        AS userId,
            U.USER_NM        AS userNm,
            J.CD_NM          AS jbgdNm,

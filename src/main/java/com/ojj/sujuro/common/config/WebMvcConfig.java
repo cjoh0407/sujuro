@@ -4,7 +4,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import com.ojj.sujuro.auth.InitialPasswordInterceptor;
+import com.ojj.sujuro.auth.support.InitialPasswordInterceptor;
 
 /** 웹 MVC 설정. 초기 비밀번호 사용자를 비밀번호 변경 화면으로 보내는 인터셉터를 등록한다. (FR-002) */
 @Configuration

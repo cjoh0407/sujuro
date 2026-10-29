@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.ojj.sujuro.bid.BidCode;
+import com.ojj.sujuro.bid.code.BidCode;
 import com.ojj.sujuro.bid.api.G2bApiClient;
 import com.ojj.sujuro.bid.api.G2bResponse;
 import com.ojj.sujuro.bid.dto.AtchFileDTO;

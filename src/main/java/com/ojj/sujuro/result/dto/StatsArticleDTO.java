@@ -33,4 +33,22 @@ public class StatsArticleDTO {
     public String getRateText() {
         return StatsFormat.number(getRate()) + "%";
     }
+
+    /** 잃은 점수 = 배점 - 득점 */
+    public double getLoss() {
+        return Math.max(0, maxSum - scoreSum);
+    }
+
+    /** 화면 표시용: 배점 "15", 득점 "14.5", 손실 "0.5" */
+    public String getMaxText() {
+        return StatsFormat.score(maxSum);
+    }
+
+    public String getScoreSumText() {
+        return StatsFormat.score(scoreSum);
+    }
+
+    public String getLossText() {
+        return StatsFormat.score(getLoss());
+    }
 }

@@ -39,4 +39,12 @@ public final class StatsFormat {
         }
         return BigDecimal.valueOf(v).setScale(1, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
     }
+
+    /** 평가 점수는 저장한 그대로(소수 셋째 자리까지) 보여 준다. 96.992 → "96.992", 90.0 → "90". 값이 없으면 "-" */
+    public static String score(Double v) {
+        if (v == null) {
+            return "-";
+        }
+        return BigDecimal.valueOf(v).setScale(3, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
+    }
 }

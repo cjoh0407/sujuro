@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  사업별 결과 분석(stats/archive)과 평가·결과 입력(results/index)이 같이 쓰는 조각. 인자 a = result.dto.StatsArchiveDTO
+    scoreCard(a)      : 기술·가격·종합 점수 막대. 만점은 공고의 기술·가격 배점(비율), 없으면 90:10 으로 본다.
+                        기술 원점수(차등점수제 적용 전)가 있으면 같이 보여 준다.
+    evaluationFile(a) : 올린 평가표 엑셀 한 줄과 내려받기
+*/-->
+<body>
+
+<div class="card" th:fragment="scoreCard(a)">
+  <div class="card-head">
+    <h3>점수 (나라장터 평가 결과 기준)</h3>
+    <span class="faint" style="font-size:11.5px"
+          th:text="${a.scoringText != null} ? |배점 ${a.scoringText}| : '개찰 결과에서 자동으로 가져옵니다'">배점 기술 90 : 가격 10</span>
+  </div>
+  <div class="pad">
+    <div class="lossrow score" th:each="s : ${a.scores}">
+      <b th:text="${s.label}">기술점수</b>
+      <div class="bar"><i th:style="|width:${s.width}%|"></i></div>
+      <span class="mono" th:text="${s.text}">0 / 90</span>
+    </div>
+    <div class="faint" style="font-size:11.5px" th:if="${a.techOrgnlText}"
+         th:text="|기술 원점수 ${a.techOrgnlText} · 차등점수제를 적용하기 전 점수입니다|">기술 원점수</div>
+    <div class="faint" style="font-size:11.5px" th:if="${a.techMaxAssumed}">
+      공고에 기술 배점이 없어 기술 90 : 가격 10 으로 보고 만점을 정했습니다.
+    </div>
+  </div>
+</div>
+
+<div class="evl-file" th:fragment="evaluationFile(a)" th:if="${a.evaluationFile}" th:with="f=${a.evaluationFile}">
+  <span>📊</span>
+  <span class="faint" th:text="|평가표 ${f.orgnlFileNm} · ${f.rgtrNm ?: '-'}${f.regDt != null ? ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm') : ''}|">평가표</span>
+  <a class="btn sm" th:href="@{/stats/bids/{sn}/evaluation-file(sn=${a.pbancSn})}">내려받기</a>
+</div>
+
+</body>
+</html>

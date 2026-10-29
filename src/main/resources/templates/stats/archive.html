@@ -6,8 +6,9 @@
 <!--/*
   사업별 결과 분석 (FR-080, 081, 087). UI 목업 v3.5 의 rArchive() 화면과 같은 구성이다.
   통계의 과거 사업 이력에서 사업명을 누르면 온다. 경영지원실은 모든 개발팀, 팀장은 자기 팀 사업만 본다.
+  모두 읽기 화면이다. 결과·평가표·장단점은 경영지원실이 평가·결과 입력(/results)에서 넣는다.
 
-  모델: archive (result.dto.StatsArchiveDTO)
+  모델: archive (result.dto.StatsArchiveDTO), canEdit (경영지원실이면 평가·결과 입력으로 가는 버튼)
 */-->
 <head>
   <title>사업별 결과 분석</title>
@@ -31,6 +32,7 @@
     </div>
     <div class="row">
       <span class="pill" th:classappend="${archive.won} ? 'success' : 'neutral'" th:text="${archive.rsltNm}">수주</span>
+      <a class="btn sm" th:if="${canEdit}" th:href="@{/results(bid=${archive.pbancSn})}">평가·결과 입력</a>
     </div>
   </div>
 
@@ -39,14 +41,12 @@
       <div class="card-head"><h3>공고 기본 정보</h3></div>
       <div class="info-grid">
         <div><div class="k">발주기관</div><div class="v" th:text="${archive.orderInstNm ?: '-'}">발주기관</div></div>
-        <div><div class="k">사업 유형</div><div class="v" th:text="${archive.bizTypeNm ?: '미지정'}">SI</div></div>
         <div><div class="k">참여 형태</div><div class="v" th:text="${archive.ptcpShpNm ?: '미지정'}">주관</div></div>
         <div><div class="k">예산</div><div class="v" th:text="${archive.budgetText}">0.0억</div></div>
         <div><div class="k">담당 팀</div><div class="v" th:text="${archive.teamNm}">개발1팀</div></div>
         <div><div class="k">제출 마감</div>
           <div class="v" th:text="${archive.bidDdlnDt != null} ? ${#dates.format(archive.bidDdlnDt, 'yyyy-MM-dd')} : '-'">2026-09-24</div></div>
         <div><div class="k">결과</div><div class="v"><b th:text="${archive.resultText}">수주 · 1위</b></div></div>
-        <div><div class="k">PM / 투입</div><div class="v" th:text="${archive.staffText}">-</div></div>
       </div>
     </div>
 
@@ -67,21 +67,10 @@
   </div>
 
   <div class="two even">
-    <div class="card">
-      <div class="card-head"><h3>점수 (나라장터 평가 결과 기준)</h3></div>
-      <div class="pad">
-        <div class="lossrow score" th:each="s : ${archive.scores}">
-          <b th:text="${s.label}">기술점수</b>
-          <div class="bar"><i th:style="|width:${s.width}%|"></i></div>
-          <span class="mono" th:text="${s.text}">0 / 90</span>
-        </div>
-        <div class="faint" style="font-size:11.5px" th:if="${archive.techMaxAssumed}">
-          평가표에서 기술 배점을 읽지 못해 기술 90 : 가격 10 으로 보고 만점을 정했습니다.
-        </div>
-      </div>
-    </div>
+    <!-- 사업 전체의 최종 성적. 나라장터 개찰 결과에서 가져온다. 만점은 공고의 기술·가격 배점(비율) -->
+    <th:block th:replace="~{stats/fragments/result-parts :: scoreCard(${archive})}"></th:block>
 
-    <!-- 평가 항목(대분류)별 득점률. 평가표 순서 -->
+    <!-- 평가 항목(대분류)별 득점률. 평가표 순서. 득점률 = 위원 점수 평균 ÷ 배점 -->
     <div class="card">
       <div class="card-head"><h3>평가 항목별 득점률</h3></div>
       <div class="pad">
@@ -90,14 +79,18 @@
           <div class="bar" th:classappend="${a.low} ? 'red' : 'ok'"><i th:style="|width:${a.rate}%|"></i></div>
           <span class="mono" th:text="|득점률 ${a.rateText}|">득점률 0%</span>
         </div>
-        <div class="empty" th:if="${#lists.isEmpty(archive.articles)}">평가표가 올라오지 않아 항목별 점수가 없습니다.</div>
+        <div class="empty" th:if="${#lists.isEmpty(archive.articles)}">평가표가 입력되지 않아 항목별 점수가 없습니다.</div>
+        <th:block th:replace="~{stats/fragments/result-parts :: evaluationFile(${archive})}"></th:block>
       </div>
     </div>
   </div>
 
   <!-- 장단점 분석 (FR-081). 경영지원실이 평가·결과 입력에서 적는다 -->
   <div class="card">
-    <div class="card-head"><h3>장단점 분석</h3></div>
+    <div class="card-head">
+      <h3>장단점 분석</h3>
+      <span class="faint" style="font-size:11.5px">경영지원실이 평가·결과 입력에서 적습니다</span>
+    </div>
     <div class="pad grid3">
       <div>
         <div class="lbl">강점</div>

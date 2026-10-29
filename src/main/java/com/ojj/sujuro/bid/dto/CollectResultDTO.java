@@ -21,6 +21,7 @@ public class CollectResultDTO {
     private int opened;        // 개찰 (유찰 포함)
     private int failedBid;     // 그중 유찰
     private int contracted;    // 계약
+    private int resulted;      // 결과 등록 (제출 완료 → 결과 등록, 우리 회사 순위·점수)
     private int filesFilled;   // 첨부가 없던 공고에 첨부를 받아 채운 수 (단계 변화는 아니다)
 
     /** 나라장터가 응답하지 않아 확인하지 못한 단계. 예: "사전규격 목록: 나라장터에서 지금 … 불러오지 못했습니다" */
@@ -31,7 +32,7 @@ public class CollectResultDTO {
     }
 
     public int getChangedTotal() {
-        return toPreSpec + toBidNotice + corrected + canceled + opened + contracted;
+        return toPreSpec + toBidNotice + corrected + canceled + opened + contracted + resulted;
     }
 
     /** 예: "사전규격 전환 1건 · 정정 2건 · 개찰 1건(유찰 1)". 바뀐 공고가 없으면 "바뀐 공고가 없습니다" */
@@ -45,6 +46,7 @@ public class CollectResultDTO {
             parts.add("개찰 " + opened + "건" + (failedBid > 0 ? "(유찰 " + failedBid + ")" : ""));
         }
         add(parts, "계약", contracted);
+        add(parts, "결과 등록", resulted);
         add(parts, "첨부 받음", filesFilled);
         return parts.isEmpty() ? "바뀐 공고가 없습니다" : String.join(" · ", parts);
     }

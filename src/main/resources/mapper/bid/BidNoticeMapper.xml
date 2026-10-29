@@ -179,12 +179,13 @@
     INSERT INTO TB_BID_PBANC (
       ORDER_PLAN_NO, BF_SPEC_RGST_NO, BID_PBANC_NO, BID_PBANC_CYCL, PBANC_STEP_CD, TRCK_STTS_CD,
       PBANC_TYPE_CD, PBANC_NM, ORDER_INST_NM, DMND_INST_NM, SW_BIZ_YN,
-      ALTMNT_BGT_AMT, OPNN_DDLN_DT, BID_DDLN_DT, OPENG_DT, EVL_MTHD_NM,
+      ALTMNT_BGT_AMT, OPNN_DDLN_DT, BID_DDLN_DT, OPENG_DT, EVL_MTHD_NM, TECH_SCOR_SCR, PRC_SCOR_SCR,
       PBANC_DTL_URL, PBANC_STTS_CD, RGTR_ID, CLCT_DT, LAST_CFMTN_DT
     ) VALUES (
       #{orderPlanNo}, #{bfSpecRgstNo}, #{bidPbancNo}, NVL(#{bidPbancCycl}, 0), #{pbancStepCd}, #{trckSttsCd},
       #{pbancTypeCd}, #{pbancNm}, #{orderInstNm}, #{dmndInstNm}, #{swBizYn},
       #{altmntBgtAmt}, #{opnnDdlnDt}, #{bidDdlnDt}, #{opengDt}, #{evlMthdNm},
+      #{techScorScr, jdbcType=NUMERIC}, #{prcScorScr, jdbcType=NUMERIC},
       #{pbancDtlUrl}, #{pbancSttsCd}, #{rgtrId}, SYSDATE, SYSDATE
     )
   </insert>
@@ -303,6 +304,8 @@
            BID_DDLN_DT     = NVL(#{bidDdlnDt}, BID_DDLN_DT),
            OPENG_DT        = NVL(#{opengDt}, OPENG_DT),
            EVL_MTHD_NM     = NVL(#{evlMthdNm}, EVL_MTHD_NM),
+           TECH_SCOR_SCR   = NVL(#{techScorScr, jdbcType=NUMERIC}, TECH_SCOR_SCR),
+           PRC_SCOR_SCR    = NVL(#{prcScorScr, jdbcType=NUMERIC}, PRC_SCOR_SCR),
            PBANC_DTL_URL   = NVL(#{pbancDtlUrl}, PBANC_DTL_URL),
            CLCT_DT         = SYSDATE,
            LAST_CFMTN_DT   = SYSDATE
@@ -401,6 +404,8 @@
            BID_DDLN_DT     = NVL(#{bidDdlnDt}, BID_DDLN_DT),
            OPENG_DT        = NVL(#{opengDt}, OPENG_DT),
            EVL_MTHD_NM     = NVL(#{evlMthdNm}, EVL_MTHD_NM),
+           TECH_SCOR_SCR   = NVL(#{techScorScr, jdbcType=NUMERIC}, TECH_SCOR_SCR),
+           PRC_SCOR_SCR    = NVL(#{prcScorScr, jdbcType=NUMERIC}, PRC_SCOR_SCR),
            PBANC_DTL_URL   = NVL(#{pbancDtlUrl}, PBANC_DTL_URL),
            CLCT_DT         = SYSDATE,
            LAST_CFMTN_DT   = SYSDATE

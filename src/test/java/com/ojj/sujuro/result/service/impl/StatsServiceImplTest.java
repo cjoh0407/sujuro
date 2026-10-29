@@ -1,6 +1,7 @@
 package com.ojj.sujuro.result.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -14,6 +15,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -23,7 +25,8 @@ import org.springframework.security.access.AccessDeniedException;
 
 import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.auth.code.Role;
-import com.ojj.sujuro.result.code.ResultCode;
+import com.ojj.sujuro.result.dto.EvaluationForm;
+import com.ojj.sujuro.result.dto.EvaluationScoreDTO;
 import com.ojj.sujuro.result.dto.StatsArchiveDTO;
 import com.ojj.sujuro.result.dto.StatsArticleDTO;
 import com.ojj.sujuro.result.dto.StatsChartDTO;
@@ -113,7 +116,72 @@ class StatsServiceImplTest {
         StatsViewDTO w = service.build(user("2022-0009", Role.MGMT), 4L, "2026");
         assertEquals(0, w.getSummary().getJoined());
         assertEquals("-", w.getSummary().getRateText());
-        verify(mapper).rateBy(eq(ResultCode.GROUP_BIZ_TYPE), eq(4L), anyString());
+        verify(mapper).ptcpShpRates(eq(4L), anyString());
+    }
+
+    @Test
+    void 공고에_배점이_있으면_그_값이_만점이다() {
+        StatsArchiveDTO a = new StatsArchiveDTO();
+        a.setTechScorScr(80.0);
+        a.setPrcScorScr(20.0);
+        a.setArticles(Arrays.asList(article(70), article(30))); // 평가표 배점 합 100 은 무시
+        assertEquals(80, a.getTechMax());
+        assertEquals(20, a.getPrcMax());
+        assertFalse(a.isTechMaxAssumed());
+        assertEquals("기술 80 : 가격 20", a.getScoringText());
+        assertEquals("15 / 20", scoreText(a, 15));
+
+        a.setTechEvlOrgnlScr(85.284);
+        assertEquals("85.284", a.getTechOrgnlText());
+    }
+
+    @Test
+    void 점수는_소수_셋째_자리까지_보여_준다() {
+        StatsArchiveDTO a = new StatsArchiveDTO();
+        a.setTechEvlScr(85.284);
+        a.setPrcEvlScr(10.0);
+        assertEquals("85.284 / 90", a.getScores().get(0).getText());
+        assertEquals("10 / 10", a.getScores().get(1).getText());
+        assertEquals("- / 100", a.getScores().get(2).getText());
+    }
+
+    @Test
+    void 사업별_결과_분석은_평가표_파일과_입력_칸을_같이_준다() {
+        StatsArchiveDTO mine = new StatsArchiveDTO();
+        mine.setTeamSn(3L);
+        when(mapper.findArchive(8L)).thenReturn(mine);
+        when(mapper.countOurCompany(8L)).thenReturn(1);
+        when(mapper.findEvaluationScores(8L)).thenReturn(Arrays.asList(
+                saved(1L, "전략 및 방법론", "15", 1, "14.5"), saved(1L, "전략 및 방법론", "15", 2, "14"),
+                saved(2L, "기술 및 기능", "30", 1, "27.9"), saved(2L, "기술 및 기능", "30", 2, "28.4")));
+
+        StatsArchiveDTO a = service.findArchive(user("2024-0031", Role.LEADER), 8L);
+        assertTrue(a.isOurCompanyListed());
+        EvaluationForm f = a.getEvaluationForm();
+        assertEquals(2, f.getCmsnrCount());
+        assertEquals("전략 및 방법론", f.getItems().get(0).getNm());
+        assertEquals("15", f.getItems().get(0).getMax());
+        assertEquals("28.4", f.getItems().get(1).scoreAt(1));
+
+        // 저장된 게 없으면 빈 줄 5개, 위원 3명
+        assertEquals(5, EvaluationForm.fromSaved(Collections.emptyList()).getItems().size());
+        assertEquals(3, EvaluationForm.fromSaved(null).getCmsnrCount());
+
+        // 팀장도 같은 범위 규칙: 다른 팀 사업의 평가표는 내려받을 수 없다
+        StatsArchiveDTO other = new StatsArchiveDTO();
+        other.setTeamSn(4L);
+        when(mapper.findArchive(10L)).thenReturn(other);
+        assertThrows(AccessDeniedException.class, () -> service.findEvaluationFile(user("2024-0031", Role.LEADER), 10L));
+    }
+
+    private static EvaluationScoreDTO saved(Long sn, String nm, String max, int cmsnr, String scr) {
+        EvaluationScoreDTO s = new EvaluationScoreDTO();
+        s.setEvlArtclSn(sn);
+        s.setEvlArtclNm(nm);
+        s.setEvlScorScr(new BigDecimal(max));
+        s.setCmsnrNo(cmsnr);
+        s.setEvlScr(new BigDecimal(scr));
+        return s;
     }
 
     @Test

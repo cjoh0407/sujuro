@@ -5,6 +5,8 @@
 --       + 요구사항 v3.2 · ERD v2.4 목차 부분(이세종): 목차양식 TB_TOC_FORM(주관팀별), 조견표 TB_EVL_TOC_MPNG,
 --         TB_TOC 목차양식일련번호·목차구분코드 추가와 시작·종료쪽번호 삭제, TB_USER 외부 인력 컬럼 삭제
 --       + 2026-10-28(이세종): TB_ATCH_FILE 삭제여부·삭제자·삭제일시·삭제사유 추가 (삭제는 숨김, 원본 보관)
+--       + 2026-10-29(김종민): TB_BID_PBANC 기술·가격배점점수, TB_BID_RSLT·TB_CO_EVL_RSLT 기술평가원본점수 추가
+--         (이미 만든 DB는 09_result_score_patch.sql)
 -- 테이블 23개
 -- 실행: sqlplus 계정/비밀번호@//localhost:1521/XEPDB1 @01_schema.sql
 --       (SQL Developer·DBeaver는 파일을 열고 '스크립트 실행' F5)
@@ -183,6 +185,8 @@ CREATE TABLE TB_BID_PBANC (
   OPENG_DT        DATE,
   PRSNTN_DT       DATE,
   EVL_MTHD_NM     VARCHAR2(700 CHAR),
+  TECH_SCOR_SCR   NUMBER(10,3),
+  PRC_SCOR_SCR    NUMBER(10,3),
   LMT_PAGE_CNT    NUMBER(4),
   PBANC_DTL_URL   VARCHAR2(600 CHAR),
   PBANC_STTS_CD   CHAR(5)              DEFAULT 'PS010'  NOT NULL,
@@ -226,6 +230,8 @@ COMMENT ON COLUMN TB_BID_PBANC.BID_DDLN_DT IS '입찰마감일시 - 제출 마�
 COMMENT ON COLUMN TB_BID_PBANC.OPENG_DT IS '개찰일시 - 이 날이 지난 공고만 개찰 결과를 조회한다';
 COMMENT ON COLUMN TB_BID_PBANC.PRSNTN_DT IS '발표일시 - 제안 발표일';
 COMMENT ON COLUMN TB_BID_PBANC.EVL_MTHD_NM IS '평가방법명 - 평가 방식 (예: 협상에 의한 계약)';
+COMMENT ON COLUMN TB_BID_PBANC.TECH_SCOR_SCR IS '기술배점점수 - 기술 평가 비율. API techAbltEvlRt (예: 90). 기술점수 만점이다';
+COMMENT ON COLUMN TB_BID_PBANC.PRC_SCOR_SCR IS '가격배점점수 - 가격 평가 비율. API bidPrceEvlRt (예: 10). 가격점수 만점이다';
 COMMENT ON COLUMN TB_BID_PBANC.LMT_PAGE_CNT IS '제한쪽수 - 제안서 전체 페이지 제한';
 COMMENT ON COLUMN TB_BID_PBANC.PBANC_DTL_URL IS '공고상세URL - 나라장터 공고 상세 화면 링크';
 COMMENT ON COLUMN TB_BID_PBANC.PBANC_STTS_CD IS '공고상태코드 - 공통코드 PBSTS (신규→배정완료→참여확정→제안작성중→제출완료→결과등록, 불참)';
@@ -526,6 +532,7 @@ CREATE TABLE TB_BID_RSLT (
   BID_RSLT_CD     CHAR(5)              NOT NULL,
   EVL_RNK         NUMBER(10),
   TECH_EVL_SCR    NUMBER(10,3),
+  TECH_EVL_ORGNL_SCR NUMBER(10,3),
   PRC_EVL_SCR     NUMBER(10,3),
   SNTHS_EVL_SCR   NUMBER(10,3),
   SCSBD_AMT       NUMBER(15),
@@ -550,6 +557,7 @@ COMMENT ON COLUMN TB_BID_RSLT.PBANC_SN IS '공고일련번호 - 공고당 1건';
 COMMENT ON COLUMN TB_BID_RSLT.BID_RSLT_CD IS '입찰결과코드 - 공통코드 BDRST (수주/탈락)';
 COMMENT ON COLUMN TB_BID_RSLT.EVL_RNK IS '평가순위 - 순위';
 COMMENT ON COLUMN TB_BID_RSLT.TECH_EVL_SCR IS '기술평가점수 - 기술 점수';
+COMMENT ON COLUMN TB_BID_RSLT.TECH_EVL_ORGNL_SCR IS '기술평가원본점수 - 차등점수제 적용 전 기술 원점수. API techEvlNaturVal';
 COMMENT ON COLUMN TB_BID_RSLT.PRC_EVL_SCR IS '가격평가점수 - 가격 점수';
 COMMENT ON COLUMN TB_BID_RSLT.SNTHS_EVL_SCR IS '종합평가점수 - 종합 점수';
 COMMENT ON COLUMN TB_BID_RSLT.SCSBD_AMT IS '낙찰금액 - 수주 금액 (통계용)';
@@ -574,6 +582,7 @@ CREATE TABLE TB_CO_EVL_RSLT (
   OPENG_RNK          NUMBER(10),
   BID_AMT            NUMBER(15),
   TECH_EVL_SCR       NUMBER(10,3),
+  TECH_EVL_ORGNL_SCR NUMBER(10,3),
   PRC_EVL_SCR        NUMBER(10,3),
   SNTHS_EVL_SCR      NUMBER(10,3),
   OUR_CO_YN          CHAR(1)             DEFAULT 'N'  NOT NULL,
@@ -595,6 +604,7 @@ COMMENT ON COLUMN TB_CO_EVL_RSLT.CO_NM IS '업체명 - API prcbdrNm';
 COMMENT ON COLUMN TB_CO_EVL_RSLT.OPENG_RNK IS '개찰순위';
 COMMENT ON COLUMN TB_CO_EVL_RSLT.BID_AMT IS '투찰금액';
 COMMENT ON COLUMN TB_CO_EVL_RSLT.TECH_EVL_SCR IS '기술평가점수 - API techEvlVal. 공식 점수는 이 값을 쓴다';
+COMMENT ON COLUMN TB_CO_EVL_RSLT.TECH_EVL_ORGNL_SCR IS '기술평가원본점수 - 차등점수제 적용 전 기술 원점수. API techEvlNaturVal';
 COMMENT ON COLUMN TB_CO_EVL_RSLT.PRC_EVL_SCR IS '가격평가점수 - API bidPrceEvlVal';
 COMMENT ON COLUMN TB_CO_EVL_RSLT.SNTHS_EVL_SCR IS '종합평가점수 - API totalEvlAmtVal';
 COMMENT ON COLUMN TB_CO_EVL_RSLT.OUR_CO_YN IS '우리회사여부 - 설정의 우리 사업자번호와 같으면 Y';

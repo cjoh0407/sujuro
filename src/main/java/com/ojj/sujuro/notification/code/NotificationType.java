@@ -14,6 +14,7 @@ public final class NotificationType {
     public static final String WITHDRAWN = "NT060";              // 중도 철회
     public static final String SUBMITTED = "NT070";              // 제출 완료
     public static final String TOC_ASSIGNED = "NT100";           // 목차 담당
+    public static final String EVL_TABLE_REQUEST = "NT110";      // 평가표 업로드 요청
     public static final String RQT_CHANGED = "NT120";            // 요구사항 변경 (DB 공통코드 추가 요청 중)
     public static final String PROPOSAL_TEAM_CHANGED = "NT130";  // 제안팀 변경 (DB 공통코드 추가 요청 중)
 

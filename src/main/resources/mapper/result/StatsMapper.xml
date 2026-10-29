@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <!--
-  통계 SQL (FR-083 ~ 088). 테이블: TB_BID_PBANC, TB_BID_RSLT, TB_CO_EVL_RSLT, TB_EVL_ARTCL, TB_EVL_CMSNR_SCR,
-  TB_ATCH_FILE, TB_PRP_TMMBR, TB_TEAM, TB_USER, TB_COM_CD (db/01_schema.sql)
+  통계·사업별 결과 분석 조회 SQL (FR-080, 081, 083 ~ 088). 입력은 ResultMapper.xml 에 있다.
+  테이블: TB_BID_PBANC, TB_BID_RSLT, TB_CO_EVL_RSLT, TB_EVL_ARTCL, TB_EVL_CMSNR_SCR, TB_ATCH_FILE, TB_TEAM, TB_USER,
+  TB_COM_CD (db/01_schema.sql)
 
   기준
   - 팀     : 주관팀(SPRVSN_TEAM_SN). 개발부(DP030) 팀만 본다.
@@ -69,14 +70,11 @@
      GROUP BY TO_CHAR(P.BID_DDLN_DT, 'YYYY'), P.SPRVSN_TEAM_SN
   </select>
 
-  <!-- 공통코드 줄은 결과가 없어도 나오고(결과 없음), 코드가 비어 있는 공고는 '미지정' 줄로 모은다 -->
-  <select id="rateBy" resultType="com.ojj.sujuro.result.dto.StatsRateDTO">
+  <!-- 참여 형태(PTFRM)별 수주율. 코드 줄은 결과가 없어도 나오고(결과 없음), 참여 형태가 비어 있는 공고는 '미지정' 줄로 모은다 -->
+  <select id="ptcpShpRates" resultType="com.ojj.sujuro.result.dto.StatsRateDTO">
     WITH X AS (
       SELECT P.PBANC_SN,
-             <choose>
-               <when test="groupCd == 'BZTYP'">P.BIZ_TYPE_CD</when>
-               <otherwise>P.PTCP_SHP_CD</otherwise>
-             </choose> AS CD,
+             P.PTCP_SHP_CD AS CD,
              CASE WHEN R.BID_RSLT_CD = 'BR010' THEN 1 ELSE 0 END AS WON_YN
         FROM TB_BID_PBANC P
         <include refid="resultJoin"/>
@@ -89,7 +87,7 @@
         SELECT C.SORT_SEQ AS ord, C.CD_NM AS label, COUNT(X.PBANC_SN) AS resultCnt, NVL(SUM(X.WON_YN), 0) AS won
           FROM TB_COM_CD C
           LEFT JOIN X ON X.CD = C.CD
-         WHERE C.GROUP_CD = #{groupCd} AND C.USE_YN = 'Y'
+         WHERE C.GROUP_CD = 'PTFRM' AND C.USE_YN = 'Y'
          GROUP BY C.SORT_SEQ, C.CD, C.CD_NM
         UNION ALL
         SELECT 9999, '미지정', COUNT(*), NVL(SUM(X.WON_YN), 0)
@@ -150,28 +148,20 @@
      FETCH FIRST 100 ROWS ONLY
   </select>
 
-  <!-- 수행 인력(FR-082): PM 은 TB_BID_RSLT.RBPRSN_ID, 투입 인원은 제안팀원 중 수행 투입(Y) 또는 수행인력(PT040) -->
   <select id="findArchive" resultType="com.ojj.sujuro.result.dto.StatsArchiveDTO">
     SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, P.ORDER_INST_NM AS orderInstNm,
-           P.SPRVSN_TEAM_SN AS teamSn, T.TEAM_NM AS teamNm,
-           BT.CD_NM AS bizTypeNm, PS.CD_NM AS ptcpShpNm,
+           P.SPRVSN_TEAM_SN AS teamSn, T.TEAM_NM AS teamNm, PS.CD_NM AS ptcpShpNm,
            P.ALTMNT_BGT_AMT AS budget, P.BID_DDLN_DT AS bidDdlnDt,
+           P.TECH_SCOR_SCR AS techScorScr, P.PRC_SCOR_SCR AS prcScorScr,
            R.BID_RSLT_CD AS rsltCd, RC.CD_NM AS rsltNm, R.EVL_RNK AS evlRnk,
-           R.TECH_EVL_SCR AS techEvlScr, R.PRC_EVL_SCR AS prcEvlScr, R.SNTHS_EVL_SCR AS snthsEvlScr,
-           R.STRPT_CN AS strptCn, R.SBPT_CS_CN AS sbptCsCn, R.SPLMNT_CN AS splmntCn,
-           PM.USER_NM AS pmNm,
-           (SELECT LISTAGG(U.USER_NM, ', ') WITHIN GROUP (ORDER BY U.USER_NM)
-              FROM TB_PRP_TMMBR M
-              JOIN TB_USER U ON U.USER_ID = M.USER_ID
-             WHERE M.PBANC_SN = P.PBANC_SN
-               AND (M.FLFMT_INPUT_YN = 'Y' OR M.PTCP_SE_CD = 'PT040')) AS inputNms
+           R.TECH_EVL_SCR AS techEvlScr, R.TECH_EVL_ORGNL_SCR AS techEvlOrgnlScr,
+           R.PRC_EVL_SCR AS prcEvlScr, R.SNTHS_EVL_SCR AS snthsEvlScr,
+           R.STRPT_CN AS strptCn, R.SBPT_CS_CN AS sbptCsCn, R.SPLMNT_CN AS splmntCn
       FROM TB_BID_PBANC P
       <include refid="resultJoin"/>
       JOIN TB_TEAM T ON T.TEAM_SN = P.SPRVSN_TEAM_SN AND T.DEPT_CD = 'DP030'
-      LEFT JOIN TB_COM_CD BT ON BT.GROUP_CD = 'BZTYP' AND BT.CD = P.BIZ_TYPE_CD
       LEFT JOIN TB_COM_CD PS ON PS.GROUP_CD = 'PTFRM' AND PS.CD = P.PTCP_SHP_CD
       LEFT JOIN TB_COM_CD RC ON RC.GROUP_CD = 'BDRST' AND RC.CD = R.BID_RSLT_CD
-      LEFT JOIN TB_USER PM ON PM.USER_ID = R.RBPRSN_ID
      WHERE <include refid="resultCond"/> AND P.PBANC_SN = #{pbancSn}
   </select>
 
@@ -183,6 +173,33 @@
      WHERE F.PBANC_SN = #{pbancSn} AND F.FILE_SE_CD = 'FL030' AND F.LAST_YN = 'Y' AND F.DEL_YN = 'N'
      ORDER BY F.CFMTN_DT DESC NULLS LAST, F.FILE_SN DESC
      FETCH FIRST 1 ROWS ONLY
+  </select>
+
+  <!-- 평가표 엑셀 (FL070). 경영지원실이 올린 것 중 마지막 -->
+  <select id="findEvaluationFile" resultType="com.ojj.sujuro.result.dto.EvaluationFileDTO">
+    SELECT F.FILE_SN AS fileSn, F.ORGNL_FILE_NM AS orgnlFileNm, F.STRG_FILE_NM AS strgFileNm,
+           F.FILE_PATH_NM AS filePathNm, U.USER_NM AS rgtrNm, F.REG_DT AS regDt
+      FROM TB_ATCH_FILE F
+      LEFT JOIN TB_USER U ON U.USER_ID = F.RGTR_ID
+     WHERE F.PBANC_SN = #{pbancSn} AND F.FILE_SE_CD = 'FL070' AND F.LAST_YN = 'Y' AND F.DEL_YN = 'N'
+     ORDER BY F.FILE_SN DESC
+     FETCH FIRST 1 ROWS ONLY
+  </select>
+
+  <select id="countOurCompany" resultType="int">
+    SELECT COUNT(*) FROM TB_CO_EVL_RSLT WHERE PBANC_SN = #{pbancSn} AND OUR_CO_YN = 'Y'
+  </select>
+
+  <!-- 평가표 입력 칸을 채울 값. 세부 항목이 있는 항목은 세부 항목만(득점률 계산과 같은 기준) -->
+  <select id="findEvaluationScores" resultType="com.ojj.sujuro.result.dto.EvaluationScoreDTO">
+    SELECT A.EVL_ARTCL_SN AS evlArtclSn, A.EVL_ARTCL_NM AS evlArtclNm, A.EVL_SCOR_SCR AS evlScorScr,
+           S.CMSNR_NO AS cmsnrNo, S.EVL_SCR AS evlScr
+      FROM TB_EVL_ARTCL A
+      LEFT JOIN TB_CO_EVL_RSLT C ON C.PBANC_SN = A.PBANC_SN AND C.OUR_CO_YN = 'Y'
+      LEFT JOIN TB_EVL_CMSNR_SCR S ON S.EVL_ARTCL_SN = A.EVL_ARTCL_SN AND S.CO_EVL_RSLT_SN = C.CO_EVL_RSLT_SN
+     WHERE A.PBANC_SN = #{pbancSn}
+       AND NOT EXISTS (SELECT 1 FROM TB_EVL_ARTCL K WHERE K.UP_EVL_ARTCL_SN = A.EVL_ARTCL_SN)
+     ORDER BY A.SORT_SEQ, A.EVL_ARTCL_SN, S.CMSNR_NO
   </select>
 
 </mapper>

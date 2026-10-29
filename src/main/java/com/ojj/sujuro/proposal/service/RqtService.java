@@ -26,9 +26,10 @@ public interface RqtService {
 
     void register(Long pbancSn, RqtDto in, String userId);
 
-    void edit(Long pbancSn, Long rqtMttrSn, RqtDto in);
+    /** 연결된 목차가 있으면 그 담당자에게 알린다(NT120). 처리한 본인(actorId)에게는 보내지 않는다. 아래 delete·map도 같다. */
+    void edit(Long pbancSn, Long rqtMttrSn, RqtDto in, String actorId);
 
-    void delete(Long pbancSn, Long rqtMttrSn);
+    void delete(Long pbancSn, Long rqtMttrSn, String actorId);
 
     /**
      * 요구사항 등록·수정·삭제·매핑을 할 수 있는지. 이 사업건 주관팀 팀장(lead)이거나,
@@ -44,5 +45,5 @@ public interface RqtService {
      * 요구사항 하나는 최하위 목차 하나에만 연결되고(비기능 요구사항 포함), 담당자를 지정한 최하위 목차에만 연결할 수 있다. (FR-049, 요구사항 v3.2)
      * 연결된 목차의 담당자가 요구사항 담당자가 된다.
      */
-    void map(Long pbancSn, Long rqtMttrSn, Long tocSn);
+    void map(Long pbancSn, Long rqtMttrSn, Long tocSn, String actorId);
 }

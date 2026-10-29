@@ -9,8 +9,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ojj.sujuro.common.exception.BusinessException;
+import com.ojj.sujuro.notification.code.NotificationType;
+import com.ojj.sujuro.notification.service.NotificationService;
 import com.ojj.sujuro.proposal.dto.TocDto;
 import com.ojj.sujuro.proposal.dto.TocFormDto;
+import com.ojj.sujuro.proposal.mapper.ProposalMapper;
 import com.ojj.sujuro.proposal.mapper.TocMapper;
 import com.ojj.sujuro.proposal.service.TocService;
 
@@ -23,9 +26,13 @@ import com.ojj.sujuro.proposal.service.TocService;
 public class TocServiceImpl implements TocService {
 
     private final TocMapper mapper;
+    private final ProposalMapper proposalMapper;
+    private final NotificationService notificationService;
 
-    public TocServiceImpl(TocMapper mapper) {
+    public TocServiceImpl(TocMapper mapper, ProposalMapper proposalMapper, NotificationService notificationService) {
         this.mapper = mapper;
+        this.proposalMapper = proposalMapper;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -262,7 +269,7 @@ public class TocServiceImpl implements TocService {
 
     @Transactional
     @Override
-    public void assign(Long pbancSn, Long tocSn, String picId) {
+    public void assign(Long pbancSn, Long tocSn, String picId, String actorId) {
         TocDto t = own(pbancSn, tocSn);
         if (t.isGroup()) {
             throw new BusinessException("담당자는 최하위 목차에만 지정합니다.");
@@ -272,6 +279,22 @@ public class TocServiceImpl implements TocService {
             throw new BusinessException("담당자는 이 사업건의 제안팀원 중에서만 고를 수 있습니다.");
         }
         mapper.updatePic(tocSn, pic);
+
+        // 알림 (NT100 목차 담당): 새 담당자에게 지정, 이전 담당자에게 해제. 처리한 본인에게는 보내지 않는다.
+        String old = t.getPicId();
+        if (pic == null ? old == null : pic.equals(old)) {
+            return;
+        }
+        String bidNm = proposalMapper.findBid(pbancSn).getLabel();
+        String where = "'" + bidNm + "' " + (TocDto.SE_SUMMARY.equals(t.getTocSeCd()) ? "제안요약서" : "제안서")
+                + " 목차 '" + t.getLabel() + "'";
+        if (pic != null && !pic.equals(actorId)) {
+            notificationService.send(pic, NotificationType.TOC_ASSIGNED, pbancSn,
+                    where + " 담당자로 지정되었습니다. 제안서 파일 화면에서 파일을 올려 주세요.");
+        }
+        if (old != null && !old.equals(actorId)) {
+            notificationService.send(old, NotificationType.TOC_ASSIGNED, pbancSn, where + " 담당에서 해제되었습니다.");
+        }
     }
 
     /* ---------- 내부 처리 ---------- */

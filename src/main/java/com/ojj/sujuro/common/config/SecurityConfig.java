@@ -20,7 +20,7 @@ import org.springframework.security.web.SecurityFilterChain;
  *   사업건 단위 접근(제안팀 소속 여부)은 URL만으로 알 수 없으므로 별도 검사(AccessChecker)로 처리한다.
  * - 세션 30분 만료는 application.properties의 server.servlet.session.timeout 으로 설정한다. (NFR-003)
  *
- * 권한 값은 {@link com.ojj.sujuro.auth.Role}.
+ * 권한 값은 {@link com.ojj.sujuro.auth.code.Role}.
  */
 @Configuration
 @EnableWebSecurity

@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Date;
 
-import com.ojj.sujuro.bid.BidCode;
+import com.ojj.sujuro.bid.code.BidCode;
 
 import lombok.Getter;
 import lombok.Setter;

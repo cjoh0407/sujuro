@@ -21,9 +21,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.access.AccessDeniedException;
 
-import com.ojj.sujuro.auth.LoginUser;
-import com.ojj.sujuro.auth.Role;
-import com.ojj.sujuro.result.ResultCode;
+import com.ojj.sujuro.auth.dto.LoginUser;
+import com.ojj.sujuro.auth.code.Role;
+import com.ojj.sujuro.result.code.ResultCode;
 import com.ojj.sujuro.result.dto.StatsArchiveDTO;
 import com.ojj.sujuro.result.dto.StatsArticleDTO;
 import com.ojj.sujuro.result.dto.StatsChartDTO;

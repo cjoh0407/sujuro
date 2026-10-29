@@ -140,11 +140,11 @@ sujuro
 ├─ src/main/java/com/ojj/sujuro
 │  ├─ SujuroApplication.java         # 메인 클래스
 │  ├─ auth · user                    # 로그인, 권한(AccessChecker), 계정
-│  ├─ bid                            # 공고 (web · dto · mapper · service · api)
+│  ├─ bid                            # 공고 (web · dto · mapper · service · api · code)
 │  ├─ proposal                       # 제안 준비 (bid · toc · rqt)
-│  ├─ result · history               # 입찰 결과, 이력
+│  ├─ result · history               # 입찰 결과·통계, 이력
 │  ├─ schedule · notification        # 일정, 알림(웹소켓·메일)
-│  ├─ dashboard · stats              # 대시보드, 통계
+│  ├─ dashboard                      # 대시보드
 │  └─ common                         # 보안 설정, 예외 처리
 ├─ src/main/resources
 │  ├─ application.properties         # 공통 설정 (Git 관리)
@@ -155,7 +155,19 @@ sujuro
 └─ src/test/java/com/ojj/sujuro      # 테스트
 ```
 
-업무 패키지 안은 `web` · `service` · `service.impl` · `mapper`로 나눕니다.
+업무 패키지 안은 아래처럼 나눕니다.
+
+| 폴더 | 넣는 것 |
+| --- | --- |
+| `web` | 화면 요청을 받는 컨트롤러 |
+| `service` · `service.impl` | 업무 처리 (인터페이스 · 구현). 인터페이스 없이 클래스 하나면 `service`에 둡니다 |
+| `mapper` | MyBatis 매퍼 인터페이스 (SQL은 `resources/mapper/<모듈>/`) |
+| `dto` | 화면·DB 사이를 오가는 값 묶음 |
+| `code` | 코드값·상수 (`Role`, `BidCode` 등) |
+| `support` | 스케줄러·메일·웹소켓·인터셉터 같은 그 밖의 부품 |
+| `api` | 바깥 시스템 호출 (나라장터) |
+
+모듈 바로 아래에는 `package-info.java`만 둡니다.
 
 ## 시작하기
 

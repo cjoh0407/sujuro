@@ -258,7 +258,7 @@ public class G2bApiClient {
     /**
      * 기간 안에 등록된 사전규격 목록을 가져온다. (용역)
      * 발주계획과 사전규격을 잇는 번호가 없어서, 매일 이 목록을 받아 추적 중인 발주계획과
-     * 값으로 맞춰 본다. ({@link com.ojj.sujuro.bid.BidCode#sameBizCase})
+     * 값으로 맞춰 본다. ({@link com.ojj.sujuro.bid.code.BidCode#sameBizCase})
      *
      * 날짜는 12자리(yyyyMMddHHmm)이고 파라미터 이름은 inqryBgnDt·inqryEndDt 다.
      * 발주계획 서비스만 8자리 inqryBgnDate 를 쓰므로 섞지 않도록 주의한다.

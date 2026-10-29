@@ -8,7 +8,7 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.ojj.sujuro.auth.Role;
+import com.ojj.sujuro.auth.code.Role;
 import com.ojj.sujuro.common.exception.BusinessException;
 import com.ojj.sujuro.proposal.dto.ProposalBidDto;
 import com.ojj.sujuro.proposal.dto.ProposalMemberDto;

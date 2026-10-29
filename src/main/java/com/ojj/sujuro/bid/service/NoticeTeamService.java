@@ -2,7 +2,7 @@ package com.ojj.sujuro.bid.service;
 
 import java.util.List;
 
-import com.ojj.sujuro.auth.LoginUser;
+import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.bid.dto.CodeOptionDTO;
 import com.ojj.sujuro.bid.dto.TeamOptionDTO;
 

@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import com.ojj.sujuro.result.ResultCode;
-import com.ojj.sujuro.result.StatsFormat;
+import com.ojj.sujuro.result.code.ResultCode;
+import com.ojj.sujuro.result.support.StatsFormat;
 
 import lombok.Getter;
 import lombok.Setter;

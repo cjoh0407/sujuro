@@ -5,7 +5,7 @@
   TB_SBMSN_DCMNT, TB_COM_CD (db/01_schema.sql)
   공고 상태 PS010 신규, PS020 배정 완료, PS030 참여 확정, PS040 제안 작성 중, PS050 제출 완료, PS060 결과 등록, PS090 불참
 -->
-<mapper namespace="com.ojj.sujuro.dashboard.DashboardMapper">
+<mapper namespace="com.ojj.sujuro.dashboard.mapper.DashboardMapper">
 
   <!-- 로그인한 사용자의 소속 팀 -->
   <sql id="myTeam">(SELECT U.TEAM_SN FROM TB_USER U WHERE U.USER_ID = #{userId})</sql>
@@ -31,7 +31,7 @@
   </sql>
 
   <!-- ===== 영업부 ===== -->
-  <select id="salesCounts" resultType="com.ojj.sujuro.dashboard.DashboardRows$SalesCounts">
+  <select id="salesCounts" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$SalesCounts">
     SELECT NVL(SUM(CASE WHEN PBANC_STTS_CD = 'PS010' AND PBANC_STEP_CD = 'PP030' THEN 1 ELSE 0 END), 0) AS assignWait,
            NVL(SUM(CASE WHEN PBANC_STTS_CD = 'PS020' THEN 1 ELSE 0 END), 0) AS awaitingTeam,
            NVL(SUM(CASE WHEN PBANC_STTS_CD = 'PS010' AND RTRN_SE_CD IS NOT NULL THEN 1 ELSE 0 END), 0) AS returned,
@@ -39,7 +39,7 @@
       FROM TB_BID_PBANC
   </select>
 
-  <select id="salesTodo" resultType="com.ojj.sujuro.dashboard.DashboardRows$Bid">
+  <select id="salesTodo" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$Bid">
     SELECT <include refid="bidCols"/>
     <include refid="bidJoins"/>
      WHERE (P.PBANC_STTS_CD = 'PS010' AND P.PBANC_STEP_CD = 'PP030') OR P.PBANC_STTS_CD = 'PS020'
@@ -48,7 +48,7 @@
   </select>
 
   <!-- ===== 팀장 ===== -->
-  <select id="leaderCounts" resultType="com.ojj.sujuro.dashboard.DashboardRows$LeaderCounts">
+  <select id="leaderCounts" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$LeaderCounts">
     SELECT (SELECT COUNT(*) FROM TB_BID_PBANC P
              WHERE P.PBANC_STTS_CD = 'PS020' AND P.SPRVSN_TEAM_SN = <include refid="myTeam"/>) AS decisionWait,
            (SELECT COUNT(*) FROM TB_BID_PBANC P
@@ -61,7 +61,7 @@
       FROM DUAL
   </select>
 
-  <select id="leaderDecisionWait" resultType="com.ojj.sujuro.dashboard.DashboardRows$Bid">
+  <select id="leaderDecisionWait" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$Bid">
     SELECT <include refid="bidCols"/>
     <include refid="bidJoins"/>
      WHERE P.PBANC_STTS_CD = 'PS020' AND P.SPRVSN_TEAM_SN = <include refid="myTeam"/>
@@ -69,7 +69,7 @@
      FETCH FIRST 30 ROWS ONLY
   </select>
 
-  <select id="teamProposals" resultType="com.ojj.sujuro.dashboard.DashboardRows$Bid">
+  <select id="teamProposals" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$Bid">
     SELECT <include refid="bidCols"/>
     <include refid="bidJoins"/>
      WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040', 'PS050') AND <include refid="myTeamBid"/>
@@ -78,7 +78,7 @@
   </select>
 
   <!-- ===== 팀원 ===== -->
-  <select id="myTocs" resultType="com.ojj.sujuro.dashboard.DashboardRows$MyToc">
+  <select id="myTocs" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$MyToc">
     SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, T.TOC_NO AS tocNo, T.TOC_NM AS tocNm,
            T.EXPC_PAGE_CNT AS expcPageCnt, C.CD_NM AS tocStatusNm,
            (SELECT COUNT(*) FROM TB_ATCH_FILE F WHERE F.TOC_SN = T.TOC_SN) AS fileCnt,
@@ -94,7 +94,7 @@
   </select>
 
   <!-- ===== 경영지원실 ===== -->
-  <select id="docRows" resultType="com.ojj.sujuro.dashboard.DashboardRows$DocRow">
+  <select id="docRows" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$DocRow">
     SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, TM.TEAM_NM AS teamNm,
            (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D WHERE D.PBANC_SN = P.PBANC_SN) AS docTotal,
            (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D WHERE D.PBANC_SN = P.PBANC_SN AND D.PRGRS_STTS_CD = 'DS030') AS docReady,
@@ -113,7 +113,7 @@
   </select>
 
   <!-- ===== 팀별 현황 ===== -->
-  <select id="teamStats" resultType="com.ojj.sujuro.dashboard.DashboardRows$TeamStat">
+  <select id="teamStats" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$TeamStat">
     SELECT TM.TEAM_NM AS teamNm,
            NVL(SUM(CASE WHEN P.PBANC_STTS_CD = 'PS020' THEN 1 ELSE 0 END), 0) AS assigned,
            NVL(SUM(CASE WHEN P.PBANC_STTS_CD IN ('PS030', 'PS040') THEN 1 ELSE 0 END), 0) AS inProgress,

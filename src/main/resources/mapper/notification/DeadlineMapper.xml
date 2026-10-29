@@ -4,10 +4,10 @@
   마감 임박 알림 SQL (FR-031, NFR-017). 테이블: TB_BID_PBANC, TB_NOTI, TB_USER (db/01_schema.sql)
   같은 알림을 두 번 보내지 않도록 알림 내용 맨 앞의 표시([D-3], [D-1])로 보낸 적이 있는지 확인한다.
 -->
-<mapper namespace="com.ojj.sujuro.notification.DeadlineMapper">
+<mapper namespace="com.ojj.sujuro.notification.mapper.DeadlineMapper">
 
   <!-- 참여 확정(PS030)·제안 작성 중(PS040)인 사업건만. 제출 완료 이후와 불참은 제외 -->
-  <select id="findTargets" resultType="com.ojj.sujuro.notification.DeadlineTarget">
+  <select id="findTargets" resultType="com.ojj.sujuro.notification.dto.DeadlineTarget">
     SELECT PBANC_SN AS pbancSn,
            PBANC_NM AS pbancNm,
            TO_CHAR(BID_DDLN_DT, 'YYYY-MM-DD HH24:MI') AS ddlnText
@@ -27,7 +27,7 @@
        AND NOTI_CN LIKE #{tag} || '%'
   </select>
 
-  <select id="findPendingMails" resultType="com.ojj.sujuro.notification.PendingMail">
+  <select id="findPendingMails" resultType="com.ojj.sujuro.notification.dto.PendingMail">
     SELECT N.NOTI_SN AS notiSn, U.EML_ADDR AS emlAddr, N.NOTI_CN AS content
       FROM TB_NOTI N
       JOIN TB_USER U ON U.USER_ID = N.RCVR_ID

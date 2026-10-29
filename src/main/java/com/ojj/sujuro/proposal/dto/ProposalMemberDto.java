@@ -52,7 +52,7 @@ public class ProposalMemberDto {
 
     /** 팀장인지 (제안팀 구성 표시용) */
     public boolean isLeader() {
-        return com.ojj.sujuro.auth.Role.CD_LEADER.equals(authrtCd);
+        return com.ojj.sujuro.auth.code.Role.CD_LEADER.equals(authrtCd);
     }
 
     /** 담당자 선택 목록에 보여 줄 이름 */

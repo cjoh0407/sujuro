@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <!-- 알림 SQL (FR-030 ~ FR-034). 테이블: TB_NOTI, TB_USER, TB_PRP_TMMBR (db/01_schema.sql) -->
-<mapper namespace="com.ojj.sujuro.notification.NotificationMapper">
+<mapper namespace="com.ojj.sujuro.notification.mapper.NotificationMapper">
 
   <insert id="insert">
     INSERT INTO TB_NOTI (RCVR_ID, PBANC_SN, NOTI_TYPE_CD, NOTI_CN)

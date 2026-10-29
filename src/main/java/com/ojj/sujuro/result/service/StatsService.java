@@ -1,6 +1,6 @@
 package com.ojj.sujuro.result.service;
 
-import com.ojj.sujuro.auth.LoginUser;
+import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.result.dto.StatsArchiveDTO;
 import com.ojj.sujuro.result.dto.StatsFileDTO;
 import com.ojj.sujuro.result.dto.StatsViewDTO;

@@ -21,9 +21,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import com.ojj.sujuro.auth.AccessChecker;
-import com.ojj.sujuro.auth.LoginUser;
-import com.ojj.sujuro.auth.Role;
+import com.ojj.sujuro.auth.support.AccessChecker;
+import com.ojj.sujuro.auth.dto.LoginUser;
+import com.ojj.sujuro.auth.code.Role;
 import com.ojj.sujuro.common.file.FileStorage;
 import com.ojj.sujuro.proposal.dto.DocDto;
 import com.ojj.sujuro.proposal.dto.ProposalBidDto;

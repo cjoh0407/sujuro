@@ -1,7 +1,7 @@
 package com.ojj.sujuro.result.dto;
 
-import com.ojj.sujuro.result.ResultCode;
-import com.ojj.sujuro.result.StatsFormat;
+import com.ojj.sujuro.result.code.ResultCode;
+import com.ojj.sujuro.result.support.StatsFormat;
 
 import lombok.Getter;
 import lombok.Setter;

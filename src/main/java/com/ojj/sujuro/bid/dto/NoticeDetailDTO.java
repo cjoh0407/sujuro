@@ -9,7 +9,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.ojj.sujuro.bid.BidCode;
+import com.ojj.sujuro.bid.code.BidCode;
 
 import lombok.Getter;
 import lombok.Setter;

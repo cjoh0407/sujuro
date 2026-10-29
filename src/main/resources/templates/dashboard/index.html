@@ -49,7 +49,7 @@
       <div class="empty pad faint" th:if="${#lists.isEmpty(view.todoBids)}">대기 공고가 없습니다.</div>
       <div class="item" th:each="b : ${view.todoBids}">
         <span class="sl" th:text="${b.pbancNm}">공고명</span>
-        <span class="t" th:text="|${b.ddlnText ?: '-'} 마감 · ${b.ddayLabel}|">마감</span>
+        <span class="t" th:text="${b.ddlnText != null} ? |${b.ddlnText} 마감 · ${b.ddayLabel}| : '마감일 미정'">마감</span>
       </div>
     </div>
     <div class="card">
@@ -82,7 +82,7 @@
               <span class="pill success" th:if="${t.fileCnt > 0}" th:text="|파일 ${t.fileCnt}건|">파일 1건</span>
               <span class="pill warning" th:if="${t.fileCnt == 0}">미업로드</span>
             </td>
-            <td th:text="|${t.ddlnText ?: '-'} (${t.ddayLabel})|">마감</td>
+            <td th:text="${t.ddlnText != null} ? |${t.ddlnText} (${t.ddayLabel})| : '미정'">마감</td>
           </tr>
         </tbody>
       </table>

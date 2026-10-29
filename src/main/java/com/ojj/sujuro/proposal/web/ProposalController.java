@@ -240,7 +240,7 @@ public class ProposalController {
                             @RequestParam("tocSn") Long tocSn,
                             @RequestParam(value = "picId", required = false) String picId, RedirectAttributes ra) {
         return run(user, bid, tab, ra, accessChecker::requireLeadTeamLeader, b -> () -> {
-            tocService.assign(bid, tocSn, picId);
+            tocService.assign(bid, tocSn, picId, user.getEmpNo());
             return picId == null || picId.trim().isEmpty() ? "담당자 지정을 해제했습니다." : "담당자를 지정했습니다.";
         });
     }

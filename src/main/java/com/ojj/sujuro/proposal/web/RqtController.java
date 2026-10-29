@@ -46,7 +46,7 @@ public class RqtController {
     public String editRqt(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
                           @RequestParam("rqtMttrSn") Long rqtMttrSn, RqtDto rqt, RedirectAttributes ra) {
         return runReq(user, bid, ra, () -> {
-            rqtService.edit(bid, rqtMttrSn, rqt);
+            rqtService.edit(bid, rqtMttrSn, rqt, user.getEmpNo());
             return "요구사항을 수정했습니다.";
         });
     }
@@ -55,7 +55,7 @@ public class RqtController {
     public String deleteRqt(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
                             @RequestParam("rqtMttrSn") Long rqtMttrSn, RedirectAttributes ra) {
         return runReq(user, bid, ra, () -> {
-            rqtService.delete(bid, rqtMttrSn);
+            rqtService.delete(bid, rqtMttrSn, user.getEmpNo());
             return "요구사항을 삭제했습니다.";
         });
     }
@@ -72,7 +72,7 @@ public class RqtController {
             return FlashRedirect.to(ra, ProposalController.PATH, bid, null);
         }
         return runReq(user, bid, ra, () -> {
-            rqtService.map(bid, rqtMttrSn, tocSn);
+            rqtService.map(bid, rqtMttrSn, tocSn, user.getEmpNo());
             return tocSn == null ? "요구사항 연결을 해제했습니다. 미매핑으로 바뀌었습니다." : "요구사항을 목차에 연결했습니다.";
         });
     }

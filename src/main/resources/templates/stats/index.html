@@ -3,112 +3,175 @@
       xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/default}">
+<!--/*
+  통계 (FR-016, 083~088). UI 목업 v3.5 의 rStats() 화면과 같은 구성이다.
+  연도·팀 탭 → 요약 카드 5개 → 연도별 참여·수주 차트, 유형·형태별 수주율 → 평가 항목별 분석 → 과거 사업 이력.
+  경영지원실은 개발팀을 골라 보고(전체 합계 없음), 팀장은 자기 팀만 본다.
+
+  모델: view (result.dto.StatsViewDTO)
+*/-->
 <head>
   <title>통계</title>
+  <th:block layout:fragment="head">
+    <link rel="stylesheet" th:href="@{/css/stats.css}">
+  </th:block>
 </head>
 <body>
 
 <h1 layout:fragment="pageTitle">통계</h1>
 
 <th:block layout:fragment="content">
-  <div class="faint" style="margin-bottom:12px">
-    <span th:text="${view.scopeText}">전체 개발팀 통계</span> · 참여는 제출 완료 이상인 공고, 수주율은 수주 ÷ (수주 + 탈락)이며 유찰은 뺍니다.
+
+  <div class="page-head">
+    <div>
+      <h2>통계</h2>
+      <div class="sub" th:text="|${view.scopeText} · 모든 수치는 저장된 데이터에서 계산합니다|">각 팀별 통계와 사업별 결과 분석</div>
+    </div>
+    <div class="row" th:unless="${view.locked}">
+      <a class="btn" th:href="@{/stats/export}">엑셀 다운로드 (CSV)</a>
+    </div>
   </div>
 
-  <div class="banner err" th:if="${#lists.isEmpty(view.years)}" style="margin-bottom:12px">
-    집계할 사업이 아직 없습니다. 제출 완료된 공고가 생기면 여기에 나타납니다.
+  <!-- 개발팀이 아닌 팀장 등 볼 팀이 없을 때 -->
+  <div class="card" th:if="${view.locked}">
+    <div class="lock"><div style="font-size:26px">🔒</div><b th:text="${view.lockMessage}">통계는 개발팀 단위로 제공됩니다.</b></div>
   </div>
 
-  <th:block th:if="${!#lists.isEmpty(view.years)}">
+  <th:block th:unless="${view.locked}">
 
-    <!-- 연도 · 팀(경영지원실만) 선택 -->
-    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+    <!-- 연도(입찰 마감일 기준) · 팀. 팀장은 자기 팀 하나만 보인다 -->
+    <div class="row" style="justify-content:space-between">
       <div class="tabs">
         <a class="tab" th:each="y : ${view.years}" th:classappend="${y == view.year} ? 'on'"
-           th:href="${view.selectedTeamSn != null} ? @{/stats(year=${y}, team=${view.selectedTeamSn})} : @{/stats(year=${y})}"
-           th:text="${y} + '년'">2026년</a>
+           th:href="@{/stats(team=${view.teamSn}, year=${y})}" th:text="|${y}년|">2026년</a>
       </div>
-      <div class="tabs" th:if="${!#lists.isEmpty(view.teams)}">
-        <a class="tab" th:classappend="${view.selectedTeamSn == null} ? 'on'" th:href="@{/stats(year=${view.year})}">전체</a>
-        <a class="tab" th:each="t : ${view.teams}"
-           th:classappend="${view.selectedTeamSn != null and view.selectedTeamSn.toString() == t.code} ? 'on'"
-           th:href="@{/stats(year=${view.year}, team=${t.code})}" th:text="${t.name}">개발1팀</a>
+      <div class="tabs">
+        <a class="tab" th:each="t : ${view.teams}" th:classappend="${t.teamSn == view.teamSn} ? 'on'"
+           th:href="@{/stats(team=${t.teamSn}, year=${view.year})}" th:text="${t.teamNm}">개발1팀</a>
       </div>
     </div>
 
-    <!-- 연 단위 요약 (FR-083) -->
-    <div class="stats" th:if="${view.current != null}" style="margin-bottom:16px">
-      <div class="stat"><div class="l">참여</div><div class="v" th:text="${view.current.joined} + '건'">0건</div></div>
-      <div class="stat"><div class="l">수주</div><div class="v" th:text="${view.current.won} + '건'">0건</div></div>
-      <div class="stat"><div class="l">수주율</div><div class="v" th:text="${view.current.rateText}">-</div>
-        <div class="h" th:text="|탈락 ${view.current.lost} · 유찰 ${view.current.failed}|">탈락 0 · 유찰 0</div></div>
-      <div class="stat"><div class="l">수주 금액</div><div class="v" th:text="${#numbers.formatInteger(view.current.amount, 1, 'COMMA')} + '원'">0원</div></div>
+    <!-- 연 단위 요약 (FR-083, 084) -->
+    <div class="stats five" th:with="s=${view.summary}">
+      <div class="stat">
+        <div class="l" th:text="|${view.year}년 참여|">2026년 참여</div>
+        <div class="v" th:text="|${s.joined}건|">0건</div>
+        <div class="h" th:text="${view.teamNm}">개발1팀</div>
+      </div>
+      <div class="stat">
+        <div class="l" th:text="|${view.year}년 수주|">2026년 수주</div>
+        <div class="v" th:text="|${s.won}건|">0건</div>
+        <div class="h" th:text="${view.teamNm}">개발1팀</div>
+      </div>
+      <div class="stat">
+        <div class="l">수주율</div>
+        <div class="v" th:text="${s.rateText}">-</div>
+        <div class="h" th:text="|결과 등록 ${s.resultCnt}건 기준 · 유찰 ${s.failed}건 제외|">결과 등록 0건 기준</div>
+      </div>
+      <div class="stat">
+        <div class="l">수주 금액</div>
+        <div class="v" th:text="${s.wonAmtText}">0.0억</div>
+        <div class="h">수주 사업 낙찰금액 합계</div>
+      </div>
+      <div class="stat">
+        <div class="l">평균 기술점수</div>
+        <div class="v" th:text="${s.avgTechText}">-</div>
+        <div class="h" th:text="|결과 등록 ${s.resultCnt}건 평균|">결과 등록 기준</div>
+      </div>
     </div>
 
-    <!-- 연도별 -->
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-head"><h3>연도별 수주 현황</h3>
-        <a class="btn sm" th:href="@{/stats/export(section='yearly', year=${view.year}, team=${view.selectedTeamSn})}">CSV 내려받기</a></div>
-      <table th:replace="~{stats/tally :: t(${view.yearly}, '연도')}"></table>
-    </div>
+    <div class="two even">
 
-    <!-- 팀별 (FR-084) -->
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-head"><h3 th:text="${view.year} + '년 팀별'">팀별</h3>
-        <a class="btn sm" th:href="@{/stats/export(section='team', year=${view.year}, team=${view.selectedTeamSn})}">CSV 내려받기</a></div>
-      <table th:replace="~{stats/tally :: t(${view.byTeam}, '팀')}"></table>
-    </div>
-
-    <!-- 사업 유형 · 참여 형태별 (FR-085) -->
-    <div class="grid2" style="margin-bottom:16px">
+      <!-- 연도별 참여·수주 (FR-083). 좌표는 StatsChartDTO 가 계산한다 -->
       <div class="card">
-        <div class="card-head"><h3 th:text="${view.year} + '년 사업 유형별'">사업 유형별</h3>
-          <a class="btn sm" th:href="@{/stats/export(section='type', year=${view.year}, team=${view.selectedTeamSn})}">CSV</a></div>
-        <table th:replace="~{stats/tally :: t(${view.byBizType}, '사업 유형')}"></table>
+        <div class="card-head">
+          <h3 th:text="|연도별 참여·수주 (${view.teamNm})|">연도별 참여·수주</h3>
+          <span class="legend"><span class="sw s-join"></span>참여<span class="sw s-won"></span>수주</span>
+        </div>
+        <div class="pad" th:with="c=${view.chart}">
+          <svg class="chart" viewBox="0 0 300 210" role="img" th:attr="aria-label=${c.ariaLabel}">
+            <g th:each="g : ${c.gridLines}">
+              <line class="grid" th:x1="${c.axisLeft}" th:x2="${c.axisRight}" th:y1="${g.y}" th:y2="${g.y}"></line>
+              <text class="tick" th:x="${c.tickX}" th:y="${g.y}" dy="3" text-anchor="end" th:text="${g.label}">0</text>
+            </g>
+            <g th:each="yg : ${c.groups}">
+              <g class="bar" th:each="b : ${yg.bars}">
+                <title th:text="${b.title}">2026년 참여 0건</title>
+                <rect class="hit" th:x="${b.hitX}" th:y="${b.hitY}" th:width="${b.hitWidth}" th:height="${b.hitHeight}"></rect>
+                <path th:unless="${#strings.isEmpty(b.path)}" th:class="${b.cls}" th:attr="d=${b.path}"></path>
+                <text class="val" th:x="${b.labelX}" th:y="${b.labelY}" text-anchor="middle" th:text="${b.value}">0</text>
+              </g>
+              <text class="yr" th:classappend="${yg.selected} ? 'on'" th:x="${yg.labelX}" th:y="${c.yearLabelY}"
+                    text-anchor="middle" th:text="${yg.label}">2026년</text>
+            </g>
+          </svg>
+        </div>
       </div>
+
+      <!-- 사업 유형·참여 형태별 수주율 (FR-085) -->
       <div class="card">
-        <div class="card-head"><h3 th:text="${view.year} + '년 참여 형태별'">참여 형태별</h3>
-          <a class="btn sm" th:href="@{/stats/export(section='shape', year=${view.year}, team=${view.selectedTeamSn})}">CSV</a></div>
-        <table th:replace="~{stats/tally :: t(${view.byShape}, '참여 형태')}"></table>
+        <div class="card-head"><h3 th:text="|사업 유형·참여 형태별 수주율 (${view.year}년)|">사업 유형·참여 형태별 수주율</h3></div>
+        <div class="pad">
+          <div class="rate-group">
+            <div class="lbl">사업 유형</div>
+            <div class="lossrow rate" th:each="r : ${view.bizTypeRates}">
+              <b th:text="${r.label}">SI</b>
+              <div class="bar"><i th:style="|width:${r.barWidth}%|"></i></div>
+              <span class="mono" th:text="${r.rateText}">결과 없음</span>
+            </div>
+          </div>
+          <div class="rate-group">
+            <div class="lbl">참여 형태</div>
+            <div class="lossrow rate" th:each="r : ${view.ptcpShpRates}">
+              <b th:text="${r.label}">주관</b>
+              <div class="bar"><i th:style="|width:${r.barWidth}%|"></i></div>
+              <span class="mono" th:text="${r.rateText}">결과 없음</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 평가 항목별 (FR-086) -->
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-head"><h3 th:text="${view.year} + '년 평가 항목별 득점률 (낮은 순)'">평가 항목별</h3>
-        <a class="btn sm" th:href="@{/stats/export(section='article', year=${view.year}, team=${view.selectedTeamSn})}">CSV 내려받기</a></div>
-      <table>
-        <thead><tr><th>평가 항목</th><th>평균 득점률</th><th>집계 공고</th></tr></thead>
-        <tbody>
-          <tr th:if="${#lists.isEmpty(view.articles)}"><td colspan="3" class="faint">평가표가 등록된 사업이 없습니다. 유찰 건은 점수가 없어 뺍니다.</td></tr>
-          <tr th:each="a, st : ${view.articles}">
-            <td th:text="${a.artclNm}">기술 이해도</td>
-            <td><b th:text="${a.rate} + '%'">0%</b><span class="faint" th:if="${st.first}"> · 가장 약한 항목</span></td>
-            <td th:text="${a.cnt} + '건'">0건</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- 과거 사업 이력 (FR-087) -->
+    <!-- 평가 항목별 분석 (FR-086). 득점률이 낮은 순, 맨 위가 약한 항목 -->
     <div class="card">
-      <div class="card-head"><h3 th:text="${view.year} + '년 사업 이력'">사업 이력</h3>
-        <a class="btn sm" th:href="@{/stats/export(section='history', year=${view.year}, team=${view.selectedTeamSn})}">CSV 내려받기</a></div>
-      <table>
-        <thead><tr><th>사업명</th><th>발주기관</th><th>담당 팀</th><th>예산</th><th>결과</th><th>제안서</th><th>입찰 마감</th></tr></thead>
-        <tbody>
-          <tr th:if="${#lists.isEmpty(view.history)}"><td colspan="7" class="faint">이 해의 사업이 없습니다.</td></tr>
-          <tr th:each="h : ${view.history}">
-            <td th:text="${h.pbancNm}">사업명</td>
-            <td th:text="${h.orderInstNm ?: '-'}">발주기관</td>
-            <td th:text="${h.teamNm ?: '-'}">개발1팀</td>
-            <td th:text="${h.budget != null} ? ${#numbers.formatInteger(h.budget, 1, 'COMMA')} + '원' : '-'">0원</td>
-            <td th:text="${h.resultNm}">수주</td>
-            <td th:text="${h.keptYn == 'Y'} ? '보관' : '없음'">보관</td>
-            <td th:text="${h.ddlnText ?: '-'}">2026-10-29</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="card-head">
+        <h3 th:text="|평가 항목별 분석 (${view.year}년 · ${view.teamNm})|">평가 항목별 분석</h3>
+        <span class="faint" style="font-size:11.5px" th:text="|평가표가 올라온 공고만 대상 · ${view.articleBidCnt}건|">평가표가 올라온 공고만 대상</span>
+      </div>
+      <div class="pad">
+        <div class="lossrow" th:each="a, st : ${view.articles}">
+          <span><span th:text="${a.catNm}">기술 이해도</span>
+            <span class="pill danger" th:if="${st.first and st.size > 1}">약한 항목</span></span>
+          <div class="bar" th:classappend="${a.low} ? 'red' : 'ok'"><i th:style="|width:${a.rate}%|"></i></div>
+          <span class="mono" th:text="|평균 득점률 ${a.rateText}|">평균 득점률 0%</span>
+        </div>
+        <div class="empty" th:if="${#lists.isEmpty(view.articles)}"
+             th:text="|${view.year}년 ${view.teamNm}의 점수가 입력된 사업이 없습니다.|">점수가 입력된 사업이 없습니다.</div>
+      </div>
+    </div>
+
+    <!-- 과거 사업 이력 (FR-087). 결과가 등록된 사업, 연도 상관없이 -->
+    <div class="card">
+      <div class="card-head">
+        <h3 th:text="|과거 사업 이력 (${view.teamNm})|">과거 사업 이력</h3>
+        <span class="faint" style="font-size:11.5px">사업명을 누르면 사업별 결과 분석으로 이동합니다</span>
+      </div>
+      <div class="ts">
+        <table>
+          <thead><tr><th>사업명</th><th>발주기관</th><th>담당 팀</th><th>예산</th><th>결과</th><th>제안서 보관</th></tr></thead>
+          <tbody>
+            <tr class="hv" th:each="h : ${view.history}">
+              <td><a class="sl" th:href="@{/stats/bids/{sn}(sn=${h.pbancSn})}" th:text="${h.pbancNm}">사업명</a></td>
+              <td class="muted" th:text="${h.orderInstNm ?: '-'}">발주기관</td>
+              <td th:text="${h.teamNm}">개발1팀</td>
+              <td class="mono" th:text="${h.budgetText}">0.0억</td>
+              <td><span class="pill" th:classappend="${h.won} ? 'success' : 'neutral'" th:text="${h.rsltNm}">수주</span></td>
+              <td th:text="${h.finalFileKept} ? '📎 있음' : '—'">—</td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(view.history)}"><td colspan="6" class="empty">결과가 등록된 사업이 없습니다.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
   </th:block>

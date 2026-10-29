@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<!--/*
+  사업별 결과 분석 (FR-080, 081, 087). UI 목업 v3.5 의 rArchive() 화면과 같은 구성이다.
+  통계의 과거 사업 이력에서 사업명을 누르면 온다. 경영지원실은 모든 개발팀, 팀장은 자기 팀 사업만 본다.
+
+  모델: archive (result.dto.StatsArchiveDTO)
+*/-->
+<head>
+  <title>사업별 결과 분석</title>
+  <th:block layout:fragment="head">
+    <link rel="stylesheet" th:href="@{/css/stats.css}">
+  </th:block>
+</head>
+<body>
+
+<h1 layout:fragment="pageTitle">사업별 결과 분석</h1>
+
+<th:block layout:fragment="content">
+
+  <div class="crumb"><a class="link" th:href="@{/stats(team=${archive.teamSn})}">통계</a> / 사업별 결과 분석</div>
+
+  <!-- 사업 타이틀 (NFR-023) -->
+  <div class="page-head">
+    <div>
+      <h2 th:text="${archive.pbancNm}">사업명</h2>
+      <div class="sub" th:text="|${archive.orderInstNm ?: '-'} · ${archive.teamNm}|">발주기관 · 개발1팀</div>
+    </div>
+    <div class="row">
+      <span class="pill" th:classappend="${archive.won} ? 'success' : 'neutral'" th:text="${archive.rsltNm}">수주</span>
+    </div>
+  </div>
+
+  <div class="two even">
+    <div class="card">
+      <div class="card-head"><h3>공고 기본 정보</h3></div>
+      <div class="info-grid">
+        <div><div class="k">발주기관</div><div class="v" th:text="${archive.orderInstNm ?: '-'}">발주기관</div></div>
+        <div><div class="k">사업 유형</div><div class="v" th:text="${archive.bizTypeNm ?: '미지정'}">SI</div></div>
+        <div><div class="k">참여 형태</div><div class="v" th:text="${archive.ptcpShpNm ?: '미지정'}">주관</div></div>
+        <div><div class="k">예산</div><div class="v" th:text="${archive.budgetText}">0.0억</div></div>
+        <div><div class="k">담당 팀</div><div class="v" th:text="${archive.teamNm}">개발1팀</div></div>
+        <div><div class="k">제출 마감</div>
+          <div class="v" th:text="${archive.bidDdlnDt != null} ? ${#dates.format(archive.bidDdlnDt, 'yyyy-MM-dd')} : '-'">2026-09-24</div></div>
+        <div><div class="k">결과</div><div class="v"><b th:text="${archive.resultText}">수주 · 1위</b></div></div>
+        <div><div class="k">PM / 투입</div><div class="v" th:text="${archive.staffText}">-</div></div>
+      </div>
+    </div>
+
+    <!-- 팀장이 최종본으로 확정한 제안서 통합본 -->
+    <div class="card">
+      <div class="card-head"><h3>제출 산출물</h3></div>
+      <div class="item" th:if="${archive.finalFile}" th:with="f=${archive.finalFile}">
+        <span>📄</span>
+        <div>
+          <b th:text="${f.orgnlFileNm}">최종제안서.pdf</b>
+          <div class="faint" style="font-size:11.5px"
+               th:text="|최종본 · 확정 ${f.dcsmkrNm ?: '-'}${f.cfmtnDt != null ? ' · ' + #dates.format(f.cfmtnDt, 'yyyy-MM-dd HH:mm') : ''}|">최종본</div>
+        </div>
+        <span class="t"><a class="btn sm" th:href="@{/stats/bids/{sn}/final-file(sn=${archive.pbancSn})}">내려받기</a></span>
+      </div>
+      <div class="empty" th:unless="${archive.finalFile}">보관된 제출 파일이 없습니다.</div>
+    </div>
+  </div>
+
+  <div class="two even">
+    <div class="card">
+      <div class="card-head"><h3>점수 (나라장터 평가 결과 기준)</h3></div>
+      <div class="pad">
+        <div class="lossrow score" th:each="s : ${archive.scores}">
+          <b th:text="${s.label}">기술점수</b>
+          <div class="bar"><i th:style="|width:${s.width}%|"></i></div>
+          <span class="mono" th:text="${s.text}">0 / 90</span>
+        </div>
+        <div class="faint" style="font-size:11.5px" th:if="${archive.techMaxAssumed}">
+          평가표에서 기술 배점을 읽지 못해 기술 90 : 가격 10 으로 보고 만점을 정했습니다.
+        </div>
+      </div>
+    </div>
+
+    <!-- 평가 항목(대분류)별 득점률. 평가표 순서 -->
+    <div class="card">
+      <div class="card-head"><h3>평가 항목별 득점률</h3></div>
+      <div class="pad">
+        <div class="lossrow" th:each="a : ${archive.articles}">
+          <span th:text="${a.catNm}">기술 이해도</span>
+          <div class="bar" th:classappend="${a.low} ? 'red' : 'ok'"><i th:style="|width:${a.rate}%|"></i></div>
+          <span class="mono" th:text="|득점률 ${a.rateText}|">득점률 0%</span>
+        </div>
+        <div class="empty" th:if="${#lists.isEmpty(archive.articles)}">평가표가 올라오지 않아 항목별 점수가 없습니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 장단점 분석 (FR-081). 경영지원실이 평가·결과 입력에서 적는다 -->
+  <div class="card">
+    <div class="card-head"><h3>장단점 분석</h3></div>
+    <div class="pad grid3">
+      <div>
+        <div class="lbl">강점</div>
+        <div class="note" th:if="${archive.strptCn}" th:text="${archive.strptCn}">강점</div>
+        <div class="note faint" th:unless="${archive.strptCn}">기록 없음</div>
+      </div>
+      <div>
+        <div class="lbl">탈락·감점 원인</div>
+        <div class="note" th:if="${archive.sbptCsCn}" th:text="${archive.sbptCsCn}">감점 원인</div>
+        <div class="note faint" th:unless="${archive.sbptCsCn}">기록 없음</div>
+      </div>
+      <div>
+        <div class="lbl">차기 보완점</div>
+        <div class="note" th:if="${archive.splmntCn}" th:text="${archive.splmntCn}">보완점</div>
+        <div class="note faint" th:unless="${archive.splmntCn}">기록 없음</div>
+      </div>
+    </div>
+  </div>
+
+</th:block>
+
+</body>
+</html>

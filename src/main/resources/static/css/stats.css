@@ -1,0 +1,43 @@
+/*
+  통계 · 사업별 결과 분석 화면 전용 (templates/stats). 공통 모양은 common.css 를 쓴다.
+
+  차트 색: 참여 = --chart-join, 수주 = --chart-won.
+  밝은 화면은 common.css 의 --accent · --success 그대로, 어두운 화면은 차트 바탕(#171C23)에서
+  밝기 범위와 색약 구분을 통과하도록 조금 어둡게 잡은 값이다 (dataviz validate_palette 로 확인, 2026-10-29).
+*/
+:root{--chart-join:var(--accent);--chart-won:var(--success)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--chart-join:#5B84E8;--chart-won:#3BA676}}
+:root[data-theme="dark"]{--chart-join:#5B84E8;--chart-won:#3BA676}
+
+/* 요약 카드 5칸 */
+.stats.five{grid-template-columns:repeat(5,1fr)}
+
+/* 두 카드를 같은 너비·같은 높이로 */
+.two.even{grid-template-columns:1fr 1fr;align-items:stretch}
+
+/* 연도별 참여·수주 막대 차트 (StatsChartDTO 가 좌표를 계산한다) */
+.chart{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
+.chart .grid{stroke:var(--border);stroke-width:1}
+.chart .tick{font-size:9px;fill:var(--faint)}
+.chart .s-join{fill:var(--chart-join)}
+.chart .s-won{fill:var(--chart-won)}
+.chart .val{font-size:9.5px;fill:var(--muted)}
+.chart .yr{font-size:11px;fill:var(--faint)}
+.chart .yr.on{fill:var(--accent);font-weight:700}
+.chart .hit{fill:transparent}
+.chart .bar:hover .hit{fill:var(--alt)}
+.legend{font-size:11.5px;color:var(--faint);display:inline-flex;align-items:center;gap:4px}
+.legend .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-left:6px}
+.legend .sw.s-join{background:var(--chart-join)}
+.legend .sw.s-won{background:var(--chart-won)}
+
+/* 유형·형태별 수주율, 점수 막대: 이름 칸을 좁게 */
+.lossrow.rate{grid-template-columns:110px 1fr 120px}
+.lossrow.score{grid-template-columns:90px 1fr 110px}
+.rate-group + .rate-group{margin-top:10px}
+
+/* 장단점 분석은 입력한 줄바꿈을 그대로 보여 준다 */
+.note{font-size:12.5px;margin-top:4px;white-space:pre-line}
+
+@media (max-width:1100px){.stats.five{grid-template-columns:repeat(2,1fr)}.two.even{grid-template-columns:1fr}}
+@media (max-width:860px){.stats.five{grid-template-columns:1fr}}

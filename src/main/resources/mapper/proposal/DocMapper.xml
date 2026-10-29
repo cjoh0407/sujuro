@@ -6,7 +6,7 @@
   파일 삭제는 DEL_YN='Y'로 숨기기만 한다(원본·이력 보관, NFR-009). 목록·최신 파일·파일 수는 삭제하지 않은 것만, 버전 계산은 전부 센다.
   조견표는 파일로만 주고받는다 (평가 항목은 나라장터 API로 받을 수 없어 웹 입력(FR-071)과 TB_EVL_TOC_MPNG는 쓰지 않는다, 10/27 결정)
 -->
-<mapper namespace="com.ojj.sujuro.proposal.doc.DocMapper">
+<mapper namespace="com.ojj.sujuro.proposal.mapper.DocMapper">
 
   <!-- ===== 사업건 ===== -->
 
@@ -26,7 +26,7 @@
       WHERE P.PBANC_SN = B.PBANC_SN)                        AS ptcpTeamNms
   </sql>
 
-  <select id="findBidsForMgmt" resultType="com.ojj.sujuro.proposal.bid.ProposalBidDto">
+  <select id="findBidsForMgmt" resultType="com.ojj.sujuro.proposal.dto.ProposalBidDto">
     SELECT <include refid="bidCols"/>
       FROM TB_BID_PBANC B
       LEFT JOIN TB_COM_CD C ON C.GROUP_CD = 'PBSTS' AND C.CD = B.PBANC_STTS_CD
@@ -35,7 +35,7 @@
      ORDER BY B.PBANC_SN DESC
   </select>
 
-  <select id="findBid" resultType="com.ojj.sujuro.proposal.bid.ProposalBidDto">
+  <select id="findBid" resultType="com.ojj.sujuro.proposal.dto.ProposalBidDto">
     SELECT <include refid="bidCols"/>
       FROM TB_BID_PBANC B
       LEFT JOIN TB_COM_CD C ON C.GROUP_CD = 'PBSTS' AND C.CD = B.PBANC_STTS_CD
@@ -43,7 +43,7 @@
      WHERE B.PBANC_SN = #{pbancSn}
   </select>
 
-  <select id="findSubmission" resultType="com.ojj.sujuro.proposal.doc.SubmissionDto">
+  <select id="findSubmission" resultType="com.ojj.sujuro.proposal.dto.SubmissionDto">
     SELECT B.PBANC_SN AS pbancSn, B.PBANC_STTS_CD AS pbancSttsCd, B.SBMSN_DT AS sbmsnDt,
            B.PRSNR_ID AS prsnrId, U.USER_NM AS prsnrNm
       FROM TB_BID_PBANC B
@@ -78,20 +78,20 @@
       LEFT JOIN TB_USER FU ON FU.USER_ID = F.RGTR_ID
   </sql>
 
-  <select id="findDocs" resultType="com.ojj.sujuro.proposal.doc.DocDto">
+  <select id="findDocs" resultType="com.ojj.sujuro.proposal.dto.DocDto">
     SELECT <include refid="docCols"/>
     <include refid="docFrom"/>
      WHERE D.PBANC_SN = #{pbancSn}
      ORDER BY CASE WHEN D.ESNTL_YN = 'Y' THEN 0 ELSE 1 END, D.DCMNT_SN
   </select>
 
-  <select id="findDoc" resultType="com.ojj.sujuro.proposal.doc.DocDto">
+  <select id="findDoc" resultType="com.ojj.sujuro.proposal.dto.DocDto">
     SELECT <include refid="docCols"/>
     <include refid="docFrom"/>
      WHERE D.DCMNT_SN = #{dcmntSn}
   </select>
 
-  <insert id="insertDoc" parameterType="com.ojj.sujuro.proposal.doc.DocDto" useGeneratedKeys="true" keyProperty="dcmntSn" keyColumn="DCMNT_SN">
+  <insert id="insertDoc" parameterType="com.ojj.sujuro.proposal.dto.DocDto" useGeneratedKeys="true" keyProperty="dcmntSn" keyColumn="DCMNT_SN">
     INSERT INTO TB_SBMSN_DCMNT (PBANC_SN, DCMNT_NM, ESNTL_YN, TKCG_SE_CD, PRGRS_STTS_CD, SBMSN_DDLN_DT)
     VALUES (#{pbancSn}, #{dcmntNm}, #{esntlYn}, #{tkcgSeCd}, 'DS010', #{sbmsnDdlnDt, jdbcType=DATE})
   </insert>
@@ -134,14 +134,14 @@
       LEFT JOIN TB_SBMSN_DCMNT DC ON DC.DCMNT_SN = F.DCMNT_SN
   </sql>
 
-  <select id="findCheatFiles" resultType="com.ojj.sujuro.proposal.file.PrpFileDto">
+  <select id="findCheatFiles" resultType="com.ojj.sujuro.proposal.dto.PrpFileDto">
     SELECT <include refid="fileCols"/>
     <include refid="fileFrom"/>
      WHERE F.PBANC_SN = #{pbancSn} AND F.FILE_SE_CD = 'FL060' AND F.DEL_YN = 'N'
      ORDER BY F.FILE_SN DESC
   </select>
 
-  <select id="findDeletedFiles" resultType="com.ojj.sujuro.proposal.file.PrpFileDto">
+  <select id="findDeletedFiles" resultType="com.ojj.sujuro.proposal.dto.PrpFileDto">
     SELECT <include refid="fileCols"/>
     <include refid="fileFrom"/>
      WHERE F.PBANC_SN = #{pbancSn} AND F.FILE_SE_CD IN ('FL050', 'FL060') AND F.DEL_YN = 'Y'
@@ -158,7 +158,7 @@
     SELECT COUNT(*) FROM TB_ATCH_FILE WHERE PBANC_SN = #{pbancSn} AND FILE_SE_CD = 'FL060'
   </select>
 
-  <select id="findFile" resultType="com.ojj.sujuro.proposal.file.PrpFileDto">
+  <select id="findFile" resultType="com.ojj.sujuro.proposal.dto.PrpFileDto">
     SELECT <include refid="fileCols"/>
     <include refid="fileFrom"/>
      WHERE F.FILE_SN = #{fileSn}

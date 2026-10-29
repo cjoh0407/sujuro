@@ -6,7 +6,7 @@
   같은 대상에 다시 올리면 새 행으로 쌓고 이전 버전은 지우지 않는다. (FR-059, NFR-009)
   화면의 삭제는 DEL_YN='Y'로 숨기기만 한다. 목록은 DEL_YN='N'만, 버전·차수 계산은 삭제한 것까지 센다.
 -->
-<mapper namespace="com.ojj.sujuro.proposal.file.PrpFileMapper">
+<mapper namespace="com.ojj.sujuro.proposal.mapper.PrpFileMapper">
 
   <sql id="fileCols">
     F.FILE_SN AS fileSn, F.PBANC_SN AS pbancSn, F.FILE_SE_CD AS fileSeCd, F.TOC_SN AS tocSn,
@@ -28,7 +28,7 @@
       LEFT JOIN TB_TOC T ON T.TOC_SN = F.TOC_SN
   </sql>
 
-  <select id="findByBid" resultType="com.ojj.sujuro.proposal.file.PrpFileDto">
+  <select id="findByBid" resultType="com.ojj.sujuro.proposal.dto.PrpFileDto">
     SELECT <include refid="fileCols"/>
     <include refid="fileFrom"/>
      WHERE F.PBANC_SN = #{pbancSn}
@@ -37,7 +37,7 @@
      ORDER BY F.TOC_SN, F.INTG_CYCL DESC, F.FILE_SN DESC
   </select>
 
-  <select id="findDeleted" resultType="com.ojj.sujuro.proposal.file.PrpFileDto">
+  <select id="findDeleted" resultType="com.ojj.sujuro.proposal.dto.PrpFileDto">
     SELECT <include refid="fileCols"/>
     <include refid="fileFrom"/>
      WHERE F.PBANC_SN = #{pbancSn}
@@ -46,7 +46,7 @@
      ORDER BY F.DEL_DT DESC, F.FILE_SN DESC
   </select>
 
-  <select id="findOne" resultType="com.ojj.sujuro.proposal.file.PrpFileDto">
+  <select id="findOne" resultType="com.ojj.sujuro.proposal.dto.PrpFileDto">
     SELECT <include refid="fileCols"/>
     <include refid="fileFrom"/>
      WHERE F.FILE_SN = #{fileSn}
@@ -74,7 +74,7 @@
      WHERE PBANC_SN = #{pbancSn} AND FILE_SE_CD = 'FL030'
   </select>
 
-  <insert id="insert" parameterType="com.ojj.sujuro.proposal.file.PrpFileDto" useGeneratedKeys="true" keyProperty="fileSn" keyColumn="FILE_SN">
+  <insert id="insert" parameterType="com.ojj.sujuro.proposal.dto.PrpFileDto" useGeneratedKeys="true" keyProperty="fileSn" keyColumn="FILE_SN">
     INSERT INTO TB_ATCH_FILE (PBANC_SN, FILE_SE_CD, TOC_SN, INTG_CYCL, VER_NO, LAST_YN,
                               ORGNL_FILE_NM, STRG_FILE_NM, FILE_PATH_NM, FILE_SZ, FILE_EXTN_NM, MEMO_CN, RGTR_ID)
     VALUES (#{pbancSn}, #{fileSeCd}, #{tocSn, jdbcType=NUMERIC}, #{intgCycl, jdbcType=NUMERIC}, #{verNo}, 'N',

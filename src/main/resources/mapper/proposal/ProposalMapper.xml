@@ -5,7 +5,7 @@
   사용 테이블: TB_BID_PBANC, TB_PRP_TMMBR, TB_PTCP_TEAM, TB_TEAM, TB_USER, TB_TOC, TB_COM_CD(PBSTS)
   주관팀 = TB_BID_PBANC.SPRVSN_TEAM_SN (개발하는 팀), 참여팀 = TB_PTCP_TEAM (제안서 작성을 함께하는 팀)
 -->
-<mapper namespace="com.ojj.sujuro.proposal.bid.ProposalMapper">
+<mapper namespace="com.ojj.sujuro.proposal.mapper.ProposalMapper">
 
   <sql id="bidCols">
     B.PBANC_SN       AS pbancSn,
@@ -23,7 +23,7 @@
   </sql>
 
   <!-- 내가 제안팀원인 사업건만 (제안팀에 없으면 볼 수 없다) -->
-  <select id="findMyBids" resultType="com.ojj.sujuro.proposal.bid.ProposalBidDto">
+  <select id="findMyBids" resultType="com.ojj.sujuro.proposal.dto.ProposalBidDto">
     SELECT <include refid="bidCols"/>
       FROM TB_BID_PBANC B
       JOIN TB_PRP_TMMBR M ON M.PBANC_SN = B.PBANC_SN AND M.USER_ID = #{userId}
@@ -32,7 +32,7 @@
      ORDER BY B.PBANC_SN DESC
   </select>
 
-  <select id="findBid" resultType="com.ojj.sujuro.proposal.bid.ProposalBidDto">
+  <select id="findBid" resultType="com.ojj.sujuro.proposal.dto.ProposalBidDto">
     SELECT <include refid="bidCols"/>
       FROM TB_BID_PBANC B
       LEFT JOIN TB_COM_CD C ON C.GROUP_CD = 'PBSTS' AND C.CD = B.PBANC_STTS_CD
@@ -45,7 +45,7 @@
   </select>
 
   <!-- 목차 담당자 후보: 주관팀(PT010)·참여팀(PT020) 인원, 비활성(AS050) 계정 제외 (FR-049) -->
-  <select id="findMembers" resultType="com.ojj.sujuro.proposal.bid.ProposalMemberDto">
+  <select id="findMembers" resultType="com.ojj.sujuro.proposal.dto.ProposalMemberDto">
     SELECT U.USER_ID AS userId, U.USER_NM AS userNm, U.TEAM_SN AS teamSn, T.TEAM_NM AS teamNm, M.PTCP_SE_CD AS ptcpSeCd, U.AUTHRT_CD AS authrtCd
       FROM TB_PRP_TMMBR M
       JOIN TB_USER U ON U.USER_ID = M.USER_ID
@@ -64,7 +64,7 @@
   </sql>
 
   <!-- 추가 후보: 개발부(DP030) 팀장(AU030)·팀원(AU040), 비활성(AS050) 제외, 이미 제안팀(수행인력 포함)인 사람 제외. 주관팀 인원 먼저 -->
-  <select id="findAddableUsers" resultType="com.ojj.sujuro.proposal.bid.ProposalMemberDto">
+  <select id="findAddableUsers" resultType="com.ojj.sujuro.proposal.dto.ProposalMemberDto">
     SELECT <include refid="userCols"/>
       FROM TB_USER U
       JOIN TB_TEAM T ON T.TEAM_SN = U.TEAM_SN
@@ -76,14 +76,14 @@
               T.TEAM_NM, U.USER_NM
   </select>
 
-  <select id="findUser" resultType="com.ojj.sujuro.proposal.bid.ProposalMemberDto">
+  <select id="findUser" resultType="com.ojj.sujuro.proposal.dto.ProposalMemberDto">
     SELECT <include refid="userCols"/>
       FROM TB_USER U
       LEFT JOIN TB_TEAM T ON T.TEAM_SN = U.TEAM_SN
      WHERE U.USER_ID = #{userId}
   </select>
 
-  <select id="findMember" resultType="com.ojj.sujuro.proposal.bid.ProposalMemberDto">
+  <select id="findMember" resultType="com.ojj.sujuro.proposal.dto.ProposalMemberDto">
     SELECT <include refid="userCols"/>, M.PTCP_SE_CD AS ptcpSeCd
       FROM TB_PRP_TMMBR M
       JOIN TB_USER U ON U.USER_ID = M.USER_ID
@@ -104,7 +104,7 @@
   </select>
 
   <!-- 개발부(DP030) 사용 중인 팀 중 주관팀을 뺀 팀. 참여팀 여부(Y/N)와 그 팀 소속 참여팀원(PT020) 수 -->
-  <select id="findTeamOptions" resultType="com.ojj.sujuro.proposal.bid.ProposalTeamDto">
+  <select id="findTeamOptions" resultType="com.ojj.sujuro.proposal.dto.ProposalTeamDto">
     SELECT T.TEAM_SN AS teamSn, T.TEAM_NM AS teamNm,
            CASE WHEN EXISTS (SELECT 1 FROM TB_PTCP_TEAM P WHERE P.PBANC_SN = #{pbancSn} AND P.TEAM_SN = T.TEAM_SN)
                 THEN 'Y' ELSE 'N' END AS ptcpYn,

@@ -4,7 +4,7 @@
   요구사항 SQL (FR-050~054, FR-051 매핑). 사용 테이블: TB_RQT_MTTR, TB_TOC, TB_USER
   담당자는 따로 저장하지 않고 연결된 목차의 담당자(TB_TOC.PIC_ID)를 그대로 쓴다.
 -->
-<mapper namespace="com.ojj.sujuro.proposal.rqt.RqtMapper">
+<mapper namespace="com.ojj.sujuro.proposal.mapper.RqtMapper">
 
   <sql id="rqtSelect">
     SELECT R.RQT_MTTR_SN AS rqtMttrSn, R.PBANC_SN AS pbancSn, R.RQT_MTTR_NO AS rqtMttrNo,
@@ -16,13 +16,13 @@
       LEFT JOIN TB_USER U ON U.USER_ID = T.PIC_ID
   </sql>
 
-  <select id="findByBid" resultType="com.ojj.sujuro.proposal.rqt.RqtDto">
+  <select id="findByBid" resultType="com.ojj.sujuro.proposal.dto.RqtDto">
     <include refid="rqtSelect"/>
      WHERE R.PBANC_SN = #{pbancSn}
      ORDER BY R.RQT_MTTR_SN
   </select>
 
-  <select id="findOne" resultType="com.ojj.sujuro.proposal.rqt.RqtDto">
+  <select id="findOne" resultType="com.ojj.sujuro.proposal.dto.RqtDto">
     <include refid="rqtSelect"/>
      WHERE R.RQT_MTTR_SN = #{rqtMttrSn}
   </select>
@@ -31,7 +31,7 @@
     SELECT COUNT(*) FROM TB_RQT_MTTR WHERE PBANC_SN = #{pbancSn} AND RQT_MTTR_NO = #{rqtMttrNo}
   </select>
 
-  <insert id="insert" parameterType="com.ojj.sujuro.proposal.rqt.RqtDto" useGeneratedKeys="true" keyProperty="rqtMttrSn" keyColumn="RQT_MTTR_SN">
+  <insert id="insert" parameterType="com.ojj.sujuro.proposal.dto.RqtDto" useGeneratedKeys="true" keyProperty="rqtMttrSn" keyColumn="RQT_MTTR_SN">
     INSERT INTO TB_RQT_MTTR (PBANC_SN, RQT_MTTR_NO, CLSF_NM, RQT_MTTR_NM, RQT_MTTR_DFN, DTL_CN, PAGE_NO, RGTR_ID)
     VALUES (#{pbancSn}, #{rqtMttrNo}, #{clsfNm}, #{rqtMttrNm}, #{rqtMttrDfn}, #{dtlCn}, #{pageNo}, #{rgtrId})
   </insert>
@@ -51,7 +51,7 @@
     UPDATE TB_RQT_MTTR SET TOC_SN = #{tocSn, jdbcType=NUMERIC} WHERE RQT_MTTR_SN = #{rqtMttrSn}
   </update>
 
-  <select id="findMapTarget" resultType="com.ojj.sujuro.proposal.toc.TocDto">
+  <select id="findMapTarget" resultType="com.ojj.sujuro.proposal.dto.TocDto">
     SELECT T.TOC_SN AS tocSn, T.PBANC_SN AS pbancSn, T.UP_TOC_SN AS upTocSn, T.TOC_SE_CD AS tocSeCd, T.PIC_ID AS picId,
            (SELECT COUNT(*) FROM TB_TOC C WHERE C.UP_TOC_SN = T.TOC_SN) AS childCnt
       FROM TB_TOC T

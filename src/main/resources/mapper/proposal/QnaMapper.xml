@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  질의응답 SQL (FR-074~076). 사용 테이블: TB_QSTN_ANS, TB_USER, TB_TOC, TB_PRP_TMMBR
+  구분코드 QNASE: QA010 예상 Q&A, QA020 발표 Q&A. 목차를 지우면 TocMapper가 TOC_SN을 비운다.
+-->
+<mapper namespace="com.ojj.sujuro.proposal.mapper.QnaMapper">
+
+  <sql id="qnaSelect">
+    SELECT Q.QSTN_ANS_SN AS qstnAnsSn, Q.PBANC_SN AS pbancSn, Q.QSTN_ANS_SE_CD AS qstnAnsSeCd,
+           Q.QSTN_CN AS qstnCn, Q.ANS_CN AS ansCn, Q.ANSWR_ID AS answrId, Q.TOC_SN AS tocSn,
+           Q.CCRNC_YN AS ccrncYn, Q.WRTR_ID AS wrtrId, Q.WRT_DT AS wrtDt,
+           A.USER_NM AS answrNm, W.USER_NM AS wrtrNm, T.TOC_NO AS tocNo, T.TOC_NM AS tocNm
+      FROM TB_QSTN_ANS Q
+      LEFT JOIN TB_USER A ON A.USER_ID = Q.ANSWR_ID
+      LEFT JOIN TB_USER W ON W.USER_ID = Q.WRTR_ID
+      LEFT JOIN TB_TOC T ON T.TOC_SN = Q.TOC_SN
+  </sql>
+
+  <select id="findByBid" resultType="com.ojj.sujuro.proposal.dto.QnaDto">
+    <include refid="qnaSelect"/>
+     WHERE Q.PBANC_SN = #{pbancSn}
+     ORDER BY Q.QSTN_ANS_SN
+  </select>
+
+  <select id="findOne" resultType="com.ojj.sujuro.proposal.dto.QnaDto">
+    <include refid="qnaSelect"/>
+     WHERE Q.QSTN_ANS_SN = #{qstnAnsSn}
+  </select>
+
+  <insert id="insert" parameterType="com.ojj.sujuro.proposal.dto.QnaDto" useGeneratedKeys="true" keyProperty="qstnAnsSn" keyColumn="QSTN_ANS_SN">
+    INSERT INTO TB_QSTN_ANS (PBANC_SN, QSTN_ANS_SE_CD, QSTN_CN, ANS_CN, ANSWR_ID, TOC_SN, CCRNC_YN, WRTR_ID, WRT_DT)
+    VALUES (#{pbancSn}, #{qstnAnsSeCd}, #{qstnCn}, #{ansCn, jdbcType=VARCHAR}, #{answrId, jdbcType=VARCHAR},
+            #{tocSn, jdbcType=NUMERIC}, #{ccrncYn, jdbcType=CHAR}, #{wrtrId}, SYSDATE)
+  </insert>
+
+  <update id="update" parameterType="com.ojj.sujuro.proposal.dto.QnaDto">
+    UPDATE TB_QSTN_ANS
+       SET QSTN_CN = #{qstnCn},
+           ANS_CN = #{ansCn, jdbcType=VARCHAR},
+           ANSWR_ID = #{answrId, jdbcType=VARCHAR},
+           TOC_SN = #{tocSn, jdbcType=NUMERIC},
+           CCRNC_YN = #{ccrncYn, jdbcType=CHAR}
+     WHERE QSTN_ANS_SN = #{qstnAnsSn}
+  </update>
+
+  <delete id="delete">
+    DELETE FROM TB_QSTN_ANS WHERE QSTN_ANS_SN = #{qstnAnsSn}
+  </delete>
+
+  <select id="countMember" resultType="int">
+    SELECT COUNT(*) FROM TB_PRP_TMMBR WHERE PBANC_SN = #{pbancSn} AND USER_ID = #{userId}
+  </select>
+
+  <select id="countToc" resultType="int">
+    SELECT COUNT(*) FROM TB_TOC WHERE PBANC_SN = #{pbancSn} AND TOC_SN = #{tocSn}
+  </select>
+</mapper>

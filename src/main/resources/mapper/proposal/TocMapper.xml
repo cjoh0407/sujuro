@@ -6,7 +6,7 @@
   TB_TOC는 PBANC_SN(사업건 목차)과 TOC_FORM_SN(양식 항목) 중 하나만 채운다. 사업건 목차는 TOC_SE_CD(제안서/제안요약서)로 나눈다.
   목차 양식(TB_TOC_FORM)은 저장한 주관팀(TEAM_SN) 것이다. 기관 대표 양식은 없다. (요구사항 v3.2)
 -->
-<mapper namespace="com.ojj.sujuro.proposal.toc.TocMapper">
+<mapper namespace="com.ojj.sujuro.proposal.mapper.TocMapper">
 
   <sql id="tocCols">
     T.TOC_SN AS tocSn, T.PBANC_SN AS pbancSn, T.TOC_FORM_SN AS tocFormSn, T.UP_TOC_SN AS upTocSn,
@@ -18,7 +18,7 @@
     (SELECT COUNT(*) FROM TB_ATCH_FILE F WHERE F.TOC_SN = T.TOC_SN AND F.DEL_YN = 'N') AS fileCnt
   </sql>
 
-  <select id="findByBid" resultType="com.ojj.sujuro.proposal.toc.TocDto">
+  <select id="findByBid" resultType="com.ojj.sujuro.proposal.dto.TocDto">
     SELECT <include refid="tocCols"/>, LEVEL - 1 AS depth
       FROM TB_TOC T
       LEFT JOIN TB_USER U ON U.USER_ID = T.PIC_ID
@@ -36,7 +36,7 @@
   </sql>
 
   <!-- 이 팀이 저장한 양식, 사용 중인 것만, 최근 저장한 것 먼저 -->
-  <select id="findForms" resultType="com.ojj.sujuro.proposal.toc.TocFormDto">
+  <select id="findForms" resultType="com.ojj.sujuro.proposal.dto.TocFormDto">
     SELECT <include refid="formCols"/>,
            (SELECT COUNT(*) FROM TB_TOC T WHERE T.TOC_FORM_SN = F.TOC_FORM_SN) AS itemCnt
       FROM TB_TOC_FORM F
@@ -47,14 +47,14 @@
      ORDER BY F.TOC_FORM_SN DESC
   </select>
 
-  <select id="findForm" resultType="com.ojj.sujuro.proposal.toc.TocFormDto">
+  <select id="findForm" resultType="com.ojj.sujuro.proposal.dto.TocFormDto">
     SELECT <include refid="formCols"/>
       FROM TB_TOC_FORM F
       LEFT JOIN TB_USER U ON U.USER_ID = F.RGTR_ID
      WHERE F.TOC_FORM_SN = #{tocFormSn}
   </select>
 
-  <select id="findFormItems" resultType="com.ojj.sujuro.proposal.toc.TocDto">
+  <select id="findFormItems" resultType="com.ojj.sujuro.proposal.dto.TocDto">
     SELECT <include refid="tocCols"/>, LEVEL - 1 AS depth
       FROM TB_TOC T
       LEFT JOIN TB_USER U ON U.USER_ID = T.PIC_ID
@@ -69,13 +69,13 @@
      WHERE TEAM_SN = #{teamSn} AND USE_YN = 'Y' AND TOC_FORM_NM = #{tocFormNm}
   </select>
 
-  <insert id="insertForm" parameterType="com.ojj.sujuro.proposal.toc.TocFormDto" useGeneratedKeys="true" keyProperty="tocFormSn" keyColumn="TOC_FORM_SN">
+  <insert id="insertForm" parameterType="com.ojj.sujuro.proposal.dto.TocFormDto" useGeneratedKeys="true" keyProperty="tocFormSn" keyColumn="TOC_FORM_SN">
     INSERT INTO TB_TOC_FORM (TEAM_SN, TOC_FORM_NM, TOC_SE_CD, RGTR_ID, USE_YN)
     VALUES (#{teamSn}, #{tocFormNm}, #{tocSeCd}, #{rgtrId}, 'Y')
   </insert>
 
   <!-- 양식 항목: PBANC_SN은 비우고 TOC_FORM_SN을 채운다 (CK_TOC_OWNER). 담당자는 저장하지 않는다. -->
-  <insert id="insertFormItem" parameterType="com.ojj.sujuro.proposal.toc.TocDto" useGeneratedKeys="true" keyProperty="tocSn" keyColumn="TOC_SN">
+  <insert id="insertFormItem" parameterType="com.ojj.sujuro.proposal.dto.TocDto" useGeneratedKeys="true" keyProperty="tocSn" keyColumn="TOC_SN">
     INSERT INTO TB_TOC (TOC_FORM_SN, UP_TOC_SN, TOC_SE_CD, TOC_NO, TOC_NM, SORT_SEQ, EXPC_PAGE_CNT)
     VALUES (#{tocFormSn}, #{upTocSn, jdbcType=NUMERIC}, #{tocSeCd}, #{tocNo, jdbcType=VARCHAR}, #{tocNm}, #{sortSeq},
             #{expcPageCnt, jdbcType=NUMERIC})
@@ -83,7 +83,7 @@
 
   <!-- ===== 사업건 목차 ===== -->
 
-  <select id="findOne" resultType="com.ojj.sujuro.proposal.toc.TocDto">
+  <select id="findOne" resultType="com.ojj.sujuro.proposal.dto.TocDto">
     SELECT <include refid="tocCols"/>
       FROM TB_TOC T
       LEFT JOIN TB_USER U ON U.USER_ID = T.PIC_ID
@@ -120,7 +120,7 @@
   </update>
 
   <!-- 사업건 목차만 넣는다 (TOC_FORM_SN은 비운다). TOC_SE_CD는 서비스에서 반드시 채운다. -->
-  <insert id="insert" parameterType="com.ojj.sujuro.proposal.toc.TocDto" useGeneratedKeys="true" keyProperty="tocSn" keyColumn="TOC_SN">
+  <insert id="insert" parameterType="com.ojj.sujuro.proposal.dto.TocDto" useGeneratedKeys="true" keyProperty="tocSn" keyColumn="TOC_SN">
     INSERT INTO TB_TOC (PBANC_SN, UP_TOC_SN, TOC_SE_CD, TOC_NO, TOC_NM, SORT_SEQ, PIC_ID, EXPC_PAGE_CNT, PRGRS_STTS_CD)
     VALUES (#{pbancSn}, #{upTocSn, jdbcType=NUMERIC}, #{tocSeCd}, #{tocNo, jdbcType=VARCHAR}, #{tocNm}, #{sortSeq},
             #{picId, jdbcType=VARCHAR}, #{expcPageCnt, jdbcType=NUMERIC}, 'TS010')

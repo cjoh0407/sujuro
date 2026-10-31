@@ -8,16 +8,14 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
 import com.ojj.sujuro.auth.dto.LoginUser;
+import lombok.RequiredArgsConstructor;
 
 /** 모든 화면의 종 아이콘에 안 읽은 알림 건수를 보여 주기 위해 unreadCount 를 모델에 넣는다. (FR-032) */
 @ControllerAdvice
+@RequiredArgsConstructor
 public class NotificationBadgeAdvice {
 
     private final NotificationInboxMapper mapper;
-
-    public NotificationBadgeAdvice(NotificationInboxMapper mapper) {
-        this.mapper = mapper;
-    }
 
     @ModelAttribute("unreadCount")
     public int unreadCount() {

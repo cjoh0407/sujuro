@@ -5,13 +5,13 @@ import com.ojj.sujuro.notification.mapper.NotificationInboxMapper;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 저장한 알림을 접속 중인 사용자에게 바로 보낸다. (FR-034)
@@ -21,20 +21,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * 보내기에 실패해도 알림 저장과 호출한 쪽의 처리에는 영향이 없다. (알림은 DB에 남아 있어 목록에서 볼 수 있다.)
  */
 @Component
+@Slf4j
+@RequiredArgsConstructor
 public class NotificationPublisher {
-
-    private static final Logger log = LoggerFactory.getLogger(NotificationPublisher.class);
 
     private final NotificationSocketHandler handler;
     private final NotificationInboxMapper inboxMapper;
     private final ObjectMapper objectMapper;
-
-    public NotificationPublisher(NotificationSocketHandler handler, NotificationInboxMapper inboxMapper,
-                                 ObjectMapper objectMapper) {
-        this.handler = handler;
-        this.inboxMapper = inboxMapper;
-        this.objectMapper = objectMapper;
-    }
 
     /** 저장이 끝난 알림 한 건을 보낸다. 트랜잭션이 있으면 커밋 뒤에 보낸다. */
     public void publish(String receiverId, String typeCd, Long pbancSn, String content) {

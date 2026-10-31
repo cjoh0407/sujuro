@@ -11,21 +11,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ojj.sujuro.auth.dto.LoginUser;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 비밀번호 변경 (FR-002, FR-002-1, FR-002-2).
  * 두 메서드 모두 문제가 있으면 안내 문구 목록을 돌려주고, 성공하면 빈 목록을 돌려준다.
  */
 @Service
+@RequiredArgsConstructor
 public class PasswordService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
-
-    public PasswordService(UserMapper userMapper, PasswordEncoder passwordEncoder) {
-        this.userMapper = userMapper;
-        this.passwordEncoder = passwordEncoder;
-    }
 
     /** 초기 비밀번호 강제 변경 (FR-002). 현재 비밀번호는 방금 로그인으로 확인했으므로 다시 묻지 않는다. 성공하면 계정 상태가 '활성'이 된다. */
     @Transactional

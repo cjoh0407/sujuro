@@ -6,6 +6,7 @@ import com.ojj.sujuro.auth.mapper.AccessMapper;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 사업건 단위 접근 검사. (FR-011, NFR-001, NFR-004)
@@ -27,16 +28,13 @@ import org.springframework.stereotype.Component;
  * 업무 안내(400)가 아니라 권한 오류로 구분해, 사업건 번호를 바꿔 넣어 보는 시도에 존재 여부를 알려주지 않는다.
  */
 @Component("accessChecker")
+@RequiredArgsConstructor
 public class AccessChecker {
 
     /** 참여구분(PTCSE) 주관팀 */
     private static final String PTCP_LEAD = "PT010";
 
     private final AccessMapper mapper;
-
-    public AccessChecker(AccessMapper mapper) {
-        this.mapper = mapper;
-    }
 
     /** 이 사용자가 사업건의 제안팀원인가. 비활성·잠금 계정은 로그인 자체가 막히므로 여기서는 보지 않는다. */
     public boolean isProposalMember(Long pbancSn, LoginUser user) {

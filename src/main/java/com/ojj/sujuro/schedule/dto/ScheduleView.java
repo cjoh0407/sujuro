@@ -4,11 +4,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.ojj.sujuro.user.dto.CodeOption;
+import lombok.Getter;
+import lombok.Setter;
 
 /** 일정 화면에 필요한 값 (월 캘린더) */
+@Getter
+@Setter
 public class ScheduleView {
 
     /** 캘린더 칸 하나. day 가 0 이면 앞쪽 빈 칸 */
+    @Getter
     public static class Cell {
         private final int day;
         private final boolean today;
@@ -20,9 +25,6 @@ public class ScheduleView {
             this.events = events;
         }
 
-        public int getDay() { return day; }
-        public boolean isToday() { return today; }
-        public List<ScheduleEvent> getEvents() { return events; }
         public boolean isBlank() { return day == 0; }
     }
 
@@ -41,23 +43,6 @@ public class ScheduleView {
     private boolean canEdit;                                    // 팀장만 내부 일정을 만든다 (FR-093)
     private ScheduleEvent editing;                              // 수정 중인 내부 일정
 
-    public String getYm() { return ym; }
-    public void setYm(String v) { this.ym = v; }
-    public String getLabel() { return label; }
-    public void setLabel(String v) { this.label = v; }
-    public String getPrevYm() { return prevYm; }
-    public void setPrevYm(String v) { this.prevYm = v; }
-    public String getNextYm() { return nextYm; }
-    public void setNextYm(String v) { this.nextYm = v; }
-    public String getScopeText() { return scopeText; }
-    public void setScopeText(String v) { this.scopeText = v; }
-    public List<Cell> getCells() { return cells; }
-    public List<CodeOption> getKinds() { return kinds; }
-    public void setKinds(List<CodeOption> v) { this.kinds = v; }
-    public List<CodeOption> getTeams() { return teams; }
-    public void setTeams(List<CodeOption> v) { this.teams = v; }
-    public Long getSelectedTeamSn() { return selectedTeamSn; }
-    public void setSelectedTeamSn(Long v) { this.selectedTeamSn = v; }
     /** 팀 코드(문자열)로 팀 색 번호 1~6을 구한다. 화면의 팀 범례용 */
     public int teamNoOf(String teamCode) {
         try {
@@ -66,14 +51,4 @@ public class ScheduleView {
             return 0;
         }
     }
-    public List<CodeOption> getProjects() { return projects; }
-    public void setProjects(List<CodeOption> v) { this.projects = v; }
-    public Long getSelectedPbancSn() { return selectedPbancSn; }
-    public void setSelectedPbancSn(Long v) { this.selectedPbancSn = v; }
-    public List<CodeOption> getEditProjects() { return editProjects; }
-    public void setEditProjects(List<CodeOption> v) { this.editProjects = v; }
-    public boolean isCanEdit() { return canEdit; }
-    public void setCanEdit(boolean v) { this.canEdit = v; }
-    public ScheduleEvent getEditing() { return editing; }
-    public void setEditing(ScheduleEvent v) { this.editing = v; }
 }

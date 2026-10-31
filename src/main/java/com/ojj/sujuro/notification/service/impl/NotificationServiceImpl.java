@@ -12,17 +12,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ojj.sujuro.auth.code.Role;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationMapper notificationMapper;
     private final NotificationPublisher publisher;
-
-    public NotificationServiceImpl(NotificationMapper notificationMapper, NotificationPublisher publisher) {
-        this.notificationMapper = notificationMapper;
-        this.publisher = publisher;
-    }
 
     @Override
     @Transactional

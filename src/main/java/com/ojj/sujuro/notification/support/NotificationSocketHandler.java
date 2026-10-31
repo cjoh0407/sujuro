@@ -7,13 +7,12 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 실시간 알림 연결 관리 (FR-034).
@@ -25,9 +24,8 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
  * 연결할 때 로그인 세션으로 사용자를 알아낸다. 로그인하지 않은 연결은 SecurityConfig가 막는다.
  */
 @Component
+@Slf4j
 public class NotificationSocketHandler extends TextWebSocketHandler {
-
-    private static final Logger log = LoggerFactory.getLogger(NotificationSocketHandler.class);
 
     /** 사번 → 그 사람의 연결들 (탭을 여러 개 열 수 있다) */
     private final Map<String, Set<WebSocketSession>> sessions = new ConcurrentHashMap<>();

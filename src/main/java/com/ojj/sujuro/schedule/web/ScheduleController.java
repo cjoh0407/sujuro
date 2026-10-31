@@ -12,19 +12,17 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.common.exception.BusinessException;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 일정 (FR-091 ~ FR-094). 접근 규칙은 {@link ScheduleService} 에 있다.
  * 주소: /schedule (SecurityConfig 에서 로그인한 모든 사용자가 들어올 수 있다)
  */
 @Controller
+@RequiredArgsConstructor
 public class ScheduleController {
 
     private final ScheduleService service;
-
-    public ScheduleController(ScheduleService service) {
-        this.service = service;
-    }
 
     @GetMapping("/schedule")
     public String view(@AuthenticationPrincipal LoginUser user,

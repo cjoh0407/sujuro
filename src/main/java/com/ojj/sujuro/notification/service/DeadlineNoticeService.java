@@ -10,10 +10,10 @@ import com.ojj.sujuro.notification.support.NotificationMailSender;
 
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 마감 임박 알림 (FR-031, NFR-017)
@@ -27,9 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
  * - 메일은 알림과 따로 보낸다. 실패하면 "메일 안 보냄"으로 남아 다음 실행 때 다시 시도한다. (최근 2일 것만)
  */
 @Service
+@Slf4j
+@RequiredArgsConstructor
 public class DeadlineNoticeService {
-
-    private static final Logger log = LoggerFactory.getLogger(DeadlineNoticeService.class);
 
     /** 알림을 보낼 남은 일수. 마감 하루 전(D-1) 하나만이고, 메일도 같은 날 보낸다. */
     public static final int[] NOTICE_DAYS = {1};
@@ -39,14 +39,6 @@ public class DeadlineNoticeService {
     private final NotificationMapper notificationMapper;
     private final NotificationService notificationService;
     private final NotificationMailSender mailSender;
-
-    public DeadlineNoticeService(DeadlineMapper deadlineMapper, NotificationMapper notificationMapper,
-                                 NotificationService notificationService, NotificationMailSender mailSender) {
-        this.deadlineMapper = deadlineMapper;
-        this.notificationMapper = notificationMapper;
-        this.notificationService = notificationService;
-        this.mailSender = mailSender;
-    }
 
     /** D-1 알림을 만든다. 새로 만든 알림 수를 돌려준다. */
     @Transactional

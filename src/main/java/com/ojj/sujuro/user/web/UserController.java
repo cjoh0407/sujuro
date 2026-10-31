@@ -22,6 +22,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.common.exception.BusinessException;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 사용자 관리 화면 (FR-003 ~ FR-008). 경영지원실만 들어올 수 있다. (SecurityConfig의 /users/** 규칙)
@@ -31,13 +32,10 @@ import com.ojj.sujuro.common.exception.BusinessException;
  */
 @Controller
 @RequestMapping("/users")
+@RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
-
-    public UserController(UserService userService) {
-        this.userService = userService;
-    }
 
     /** 직원 목록. edit에 사번을 주면 오른쪽 입력란이 수정 모드가 된다. */
     @GetMapping

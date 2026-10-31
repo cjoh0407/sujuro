@@ -25,6 +25,7 @@ import com.ojj.sujuro.auth.code.Role;
 import com.ojj.sujuro.common.exception.BusinessException;
 import com.ojj.sujuro.schedule.dto.ScheduleView.Cell;
 import com.ojj.sujuro.user.dto.CodeOption;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 일정 (FR-091 ~ FR-094)
@@ -37,6 +38,7 @@ import com.ojj.sujuro.user.dto.CodeOption;
  * 보는 팀과 고칠 수 있는 팀은 화면에서 받은 값이 아니라 로그인한 사용자의 역할과 소속 팀으로 정한다. (NFR-001)
  */
 @Service
+@RequiredArgsConstructor
 public class ScheduleService {
 
     /** 팀장이 직접 등록하는 일정은 모두 "내부 일정"(SC020)이다. 구분은 고르지 않고 이름·날짜·시간을 직접 쓴다. */
@@ -46,11 +48,6 @@ public class ScheduleService {
 
     private final ScheduleMapper mapper;
     private final NotificationService notificationService;
-
-    public ScheduleService(ScheduleMapper mapper, NotificationService notificationService) {
-        this.mapper = mapper;
-        this.notificationService = notificationService;
-    }
 
     // ===== 조회 =====
 

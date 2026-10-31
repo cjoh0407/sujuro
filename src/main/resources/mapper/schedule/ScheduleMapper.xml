@@ -2,9 +2,14 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <!--
   일정 SQL (FR-091 ~ FR-094). 테이블: TB_SCHDL, TB_BID_PBANC, TB_SBMSN_DCMNT, TB_TEAM, TB_COM_CD (db/01_schema.sql)
-  공고의 제출 마감·발표일·서류 마감은 TB_SCHDL 에 따로 복사하지 않고 조회할 때 공고에서 바로 가져온다.
+  공고의 제출 마감은 TB_SCHDL 에 따로 복사하지 않고 조회할 때 공고에서 바로 가져온다. (발표일·서류 마감은 캘린더에 넣지 않는다)
   그래서 마감일이 바뀌거나 재공고로 새 사업건이 들어와도 항상 최신 날짜로 보인다. (FR-092)
   PS010 신규(아직 팀에 배정 전)와 PS090 불참은 일정에 넣지 않는다.
+
+  v4.1: 일정은 사업건 단위다.
+   - 영업부·경영지원실은 모든 사업건 일정을 팀별로 본다. (teamSn 은 보는 팀 탭)
+   - 팀장·팀원은 자기가 제안팀원(TB_PRP_TMMBR)으로 들어간 사업건 일정만 본다. (memberId)
+   - pbancSn 이 있으면 그 사업건만 본다. (사업별 보기)
 -->
 <mapper namespace="com.ojj.sujuro.schedule.mapper.ScheduleMapper">
 
@@ -26,69 +31,76 @@
      ORDER BY SORT_SEQ
   </select>
 
+  <sql id="autoFilter">
+    <if test="teamSn != null">
+       AND P.SPRVSN_TEAM_SN = #{teamSn}
+    </if>
+    <if test="memberId != null">
+       AND P.PBANC_SN IN (SELECT M.PBANC_SN FROM TB_PRP_TMMBR M WHERE M.USER_ID = #{memberId})
+    </if>
+    <if test="pbancSn != null">
+       AND P.PBANC_SN = #{pbancSn}
+    </if>
+  </sql>
+
+  <!-- 내 사업건 목록: 내가 제안팀원으로 들어간, 일정이 보이는 사업건 -->
+  <select id="findMyPbancs" resultType="com.ojj.sujuro.user.dto.CodeOption">
+    SELECT TO_CHAR(P.PBANC_SN) AS code, P.PBANC_NM AS name
+      FROM TB_PRP_TMMBR M
+      JOIN TB_BID_PBANC P ON P.PBANC_SN = M.PBANC_SN
+     WHERE M.USER_ID = #{userId}
+       AND P.PBANC_STTS_CD NOT IN ('PS010', 'PS090')
+     ORDER BY P.PBANC_SN DESC
+  </select>
+
+  <!-- 팀장이 일정을 등록할 수 있는 사업건: 우리 팀이 주관하고 진행 중(참여 확정·제안 작성 중·제출 완료) -->
+  <select id="findEditablePbancs" resultType="com.ojj.sujuro.user.dto.CodeOption">
+    SELECT TO_CHAR(PBANC_SN) AS code, PBANC_NM AS name
+      FROM TB_BID_PBANC
+     WHERE SPRVSN_TEAM_SN = #{teamSn}
+       AND PBANC_STTS_CD IN ('PS030', 'PS040', 'PS050')
+     ORDER BY PBANC_SN DESC
+  </select>
+
   <select id="findAutoEvents" resultType="com.ojj.sujuro.schedule.dto.ScheduleEvent">
     SELECT CAST(NULL AS NUMBER) AS id,
            TO_CHAR(P.BID_DDLN_DT, 'YYYY-MM-DD') AS eventDate,
            TO_CHAR(P.BID_DDLN_DT, 'HH24:MI') AS timeText,
            '제출 마감 · ' || P.PBANC_NM AS title,
-           'SC010' AS kindCd, TM.TEAM_NM AS teamNm, P.PBANC_SN AS pbancSn
+           'SC010' AS kindCd, TM.TEAM_NM AS teamNm, P.PBANC_SN AS pbancSn,
+           P.PBANC_NM AS pbancNm, TM.TEAM_SN AS teamSn
       FROM TB_BID_PBANC P
       JOIN TB_TEAM TM ON TM.TEAM_SN = P.SPRVSN_TEAM_SN
      WHERE P.PBANC_STTS_CD NOT IN ('PS010', 'PS090')
        AND P.BID_DDLN_DT &gt;= TO_DATE(#{from}, 'YYYY-MM-DD')
        AND P.BID_DDLN_DT &lt; TO_DATE(#{to}, 'YYYY-MM-DD') + 1
-    <if test="teamSn != null">
-       AND P.SPRVSN_TEAM_SN = #{teamSn}
-    </if>
-    UNION ALL
-    SELECT CAST(NULL AS NUMBER),
-           TO_CHAR(P.PRSNTN_DT, 'YYYY-MM-DD'),
-           TO_CHAR(P.PRSNTN_DT, 'HH24:MI'),
-           '발표 · ' || P.PBANC_NM,
-           'SC040', TM.TEAM_NM, P.PBANC_SN
-      FROM TB_BID_PBANC P
-      JOIN TB_TEAM TM ON TM.TEAM_SN = P.SPRVSN_TEAM_SN
-     WHERE P.PBANC_STTS_CD NOT IN ('PS010', 'PS090')
-       AND P.PRSNTN_DT &gt;= TO_DATE(#{from}, 'YYYY-MM-DD')
-       AND P.PRSNTN_DT &lt; TO_DATE(#{to}, 'YYYY-MM-DD') + 1
-    <if test="teamSn != null">
-       AND P.SPRVSN_TEAM_SN = #{teamSn}
-    </if>
-    UNION ALL
-    SELECT CAST(NULL AS NUMBER),
-           TO_CHAR(D.SBMSN_DDLN_DT, 'YYYY-MM-DD'),
-           TO_CHAR(D.SBMSN_DDLN_DT, 'HH24:MI'),
-           '서류 마감 · ' || D.DCMNT_NM,
-           'SC050', TM.TEAM_NM, P.PBANC_SN
-      FROM TB_SBMSN_DCMNT D
-      JOIN TB_BID_PBANC P ON P.PBANC_SN = D.PBANC_SN
-      JOIN TB_TEAM TM ON TM.TEAM_SN = P.SPRVSN_TEAM_SN
-     WHERE P.PBANC_STTS_CD NOT IN ('PS010', 'PS060', 'PS090')
-       AND D.SBMSN_DDLN_DT IS NOT NULL
-       AND (P.BID_DDLN_DT IS NULL OR TRUNC(D.SBMSN_DDLN_DT) &lt;&gt; TRUNC(P.BID_DDLN_DT))
-       AND D.SBMSN_DDLN_DT &gt;= TO_DATE(#{from}, 'YYYY-MM-DD')
-       AND D.SBMSN_DDLN_DT &lt; TO_DATE(#{to}, 'YYYY-MM-DD') + 1
-    <if test="teamSn != null">
-       AND P.SPRVSN_TEAM_SN = #{teamSn}
-    </if>
+    <include refid="autoFilter"/>
   </select>
 
   <sql id="internalCols">
     S.SCHDL_SN AS id,
     TO_CHAR(S.SCHDL_BGNG_DT, 'YYYY-MM-DD') AS eventDate,
     CASE WHEN TO_CHAR(S.SCHDL_BGNG_DT, 'HH24:MI') = '00:00' THEN NULL ELSE TO_CHAR(S.SCHDL_BGNG_DT, 'HH24:MI') END AS timeText,
-    S.SCHDL_TTL AS title, S.SCHDL_SE_CD AS kindCd, TM.TEAM_NM AS teamNm, S.PBANC_SN AS pbancSn
+    S.SCHDL_TTL AS title, S.SCHDL_SE_CD AS kindCd, TM.TEAM_NM AS teamNm, S.PBANC_SN AS pbancSn,
+    P.PBANC_NM AS pbancNm, S.TEAM_SN AS teamSn
   </sql>
 
   <select id="findInternalEvents" resultType="com.ojj.sujuro.schedule.dto.ScheduleEvent">
     SELECT <include refid="internalCols"/>
       FROM TB_SCHDL S
       JOIN TB_TEAM TM ON TM.TEAM_SN = S.TEAM_SN
+      LEFT JOIN TB_BID_PBANC P ON P.PBANC_SN = S.PBANC_SN
      WHERE S.AUTO_REG_YN = 'N'
        AND S.SCHDL_BGNG_DT &gt;= TO_DATE(#{from}, 'YYYY-MM-DD')
        AND S.SCHDL_BGNG_DT &lt; TO_DATE(#{to}, 'YYYY-MM-DD') + 1
     <if test="teamSn != null">
        AND S.TEAM_SN = #{teamSn}
+    </if>
+    <if test="memberId != null">
+       AND S.PBANC_SN IN (SELECT M.PBANC_SN FROM TB_PRP_TMMBR M WHERE M.USER_ID = #{memberId})
+    </if>
+    <if test="pbancSn != null">
+       AND S.PBANC_SN = #{pbancSn}
     </if>
      ORDER BY S.SCHDL_BGNG_DT, S.SCHDL_SN
   </select>
@@ -97,18 +109,20 @@
     SELECT <include refid="internalCols"/>
       FROM TB_SCHDL S
       JOIN TB_TEAM TM ON TM.TEAM_SN = S.TEAM_SN
+      LEFT JOIN TB_BID_PBANC P ON P.PBANC_SN = S.PBANC_SN
      WHERE S.SCHDL_SN = #{schdlSn} AND S.TEAM_SN = #{teamSn} AND S.AUTO_REG_YN = 'N'
   </select>
 
   <insert id="insert">
-    INSERT INTO TB_SCHDL (TEAM_SN, SCHDL_SE_CD, SCHDL_TTL, SCHDL_BGNG_DT, AUTO_REG_YN, RGTR_ID)
-    VALUES (#{teamSn}, #{kindCd}, #{title}, TO_DATE(#{date}, 'YYYY-MM-DD'), 'N', #{userId})
+    INSERT INTO TB_SCHDL (TEAM_SN, PBANC_SN, SCHDL_SE_CD, SCHDL_TTL, SCHDL_BGNG_DT, AUTO_REG_YN, RGTR_ID)
+    VALUES (#{teamSn}, #{pbancSn}, #{kindCd}, #{title}, TO_DATE(#{dateTime}, 'YYYY-MM-DD HH24:MI'), 'N', #{userId})
   </insert>
 
   <!-- 자기 팀의 내부 일정만 바뀐다. 공고에서 자동으로 들어온 일정(AUTO_REG_YN=Y)은 바꾸지 못한다. -->
   <update id="update">
     UPDATE TB_SCHDL
-       SET SCHDL_SE_CD = #{kindCd}, SCHDL_TTL = #{title}, SCHDL_BGNG_DT = TO_DATE(#{date}, 'YYYY-MM-DD')
+       SET PBANC_SN = #{pbancSn}, SCHDL_TTL = #{title},
+           SCHDL_BGNG_DT = TO_DATE(#{dateTime}, 'YYYY-MM-DD HH24:MI')
      WHERE SCHDL_SN = #{schdlSn} AND TEAM_SN = #{teamSn} AND AUTO_REG_YN = 'N'
   </update>
 

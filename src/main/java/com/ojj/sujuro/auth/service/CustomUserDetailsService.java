@@ -9,19 +9,17 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 로그인할 때 Spring Security가 부르는 서비스. 사번으로 DB(TB_USER)를 조회해 {@link LoginUser}를 만든다. (FR-001)
  * 비밀번호 비교는 Spring Security가 BCrypt로 하므로 여기서는 하지 않는다.
  */
 @Service
+@RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final AuthMapper authMapper;
-
-    public CustomUserDetailsService(AuthMapper authMapper) {
-        this.authMapper = authMapper;
-    }
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {

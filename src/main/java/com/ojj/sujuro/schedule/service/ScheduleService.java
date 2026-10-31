@@ -9,23 +9,23 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ojj.sujuro.auth.dto.LoginUser;
+import com.ojj.sujuro.notification.code.NotificationType;
+import com.ojj.sujuro.notification.service.NotificationService;
 import com.ojj.sujuro.auth.code.Role;
 import com.ojj.sujuro.common.exception.BusinessException;
 import com.ojj.sujuro.schedule.dto.ScheduleView.Cell;
 import com.ojj.sujuro.user.dto.CodeOption;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 일정 (FR-091 ~ FR-094)
@@ -38,25 +38,22 @@ import com.ojj.sujuro.user.dto.CodeOption;
  * 보는 팀과 고칠 수 있는 팀은 화면에서 받은 값이 아니라 로그인한 사용자의 역할과 소속 팀으로 정한다. (NFR-001)
  */
 @Service
+@RequiredArgsConstructor
 public class ScheduleService {
 
-    /** 팀장이 직접 만들 수 있는 일정 구분 (SC010 제출 마감, SC040 발표는 공고에서 자동으로 들어온다) */
-    static final Set<String> INTERNAL_KINDS = new HashSet<>(Arrays.asList("SC020", "SC030", "SC050"));
+    /** 팀장이 직접 등록하는 일정은 모두 "내부 일정"(SC020)이다. 구분은 고르지 않고 이름·날짜·시간을 직접 쓴다. */
+    static final String KIND_INTERNAL = "SC020";
 
     private static final int TITLE_MAX = 256;
 
     private final ScheduleMapper mapper;
-
-    public ScheduleService(ScheduleMapper mapper) {
-        this.mapper = mapper;
-    }
+    private final NotificationService notificationService;
 
     // ===== 조회 =====
 
-    public ScheduleView month(LoginUser user, String ym, Long teamParam, Long editId) {
+    public ScheduleView month(LoginUser user, String ym, Long teamParam, Long pbancParam, Long editId) {
         YearMonth month = parseMonth(ym);
         boolean seesAll = user.getRole() == Role.SALES || user.getRole() == Role.MGMT;
-        Long myTeamSn = seesAll ? null : mapper.findMyTeamSn(user.getEmpNo());
 
         ScheduleView v = new ScheduleView();
         v.setYm(month.toString());
@@ -65,41 +62,46 @@ public class ScheduleService {
         v.setNextYm(month.plusMonths(1).toString());
         v.setKinds(mapper.findKinds());
 
-        // 볼 팀 범위: 영업부·경영지원실은 고른 팀(없으면 전체), 팀장·팀원은 자기 팀만
-        Long scopeTeamSn;
+        // 볼 범위: 영업부·경영지원실은 모든 사업(고른 팀 탭), 팀장·팀원은 내가 제안팀원인 사업건만
+        Long scopeTeamSn = null;
+        String memberId = null;
+        Long pbancSn = null;
         if (seesAll) {
             List<CodeOption> teams = mapper.findDevTeams();
             v.setTeams(teams);
-            scopeTeamSn = validTeam(teams, teamParam);
-            v.setScopeText(scopeTeamSn == null ? "전체 개발팀 일정" : teamName(teams, scopeTeamSn) + " 일정");
+            scopeTeamSn = validOption(teams, teamParam);
+            v.setScopeText(scopeTeamSn == null ? "전체 팀의 사업 일정" : optionName(teams, scopeTeamSn) + "의 사업 일정");
         } else {
-            scopeTeamSn = myTeamSn;
-            v.setScopeText(user.getTeam() + " 일정");
+            memberId = user.getEmpNo();
+            List<CodeOption> mine = mapper.findMyPbancs(memberId);
+            v.setProjects(mine);
+            pbancSn = validOption(mine, pbancParam);
+            v.setScopeText("내가 참여하는 사업 일정");
         }
         v.setSelectedTeamSn(scopeTeamSn);
+        v.setSelectedPbancSn(pbancSn);
 
-        // 팀장·팀원인데 소속 팀이 없으면 아무것도 보여 주지 않는다. (null 을 그대로 쓰면 모든 팀이 보이므로)
+        // 팀장이 자기 팀 사업건에 일정을 관리할 수 있는지 (FR-093)
+        Long leaderTeamSn = user.getRole() == Role.LEADER ? mapper.findMyTeamSn(user.getEmpNo()) : null;
+        boolean leader = leaderTeamSn != null;
+
+        // 팀장·팀원인데 참여하는 사업건이 없으면 아무것도 보여 주지 않는다. (null 을 그대로 쓰면 모든 사업건이 보이므로)
         List<ScheduleEvent> events = new ArrayList<>();
-        if (seesAll || scopeTeamSn != null) {
+        if (seesAll || !v.getProjects().isEmpty()) {
             String from = month.atDay(1).toString();
             String to = month.atEndOfMonth().toString();
-            events.addAll(mapper.findAutoEvents(scopeTeamSn, from, to));
-            events.addAll(mapper.findInternalEvents(scopeTeamSn, from, to));
+            events.addAll(mapper.findAutoEvents(scopeTeamSn, memberId, pbancSn, from, to));
+            events.addAll(mapper.findInternalEvents(scopeTeamSn, memberId, pbancSn, from, to));
+        }
+        for (ScheduleEvent e : events) {
+            // 참여팀 팀장은 주관팀이 만든 일정을 볼 수만 있다. 자기 팀이 만든 내부 일정만 고칠 수 있다.
+            e.setEditable(leader && !e.isAuto() && leaderTeamSn.equals(e.getTeamSn()));
         }
         buildCells(v, month, events);
 
-        // 팀장이 자기 팀 내부 일정을 관리할 수 있는지 (FR-093)
-        Long leaderTeamSn = user.getRole() == Role.LEADER ? (myTeamSn != null ? myTeamSn : mapper.findMyTeamSn(user.getEmpNo())) : null;
-        boolean leader = leaderTeamSn != null;
         v.setCanEdit(leader);
         if (leader) {
-            List<CodeOption> editable = new ArrayList<>();
-            for (CodeOption k : v.getKinds()) {
-                if (INTERNAL_KINDS.contains(k.getCode())) {
-                    editable.add(k);
-                }
-            }
-            v.setEditableKinds(editable);
+            v.setEditProjects(mapper.findEditablePbancs(leaderTeamSn));
             if (editId != null) {
                 v.setEditing(mapper.findInternalOne(editId, leaderTeamSn));
             }
@@ -107,32 +109,65 @@ public class ScheduleService {
         return v;
     }
 
-    // ===== 내부 일정 추가·수정·삭제 (팀장, 자기 팀만) =====
+    // ===== 내부 일정 추가·수정·삭제 (주관팀 팀장, 자기 팀이 주관하는 사업건만) =====
 
     @Transactional
-    public void add(LoginUser user, String kindCd, String title, String date) {
+    public void add(LoginUser user, Long pbancSn, String title, String date, String time) {
         Long teamSn = requireLeaderTeam(user);
-        mapper.insert(teamSn, checkKind(kindCd), checkTitle(title), checkDate(date), user.getEmpNo());
+        String pbancNm = requireEditablePbanc(teamSn, pbancSn);
+        String checkedTitle = checkTitle(title);
+        String dateTime = checkDate(date) + " " + checkTime(time);
+        mapper.insert(teamSn, pbancSn, KIND_INTERNAL, checkedTitle, dateTime, user.getEmpNo());
+        notifyProposalTeam(pbancSn, pbancNm, "일정이 등록되었습니다", checkedTitle, dateTime);
     }
 
     @Transactional
-    public void edit(LoginUser user, Long schdlSn, String kindCd, String title, String date) {
+    public void edit(LoginUser user, Long schdlSn, Long pbancSn, String title, String date, String time) {
         Long teamSn = requireLeaderTeam(user);
-        int n = mapper.update(schdlSn, teamSn, checkKind(kindCd), checkTitle(title), checkDate(date));
+        String pbancNm = requireEditablePbanc(teamSn, pbancSn);
+        String checkedTitle = checkTitle(title);
+        String dateTime = checkDate(date) + " " + checkTime(time);
+        int n = mapper.update(schdlSn, teamSn, pbancSn, checkedTitle, dateTime);
         if (n == 0) {
             throw new BusinessException("수정할 일정을 찾을 수 없습니다. 자기 팀의 내부 일정만 수정할 수 있습니다.");
         }
+        notifyProposalTeam(pbancSn, pbancNm, "일정이 변경되었습니다", checkedTitle, dateTime);
     }
 
     @Transactional
     public void delete(LoginUser user, Long schdlSn) {
         Long teamSn = requireLeaderTeam(user);
+        ScheduleEvent before = mapper.findInternalOne(schdlSn, teamSn); // 알림에 쓸 이름·날짜. 지우기 전에 읽는다
         if (mapper.delete(schdlSn, teamSn) == 0) {
             throw new BusinessException("삭제할 일정을 찾을 수 없습니다. 자기 팀의 내부 일정만 삭제할 수 있습니다.");
+        }
+        if (before != null && before.getPbancSn() != null) {
+            String when = before.getEventDate() + (before.getTimeText() == null ? "" : " " + before.getTimeText());
+            notifyProposalTeam(before.getPbancSn(), before.getPbancNm(), "일정이 삭제되었습니다", before.getTitle(), when);
         }
     }
 
     // ===== 내부 =====
+
+    /** 그 사업건의 제안팀원 전원(등록한 본인 포함, 주관팀 팀장도 포함)에게 일정 등록·변경·삭제를 알린다. (FR-034, NT160) */
+    private void notifyProposalTeam(Long pbancSn, String pbancNm, String what, String title, String when) {
+        String name = pbancNm == null ? "" : "[" + pbancNm + "] ";
+        notificationService.sendToProposalTeam(pbancSn, NotificationType.SCHEDULE_CHANGED,
+                name + "'" + title + "' " + what + ". (" + when + ")");
+    }
+
+    /** 우리 팀이 주관하는 진행 중 사업건이 아니면 안내. 사업건 이름을 돌려준다. */
+    private String requireEditablePbanc(Long teamSn, Long pbancSn) {
+        if (pbancSn == null) {
+            throw new BusinessException("일정을 등록할 사업을 골라 주세요.");
+        }
+        for (CodeOption o : mapper.findEditablePbancs(teamSn)) {
+            if (o.getCode().equals(String.valueOf(pbancSn))) {
+                return o.getName();
+            }
+        }
+        throw new BusinessException("일정을 등록할 수 없는 사업입니다. 우리 팀이 주관하는 진행 중인 사업만 고를 수 있습니다.");
+    }
 
     /** 팀장이 아니면 403, 소속 팀이 없으면 업무 안내 */
     private Long requireLeaderTeam(LoginUser user) {
@@ -144,13 +179,6 @@ public class ScheduleService {
             throw new BusinessException("소속 팀이 없어 일정을 관리할 수 없습니다.");
         }
         return teamSn;
-    }
-
-    static String checkKind(String kindCd) {
-        if (kindCd == null || !INTERNAL_KINDS.contains(kindCd)) {
-            throw new BusinessException("일정 구분을 골라 주세요. (내부 1차 마감, 내부 2차 마감, 서류 마감)");
-        }
-        return kindCd;
     }
 
     static String checkTitle(String title) {
@@ -176,6 +204,19 @@ public class ScheduleService {
         }
     }
 
+    /** 시간은 비워 둘 수 있다(하루 종일). 입력하면 HH:mm 으로 맞춘다. */
+    static String checkTime(String time) {
+        String t = time == null ? "" : time.trim();
+        if (t.isEmpty()) {
+            return "00:00";
+        }
+        try {
+            return java.time.LocalTime.parse(t).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
+        } catch (DateTimeParseException e) {
+            throw new BusinessException("시간을 올바르게 입력해 주세요. (예: 14:00)");
+        }
+    }
+
     private static YearMonth parseMonth(String ym) {
         try {
             return ym == null || ym.isEmpty() ? YearMonth.now() : YearMonth.parse(ym);
@@ -184,23 +225,23 @@ public class ScheduleService {
         }
     }
 
-    /** 팀 탭에 있는 팀 번호만 인정한다. 그 밖의 값은 전체로 본다. */
-    private static Long validTeam(List<CodeOption> teams, Long teamParam) {
-        if (teamParam == null) {
+    /** 목록에 있는 번호만 인정한다(팀 탭, 사업별 보기). 그 밖의 값은 전체로 본다. */
+    private static Long validOption(List<CodeOption> options, Long param) {
+        if (param == null) {
             return null;
         }
-        for (CodeOption t : teams) {
-            if (t.getCode().equals(String.valueOf(teamParam))) {
-                return teamParam;
+        for (CodeOption o : options) {
+            if (o.getCode().equals(String.valueOf(param))) {
+                return param;
             }
         }
         return null;
     }
 
-    private static String teamName(List<CodeOption> teams, Long teamSn) {
-        for (CodeOption t : teams) {
-            if (t.getCode().equals(String.valueOf(teamSn))) {
-                return t.getName();
+    private static String optionName(List<CodeOption> options, Long sn) {
+        for (CodeOption o : options) {
+            if (o.getCode().equals(String.valueOf(sn))) {
+                return o.getName();
             }
         }
         return "";

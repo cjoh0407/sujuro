@@ -160,6 +160,16 @@ a.tab{text-decoration:none}
 .ev.k4{background:var(--info-soft);color:var(--info)}
 .ev.k5{background:var(--success-soft);color:var(--success)}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
+/* 일정: 팀 색 (왼쪽 띠). 영업부·경영지원실이 팀별로 구분해서 본다 */
+.ev.tm1{box-shadow:inset 3px 0 0 #2f6fed}
+.ev.tm2{box-shadow:inset 3px 0 0 #d9534f}
+.ev.tm3{box-shadow:inset 3px 0 0 #2e9d6b}
+.ev.tm4{box-shadow:inset 3px 0 0 #e0961f}
+.ev.tm5{box-shadow:inset 3px 0 0 #8a56c9}
+.ev.tm6{box-shadow:inset 3px 0 0 #1fa2b8}
+.dot.tm1{background:#2f6fed}.dot.tm2{background:#d9534f}.dot.tm3{background:#2e9d6b}
+.dot.tm4{background:#e0961f}.dot.tm5{background:#8a56c9}.dot.tm6{background:#1fa2b8}
+
 .tl{padding:6px 18px}
 .tl .it{display:flex;gap:10px;padding:8px 0;border-bottom:1px dashed var(--border);font-size:12.5px}
 .tl .it:last-child{border-bottom:none}

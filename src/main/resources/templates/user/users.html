@@ -141,8 +141,8 @@
                 <input id="telno" name="telno" type="text" maxlength="13" placeholder="010-1234-5678" th:value="${form.telno}">
               </div>
               <div class="fld">
-                <label for="emlAddr">이메일 (선택)</label>
-                <input id="emlAddr" name="emlAddr" type="text" maxlength="320" placeholder="name@company.com" th:value="${form.emlAddr}">
+                <label for="emlAddr">이메일 <span style="color:#d93025" title="필수">*</span></label>
+                <input id="emlAddr" name="emlAddr" type="email" maxlength="320" required placeholder="name@company.com" th:value="${form.emlAddr}">
               </div>
             </div>
 

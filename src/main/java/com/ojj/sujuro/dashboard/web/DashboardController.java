@@ -8,18 +8,16 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import com.ojj.sujuro.auth.dto.LoginUser;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 대시보드 (FR-089, 090). 역할과 소속 팀에 따라 보이는 내용이 다르다. 구성은 {@link DashboardService}.
  */
 @Controller
+@RequiredArgsConstructor
 public class DashboardController {
 
     private final DashboardService service;
-
-    public DashboardController(DashboardService service) {
-        this.service = service;
-    }
 
     @GetMapping("/")
     public String home() {

@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ojj.sujuro.auth.code.Role;
 import com.ojj.sujuro.common.exception.BusinessException;
-import com.ojj.sujuro.notification.code.NotificationType;
 import com.ojj.sujuro.notification.service.NotificationService;
 import com.ojj.sujuro.proposal.dto.ProposalBidDto;
 import com.ojj.sujuro.proposal.dto.ProposalMemberDto;
@@ -101,14 +100,6 @@ public class ProposalServiceImpl implements ProposalService {
             mapper.insertPtcpTeam(pbancSn, u.getTeamSn()); // 다른 팀 인원을 넣으면 그 팀이 참여팀이 된다
         }
         mapper.insertMember(pbancSn, u.getUserId(), leadTeam ? PT_LEAD : PT_JOIN);
-
-        // 알림 (NT130 제안팀 변경): 추가된 사람, 새로 참여팀이 된 팀의 팀장(추가된 사람이 그 팀장이면 한 번만)
-        notificationService.send(u.getUserId(), NotificationType.PROPOSAL_TEAM_CHANGED, pbancSn,
-                "'" + bid.getLabel() + "' 제안팀에 추가되었습니다. 제안 화면에서 목차와 담당을 확인해 주세요.");
-        if (newTeam && !Role.CD_LEADER.equals(u.getAuthrtCd())) {
-            notificationService.sendToTeamLeaders(u.getTeamSn(), NotificationType.PROPOSAL_TEAM_CHANGED, pbancSn,
-                    "'" + bid.getLabel() + "' 제안서 작성에 " + u.getTeamNm() + "이(가) 참여팀으로 지정되었습니다.");
-        }
         return u.getUserNm();
     }
 
@@ -148,8 +139,6 @@ public class ProposalServiceImpl implements ProposalService {
             throw new BusinessException("'" + m.getUserNm() + "'이(가) 담당한 목차가 " + owned + "개 있습니다. 담당자를 먼저 바꿔 주세요.");
         }
         mapper.deleteMember(pbancSn, m.getUserId());
-        notificationService.send(m.getUserId(), NotificationType.PROPOSAL_TEAM_CHANGED, pbancSn,
-                "'" + mapper.findBid(pbancSn).getLabel() + "' 제안팀에서 제외되었습니다.");
         return m.getUserNm();
     }
 
@@ -175,17 +164,12 @@ public class ProposalServiceImpl implements ProposalService {
             throw new BusinessException("제안팀에 인원이 남아 있는 팀은 참여팀에서 뺄 수 없습니다: "
                     + String.join(", ", blocked) + ". 인원을 먼저 빼 주세요.");
         }
-        String bidNm = mapper.findBid(pbancSn).getLabel();
         for (ProposalTeamDto t : options) {
             boolean on = want.contains(t.getTeamSn());
             if (on && !t.isPtcp()) {
                 mapper.insertPtcpTeam(pbancSn, t.getTeamSn());
-                notificationService.sendToTeamLeaders(t.getTeamSn(), NotificationType.PROPOSAL_TEAM_CHANGED, pbancSn,
-                        "'" + bidNm + "' 제안서 작성에 " + t.getTeamNm() + "이(가) 참여팀으로 지정되었습니다.");
             } else if (!on && t.isPtcp()) {
                 mapper.deletePtcpTeam(pbancSn, t.getTeamSn());
-                notificationService.sendToTeamLeaders(t.getTeamSn(), NotificationType.PROPOSAL_TEAM_CHANGED, pbancSn,
-                        "'" + bidNm + "' 참여팀에서 " + t.getTeamNm() + "이(가) 제외되었습니다.");
             }
         }
     }

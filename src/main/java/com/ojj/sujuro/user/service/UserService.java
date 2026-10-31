@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.auth.code.Role;
 import com.ojj.sujuro.common.exception.BusinessException;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 직원 관리 (FR-003 ~ FR-008). 경영지원실만 쓴다. (URL 접근 규칙은 SecurityConfig의 /users/**)
@@ -26,6 +27,7 @@ import com.ojj.sujuro.common.exception.BusinessException;
  * 권한은 입력받지 않고 소속 부서와 직급으로 자동으로 정한다. (FR-007)
  */
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     /** 공통코드 DEPTS: 경영지원실 / 영업부 */
@@ -40,11 +42,6 @@ public class UserService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
-
-    public UserService(UserMapper userMapper, PasswordEncoder passwordEncoder) {
-        this.userMapper = userMapper;
-        this.passwordEncoder = passwordEncoder;
-    }
 
     // ---------------- 조회 (FR-003) ----------------
 
@@ -196,8 +193,10 @@ public class UserService {
         if (form.getTelno() != null && !PHONE.matcher(form.getTelno()).matches()) {
             errors.add("전화번호는 숫자 9~11자리로 입력해 주세요. (예: 010-1234-5678)");
         }
-        if (form.getEmlAddr() != null
-                && (form.getEmlAddr().length() > 320 || !EMAIL.matcher(form.getEmlAddr()).matches())) {
+        // 이메일은 필수다. 마감·단계 전환 메일을 받을 주소가 없으면 알림이 가지 않기 때문 (v4.1)
+        if (form.getEmlAddr() == null || form.getEmlAddr().isEmpty()) {
+            errors.add("이메일을 입력해 주세요.");
+        } else if (form.getEmlAddr().length() > 320 || !EMAIL.matcher(form.getEmlAddr()).matches()) {
             errors.add("이메일 형식이 올바르지 않습니다.");
         }
     }

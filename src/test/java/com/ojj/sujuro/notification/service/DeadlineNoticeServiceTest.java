@@ -3,6 +3,7 @@ package com.ojj.sujuro.notification.service;
 import com.ojj.sujuro.notification.code.NotificationType;
 import com.ojj.sujuro.notification.dto.DeadlineTarget;
 import com.ojj.sujuro.notification.dto.PendingMail;
+import com.ojj.sujuro.notification.dto.ScheduleTarget;
 import com.ojj.sujuro.notification.mapper.DeadlineMapper;
 import com.ojj.sujuro.notification.mapper.NotificationMapper;
 import com.ojj.sujuro.notification.support.NotificationMailSender;
@@ -50,34 +51,31 @@ class DeadlineNoticeServiceTest {
 
     @Test
     void 제안팀원_전원에게_알림을_만든다() {
-        when(deadlineMapper.findTargets(3)).thenReturn(Collections.singletonList(target(10L, "A사업")));
-        when(deadlineMapper.findTargets(1)).thenReturn(Collections.<DeadlineTarget>emptyList());
+        when(deadlineMapper.findTargets(1)).thenReturn(Collections.singletonList(target(10L, "A사업")));
         when(notificationMapper.findProposalMemberIds(10L)).thenReturn(Arrays.asList("E1", "E2"));
 
         int created = service.createNotices();
 
         assertEquals(2, created);
-        verify(notificationService).send(eq("E1"), eq(NotificationType.DEADLINE_NEAR), eq(10L), contains("[D-3]"));
-        verify(notificationService).send(eq("E2"), eq(NotificationType.DEADLINE_NEAR), eq(10L), contains("[D-3]"));
+        verify(notificationService).send(eq("E1"), eq(NotificationType.DEADLINE_NEAR), eq(10L), contains("[D-1]"));
+        verify(notificationService).send(eq("E2"), eq(NotificationType.DEADLINE_NEAR), eq(10L), contains("[D-1]"));
     }
 
     @Test
     void 이미_보낸_사람에게는_다시_만들지_않는다() {
-        when(deadlineMapper.findTargets(3)).thenReturn(Collections.singletonList(target(10L, "A사업")));
-        when(deadlineMapper.findTargets(1)).thenReturn(Collections.<DeadlineTarget>emptyList());
+        when(deadlineMapper.findTargets(1)).thenReturn(Collections.singletonList(target(10L, "A사업")));
         when(notificationMapper.findProposalMemberIds(10L)).thenReturn(Arrays.asList("E1", "E2"));
-        when(deadlineMapper.countSent("E1", 10L, NotificationType.DEADLINE_NEAR, "[D-3]")).thenReturn(1);
+        when(deadlineMapper.countSent("E1", 10L, NotificationType.DEADLINE_NEAR, "[D-1]")).thenReturn(1);
 
         int created = service.createNotices();
 
         assertEquals(1, created);
         verify(notificationService, never()).send(eq("E1"), anyString(), eq(10L), anyString());
-        verify(notificationService).send(eq("E2"), eq(NotificationType.DEADLINE_NEAR), eq(10L), contains("[D-3]"));
+        verify(notificationService).send(eq("E2"), eq(NotificationType.DEADLINE_NEAR), eq(10L), contains("[D-1]"));
     }
 
     @Test
     void 대상이_없으면_아무것도_보내지_않는다() {
-        when(deadlineMapper.findTargets(3)).thenReturn(Collections.<DeadlineTarget>emptyList());
         when(deadlineMapper.findTargets(1)).thenReturn(Collections.<DeadlineTarget>emptyList());
 
         assertEquals(0, service.createNotices());
@@ -103,5 +101,54 @@ class DeadlineNoticeServiceTest {
         assertEquals(1, sent);
         verify(deadlineMapper).markMailSent(1L);
         verify(deadlineMapper, never()).markMailSent(2L);
+    }
+
+    @Test
+    void 내일_일정은_그_사업건_제안팀원_전원에게_알림을_만든다() {
+        ScheduleTarget t = new ScheduleTarget();
+        t.setSchdlSn(5L);
+        t.setPbancSn(70L);
+        t.setPbancNm("A사업");
+        t.setTitle("내부 검토");
+        t.setWhenText("2026-11-05 14:00");
+        when(deadlineMapper.findScheduleTargets(1)).thenReturn(Collections.singletonList(t));
+        when(notificationMapper.findProposalMemberIds(70L)).thenReturn(Arrays.asList("E1", "E2"));
+
+        int created = service.createScheduleNotices();
+
+        assertEquals(2, created);
+        verify(notificationService).send(eq("E1"), eq(NotificationType.DEADLINE_NEAR), eq(70L), contains("[일정 D-1]"));
+        verify(notificationService).send(eq("E2"), eq(NotificationType.DEADLINE_NEAR), eq(70L), contains("내부 검토"));
+    }
+
+    @Test
+    void 일정_알림도_이미_보낸_사람에게는_다시_만들지_않는다() {
+        ScheduleTarget t = new ScheduleTarget();
+        t.setSchdlSn(5L);
+        t.setPbancSn(70L);
+        t.setPbancNm("A사업");
+        t.setTitle("내부 검토");
+        t.setWhenText("2026-11-05");
+        when(deadlineMapper.findScheduleTargets(1)).thenReturn(Collections.singletonList(t));
+        when(notificationMapper.findProposalMemberIds(70L)).thenReturn(Arrays.asList("E1", "E2"));
+        String content = "[일정 D-1] 내일 '내부 검토' 일정이 있습니다. (2026-11-05) · A사업";
+        when(deadlineMapper.countSentByContent("E1", NotificationType.DEADLINE_NEAR, content)).thenReturn(1);
+
+        int created = service.createScheduleNotices();
+
+        assertEquals(1, created);
+        verify(notificationService, never()).send(eq("E1"), anyString(), eq(70L), anyString());
+    }
+
+    @Test
+    void 단계_전환_알림도_메일로_보낸다() {
+        when(deadlineMapper.findPendingMails(NotificationType.BID_STAGE_CHANGED, ""))
+                .thenReturn(Collections.singletonList(mail(9L, "sales@example.com")));
+        when(mailSender.send(eq("sales@example.com"), anyString(), anyString())).thenReturn(true);
+
+        int sent = service.sendPendingMails();
+
+        assertEquals(1, sent);
+        verify(deadlineMapper).markMailSent(9L);
     }
 }

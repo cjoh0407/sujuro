@@ -5,7 +5,7 @@
 -- v3.3(2026-10-28, 김종민): 처리구분 PC010 이름 '관심 공고 등록' → '공고 등록' (요구사항 v3.2 용어 통일, 공고 상세 배정·결정 이력에 그대로 보임)
 --                          파일구분 FL090 '입찰공고 첨부' 추가. 나라장터 공고 첨부를 TB_ATCH_FILE 에 넣을 때 제안요청서는 FL010, 사전규격 규격서는 FL080, 나머지는 FL090
 --                          수집결과 CL070 '계약 전환' 추가, 실행구분 설명을 '평일 오후 5시' · '[지금 수집] 버튼'으로 바꿈
--- v4.1(2026-10-31, 오창준): 알림유형 NT140 발주계획 등록 · NT150 공고 단계 전환 · NT160 일정 등록·변경 추가
+-- v4.1(2026-10-31, 오창준): 알림유형 NT150 공고 단계 전환 · NT160 일정 등록·변경 추가 (발주계획은 영업부가 직접 등록하므로 등록 알림은 두지 않음)
 --                          일정구분 SC020 '내부 1차 마감' → '내부 일정', SC030 '내부 2차 마감' 사용 안 함 (일정은 자유 입력)
 SET DEFINE OFF
 DELETE FROM TB_COM_CD;
@@ -60,7 +60,6 @@ INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUE
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT110', '알림유형', '평가표 업로드 요청', 11, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT120', '알림유형', '요구사항 변경', 12, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT130', '알림유형', '제안팀 변경', 13, 'Y');
-INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT140', '알림유형', '발주계획 등록', '발주계획을 등록하면 영업부에 메일·화면 알림 (FR-027)', 14, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT150', '알림유형', '공고 단계 전환', '발주계획→사전규격, 발주계획·사전규격→입찰공고 전환 시 영업부에 메일·화면 알림 (FR-027)', 15, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT160', '알림유형', '일정 등록·변경', '팀장이 일정을 등록·변경하면 팀원·참여팀에 실시간 알림 (FR-034)', 16, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('SCHSE', 'SC010', '일정구분', '제출 마감', 1, 'Y');

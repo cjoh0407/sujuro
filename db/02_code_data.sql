@@ -6,6 +6,8 @@
 --                          파일구분 FL090 '입찰공고 첨부' 추가. 나라장터 공고 첨부를 TB_ATCH_FILE 에 넣을 때 제안요청서는 FL010, 사전규격 규격서는 FL080, 나머지는 FL090
 --                          수집결과 CL070 '계약 전환' 추가, 실행구분 설명을 '평일 오후 5시' · '[지금 수집] 버튼'으로 바꿈
 -- v4.1(2026-10-31, 오창준): 알림유형 NT150 공고 단계 전환 · NT160 일정 등록·변경 추가 (발주계획은 영업부가 직접 등록하므로 등록 알림은 두지 않음)
+--                          알림유형 NT100 목차 담당 · NT120 요구사항 변경 · NT130 제안팀 변경 삭제 (해당 알림을 보내지 않기로 함)
+--                          일정구분 SC040 발표 · SC050 서류 마감 사용 안 함 (캘린더에는 제출 마감과 직접 등록한 일정만 보인다)
 --                          일정구분 SC020 '내부 1차 마감' → '내부 일정', SC030 '내부 2차 마감' 사용 안 함 (일정은 자유 입력)
 SET DEFINE OFF
 DELETE FROM TB_COM_CD;
@@ -56,17 +58,14 @@ INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUE
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT050', '알림유형', '마감 임박', 5, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT060', '알림유형', '중도 철회', 6, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT070', '알림유형', '제출 완료', 7, 'Y');
-INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT100', '알림유형', '목차 담당', 10, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT110', '알림유형', '평가표 업로드 요청', 11, 'Y');
-INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT120', '알림유형', '요구사항 변경', 12, 'Y');
-INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT130', '알림유형', '제안팀 변경', 13, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT150', '알림유형', '공고 단계 전환', '발주계획→사전규격, 발주계획·사전규격→입찰공고 전환 시 영업부에 메일·화면 알림 (FR-027)', 15, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT160', '알림유형', '일정 등록·변경', '팀장이 일정을 등록·변경하면 팀원·참여팀에 실시간 알림 (FR-034)', 16, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('SCHSE', 'SC010', '일정구분', '제출 마감', 1, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('SCHSE', 'SC020', '일정구분', '내부 일정', '팀장이 자유롭게 등록하는 내부 일정 (일정명 직접 입력, 시간 포함) (FR-093)', 2, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('SCHSE', 'SC030', '일정구분', '내부 2차 마감', '사용 안 함. 내부 일정(SC020)으로 통합 (FR-093)', 3, 'N');
-INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('SCHSE', 'SC040', '일정구분', '발표', 4, 'Y');
-INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('SCHSE', 'SC050', '일정구분', '서류 마감', 5, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('SCHSE', 'SC040', '일정구분', '발표', '사용 안 함. 캘린더에 넣지 않는다 (FR-092)', 4, 'N');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('SCHSE', 'SC050', '일정구분', '서류 마감', '사용 안 함. 캘린더에 넣지 않는다 (FR-092)', 5, 'N');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('PTCSE', 'PT010', '참여구분', '주관팀', 1, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('PTCSE', 'PT020', '참여구분', '참여팀', 2, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('PTCSE', 'PT040', '참여구분', '수행인력', 4, 'Y');

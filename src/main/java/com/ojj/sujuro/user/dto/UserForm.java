@@ -8,7 +8,7 @@ public class UserForm {
     private Long teamSn;     // 소속 팀
     private String jbgdCd;   // 직급
     private String telno;    // 전화번호 (선택)
-    private String emlAddr;  // 이메일 (선택)
+    private String emlAddr;  // 이메일 (필수)
 
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }

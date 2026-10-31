@@ -11,17 +11,16 @@ import com.ojj.sujuro.proposal.dto.QnaDto;
 import com.ojj.sujuro.proposal.mapper.QnaMapper;
 import com.ojj.sujuro.proposal.service.QnaService;
 
+import lombok.RequiredArgsConstructor;
+
 /** 질의응답 기록: 예상 Q&A·발표 Q&A 등록·수정·삭제 (FR-074~076) */
 @Service
+@RequiredArgsConstructor
 public class QnaServiceImpl implements QnaService {
 
     private static final int MAX_TEXT = 4000;
 
     private final QnaMapper mapper;
-
-    public QnaServiceImpl(QnaMapper mapper) {
-        this.mapper = mapper;
-    }
 
     @Override
     public List<QnaDto> list(Long pbancSn) {

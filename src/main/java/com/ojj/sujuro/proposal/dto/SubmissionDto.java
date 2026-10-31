@@ -2,7 +2,12 @@ package com.ojj.sujuro.proposal.dto;
 
 import java.util.Date;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /** 사업건의 나라장터 등록(제출) 정보 (TB_BID_PBANC). (FR-073) */
+@Getter
+@Setter
 public class SubmissionDto {
 
     /** 공고상태코드 (공통코드 PBSTS) */
@@ -13,26 +18,13 @@ public class SubmissionDto {
 
     private Long pbancSn;
     private String pbancSttsCd;
+    /** 나라장터 등록 일시 */
     private Date sbmsnDt;
+    /** 등록한 경영지원실 담당자 */
     private String prsnrId;
     private String prsnrNm;
 
-    public Long getPbancSn() { return pbancSn; }
-    public void setPbancSn(Long pbancSn) { this.pbancSn = pbancSn; }
-
-    public String getPbancSttsCd() { return pbancSttsCd; }
     public void setPbancSttsCd(String pbancSttsCd) { this.pbancSttsCd = pbancSttsCd == null ? null : pbancSttsCd.trim(); }
-
-    /** 나라장터 등록 일시 */
-    public Date getSbmsnDt() { return sbmsnDt; }
-    public void setSbmsnDt(Date sbmsnDt) { this.sbmsnDt = sbmsnDt; }
-
-    /** 등록한 경영지원실 담당자 */
-    public String getPrsnrId() { return prsnrId; }
-    public void setPrsnrId(String prsnrId) { this.prsnrId = prsnrId; }
-
-    public String getPrsnrNm() { return prsnrNm; }
-    public void setPrsnrNm(String prsnrNm) { this.prsnrNm = prsnrNm; }
 
     /** 이미 제출(나라장터 등록)했는지. 제출한 뒤에는 체크리스트·조견표를 고칠 수 없다. */
     public boolean isSubmitted() {

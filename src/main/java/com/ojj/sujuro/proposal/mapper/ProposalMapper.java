@@ -28,7 +28,15 @@ public interface ProposalMapper {
     /* ---------- 제안팀 구성 (FR-043~044) ---------- */
 
     /** 제안팀에 추가할 수 있는 직원: 개발부 팀장·팀원, 비활성 아님, 아직 이 사업건 제안팀이 아닌 사람 */
-    List<ProposalMemberDto> findAddableUsers(@Param("pbancSn") Long pbancSn);
+    List<ProposalMemberDto> findAddableUsers(@Param("pbancSn") Long pbancSn, @Param("teamSn") Long teamSn,
+                                             @Param("jbgdNm") String jbgdNm, @Param("name") String name,
+                                             @Param("offset") int offset, @Param("limit") int limit);
+
+    /** 개발부 팀 전체 (인원 찾기 팝업의 팀 선택지) */
+    List<ProposalTeamDto> findDevTeams();
+
+    /** 직급명 목록 (인원 찾기 팝업의 직급 선택지) */
+    List<String> findRankNames();
 
     /** 직원 한 명 (소속 팀·부서·권한·계정상태). 없으면 null */
     ProposalMemberDto findUser(@Param("userId") String userId);

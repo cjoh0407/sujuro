@@ -9,16 +9,31 @@
 .vtop{vertical-align:top}
 .lbl-in{width:100%;min-width:170px;max-width:340px}
 .lbl-in.bold{font-weight:700}
-.toc-tools{margin-left:8px;font-weight:400;white-space:nowrap}
-.toc-tools .link{font-size:11.5px}
+.toc-tools{margin-left:6px;font-weight:400;white-space:nowrap;display:inline-flex;gap:3px;vertical-align:middle}
+/* 목차 편집 아이콘 버튼 (↳ 하위 · ＋ 같은 단계 · 🗑 삭제) */
+.ico{text-decoration:none;border:1px solid var(--border);background:var(--surface);border-radius:6px;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:var(--muted);padding:0;vertical-align:middle}
+.ico:hover{border-color:var(--accent);color:var(--accent-s)}
+/* 제안팀 인원 찾기 팝업 (bid-header teamCard) */
+.modal{position:fixed;inset:0;background:rgba(15,19,24,.45);display:flex;align-items:center;justify-content:center;z-index:70;padding:16px}
+.modal[hidden]{display:none}
+.modal .box{width:620px;max-width:94vw;max-height:84vh;overflow:auto;background:var(--surface);border-radius:12px;border:1px solid var(--border)}
+.mp-form{display:flex;flex-direction:column;gap:10px}
+.mp-list{height:320px;overflow-y:auto}
+.mp-state{text-align:center;padding:10px;font-size:12px}
+.mp-list thead th{position:sticky;top:0;background:var(--surface);z-index:1}
+.mp-row{cursor:pointer}
+.mp-row:hover{background:var(--alt)}
+/* 요구사항 이름 옆 ✎ 🗑 */
+.rq-line{display:flex;gap:8px;align-items:center;font-size:12.5px}
+.rq-line .ico{width:22px;height:22px;font-size:11px}
+/* 현재 목차 양식 표시 */
+.cur-form{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12.5px}
+/* 목차 담당자: 외부 회사 직접 입력 칸 */
+.owner-form{display:inline-flex;gap:4px;align-items:center;flex-wrap:wrap}
+.owner-form .co-new{display:inline-flex;gap:4px;align-items:center}
+.owner-form .co-new[hidden]{display:none}
 tr.addrow>td{background:var(--accent-soft)}
 tr.addrow .cap{font-size:11.5px}
-.unmapped-head{font-weight:700;background:var(--danger-soft);color:var(--danger)}
 
 /* 요구사항: 이름을 누르면 정의·세부내용이 펼쳐진다 */
-details.rq>summary{cursor:pointer;font-size:12.5px;list-style:none}
-details.rq>summary::-webkit-details-marker{display:none}
-details.rq>summary::after{content:" ▾";color:var(--faint)}
-details.rq[open]>summary::after{content:" ▴"}
-.rq-def{margin-top:6px;padding:8px 10px;background:var(--alt);border-radius:7px;font-size:12px;line-height:1.65}
 .x-btn{border:0;background:none;padding:0;cursor:pointer;color:inherit}

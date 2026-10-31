@@ -15,8 +15,11 @@ import com.ojj.sujuro.proposal.mapper.PrpFileMapper;
 import com.ojj.sujuro.proposal.mapper.TocMapper;
 import com.ojj.sujuro.proposal.service.PrpFileService;
 
+import lombok.RequiredArgsConstructor;
+
 /** 제안서 파일 관리 (FR-057~066, NFR-009) */
 @Service
+@RequiredArgsConstructor
 public class PrpFileServiceImpl implements PrpFileService {
 
     private static final String ST_WRITING = "TS020";  // 작성 중
@@ -27,12 +30,6 @@ public class PrpFileServiceImpl implements PrpFileService {
     private final PrpFileMapper mapper;
     private final TocMapper tocMapper;
     private final FileStorage storage;
-
-    public PrpFileServiceImpl(PrpFileMapper mapper, TocMapper tocMapper, FileStorage storage) {
-        this.mapper = mapper;
-        this.tocMapper = tocMapper;
-        this.storage = storage;
-    }
 
     @Override
     public Map<Long, List<PrpFileDto>> tocFiles(Long pbancSn, String fileSeCd) {

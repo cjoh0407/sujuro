@@ -94,7 +94,7 @@
         <div class="card-head">
           <h3>
             <span th:text="${t.label}">1.1 목차</span>
-            <span class="faint" style="font-weight:400" th:text="'· 담당 ' + ${t.picNm ?: '미지정'}">· 담당 미지정</span>
+            <span class="faint" style="font-weight:400" th:text="'· 담당 ' + ${t.ownerLabel ?: '미지정'}">· 담당 미지정</span>
             <span class="pill" th:classappend="${t.fileStatusPill}" th:text="${t.fileStatus}">미착수</span>
           </h3>
           <span class="row">

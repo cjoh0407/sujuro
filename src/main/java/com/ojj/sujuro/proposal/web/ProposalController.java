@@ -25,6 +25,8 @@ import com.ojj.sujuro.proposal.service.ProposalService;
 import com.ojj.sujuro.proposal.service.RqtService;
 import com.ojj.sujuro.proposal.service.TocService;
 
+import lombok.RequiredArgsConstructor;
+
 /**
  * 제안팀 · 목차·요구사항 매핑 화면 (FR-046~056, FR-063, 요구사항 v3.3 / 화면 설계 v3.2).
  *   탭 prop: 제안서 목차 · 담당자 · 요구사항 연결 / 탭 sum: 제안요약서 목차 · 담당자
@@ -38,10 +40,17 @@ import com.ojj.sujuro.proposal.service.TocService;
  * 업무 규칙 위반(BusinessException)은 화면 위쪽 안내 띠로 보여 주고 같은 사업건·같은 탭 화면으로 돌아온다.
  */
 @Controller
+@RequiredArgsConstructor
 public class ProposalController {
 
     static final String TAB_PROPOSAL = "prop";
     static final String TAB_SUMMARY = "sum";
+    /** 제안서 탭 안의 미매핑 요구사항 화면 (?view=unmapped) */
+    static final String VIEW_UNMAPPED = "unmapped";
+    /** 담당자 선택칸에서 외부 회사를 나타내는 값의 앞부분 ("co:회사명") */
+    static final String CO_PREFIX = "co:";
+    /** 담당자 선택칸의 "외부 회사 직접 입력" (화면에서만 쓰고 서버로는 회사명 칸을 보낸다) */
+    static final String NEW_CO = "co-new";
     static final String PATH = "/proposal";
 
     private final AccessChecker accessChecker;
@@ -49,19 +58,12 @@ public class ProposalController {
     private final TocService tocService;
     private final RqtService rqtService;
 
-    public ProposalController(AccessChecker accessChecker, ProposalService proposalService,
-                              TocService tocService, RqtService rqtService) {
-        this.accessChecker = accessChecker;
-        this.proposalService = proposalService;
-        this.tocService = tocService;
-        this.rqtService = rqtService;
-    }
-
     @GetMapping("/proposal")
     public String index(@AuthenticationPrincipal LoginUser user,
                         @RequestParam(value = "bid", required = false) Long bid,
                         @RequestParam(value = "tab", defaultValue = TAB_PROPOSAL) String tab,
                         @RequestParam(value = "edit", required = false) Long edit,
+                        @RequestParam(value = "view", required = false) String view,
                         Model model) {
         String me = user.getEmpNo();
         List<ProposalBidDto> bids = proposalService.myBids(me);
@@ -89,11 +91,18 @@ public class ProposalController {
         model.addAttribute("canReq", canReq);
         model.addAttribute("members", proposalService.members(pbancSn));
         if (canAssign) { // 제안팀 구성 카드의 추가·참여팀 선택
-            model.addAttribute("addableUsers", proposalService.addableUsers(pbancSn));
+            model.addAttribute("memTeams", proposalService.devTeams());   // 인원 찾기 팝업 필터
+            model.addAttribute("memRanks", proposalService.rankNames());
             model.addAttribute("teamOptions", proposalService.teamOptions(pbancSn));
         }
-        if (canLoad) {
+        if (canLoad && TAB_PROPOSAL.equals(tk)) { // 주관팀 양식은 제안서 목차에만 (요약서는 기본 목차)
             model.addAttribute("forms", tocService.forms(current.getSprvsnTeamSn(), se));
+        }
+        if (TAB_PROPOSAL.equals(tk)) { // 현재 목차 양식: 제안팀원 모두에게 보여 준다
+            model.addAttribute("curForm", tocService.currentForm(pbancSn));
+        }
+        if (canAssign) { // 담당자 칸의 외부 회사 자동완성 후보 (FR-043-1)
+            model.addAttribute("coNames", tocService.coNames(pbancSn));
         }
 
         List<TocDto> tocs = tocService.list(pbancSn, se);
@@ -125,7 +134,7 @@ public class ProposalController {
         // 미매핑 요구사항을 연결할 수 있는 목차: 담당자를 지정한 최하위 목차
         List<TocDto> mapTargets = new ArrayList<>();
         for (TocDto t : leaves) {
-            if (t.getPicId() != null) {
+            if (t.isAssigned()) {
                 mapTargets.add(t);
             }
         }
@@ -140,6 +149,7 @@ public class ProposalController {
         model.addAttribute("rqtTotal", all.size());
         model.addAttribute("unmapped", unmappedList.size());
         model.addAttribute("progress", rqtService.progress(all));
+        model.addAttribute("unmapView", VIEW_UNMAPPED.equals(view)); // 미매핑 요구사항 화면 (FR-052 v4.0)
         if (edit != null && canReq) {
             model.addAttribute("editRqt", rqtService.findForEdit(pbancSn, edit));
         }
@@ -165,12 +175,54 @@ public class ProposalController {
                            @RequestParam(value = "tab", defaultValue = TAB_PROPOSAL) String tab,
                            @RequestParam(value = "tocFormNm", required = false) String tocFormNm, RedirectAttributes ra) {
         return run(user, bid, tab, ra, accessChecker::requireLeadTeamMember, b -> () -> {
-            tocService.saveAsForm(bid, se(tab), tocFormNm, b.getSprvsnTeamSn(), user.getEmpNo());
-            return "'" + tocFormNm.trim() + "'을 " + b.getSprvsnTeamNm() + " 양식으로 저장했습니다. 같은 팀이 다른 사업건에서도 불러올 수 있습니다.";
+            boolean overwrote = tocService.saveAsForm(bid, se(tab), tocFormNm, b.getSprvsnTeamSn(), user.getEmpNo());
+            String nm = tocFormNm.trim().replaceAll("\\s+", " ");
+            return overwrote
+                    ? "'" + nm + "' 양식을 지금 목차로 덮어썼습니다."
+                    : "'" + nm + "'을(를) " + b.getSprvsnTeamNm() + " 양식으로 새로 저장했습니다. 같은 팀이 다른 사업건에서도 불러올 수 있습니다.";
         });
     }
 
+    /** 주관팀 양식 이름 바꾸기 (FR-048) */
+    @PostMapping("/proposal/toc/form/rename")
+    public String renameForm(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
+                             @RequestParam(value = "tab", defaultValue = TAB_PROPOSAL) String tab,
+                             @RequestParam(value = "tocFormSn", required = false) Long tocFormSn,
+                             @RequestParam(value = "tocFormNm", required = false) String tocFormNm, RedirectAttributes ra) {
+        return run(user, bid, tab, ra, accessChecker::requireLeadTeamMember, b -> () ->
+                "양식 이름을 '" + tocService.renameForm(tocFormSn, tocFormNm, b.getSprvsnTeamSn()) + "'(으)로 바꿨습니다.");
+    }
+
+    /** 주관팀 양식 삭제(숨김). 이미 그 양식으로 만든 사업건 목차는 그대로다. (FR-048) */
+    @PostMapping("/proposal/toc/form/delete")
+    public String deleteForm(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
+                             @RequestParam(value = "tab", defaultValue = TAB_PROPOSAL) String tab,
+                             @RequestParam(value = "tocFormSn", required = false) Long tocFormSn, RedirectAttributes ra) {
+        return run(user, bid, tab, ra, accessChecker::requireLeadTeamMember, b -> () ->
+                "'" + tocService.deleteForm(tocFormSn, b.getSprvsnTeamSn()) + "' 양식을 삭제했습니다. 이미 만든 사업건 목차는 그대로입니다.");
+    }
+
     /* ---------- 목차 편집 (FR-047, FR-056): 제안팀원 전체 ---------- */
+
+    /* ---------- 제안요약서 기본 목차 ---------- */
+
+    /** 요약서 목차가 없을 때 기본 목차로 시작한다. 제안팀원 누구나 */
+    @PostMapping("/proposal/toc/summary/start")
+    public String startSummary(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid, RedirectAttributes ra) {
+        return run(user, bid, TAB_SUMMARY, ra, accessChecker::requireProposalMember, b -> () -> {
+            tocService.applySummaryDefault(bid, false);
+            return "기본 목차로 제안요약서 목차를 만들었습니다. 이번 사업에 맞게 하위 목차와 Action 전략명을 고치세요.";
+        });
+    }
+
+    /** 요약서 목차를 기본 목차로 되돌린다 (담당자 지정도 사라짐). 주관팀 인원만 */
+    @PostMapping("/proposal/toc/summary/reset")
+    public String resetSummary(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid, RedirectAttributes ra) {
+        return run(user, bid, TAB_SUMMARY, ra, accessChecker::requireLeadTeamMember, b -> () -> {
+            tocService.applySummaryDefault(bid, true);
+            return "제안요약서 목차를 기본 목차로 되돌렸습니다. 담당자는 다시 지정하세요.";
+        });
+    }
 
     /** 1단계 목차 추가 (목차가 없을 때 "직접 목차 만들기"도 여기로 온다). label은 번호 포함 이름 */
     @PostMapping("/proposal/toc/add")
@@ -233,15 +285,32 @@ public class ProposalController {
 
     /* ---------- 담당자·페이지 제한: 주관팀 팀장 ---------- */
 
-    /** 최하위 목차 담당자 지정·해제 (FR-049). picId가 비어 있으면 미지정으로 돌린다. */
+    /**
+     * 최하위 목차 담당자 지정·해제 (FR-049, FR-043-1). 담당자 선택칸 값이
+     *   "" → 미지정, 사번 → 제안팀원, "co:회사명" → 이미 쓴 외부 회사.
+     * 새 외부 회사는 picCoNm 칸에 적어 보낸다.
+     */
     @PostMapping("/proposal/toc/assign")
     public String assignToc(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
                             @RequestParam(value = "tab", defaultValue = TAB_PROPOSAL) String tab,
                             @RequestParam("tocSn") Long tocSn,
-                            @RequestParam(value = "picId", required = false) String picId, RedirectAttributes ra) {
+                            @RequestParam(value = "picId", required = false) String picId,
+                            @RequestParam(value = "picCoNm", required = false) String picCoNm, RedirectAttributes ra) {
+        String person = picId == null ? "" : picId.trim();
+        String company = picCoNm == null ? "" : picCoNm.trim();
+        if (person.startsWith(CO_PREFIX)) {
+            company = person.substring(CO_PREFIX.length());
+            person = "";
+        } else if (!company.isEmpty() || NEW_CO.equals(person)) {
+            person = "";
+        }
+        String pid = person, cnm = company;
         return run(user, bid, tab, ra, accessChecker::requireLeadTeamLeader, b -> () -> {
-            tocService.assign(bid, tocSn, picId, user.getEmpNo());
-            return picId == null || picId.trim().isEmpty() ? "담당자 지정을 해제했습니다." : "담당자를 지정했습니다.";
+            tocService.assign(bid, tocSn, pid, cnm, user.getEmpNo());
+            if (!cnm.isEmpty()) {
+                return "외부 회사를 담당으로 지정했습니다.";
+            }
+            return pid.isEmpty() ? "담당자 지정을 해제했습니다." : "담당자를 지정했습니다.";
         });
     }
 

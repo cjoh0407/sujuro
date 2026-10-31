@@ -3,6 +3,7 @@
 <!--/*
   제안서 목차 · 담당자 · 요구사항 탭 (FR-046~056). proposal.html에서 tab == 'prop'일 때 불러온다.
   목차 조각은 fragments/toc.html, 요구사항 조각은 fragments/rqt.html
+  unmapView(?view=unmapped)면 목차 표 대신 미매핑 요구사항 화면을 보여 준다 (FR-052 v4.0)
 */-->
 <body>
 <th:block th:fragment="tab">
@@ -58,7 +59,31 @@
     </div>
   </div>
 
-  <th:block th:unless="${#lists.isEmpty(tocs)}">
+  <!-- 미매핑 요구사항 화면 (FR-052 v4.0): ID / 명칭 / 연결할 세부 목차 -->
+  <th:block th:if="${unmapView and !#lists.isEmpty(tocs)}">
+    <div class="row"><a class="btn sm" th:href="@{/proposal(bid=${bid.pbancSn})}">← 목차·요구사항으로 돌아가기</a></div>
+    <div class="card">
+      <div class="card-head">
+        <h3 th:text="'미매핑 요구사항 ' + ${unmapped} + '건 · ' + ${bid.label}">미매핑 요구사항</h3>
+        <span class="faint" style="font-size:11.5px">모든 요구사항은 세부 목차 하나에 연결되어야 합니다 · 담당자를 지정한 세부 목차만 고를 수 있습니다</span>
+      </div>
+      <div class="ts">
+        <table>
+          <thead><tr><th>요구사항 ID</th><th>명칭</th><th>연결할 세부 목차</th></tr></thead>
+          <tbody>
+            <tr th:each="q : ${unmappedList}">
+              <td><span class="pill danger mono" th:text="${q.rqtMttrNo}">SFR-001</span></td>
+              <td><th:block th:replace="~{proposal/fragments/rqt :: rqInfo(${q})}"></th:block></td>
+              <td><th:block th:replace="~{proposal/fragments/rqt :: rqPickToc(${q})}"></th:block></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(unmappedList)}"><td colspan="3" class="empty">미매핑 요구사항이 없습니다.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </th:block>
+
+  <th:block th:unless="${#lists.isEmpty(tocs) or unmapView}">
 
     <th:block th:if="${canLoad}"><th:block th:replace="~{proposal/fragments/toc :: formBar('prop')}"></th:block></th:block>
 
@@ -68,20 +93,26 @@
         <h3 th:text="${bid.label} + ' · 제안서 목차 · 담당자 · 요구사항 (이 사업건만 수정됨)'">제안서 목차</h3>
         <th:block th:replace="~{proposal/fragments/toc :: addTop('prop')}"></th:block>
       </div>
+      <div class="pad" style="padding-bottom:0"><th:block th:replace="~{proposal/fragments/toc :: curForm}"></th:block></div>
       <div class="pad" style="padding-bottom:0">
-        <span class="faint" style="font-size:11.5px">
-          요구사항 연결 진행률 <span th:text="${progress}">0</span>%
-          (<span th:text="${rqtTotal - unmapped}">0</span>/<span th:text="${rqtTotal}">0</span>)
-          · 요구사항 하나는 가장 하위 목차 하나에만 연결됩니다(비기능 요구사항 포함)
-          · 담당자를 지정한 세부 목차부터 연결할 수 있습니다 · 요구사항 이름을 누르면 정의와 세부내용이 펼쳐집니다
-        </span>
+        <div class="row" style="justify-content:space-between">
+          <span class="faint" style="font-size:11.5px">
+            요구사항 연결 진행률 <b style="color:var(--text)" th:text="${progress} + '%'">0%</b>
+            (<span th:text="${rqtTotal - unmapped}">0</span>/<span th:text="${rqtTotal}">0</span>)
+            · 요구사항 하나는 가장 하위 목차 하나에만 연결됩니다(비기능 요구사항 포함)
+            · 담당자를 지정한 세부 목차부터 연결할 수 있습니다
+          </span>
+          <a class="btn sm danger" th:if="${unmapped > 0}" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped')}"
+             th:text="'미매핑 ' + ${unmapped} + '건 보기 →'">미매핑 0건 보기 →</a>
+          <span class="pill success" th:if="${unmapped == 0 and rqtTotal > 0}">미매핑 없음</span>
+        </div>
         <div class="bar ok" style="margin-top:6px"><i th:style="'width:' + ${progress} + '%'"></i></div>
       </div>
       <div class="ts">
         <table>
           <thead>
             <tr>
-              <th>세부 목차</th><th>담당자</th><th>요구사항 ID</th><th style="width:34%">요구사항 · 분류 · 원본 위치</th><th>예상 쪽수</th>
+              <th>세부 목차</th><th>담당자</th><th>요구사항 ID</th><th style="width:34%">요구사항 명칭</th><th>예상 쪽수</th>
               <th th:if="${canEdit}"></th>
             </tr>
           </thead>
@@ -103,7 +134,7 @@
 
               <!-- 최하위 목차: 요구사항마다 한 줄 (목차·담당자·쪽수 칸은 합쳐서 보여 준다) -->
               <th:block th:unless="${t.group}"
-                        th:with="mine=${rqtsByToc[t.tocSn]}, can=${t.picId != null and canReq},
+                        th:with="mine=${rqtsByToc[t.tocSn]}, can=${t.assigned and canReq},
                                  addable=${can and !#lists.isEmpty(unmappedList)},
                                  mc=${#lists.size(mine)}, nn=${mc + (addable ? 1 : 0)}, n=${nn == 0 ? 1 : nn}">
                 <tr th:each="i : ${#numbers.sequence(0, n - 1)}">
@@ -124,7 +155,7 @@
                     <th:block th:replace="~{proposal/fragments/rqt :: rqAdd(${t})}"></th:block>
                   </td>
                   <td colspan="2" class="faint" th:if="${nn == 0}"
-                      th:text="${t.picId != null} ? '연결된 요구사항 없음' : '담당자를 지정하면 요구사항을 연결할 수 있습니다'">연결된 요구사항 없음</td>
+                      th:text="${t.assigned} ? '연결된 요구사항 없음' : '담당자를 지정하면 요구사항을 연결할 수 있습니다'">연결된 요구사항 없음</td>
 
                   <td th:if="${i == 0}" th:rowspan="${n}" class="vtop">
                     <th:block th:replace="~{proposal/fragments/toc :: pages(${t})}"></th:block>
@@ -138,31 +169,17 @@
               <th:block th:replace="~{proposal/fragments/toc :: addRow(${t}, 'prop', ${cols})}"></th:block>
             </th:block>
 
-            <!-- 미매핑 요구사항: 담당자가 있는 최하위 목차를 골라 연결 -->
-            <th:block th:unless="${#lists.isEmpty(unmappedList)}">
-              <tr>
-                <td th:colspan="${cols}" class="unmapped-head">
-                  미매핑 요구사항 <span th:text="${unmapped} + '건'">0건</span>
-                  <span style="font-weight:400">· 모든 요구사항은 세부 목차에 연결되어야 합니다</span>
-                </td>
-              </tr>
-              <tr th:each="q : ${unmappedList}">
-                <td colspan="2" class="vtop" style="padding-left:28px">
-                  <th:block th:replace="~{proposal/fragments/rqt :: rqPickToc(${q})}"></th:block>
-                </td>
-                <td class="vtop"><span class="pill danger mono" th:text="${q.rqtMttrNo}">SFR-001</span></td>
-                <td><th:block th:replace="~{proposal/fragments/rqt :: rqInfo(${q})}"></th:block></td>
-                <td th:colspan="${cols - 4}"></td>
-              </tr>
-            </th:block>
           </tbody>
         </table>
       </div>
     </div>
   </th:block>
 
-  <!-- 요구사항 수기 등록·수정 (FR-050) -->
-  <th:block th:if="${canReq}"><th:block th:replace="~{proposal/fragments/rqt :: rqForm}"></th:block></th:block>
+  <!-- 요구사항 자동 추출 안내(FR-050-1, 조사 중) · 수기 등록·수정 (FR-050). 미매핑 화면에서는 숨긴다 -->
+  <th:block th:if="${canReq and !unmapView}">
+    <th:block th:replace="~{proposal/fragments/rqt :: rqExtract}"></th:block>
+    <th:block th:replace="~{proposal/fragments/rqt :: rqForm}"></th:block>
+  </th:block>
 
 </th:block>
 </body>

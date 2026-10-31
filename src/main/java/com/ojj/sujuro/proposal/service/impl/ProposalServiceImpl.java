@@ -18,8 +18,11 @@ import com.ojj.sujuro.proposal.dto.ProposalTeamDto;
 import com.ojj.sujuro.proposal.mapper.ProposalMapper;
 import com.ojj.sujuro.proposal.service.ProposalService;
 
+import lombok.RequiredArgsConstructor;
+
 /** 사업건 선택과 접근 확인, 제안팀 구성, 쪽수 제한 (FR-011, FR-016-1, FR-043~044, FR-055) */
 @Service
+@RequiredArgsConstructor
 public class ProposalServiceImpl implements ProposalService {
 
     private static final String PT_LEAD = "PT010"; // 주관팀
@@ -29,11 +32,6 @@ public class ProposalServiceImpl implements ProposalService {
 
     private final ProposalMapper mapper;
     private final NotificationService notificationService;
-
-    public ProposalServiceImpl(ProposalMapper mapper, NotificationService notificationService) {
-        this.mapper = mapper;
-        this.notificationService = notificationService;
-    }
 
     @Override
     public List<ProposalBidDto> myBids(String userId) {
@@ -58,8 +56,20 @@ public class ProposalServiceImpl implements ProposalService {
     /* ---------- 제안팀 구성 (FR-043~044) ---------- */
 
     @Override
-    public List<ProposalMemberDto> addableUsers(Long pbancSn) {
-        return mapper.findAddableUsers(pbancSn);
+    public List<ProposalMemberDto> addableUsers(Long pbancSn, Long teamSn, String jbgdNm, String name, int offset) {
+        String nm = name == null || name.trim().isEmpty() ? null : name.trim();
+        String rank = jbgdNm == null || jbgdNm.trim().isEmpty() ? null : jbgdNm.trim();
+        return mapper.findAddableUsers(pbancSn, teamSn, rank, nm, Math.max(0, offset), CANDIDATE_PAGE + 1);
+    }
+
+    @Override
+    public List<ProposalTeamDto> devTeams() {
+        return mapper.findDevTeams();
+    }
+
+    @Override
+    public List<String> rankNames() {
+        return mapper.findRankNames();
     }
 
     @Override
@@ -100,6 +110,27 @@ public class ProposalServiceImpl implements ProposalService {
                     "'" + bid.getLabel() + "' 제안서 작성에 " + u.getTeamNm() + "이(가) 참여팀으로 지정되었습니다.");
         }
         return u.getUserNm();
+    }
+
+    @Transactional
+    @Override
+    public List<String> addMembers(Long pbancSn, List<String> userIds) {
+        List<String> ids = new ArrayList<>();
+        if (userIds != null) {
+            for (String id : userIds) {
+                if (id != null && !id.trim().isEmpty() && !ids.contains(id.trim())) {
+                    ids.add(id.trim());
+                }
+            }
+        }
+        if (ids.isEmpty()) {
+            throw new BusinessException("추가할 인원을 체크해 주세요.");
+        }
+        List<String> names = new ArrayList<>();
+        for (String id : ids) { // 같은 트랜잭션이라 중간에 막히면 모두 되돌린다
+            names.add(addMember(pbancSn, id));
+        }
+        return names;
     }
 
     @Transactional

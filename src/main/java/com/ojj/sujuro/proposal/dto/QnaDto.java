@@ -2,9 +2,14 @@ package com.ojj.sujuro.proposal.dto;
 
 import java.util.Date;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * 질의응답 한 건 (TB_QSTN_ANS). 예상 Q&A(QA010)와 발표 Q&A(QA020)를 같은 표에 구분코드로 나눠 담는다. (FR-074~076)
  */
+@Getter
+@Setter
 public class QnaDto {
 
     /** 예상 Q&A: 제안 평가 전에 예상 질문·준비 답변·답변 담당자 (FR-074) */
@@ -17,8 +22,11 @@ public class QnaDto {
     private String qstnAnsSeCd;
     private String qstnCn;
     private String ansCn;
+    /** 답변 담당자 (제안팀원 중 선택) */
     private String answrId;
+    /** 관련 목차 (선택) */
     private Long tocSn;
+    /** 발표 Q&A가 예상 질문과 일치했는지 (Y/N, 비어 있으면 미확인) */
     private String ccrncYn;
     private String wrtrId;
     private Date wrtDt;
@@ -28,51 +36,6 @@ public class QnaDto {
     private String wrtrNm;
     private String tocNo;
     private String tocNm;
-
-    public Long getQstnAnsSn() { return qstnAnsSn; }
-    public void setQstnAnsSn(Long qstnAnsSn) { this.qstnAnsSn = qstnAnsSn; }
-
-    public Long getPbancSn() { return pbancSn; }
-    public void setPbancSn(Long pbancSn) { this.pbancSn = pbancSn; }
-
-    public String getQstnAnsSeCd() { return qstnAnsSeCd; }
-    public void setQstnAnsSeCd(String qstnAnsSeCd) { this.qstnAnsSeCd = qstnAnsSeCd; }
-
-    public String getQstnCn() { return qstnCn; }
-    public void setQstnCn(String qstnCn) { this.qstnCn = qstnCn; }
-
-    public String getAnsCn() { return ansCn; }
-    public void setAnsCn(String ansCn) { this.ansCn = ansCn; }
-
-    /** 답변 담당자 (제안팀원 중 선택) */
-    public String getAnswrId() { return answrId; }
-    public void setAnswrId(String answrId) { this.answrId = answrId; }
-
-    /** 관련 목차 (선택) */
-    public Long getTocSn() { return tocSn; }
-    public void setTocSn(Long tocSn) { this.tocSn = tocSn; }
-
-    /** 발표 Q&A가 예상 질문과 일치했는지 (Y/N, 비어 있으면 미확인) */
-    public String getCcrncYn() { return ccrncYn; }
-    public void setCcrncYn(String ccrncYn) { this.ccrncYn = ccrncYn; }
-
-    public String getWrtrId() { return wrtrId; }
-    public void setWrtrId(String wrtrId) { this.wrtrId = wrtrId; }
-
-    public Date getWrtDt() { return wrtDt; }
-    public void setWrtDt(Date wrtDt) { this.wrtDt = wrtDt; }
-
-    public String getAnswrNm() { return answrNm; }
-    public void setAnswrNm(String answrNm) { this.answrNm = answrNm; }
-
-    public String getWrtrNm() { return wrtrNm; }
-    public void setWrtrNm(String wrtrNm) { this.wrtrNm = wrtrNm; }
-
-    public String getTocNo() { return tocNo; }
-    public void setTocNo(String tocNo) { this.tocNo = tocNo; }
-
-    public String getTocNm() { return tocNm; }
-    public void setTocNm(String tocNm) { this.tocNm = tocNm; }
 
     /** 관련 목차 표시 이름 (번호 포함). 없으면 null */
     public String getTocLabel() {

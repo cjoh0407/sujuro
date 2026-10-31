@@ -2,21 +2,33 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <!--/*
   목차 화면 조각 (제안서·제안요약서 탭 공통). k는 탭 값 'prop' / 'sum', t는 목차(TocDto)
-  필요한 모델: bid, canLoad·canEdit·canAssign, forms, me, members
-    emptyToc(k)        : 목차가 없을 때 - 팀 양식 불러오기(주관팀) / 직접 목차 만들기(제안팀)
-    formBar(k)         : 주관팀 양식 바꾸기 · 지금 목차를 양식으로 저장
+  필요한 모델: bid, canLoad·canEdit·canAssign, forms, me, members, coNames(주관팀 팀장)
+    emptyToc(k)        : 목차가 없을 때 - 제안서: 팀 양식 불러오기(주관팀) / 요약서: 기본 목차로 시작 / 직접 목차 만들기(제안팀)
+    summaryReset       : 요약서 목차를 기본 목차로 되돌리기 (주관팀)
+    curForm            : 현재 목차 양식 표시 (제안팀원 모두, 모델 curForm)
+    formBar(k)         : 제안서 목차만. 주관팀 양식 바꾸기·이름 바꾸기·삭제 · 새 이름으로 양식 저장 (FR-048)
+                         목차를 고치면 현재 양식에도 바로 반영된다 (TocServiceImpl.syncForm)
     addTop(k)          : + 1단계 목차 추가
-    labelCell(t, k)    : 번호 포함 이름 (칸을 벗어나면 저장)
-    tocTools(t)        : + 하위 / + 같은 단계
-    addRow(t, k, cols) : + 하위 / + 같은 단계 입력 줄 (proposal.js가 열고 닫는다)
-    delBtn(t, k)       : 삭제 (묶음은 하위 포함)
-    owner(t, k)        : 최하위 목차 담당자 (주관팀 팀장만 지정)
+    labelCell(t, k)    : 번호 포함 이름 (Enter 또는 칸을 벗어나면 바로 저장)
+    tocTools(t)        : ↳ 하위 / ＋ 같은 단계 (아이콘)
+    addRow(t, k, cols) : 하위 / 같은 단계 입력 줄 (proposal.js가 열고 닫는다)
+    delBtn(t, k)       : 🗑 삭제 (묶음은 하위 포함)
+    owner(t, k)        : 최하위 목차 담당자 - 제안팀원 또는 외부 회사 (주관팀 팀장만 지정, FR-049·FR-043-1)
     pages(t)           : 최하위 목차 예상 쪽수
 */-->
 <body>
 
 <th:block th:fragment="emptyToc(k)">
-  <th:block th:if="${canLoad}">
+  <!-- 요약서: 양식 목록 없이 항상 같은 기본 목차로 시작한다 (TocService.SUMMARY_DEFAULT) -->
+  <th:block th:if="${k == 'sum' and canEdit}">
+    <form th:action="@{/proposal/toc/summary/start}" method="post" class="row" style="justify-content:center">
+      <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+      <button class="btn primary" type="submit">기본 목차로 시작</button>
+    </form>
+    <div class="faint" style="font-size:11.5px;margin-top:6px">Ⅰ. 사업의 이해 · Ⅱ. 사업 추진 전략(Action 1~4) · Ⅲ. 완성도 제고 방안으로 만들어지고, 이후 이 사업건에 맞게 고칩니다.</div>
+    <br>
+  </th:block>
+  <th:block th:if="${k == 'prop' and canLoad}">
     <form th:unless="${#lists.isEmpty(forms)}" th:action="@{/proposal/toc/import}" method="post" class="row" style="justify-content:center">
       <input type="hidden" name="bid" th:value="${bid.pbancSn}">
       <input type="hidden" name="tab" th:value="${k}">
@@ -37,39 +49,69 @@
     <button class="btn" type="submit">직접 목차 만들기</button>
   </form>
   <th:block th:unless="${canEdit}">목차 양식을 불러오거나 직접 만들면 표시됩니다.</th:block>
-  <div class="faint" style="margin-top:8px;font-size:11.5px" th:unless="${canLoad}">양식 불러오기는 주관팀 인원만 할 수 있습니다.</div>
+  <div class="faint" style="margin-top:8px;font-size:11.5px" th:if="${k == 'prop' and !canLoad}">양식 불러오기는 주관팀 인원만 할 수 있습니다.</div>
 </th:block>
+
+<!-- 현재 목차 양식: 마지막으로 불러오거나 저장한 주관팀 양식 (TB_BID_PBANC.TOC_FORM_SN) -->
+<div th:fragment="curForm" class="cur-form">
+  <span class="faint">현재 목차 양식</span>
+  <th:block th:if="${curForm != null}">
+    <b th:text="${curForm.tocFormNm}">양식 이름</b>
+    <span class="faint" th:if="${curForm.inUse and curForm.rgtrNm != null}" th:text="'· ' + ${curForm.rgtrNm} + ' 저장'"></span>
+    <span class="pill neutral" th:unless="${curForm.inUse}">삭제된 양식</span>
+  </th:block>
+  <span th:if="${curForm == null}">직접 만든 목차 <span class="faint">(양식 없음)</span></span>
+  <span class="faint" style="font-size:11.5px" th:if="${curForm != null and curForm.inUse}">· 목차를 고치면 이 양식에도 바로 저장됩니다</span>
+  <span class="faint" style="font-size:11.5px" th:unless="${curForm != null and curForm.inUse}">· 목차를 고치면 이 사업건에만 저장됩니다</span>
+</div>
+
+<form th:fragment="summaryReset" th:if="${canLoad}" th:action="@{/proposal/toc/summary/reset}" method="post" class="row"
+      onsubmit="return confirm('지금 제안요약서 목차를 모두 지우고 기본 목차로 되돌립니다. 고친 목차와 담당자 지정이 사라집니다. 되돌릴까요?')">
+  <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+  <button class="btn sm" type="submit">기본 목차로 되돌리기</button>
+</form>
 
 <div class="card pad" th:fragment="formBar(k)">
   <div class="row" style="justify-content:space-between;gap:14px">
-    <form th:action="@{/proposal/toc/import}" method="post" class="row"
-          th:data-msg="${k == 'sum'} ? '현재 목차와 담당자 지정이 사라집니다. 선택한 양식으로 바꿀까요?' : '현재 목차와 담당자 지정이 사라지고, 연결된 요구사항은 모두 미매핑이 됩니다. 선택한 양식으로 바꿀까요?'"
-          onsubmit="return confirm(this.dataset.msg)">
+    <!-- 고른 양식으로 바꾸기 · 이름 바꾸기 · 삭제: 같은 선택칸을 쓰고 버튼마다 보낼 주소가 다르다 -->
+    <form th:action="@{/proposal/toc/import}" method="post" class="row form-bar">
       <input type="hidden" name="bid" th:value="${bid.pbancSn}">
       <input type="hidden" name="tab" th:value="${k}">
+      <input type="hidden" name="tocFormNm" value="">
       <b style="font-size:12.5px">주관팀 목차 양식</b>
       <th:block th:unless="${#lists.isEmpty(forms)}">
+        <!-- 현재 양식이 있으면 그 양식이, 없으면 "양식 선택"이 골라져 있다 -->
         <select name="tocFormSn" required>
-          <option th:each="f, st : ${forms}" th:value="${f.tocFormSn}" th:text="${f.labelFor(me)}" th:selected="${st.first}">양식</option>
+          <option value="" disabled th:selected="${curForm == null or !curForm.inUse}">양식 선택</option>
+          <option th:each="f : ${forms}" th:value="${f.tocFormSn}" th:text="${f.labelFor(me)}"
+                  th:data-name="${f.tocFormNm}"
+                  th:selected="${curForm != null and f.tocFormSn == curForm.tocFormSn}">양식</option>
         </select>
-        <button class="btn sm" type="submit">다른 양식으로 바꾸기</button>
+        <button class="btn sm" type="submit"
+                th:data-msg="${k == 'sum'} ? '현재 목차와 담당자 지정이 사라집니다. 선택한 양식으로 바꿀까요?' : '현재 목차와 담당자 지정이 사라지고, 연결된 요구사항은 모두 미매핑이 됩니다. 선택한 양식으로 바꿀까요?'"
+                onclick="return !this.form.elements.tocFormSn.value || confirm(this.dataset.msg)">다른 양식으로 바꾸기</button>
+        <button class="btn sm" type="submit" th:formaction="@{/proposal/toc/form/rename}"
+                onclick="return askFormRename(this)">이름 바꾸기</button>
+        <button class="btn sm danger" type="submit" th:formaction="@{/proposal/toc/form/delete}"
+                onclick="return confirmFormDelete(this)">양식 삭제</button>
       </th:block>
       <span class="faint" th:if="${#lists.isEmpty(forms)}">저장된 양식 없음</span>
     </form>
-    <form th:action="@{/proposal/toc/form}" method="post" class="row">
+    <!-- 지금 목차를 양식으로 저장: 같은 이름이면 그 양식을 덮어쓰고, 다른 이름이면 새 양식이 생긴다 -->
+    <form th:action="@{/proposal/toc/form}" method="post" class="row form-save" onsubmit="return confirmFormSave(this)">
       <input type="hidden" name="bid" th:value="${bid.pbancSn}">
       <input type="hidden" name="tab" th:value="${k}">
-      <input type="text" name="tocFormNm" placeholder="저장할 양식 이름" maxlength="100" required style="width:170px">
-      <button class="btn sm" type="submit">지금 목차를 주관팀 양식으로 저장</button>
+      <input type="text" name="tocFormNm" placeholder="새 양식 이름" maxlength="100" required style="width:190px" autocomplete="off">
+      <button class="btn sm" type="submit">지금 목차를 새 양식으로 저장</button>
     </form>
   </div>
-  <div class="faint" style="font-size:11.5px;margin-top:6px">기관 대표 양식은 두지 않고, 주관팀이 저장한 양식만 그 주관팀 인원이 불러옵니다. 목차는 단계에 제한이 없고 번호는 직접 입력합니다. 불러온 뒤의 수정은 이 사업건에만 적용됩니다.</div>
+  <div class="faint" style="font-size:11.5px;margin-top:6px">기관 대표 양식은 두지 않고, 주관팀이 저장한 양식만 그 주관팀 인원이 불러옵니다. 목차는 단계에 제한이 없고 번호는 직접 입력합니다. 목차를 추가·수정·삭제하면 이 사업건 목차와 현재 양식에 바로 저장되어, 다른 양식으로 바꿨다가 돌아와도 그대로 남습니다. 담당자·요구사항 연결은 양식에 들어가지 않습니다. 새 이름으로 저장하면 지금 목차로 새 양식이 생기고 그 양식이 현재 양식이 됩니다.</div>
 </div>
 
 <form th:fragment="addTop(k)" th:if="${canEdit}" th:action="@{/proposal/toc/add}" method="post" class="row">
   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
   <input type="hidden" name="tab" th:value="${k}">
-  <input type="text" name="label" placeholder="새 1단계 목차 이름" maxlength="250" required style="width:160px">
+  <input type="text" name="label" placeholder="새 1단계 목차 이름" maxlength="250" required data-track style="width:160px">
   <button class="btn sm" type="submit">+ 1단계 목차 추가</button>
 </form>
 
@@ -79,7 +121,7 @@
     <input type="hidden" name="tab" th:value="${k}">
     <input type="hidden" name="tocSn" th:value="${t.tocSn}">
     <input type="text" name="label" class="lbl-in" th:classappend="${t.group} ? 'bold'" th:value="${t.label}"
-           maxlength="250" required onchange="this.form.submit()">
+           maxlength="250" required data-track onchange="saveNow(this.form)">
   </form>
   <th:block th:unless="${canEdit}">
     <b th:if="${t.group}" th:text="${t.label}">묶음 목차</b>
@@ -88,10 +130,10 @@
 </th:block>
 
 <span th:fragment="tocTools(t)" th:if="${canEdit}" class="toc-tools">
-  <button type="button" class="link" data-m="d" onclick="openAdd(this)"
-          th:data-t="${t.tocSn}" th:data-label="${t.label}" th:data-depth="${t.depth}">+ 하위</button>
-  <button type="button" class="link" data-m="s" onclick="openAdd(this)"
-          th:data-t="${t.tocSn}" th:data-label="${t.label}" th:data-depth="${t.depth}">+ 같은 단계</button>
+  <button type="button" class="ico" data-m="d" onclick="openAdd(this)" title="하위 목차 추가" aria-label="하위 목차 추가"
+          th:data-t="${t.tocSn}" th:data-label="${t.label}" th:data-depth="${t.depth}">↳</button>
+  <button type="button" class="ico" data-m="s" onclick="openAdd(this)" title="같은 단계 목차 추가" aria-label="같은 단계 목차 추가"
+          th:data-t="${t.tocSn}" th:data-label="${t.label}" th:data-depth="${t.depth}">＋</button>
 </span>
 
 <tr th:fragment="addRow(t, k, cols)" th:if="${canEdit}" class="addrow" th:id="'add-' + ${t.tocSn}" hidden>
@@ -103,7 +145,7 @@
       <input type="hidden" name="tocSn" th:value="${t.tocSn}">
       <input type="hidden" name="mode" value="d">
       <span class="faint cap"></span>
-      <input type="text" name="label" placeholder="번호를 포함해 입력 (예: 1.2.3 보안 방안)" maxlength="250" required style="width:280px">
+      <input type="text" name="label" placeholder="번호를 포함해 입력 (예: 1.2.3 보안 방안)" maxlength="250" required data-track style="width:280px">
       <button class="btn sm primary" type="submit">추가</button>
       <button class="btn sm" type="button" onclick="closeAdd(this)">취소</button>
     </form>
@@ -116,26 +158,45 @@
   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
   <input type="hidden" name="tab" th:value="${k}">
   <input type="hidden" name="tocSn" th:value="${t.tocSn}">
-  <button class="link" type="submit" th:text="${t.group} ? '삭제(하위 포함)' : '삭제'">삭제</button>
+  <button class="ico" type="submit" th:title="${t.group} ? '삭제 (하위 목차 포함)' : '삭제'"
+          th:aria-label="${t.group} ? '삭제 (하위 목차 포함)' : '삭제'">🗑</button>
 </form>
 
+<!--/* 담당자: 제안팀원을 고르거나, 외부 회사를 고르거나 직접 적는다 (외부 회사는 계정 없이 회사명만, FR-043-1)
+       선택칸 값: "" 미지정 / 사번 / "co:회사명"(이미 쓴 회사) / "co-new"(직접 입력 칸을 연다) */-->
 <th:block th:fragment="owner(t, k)">
-  <form th:if="${canAssign}" th:action="@{/proposal/toc/assign}" method="post" style="display:inline">
+  <form th:if="${canAssign}" th:action="@{/proposal/toc/assign}" method="post" class="owner-form">
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
     <input type="hidden" name="tab" th:value="${k}">
     <input type="hidden" name="tocSn" th:value="${t.tocSn}">
-    <select name="picId" onchange="this.form.submit()" style="max-width:130px">
+    <select name="picId" onchange="pickOwner(this)" style="max-width:150px">
       <option value="">미지정</option>
-      <option th:each="m : ${members}" th:value="${m.userId}" th:text="${m.userNm}"
-              th:selected="${m.userId == t.picId}">담당자</option>
-      <!-- 제안팀에서 빠진 사람이 담당자로 남아 있으면 그대로 보여 준다 -->
-      <option th:if="${t.picId != null and !#lists.contains(members.![userId], t.picId)}"
-              th:value="${t.picId}" th:text="${(t.picNm ?: t.picId) + ' (제안팀 아님)'}" selected>담당자</option>
+      <optgroup label="제안팀원">
+        <option th:each="m : ${members}" th:value="${m.userId}" th:text="${m.userNm}"
+                th:selected="${m.userId == t.picId}">담당자</option>
+        <!-- 제안팀에서 빠진 사람이 담당자로 남아 있으면 그대로 보여 준다 -->
+        <option th:if="${t.picId != null and !#lists.contains(members.![userId], t.picId)}"
+                th:value="${t.picId}" th:text="${(t.picNm ?: t.picId) + ' (제안팀 아님)'}" selected>담당자</option>
+      </optgroup>
+      <optgroup label="외부 회사">
+        <option th:each="c : ${coNames}" th:value="'co:' + ${c}" th:text="'🏢 ' + ${c}"
+                th:selected="${t.picId == null and c == t.picCoNm}">회사</option>
+        <option value="co-new">+ 외부 회사 직접 입력</option>
+      </optgroup>
     </select>
+    <span class="co-new" hidden>
+      <input type="text" name="picCoNm" placeholder="외부 회사명" maxlength="200" autocomplete="off" disabled data-track required
+             th:list="'co-names-' + ${t.tocSn}" style="width:140px">
+      <datalist th:id="'co-names-' + ${t.tocSn}">
+        <option th:each="c : ${coNames}" th:value="${c}"></option>
+      </datalist>
+      <button class="btn sm primary" type="submit">지정</button>
+      <button class="btn sm" type="button" onclick="cancelOwner(this)">취소</button>
+    </span>
   </form>
   <th:block th:unless="${canAssign}">
-    <span th:if="${t.picNm != null}" th:text="${t.picNm}">담당자</span>
-    <span class="faint" th:if="${t.picNm == null}">미지정</span>
+    <span th:if="${t.assigned}" th:text="${t.ownerLabel}">담당자</span>
+    <span class="faint" th:unless="${t.assigned}">미지정</span>
   </th:block>
 </th:block>
 

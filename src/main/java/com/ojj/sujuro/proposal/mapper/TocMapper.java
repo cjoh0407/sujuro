@@ -22,11 +22,32 @@ public interface TocMapper {
 
     TocFormDto findForm(@Param("tocFormSn") Long tocFormSn);
 
+    /** 사업건 제안서 목차의 현재 양식 (없으면 null). 삭제(숨김)한 양식도 돌려준다 */
+    TocFormDto findBidForm(@Param("pbancSn") Long pbancSn);
+
+    /** 사업건 제안서 목차의 현재 양식을 기록한다. tocFormSn이 null이면 지운다(직접 만든 목차) */
+    int updateBidForm(@Param("pbancSn") Long pbancSn, @Param("tocFormSn") Long tocFormSn);
+
     /** 목차 양식의 항목 (부모 바로 아래에 자식 순서) */
     List<TocDto> findFormItems(@Param("tocFormSn") Long tocFormSn);
 
     /** 이 팀 양식 중 같은 이름이 몇 개인지 */
     int countFormName(@Param("teamSn") Long teamSn, @Param("tocFormNm") String tocFormNm);
+
+    /** 이 팀의 사용 중인 양식 중 이 이름의 양식 (덮어쓰기·이름 중복 확인용). 없으면 null */
+    TocFormDto findFormByName(@Param("teamSn") Long teamSn, @Param("tocFormNm") String tocFormNm);
+
+    /** 양식 이름을 바꾼다. */
+    int updateFormName(@Param("tocFormSn") Long tocFormSn, @Param("tocFormNm") String tocFormNm);
+
+    /** 양식을 덮어쓸 때 저장한 사람·일시를 새로 적는다. */
+    int touchForm(@Param("tocFormSn") Long tocFormSn, @Param("rgtrId") String rgtrId);
+
+    /** 양식을 숨긴다 (USE_YN = 'N'). 이미 그 양식으로 만든 사업건 목차는 복사본이라 영향이 없다. */
+    int hideForm(@Param("tocFormSn") Long tocFormSn);
+
+    /** 양식 항목 하나를 지운다 (덮어쓰기 때 깊은 하위부터). */
+    int deleteFormItem(@Param("tocSn") Long tocSn);
 
     /** 양식을 만든다. 만들어진 양식일련번호가 form.tocFormSn에 채워진다. */
     int insertForm(TocFormDto form);
@@ -60,8 +81,11 @@ public interface TocMapper {
 
     int updatePages(@Param("tocSn") Long tocSn, @Param("expcPageCnt") Integer expcPageCnt);
 
-    /** 목차 담당자를 바꾼다. picId가 null이면 미지정 (FR-049) */
-    int updatePic(@Param("tocSn") Long tocSn, @Param("picId") String picId);
+    /** 목차 담당자를 바꾼다. 제안팀원(picId)과 외부 회사(picCoNm) 중 하나만 넘기고, 둘 다 null이면 미지정 (FR-049, FR-043-1) */
+    int updatePic(@Param("tocSn") Long tocSn, @Param("picId") String picId, @Param("picCoNm") String picCoNm);
+
+    /** 이 사업건 목차에 이미 쓴 외부 회사명 (자동완성 후보) */
+    List<String> findCoNames(@Param("pbancSn") Long pbancSn);
 
     /** 목차 진행 상태를 바꾼다. TS020 작성 중 / TS030 검토 완료 (FR-066) */
     int updateProgress(@Param("tocSn") Long tocSn, @Param("prgrsSttsCd") String prgrsSttsCd);

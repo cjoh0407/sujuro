@@ -14,23 +14,20 @@ import com.ojj.sujuro.proposal.dto.RqtDto;
 import com.ojj.sujuro.proposal.service.ProposalService;
 import com.ojj.sujuro.proposal.service.RqtService;
 
+import lombok.RequiredArgsConstructor;
+
 /**
  * 요구사항 등록·수정·삭제·목차 연결 (FR-050~054). 제안 화면(/proposal) 제안서 탭에서 호출한다.
  * 제안팀원 중 주관팀 팀장 또는 목차 담당자만 할 수 있다 (FR-050, FR-016-1, 요구사항 v3.3).
  * 처리 후 같은 사업건의 /proposal 화면으로 돌아간다.
  */
 @Controller
+@RequiredArgsConstructor
 public class RqtController {
 
     private final AccessChecker accessChecker;
     private final ProposalService proposalService;
     private final RqtService rqtService;
-
-    public RqtController(AccessChecker accessChecker, ProposalService proposalService, RqtService rqtService) {
-        this.accessChecker = accessChecker;
-        this.proposalService = proposalService;
-        this.rqtService = rqtService;
-    }
 
     /* ---------- 요구사항 (FR-050~054): 주관팀 팀장 또는 목차 담당자 ---------- */
 
@@ -38,7 +35,7 @@ public class RqtController {
     public String addRqt(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid, RqtDto rqt, RedirectAttributes ra) {
         return runReq(user, bid, ra, () -> {
             rqtService.register(bid, rqt, user.getEmpNo());
-            return "요구사항을 등록했습니다. 아래 \"미매핑 요구사항\"에서 최하위 목차에 연결하세요.";
+            return "요구사항을 등록했습니다. [미매핑 보기]에서 세부 목차에 연결하세요.";
         });
     }
 
@@ -63,11 +60,16 @@ public class RqtController {
     /**
      * 요구사항-목차 연결 (FR-051). 최하위 목차 줄의 "+ 요구사항 추가"나 미매핑 줄의 목차 선택으로 연결하고,
      * ID 옆 ✕로 해제한다(tocSn 없음). rqtMttrSn이 비어 있으면(선택 안 함) 아무것도 하지 않는다.
+     * 미매핑 화면에서 연결하면(view=unmapped) 처리 후 미매핑 화면으로 돌아간다.
      */
     @PostMapping("/proposal/rqt/map")
     public String mapRqt(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
                          @RequestParam(value = "rqtMttrSn", required = false) Long rqtMttrSn,
-                         @RequestParam(value = "tocSn", required = false) Long tocSn, RedirectAttributes ra) {
+                         @RequestParam(value = "tocSn", required = false) Long tocSn,
+                         @RequestParam(value = "view", required = false) String view, RedirectAttributes ra) {
+        if (ProposalController.VIEW_UNMAPPED.equals(view)) {
+            ra.addAttribute("view", ProposalController.VIEW_UNMAPPED);
+        }
         if (rqtMttrSn == null) {
             return FlashRedirect.to(ra, ProposalController.PATH, bid, null);
         }

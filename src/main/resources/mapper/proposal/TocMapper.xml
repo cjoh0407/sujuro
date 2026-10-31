@@ -11,7 +11,7 @@
   <sql id="tocCols">
     T.TOC_SN AS tocSn, T.PBANC_SN AS pbancSn, T.TOC_FORM_SN AS tocFormSn, T.UP_TOC_SN AS upTocSn,
     T.TOC_SE_CD AS tocSeCd, T.TOC_NO AS tocNo, T.TOC_NM AS tocNm, T.SORT_SEQ AS sortSeq,
-    T.PIC_ID AS picId, U.USER_NM AS picNm,
+    T.PIC_ID AS picId, U.USER_NM AS picNm, T.PIC_CO_NM AS picCoNm,
     T.EXPC_PAGE_CNT AS expcPageCnt, T.PRGRS_STTS_CD AS prgrsSttsCd,
     (SELECT COUNT(*) FROM TB_RQT_MTTR R WHERE R.TOC_SN = T.TOC_SN)  AS rqtCnt,
     (SELECT COUNT(*) FROM TB_TOC C WHERE C.UP_TOC_SN = T.TOC_SN)    AS childCnt,
@@ -68,6 +68,44 @@
     SELECT COUNT(*) FROM TB_TOC_FORM
      WHERE TEAM_SN = #{teamSn} AND USE_YN = 'Y' AND TOC_FORM_NM = #{tocFormNm}
   </select>
+
+  <select id="findFormByName" resultType="com.ojj.sujuro.proposal.dto.TocFormDto">
+    SELECT <include refid="formCols"/>
+      FROM TB_TOC_FORM F
+      LEFT JOIN TB_USER U ON U.USER_ID = F.RGTR_ID
+     WHERE F.TEAM_SN = #{teamSn} AND F.USE_YN = 'Y' AND F.TOC_FORM_NM = #{tocFormNm}
+       AND ROWNUM = 1
+  </select>
+
+  <!-- 사업건 제안서 목차의 현재 양식 (TB_BID_PBANC.TOC_FORM_SN). 삭제(숨김)한 양식도 이름을 보여 주려고 USE_YN과 상관없이 찾는다 -->
+  <select id="findBidForm" resultType="com.ojj.sujuro.proposal.dto.TocFormDto">
+    SELECT <include refid="formCols"/>
+      FROM TB_BID_PBANC B
+      JOIN TB_TOC_FORM F ON F.TOC_FORM_SN = B.TOC_FORM_SN
+      LEFT JOIN TB_USER U ON U.USER_ID = F.RGTR_ID
+     WHERE B.PBANC_SN = #{pbancSn}
+  </select>
+
+  <update id="updateBidForm">
+    UPDATE TB_BID_PBANC SET TOC_FORM_SN = #{tocFormSn, jdbcType=NUMERIC} WHERE PBANC_SN = #{pbancSn}
+  </update>
+
+  <update id="updateFormName">
+    UPDATE TB_TOC_FORM SET TOC_FORM_NM = #{tocFormNm} WHERE TOC_FORM_SN = #{tocFormSn}
+  </update>
+
+  <update id="touchForm">
+    UPDATE TB_TOC_FORM SET RGTR_ID = #{rgtrId}, REG_DT = SYSDATE WHERE TOC_FORM_SN = #{tocFormSn}
+  </update>
+
+  <!-- 양식 삭제는 숨김: 불러오기 목록에서만 빠진다 -->
+  <update id="hideForm">
+    UPDATE TB_TOC_FORM SET USE_YN = 'N' WHERE TOC_FORM_SN = #{tocFormSn}
+  </update>
+
+  <delete id="deleteFormItem">
+    DELETE FROM TB_TOC WHERE TOC_SN = #{tocSn} AND TOC_FORM_SN IS NOT NULL
+  </delete>
 
   <insert id="insertForm" parameterType="com.ojj.sujuro.proposal.dto.TocFormDto" useGeneratedKeys="true" keyProperty="tocFormSn" keyColumn="TOC_FORM_SN">
     INSERT INTO TB_TOC_FORM (TEAM_SN, TOC_FORM_NM, TOC_SE_CD, RGTR_ID, USE_YN)
@@ -134,16 +172,26 @@
     UPDATE TB_TOC SET EXPC_PAGE_CNT = #{expcPageCnt, jdbcType=NUMERIC} WHERE TOC_SN = #{tocSn}
   </update>
 
+  <!-- 담당자는 제안팀원(PIC_ID)과 외부 회사(PIC_CO_NM) 중 하나만 (CK_TOC_PIC) -->
   <update id="updatePic">
-    UPDATE TB_TOC SET PIC_ID = #{picId, jdbcType=VARCHAR} WHERE TOC_SN = #{tocSn}
+    UPDATE TB_TOC
+       SET PIC_ID = #{picId, jdbcType=VARCHAR},
+           PIC_CO_NM = #{picCoNm, jdbcType=VARCHAR}
+     WHERE TOC_SN = #{tocSn}
   </update>
+
+  <select id="findCoNames" resultType="string">
+    SELECT DISTINCT PIC_CO_NM FROM TB_TOC
+     WHERE PBANC_SN = #{pbancSn} AND PIC_CO_NM IS NOT NULL
+     ORDER BY PIC_CO_NM
+  </select>
 
   <update id="updateProgress">
     UPDATE TB_TOC SET PRGRS_STTS_CD = #{prgrsSttsCd} WHERE TOC_SN = #{tocSn}
   </update>
 
   <update id="clearLeafInfo">
-    UPDATE TB_TOC SET PIC_ID = NULL, EXPC_PAGE_CNT = NULL WHERE TOC_SN = #{tocSn}
+    UPDATE TB_TOC SET PIC_ID = NULL, PIC_CO_NM = NULL, EXPC_PAGE_CNT = NULL WHERE TOC_SN = #{tocSn}
   </update>
 
   <!-- ProposalMapper.findMembers 와 같은 조건 (주관팀·참여팀, 비활성 제외) -->

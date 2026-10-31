@@ -15,19 +15,16 @@ import com.ojj.sujuro.proposal.mapper.ProposalMapper;
 import com.ojj.sujuro.proposal.mapper.RqtMapper;
 import com.ojj.sujuro.proposal.service.RqtService;
 
+import lombok.RequiredArgsConstructor;
+
 /** 요구사항 등록·수정·삭제, 목차 매핑과 현황 계산 (FR-050~054, FR-016-1) */
 @Service
+@RequiredArgsConstructor
 public class RqtServiceImpl implements RqtService {
 
     private final RqtMapper mapper;
     private final ProposalMapper proposalMapper;
     private final NotificationService notificationService;
-
-    public RqtServiceImpl(RqtMapper mapper, ProposalMapper proposalMapper, NotificationService notificationService) {
-        this.mapper = mapper;
-        this.proposalMapper = proposalMapper;
-        this.notificationService = notificationService;
-    }
 
     @Override
     public List<RqtDto> list(Long pbancSn) {
@@ -150,7 +147,7 @@ public class RqtServiceImpl implements RqtService {
             if (t.isGroup()) {
                 throw new BusinessException("요구사항은 가장 하위 목차에만 연결할 수 있습니다.");
             }
-            if (t.getPicId() == null) {
+            if (!t.isAssigned()) {
                 throw new BusinessException("담당자를 지정한 최하위 목차에만 요구사항을 연결할 수 있습니다.");
             }
         }

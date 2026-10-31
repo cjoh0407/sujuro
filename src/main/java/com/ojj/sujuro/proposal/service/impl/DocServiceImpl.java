@@ -24,8 +24,11 @@ import com.ojj.sujuro.proposal.dto.SubmissionDto;
 import com.ojj.sujuro.proposal.mapper.DocMapper;
 import com.ojj.sujuro.proposal.service.DocService;
 
+import lombok.RequiredArgsConstructor;
+
 /** 제출서류 · 조견표 · 나라장터 등록 (FR-015, FR-067~073) */
 @Service
+@RequiredArgsConstructor
 public class DocServiceImpl implements DocService {
 
     private static final String SE_DOC = "FL050";   // 제출서류
@@ -35,14 +38,6 @@ public class DocServiceImpl implements DocService {
     private final FileStorage storage;
     private final HistoryService historyService;
     private final NotificationService notificationService;
-
-    public DocServiceImpl(DocMapper mapper, FileStorage storage,
-                          HistoryService historyService, NotificationService notificationService) {
-        this.mapper = mapper;
-        this.storage = storage;
-        this.historyService = historyService;
-        this.notificationService = notificationService;
-    }
 
     @Override
     public List<ProposalBidDto> bidsForMgmt() {

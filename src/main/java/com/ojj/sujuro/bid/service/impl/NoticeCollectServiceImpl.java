@@ -1,5 +1,8 @@
 package com.ojj.sujuro.bid.service.impl;
 
+import com.ojj.sujuro.auth.code.Role;
+import com.ojj.sujuro.notification.code.NotificationType;
+import com.ojj.sujuro.notification.service.NotificationService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -85,11 +88,14 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
     /** 수집은 한 번에 하나만 돈다. 오후 5시 자동 수집 중에 [지금 수집] 을 눌러도 겹치지 않게 한다. */
     private final ReentrantLock running = new ReentrantLock();
 
+    private final NotificationService notificationService;
+
     public NoticeCollectServiceImpl(BidNoticeMapper bidNoticeMapper,
                                     G2bApiClient g2bApiClient,
                                     NoticeAttachmentService attachmentService,
                                     ResultCollectService resultCollectService,
                                     PlatformTransactionManager transactionManager,
+                                    NotificationService notificationService,
                                     @Value("${g2b.collect.lookback-days}") int lookbackDays,
                                     @Value("${g2b.collect.manual-cooldown-minutes}") int manualCooldownMinutes) {
         this.bidNoticeMapper = bidNoticeMapper;
@@ -97,6 +103,7 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
         this.attachmentService = attachmentService;
         this.resultCollectService = resultCollectService;
         this.tx = new TransactionTemplate(transactionManager);
+        this.notificationService = notificationService;
         this.lookbackDays = lookbackDays;
         this.manualCooldownMinutes = manualCooldownMinutes;
     }
@@ -290,6 +297,7 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
 
                 bidNoticeMapper.insertCollectLog(
                         new CollectLogDTO(target.getPbancSn(), excnSeCd, exctrId, BidCode.CLCT_TO_BID_NOTICE, null));
+                notifyStageChanged(target, BidCode.is(target.getPbancStepCd(), BidCode.STEP_ORDER_PLAN) ? "발주계획" : "사전규격", "입찰공고");
                 return true;
             });
             if (Boolean.TRUE.equals(done)) {
@@ -404,6 +412,7 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
 
                 bidNoticeMapper.insertCollectLog(
                         new CollectLogDTO(target.getPbancSn(), excnSeCd, exctrId, BidCode.CLCT_TO_PRE_SPEC, null));
+                notifyStageChanged(target, "발주계획", "사전규격");
                 return true;
             });
             if (Boolean.TRUE.equals(done)) {
@@ -697,6 +706,13 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
         }
         JsonNode spec = g2bApiClient.findPreSpec(target.getBfSpecRgstNo()).first();
         return spec == null ? List.of() : attachmentService.readPreSpecFiles(spec);
+    }
+
+    /** 단계가 넘어가면 영업부 전원에게 화면 알림을 보낸다. 메일은 알림 메일 발송기가 따로 보낸다. (FR-027, NT150) */
+    private void notifyStageChanged(TrackingNoticeDTO target, String from, String to) {
+        String name = target.getPbancNm() == null ? "공고" : target.getPbancNm();
+        notificationService.sendToRole(Role.SALES, NotificationType.BID_STAGE_CHANGED, target.getPbancSn(),
+                "'" + name + "' 공고가 " + from + " 단계에서 " + to + " 단계로 바뀌었습니다.");
     }
 
     /** 단계만 올리고 수집이력·수집로그를 남긴다 (개찰·계약). 한 공고씩 따로 커밋한다. */

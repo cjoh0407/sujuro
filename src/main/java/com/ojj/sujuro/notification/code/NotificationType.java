@@ -13,10 +13,9 @@ public final class NotificationType {
     public static final String DEADLINE_NEAR = "NT050";          // 마감 임박
     public static final String WITHDRAWN = "NT060";              // 중도 철회
     public static final String SUBMITTED = "NT070";              // 제출 완료
-    public static final String TOC_ASSIGNED = "NT100";           // 목차 담당
     public static final String EVL_TABLE_REQUEST = "NT110";      // 평가표 업로드 요청
-    public static final String RQT_CHANGED = "NT120";            // 요구사항 변경 (DB 공통코드 추가 요청 중)
-    public static final String PROPOSAL_TEAM_CHANGED = "NT130";  // 제안팀 변경 (DB 공통코드 추가 요청 중)
+    public static final String BID_STAGE_CHANGED = "NT150";      // 공고 단계 전환 (발주계획→사전규격, →입찰공고). 영업부에 화면+메일 (FR-027)
+    public static final String SCHEDULE_CHANGED = "NT160";       // 일정 등록·변경·삭제. 그 사업건의 제안팀원 전원에게 화면 알림만 (메일 없음) (FR-034)
 
     private NotificationType() {
     }

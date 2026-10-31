@@ -196,8 +196,10 @@ public class UserService {
         if (form.getTelno() != null && !PHONE.matcher(form.getTelno()).matches()) {
             errors.add("전화번호는 숫자 9~11자리로 입력해 주세요. (예: 010-1234-5678)");
         }
-        if (form.getEmlAddr() != null
-                && (form.getEmlAddr().length() > 320 || !EMAIL.matcher(form.getEmlAddr()).matches())) {
+        // 이메일은 필수다. 마감·단계 전환 메일을 받을 주소가 없으면 알림이 가지 않기 때문 (v4.1)
+        if (form.getEmlAddr() == null || form.getEmlAddr().isEmpty()) {
+            errors.add("이메일을 입력해 주세요.");
+        } else if (form.getEmlAddr().length() > 320 || !EMAIL.matcher(form.getEmlAddr()).matches()) {
             errors.add("이메일 형식이 올바르지 않습니다.");
         }
     }

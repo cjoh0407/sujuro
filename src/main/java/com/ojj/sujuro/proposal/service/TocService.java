@@ -72,7 +72,6 @@ public interface TocService {
      * 최하위 목차의 담당자를 지정한다. picId가 비어 있으면 지정을 해제한다. (FR-049)
      * 담당자는 이 사업건 제안팀원(주관팀·참여팀) 중에서만 고를 수 있다.
      * 연결된 요구사항의 담당자는 목차 담당자를 그대로 따르므로 따로 바꾸지 않는다. (FR-051)
-     * 새 담당자에게는 지정 알림, 이전 담당자에게는 해제 알림을 보낸다(NT100). 처리한 본인(actorId)에게는 보내지 않는다.
      */
     void assign(Long pbancSn, Long tocSn, String picId, String actorId);
 }

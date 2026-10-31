@@ -48,7 +48,7 @@
       <div class="card-head"><h3>참여 결정 대기</h3></div>
       <div class="empty pad faint" th:if="${#lists.isEmpty(view.todoBids)}">대기 공고가 없습니다.</div>
       <div class="item" th:each="b : ${view.todoBids}">
-        <span class="sl" th:text="${b.pbancNm}">공고명</span>
+        <a class="sl" th:href="@{/notices/{sn}(sn=${b.pbancSn})}" th:text="${b.pbancNm}">공고명</a>
         <span class="t" th:text="${b.ddlnText != null} ? |${b.ddlnText} 마감 · ${b.ddayLabel}| : '마감일 미정'">마감</span>
       </div>
     </div>

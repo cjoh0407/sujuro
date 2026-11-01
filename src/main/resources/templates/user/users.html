@@ -56,7 +56,7 @@
               <td><b th:text="${u.userNm}">이름</b></td>
               <td class="mono faint" th:text="${u.userId}">사번</td>
               <td class="muted" th:text="${u.teamNm}">소속</td>
-              <td th:text="${u.jbgdNm}">직급</td>
+              <td th:text="${u.jbgdNm ?: '-'}">직급</td>
               <td>
                 <span class="pill"
                       th:classappend="${u.authrtCd == 'AU030'} ? 'warning' : (${u.authrtCd == 'AU040'} ? 'neutral' : 'accent')"
@@ -111,7 +111,8 @@
               </div>
               <div class="fld">
                 <label for="userId">사번 (로그인 ID)</label>
-                <input id="userId" name="userId" type="text" maxlength="20" th:value="${form.userId}"
+                <input id="userId" name="userId" type="text" maxlength="9" th:value="${form.userId}"
+                       placeholder="2024-0001" pattern="[0-9]{4}-[0-9]{4}" title="숫자 4자리-숫자 4자리 (예: 2024-0001)"
                        th:readonly="${editUser != null}" th:required="${editUser == null}">
               </div>
             </div>
@@ -121,12 +122,12 @@
                 <label for="teamSn">소속 팀</label>
                 <select id="teamSn" name="teamSn" required>
                   <option value="">선택</option>
-                  <option th:each="t : ${teams}" th:value="${t.code}" th:text="${t.name}"
+                  <option th:each="t : ${teams}" th:value="${t.code}" th:text="${t.name}" th:data-dept="${t.extra}"
                           th:selected="${form.teamSn != null and form.teamSn.toString() == t.code}">개발1팀</option>
                 </select>
               </div>
-              <div class="fld">
-                <label for="jbgdCd">직급</label>
+              <div class="fld" id="jbgdBox">
+                <label for="jbgdCd">직급 <span class="faint" style="font-weight:400">(영업부·경영지원실은 없음)</span></label>
                 <select id="jbgdCd" name="jbgdCd" required>
                   <option value="">선택</option>
                   <option th:each="r : ${ranks}" th:value="${r.code}" th:text="${r.name}"
@@ -175,6 +176,29 @@
     </div>
   </div>
 
+</th:block>
+
+<th:block layout:fragment="scripts">
+  <script>
+    // 경영지원실(DP010)·영업부(DP020)를 고르면 직급 칸을 숨기고 비운다. 서버도 같은 기준으로 직급을 비운다.
+    (function () {
+      var team = document.getElementById('teamSn');
+      var box = document.getElementById('jbgdBox');
+      var rank = document.getElementById('jbgdCd');
+      if (!team || !box || !rank) { return; }
+      function sync() {
+        var opt = team.options[team.selectedIndex];
+        var dept = opt ? opt.getAttribute('data-dept') : null;
+        var none = dept === 'DP010' || dept === 'DP020';
+        box.style.display = none ? 'none' : '';
+        rank.disabled = none;
+        rank.required = !none;
+        if (none) { rank.value = ''; }
+      }
+      team.addEventListener('change', sync);
+      sync();
+    })();
+  </script>
 </th:block>
 
 </body>

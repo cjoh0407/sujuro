@@ -63,17 +63,36 @@
     U.AUTHRT_CD AS authrtCd, U.ACNT_STTS_CD AS acntSttsCd
   </sql>
 
-  <!-- 추가 후보: 개발부(DP030) 팀장(AU030)·팀원(AU040), 비활성(AS050) 제외, 이미 제안팀(수행인력 포함)인 사람 제외. 주관팀 인원 먼저 -->
+  <!-- 추가 후보: 개발부(DP030) 팀장(AU030)·팀원(AU040), 비활성(AS050) 제외, 이미 제안팀(수행인력 포함)인 사람 제외. 주관팀 인원 먼저
+       인원 찾기 팝업에서 팀·직급·이름으로 거르고, 스크롤할 때마다 offset부터 limit명씩 가져온다 (FR-043 v4.0) -->
   <select id="findAddableUsers" resultType="com.ojj.sujuro.proposal.dto.ProposalMemberDto">
-    SELECT <include refid="userCols"/>
+    SELECT <include refid="userCols"/>, J.CD_NM AS jbgdNm
       FROM TB_USER U
       JOIN TB_TEAM T ON T.TEAM_SN = U.TEAM_SN
+      LEFT JOIN TB_COM_CD J ON J.GROUP_CD = 'JBGDS' AND J.CD = U.JBGD_CD
      WHERE T.DEPT_CD = 'DP030'
        AND U.AUTHRT_CD IN ('AU030', 'AU040')
        AND U.ACNT_STTS_CD &lt;&gt; 'AS050'
        AND NOT EXISTS (SELECT 1 FROM TB_PRP_TMMBR M WHERE M.PBANC_SN = #{pbancSn} AND M.USER_ID = U.USER_ID)
+       <if test="teamSn != null">AND U.TEAM_SN = #{teamSn}</if>
+       <if test="jbgdNm != null">AND J.CD_NM = #{jbgdNm}</if>
+       <if test="name != null">AND U.USER_NM LIKE '%' || #{name} || '%'</if>
      ORDER BY CASE WHEN U.TEAM_SN = (SELECT SPRVSN_TEAM_SN FROM TB_BID_PBANC WHERE PBANC_SN = #{pbancSn}) THEN 0 ELSE 1 END,
-              T.TEAM_NM, U.USER_NM
+              T.TEAM_NM, U.USER_NM, U.USER_ID
+    OFFSET #{offset} ROWS FETCH NEXT #{limit} ROWS ONLY
+  </select>
+
+  <!-- 인원 찾기 팝업의 팀 선택지: 개발부 팀 전체 (주관팀 포함) -->
+  <select id="findDevTeams" resultType="com.ojj.sujuro.proposal.dto.ProposalTeamDto">
+    SELECT T.TEAM_SN AS teamSn, T.TEAM_NM AS teamNm
+      FROM TB_TEAM T
+     WHERE T.DEPT_CD = 'DP030' AND T.USE_YN = 'Y'
+     ORDER BY T.TEAM_NM
+  </select>
+
+  <!-- 인원 찾기 팝업의 직급 선택지 (공통코드 JBGDS) -->
+  <select id="findRankNames" resultType="string">
+    SELECT CD_NM FROM TB_COM_CD WHERE GROUP_CD = 'JBGDS' AND USE_YN = 'Y' ORDER BY SORT_SEQ
   </select>
 
   <select id="findUser" resultType="com.ojj.sujuro.proposal.dto.ProposalMemberDto">

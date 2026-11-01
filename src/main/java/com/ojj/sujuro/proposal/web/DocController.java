@@ -32,6 +32,8 @@ import com.ojj.sujuro.proposal.dto.SubmissionDto;
 import com.ojj.sujuro.proposal.service.DocService;
 import com.ojj.sujuro.proposal.service.ProposalService;
 
+import lombok.RequiredArgsConstructor;
+
 /**
  * 제출서류 · 조견표 화면 (FR-015, FR-067~073, 화면 설계 v3.2). 경영지원실과 제안팀이 함께 준비한다.
  * 누가 여는가:
@@ -45,6 +47,7 @@ import com.ojj.sujuro.proposal.service.ProposalService;
  * 나라장터 등록 뒤에는 모두 읽기 전용이다. 권한이 없으면 403, 업무 규칙 위반은 안내 띠로 보여 준다.
  */
 @Controller
+@RequiredArgsConstructor
 public class DocController {
 
     private static final String PATH = "/docs";
@@ -53,14 +56,6 @@ public class DocController {
     private final ProposalService proposalService;
     private final DocService docService;
     private final FileStorage storage;
-
-    public DocController(AccessChecker accessChecker, ProposalService proposalService,
-                         DocService docService, FileStorage storage) {
-        this.accessChecker = accessChecker;
-        this.proposalService = proposalService;
-        this.docService = docService;
-        this.storage = storage;
-    }
 
     @GetMapping("/docs")
     public String index(@AuthenticationPrincipal LoginUser user,

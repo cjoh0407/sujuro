@@ -20,6 +20,8 @@ import com.ojj.sujuro.proposal.service.ProposalService;
 import com.ojj.sujuro.proposal.service.QnaService;
 import com.ojj.sujuro.proposal.service.TocService;
 
+import lombok.RequiredArgsConstructor;
+
 /**
  * 질의응답 기록 화면 (FR-074~076). 사업건 단위, 그 사업건 제안팀만 연다.
  *   탭 exp: 예상 Q&A — 제안 평가 전에 예상 질문·준비 답변·답변 담당자 (FR-074)
@@ -30,6 +32,7 @@ import com.ojj.sujuro.proposal.service.TocService;
  * 나라장터 제출 뒤에도 발표가 있으므로 잠그지 않는다.
  */
 @Controller
+@RequiredArgsConstructor
 public class QnaController {
 
     static final String TAB_EXPECTED = "exp";
@@ -40,14 +43,6 @@ public class QnaController {
     private final ProposalService proposalService;
     private final TocService tocService;
     private final QnaService qnaService;
-
-    public QnaController(AccessChecker accessChecker, ProposalService proposalService,
-                         TocService tocService, QnaService qnaService) {
-        this.accessChecker = accessChecker;
-        this.proposalService = proposalService;
-        this.tocService = tocService;
-        this.qnaService = qnaService;
-    }
 
     @GetMapping("/qa")
     public String index(@AuthenticationPrincipal LoginUser user,

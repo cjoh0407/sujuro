@@ -36,10 +36,10 @@
     VALUES (#{pbancSn}, #{rqtMttrNo}, #{clsfNm}, #{rqtMttrNm}, #{rqtMttrDfn}, #{dtlCn}, #{pageNo}, #{rgtrId})
   </insert>
 
+  <!-- v4.0: 화면에서는 명칭만 고친다. 분류·정의·세부내용·RFP 쪽 컬럼은 남겨 두고 건드리지 않는다 -->
   <update id="update">
     UPDATE TB_RQT_MTTR
-       SET CLSF_NM = #{clsfNm}, RQT_MTTR_NM = #{rqtMttrNm}, RQT_MTTR_DFN = #{rqtMttrDfn},
-           DTL_CN = #{dtlCn}, PAGE_NO = #{pageNo}
+       SET RQT_MTTR_NM = #{rqtMttrNm}
      WHERE RQT_MTTR_SN = #{rqtMttrSn}
   </update>
 
@@ -53,6 +53,7 @@
 
   <select id="findMapTarget" resultType="com.ojj.sujuro.proposal.dto.TocDto">
     SELECT T.TOC_SN AS tocSn, T.PBANC_SN AS pbancSn, T.UP_TOC_SN AS upTocSn, T.TOC_SE_CD AS tocSeCd, T.PIC_ID AS picId,
+           T.PIC_CO_NM AS picCoNm,
            (SELECT COUNT(*) FROM TB_TOC C WHERE C.UP_TOC_SN = T.TOC_SN) AS childCnt
       FROM TB_TOC T
      WHERE T.TOC_SN = #{tocSn}

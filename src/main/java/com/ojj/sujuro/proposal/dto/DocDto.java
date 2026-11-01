@@ -2,11 +2,16 @@ package com.ojj.sujuro.proposal.dto;
 
 import java.util.Date;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * 제출서류 체크리스트 항목 (TB_SBMSN_DCMNT) + 가장 최근에 올린 파일. (FR-067~070)
  * 파일은 TB_ATCH_FILE(파일구분 FL050)에 쌓이고 이전 버전은 지우지 않는다. (NFR-009)
  * 삭제(숨김)한 파일은 "가장 최근 파일"과 파일 수에서 빠지고, 버전 번호 계산과 항목 삭제 판단에는 포함된다.
  */
+@Getter
+@Setter
 public class DocDto {
 
     /** 담당구분코드 (공통코드 TKCGS) */
@@ -29,6 +34,7 @@ public class DocDto {
 
     /** 가장 최근 파일 (없으면 null) */
     private Long fileSn;
+    /** 가장 최근 파일을 올린 사람 (삭제 권한 판단) */
     private String fileRgtrId;
     private String orgnlFileNm;
     private Long fileSz;
@@ -39,54 +45,11 @@ public class DocDto {
     /** 삭제(숨김)한 것까지 포함한 파일 수. 버전 번호와 항목 삭제 판단에 쓴다. */
     private int fileTotal;
 
-    public Long getDcmntSn() { return dcmntSn; }
-    public void setDcmntSn(Long dcmntSn) { this.dcmntSn = dcmntSn; }
-
-    public Long getPbancSn() { return pbancSn; }
-    public void setPbancSn(Long pbancSn) { this.pbancSn = pbancSn; }
-
-    public String getDcmntNm() { return dcmntNm; }
-    public void setDcmntNm(String dcmntNm) { this.dcmntNm = dcmntNm; }
-
-    public String getEsntlYn() { return esntlYn; }
     public void setEsntlYn(String esntlYn) { this.esntlYn = esntlYn == null ? null : esntlYn.trim(); }
 
-    public String getTkcgSeCd() { return tkcgSeCd; }
     public void setTkcgSeCd(String tkcgSeCd) { this.tkcgSeCd = tkcgSeCd == null ? null : tkcgSeCd.trim(); }
 
-    public String getPrgrsSttsCd() { return prgrsSttsCd; }
     public void setPrgrsSttsCd(String prgrsSttsCd) { this.prgrsSttsCd = prgrsSttsCd == null ? null : prgrsSttsCd.trim(); }
-
-    public Date getSbmsnDdlnDt() { return sbmsnDdlnDt; }
-    public void setSbmsnDdlnDt(Date sbmsnDdlnDt) { this.sbmsnDdlnDt = sbmsnDdlnDt; }
-
-    public String getRmrkCn() { return rmrkCn; }
-    public void setRmrkCn(String rmrkCn) { this.rmrkCn = rmrkCn; }
-
-    public Long getFileSn() { return fileSn; }
-    public void setFileSn(Long fileSn) { this.fileSn = fileSn; }
-
-    /** 가장 최근 파일을 올린 사람 (삭제 권한 판단) */
-    public String getFileRgtrId() { return fileRgtrId; }
-    public void setFileRgtrId(String fileRgtrId) { this.fileRgtrId = fileRgtrId; }
-
-    public String getOrgnlFileNm() { return orgnlFileNm; }
-    public void setOrgnlFileNm(String orgnlFileNm) { this.orgnlFileNm = orgnlFileNm; }
-
-    public Long getFileSz() { return fileSz; }
-    public void setFileSz(Long fileSz) { this.fileSz = fileSz; }
-
-    public String getFileRgtrNm() { return fileRgtrNm; }
-    public void setFileRgtrNm(String fileRgtrNm) { this.fileRgtrNm = fileRgtrNm; }
-
-    public Date getFileRegDt() { return fileRegDt; }
-    public void setFileRegDt(Date fileRegDt) { this.fileRegDt = fileRegDt; }
-
-    public int getFileCnt() { return fileCnt; }
-    public void setFileCnt(int fileCnt) { this.fileCnt = fileCnt; }
-
-    public int getFileTotal() { return fileTotal; }
-    public void setFileTotal(int fileTotal) { this.fileTotal = fileTotal; }
 
     public boolean isEssential() {
         return "Y".equals(esntlYn);

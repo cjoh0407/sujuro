@@ -31,6 +31,8 @@ import com.ojj.sujuro.proposal.service.ProposalService;
 import com.ojj.sujuro.proposal.service.PrpFileService;
 import com.ojj.sujuro.proposal.service.TocService;
 
+import lombok.RequiredArgsConstructor;
+
 /**
  * 제안서 파일 관리 화면 (FR-057~066, 화면 설계 v3.2). 사업건 단위, 그 사업건 제안팀만 연다.
  *   탭 full: 전체 제안서(통합본) / part: 제안서 파트별 파일(목차별) / sum: 제안요약서(목차별)
@@ -41,6 +43,7 @@ import com.ojj.sujuro.proposal.service.TocService;
  *   파일 삭제(숨김)               — 제안팀원 중 올린 사람 또는 주관팀 팀장. 사유 필수, 원본·이력은 남긴다 (NFR-009)
  */
 @Controller
+@RequiredArgsConstructor
 public class PrpFileController {
 
     static final String TAB_FULL = "full";
@@ -53,15 +56,6 @@ public class PrpFileController {
     private final TocService tocService;
     private final PrpFileService fileService;
     private final FileStorage storage;
-
-    public PrpFileController(AccessChecker accessChecker, ProposalService proposalService, TocService tocService,
-                             PrpFileService fileService, FileStorage storage) {
-        this.accessChecker = accessChecker;
-        this.proposalService = proposalService;
-        this.tocService = tocService;
-        this.fileService = fileService;
-        this.storage = storage;
-    }
 
     @GetMapping("/files")
     public String index(@AuthenticationPrincipal LoginUser user,

@@ -3,10 +3,10 @@
 <!--/*
   제안 업무 화면 공통 머리 부분. 목차·요구사항, 제안서 파일, 제출서류, Q&A 화면에서 같이 쓴다.
   필요한 모델: bids(사업건 목록), bid(선택한 사업건), members(제안팀원, teamCard만), tab(있으면 유지)
-              teamCard 편집용(주관팀 팀장만): canAssign, addableUsers, teamOptions
+              teamCard 편집용(주관팀 팀장만): canAssign, teamOptions, memTeams·memRanks(인원 찾기 팝업 필터)
     bidSelect(action) : 사업건 선택. action은 이 화면 주소 (예: '/proposal')
     bizHead           : 사업명 · 기관 · 공고번호 · 상태 (NFR-023: 어떤 사업건을 보고 있는지 항상 보이게)
-    teamCard          : 제안팀 구성. 주관팀 팀장이면 인원 추가·제외와 참여팀 지정도 한다 (FR-043~044)
+    teamCard          : 제안팀 구성. 주관팀 팀장이면 인원 추가(찾기 팝업, 여러 명)·제외와 참여팀 지정도 한다 (FR-043~044)
 */-->
 <body>
 
@@ -51,16 +51,11 @@
 
     <div class="grid2" th:if="${canAssign}">
       <div class="fld">
-        <label for="memAdd">인원 추가 (다른 팀 인원 포함)</label>
-        <form th:action="@{/proposal/team/member/add}" method="post" class="row">
-          <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-          <input type="hidden" name="tab" th:value="${tab}">
-          <select id="memAdd" name="userId" required>
-            <option value="">선택</option>
-            <option th:each="u : ${addableUsers}" th:value="${u.userId}" th:text="${u.userNm + ' (' + u.teamNm + ')'}">이름 (팀)</option>
-          </select>
-          <button class="btn sm" type="submit">추가</button>
-        </form>
+        <label>인원 추가 (다른 팀 인원 포함)</label>
+        <div class="row">
+          <button class="btn sm primary" type="button" onclick="openMemPop()">🔍 팝업에서 인원 찾기</button>
+          <span class="faint" style="font-size:11.5px">팀·직급·이름으로 검색해 여러 명을 한 번에 추가</span>
+        </div>
       </div>
       <div class="fld">
         <label>참여 팀 (제안서 작성을 함께하는 팀 · 주관 팀은 1개, 참여 팀은 여러 개)</label>
@@ -75,6 +70,48 @@
           <button class="btn sm" type="submit" th:unless="${#lists.isEmpty(teamOptions)}">저장</button>
         </form>
       </div>
+    </div>
+  </div>
+
+  <!-- 제안팀 인원 찾기 팝업 (FR-043 v4.0). 후보는 /proposal/team/candidates에서 20명씩 받아 오고(스크롤하면 다음 20명),
+       필터를 바꿔도 체크한 사람은 기억했다가 [선택한 인원 추가]에서 한 번에 보낸다 (proposal.js) -->
+  <div class="modal" id="memPop" hidden th:if="${canAssign}" th:data-bid="${bid.pbancSn}"
+       th:data-url="@{/proposal/team/candidates}" onclick="if (event.target === this) closeMemPop()">
+    <div class="box" role="dialog" aria-modal="true" aria-labelledby="memPopTitle">
+      <div class="card-head">
+        <h3 id="memPopTitle" th:text="'제안팀 인원 찾기 · ' + ${bid.label}">제안팀 인원 찾기</h3>
+        <button class="link" type="button" onclick="closeMemPop()">닫기</button>
+      </div>
+      <form th:action="@{/proposal/team/member/add}" method="post" class="pad mp-form" onsubmit="return checkMemPop(this)">
+        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+        <input type="hidden" name="tab" th:value="${tab}">
+        <div class="row">
+          <select id="mp-team" onchange="reloadMemPop()">
+            <option value="">팀 전체</option>
+            <option th:each="t : ${memTeams}" th:value="${t.teamSn}" th:text="${t.teamNm}">개발1팀</option>
+          </select>
+          <select id="mp-rank" onchange="reloadMemPop()">
+            <option value="">직급 전체</option>
+            <option th:each="r : ${memRanks}" th:value="${r}" th:text="${r}">팀장</option>
+          </select>
+          <input type="text" id="mp-q" placeholder="이름 검색" oninput="searchMemPop()" style="flex:1;min-width:140px" autocomplete="off">
+        </div>
+        <div class="ts mp-list" id="mp-list" onscroll="moreMemPop()">
+          <table>
+            <thead><tr><th style="width:34px"></th><th>이름</th><th>팀</th><th>직급</th></tr></thead>
+            <tbody id="mp-body"></tbody>
+          </table>
+          <div class="mp-state faint" id="mp-state"></div>
+        </div>
+        <div id="mp-picked"></div>
+        <div class="row" style="justify-content:space-between">
+          <span class="faint" id="mp-cnt">0명 선택</span>
+          <span class="row">
+            <button class="btn" type="button" onclick="closeMemPop()">취소</button>
+            <button class="btn primary" type="submit">선택한 인원 추가</button>
+          </span>
+        </div>
+      </form>
     </div>
   </div>
 </div>

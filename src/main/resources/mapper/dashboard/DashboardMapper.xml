@@ -18,6 +18,7 @@
 
   <sql id="bidCols">
     P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, P.PBANC_STTS_CD AS statusCd, S.CD_NM AS statusNm,
+    ST.CD_NM AS stepNm,
     R.CD_NM AS returnNm, TM.TEAM_NM AS teamNm,
     TO_CHAR(P.BID_DDLN_DT, 'YYYY-MM-DD HH24:MI') AS ddlnText,
     TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE) AS dday
@@ -26,23 +27,35 @@
   <sql id="bidJoins">
     FROM TB_BID_PBANC P
     LEFT JOIN TB_COM_CD S ON S.GROUP_CD = 'PBSTS' AND S.CD = P.PBANC_STTS_CD
+    LEFT JOIN TB_COM_CD ST ON ST.GROUP_CD = 'PBSTP' AND ST.CD = P.PBANC_STEP_CD
     LEFT JOIN TB_COM_CD R ON R.GROUP_CD = 'RTRSE' AND R.CD = P.RTRN_SE_CD
     LEFT JOIN TB_TEAM TM ON TM.TEAM_SN = P.SPRVSN_TEAM_SN
   </sql>
 
   <!-- ===== 영업부 ===== -->
+  <!--
+    배정 대기: 신규(PS010)이고 개찰 이전 단계(발주계획 PP010·사전규격 PP020·입찰공고 PP030)인 공고.
+    취소 공고(PY040)와 추적 종료(TR030)는 배정할 수 없으므로 뺀다. (v4.2: 발주계획부터 배정)
+  -->
+  <sql id="assignWait">
+    (P.PBANC_STTS_CD = 'PS010'
+     AND P.PBANC_STEP_CD IN ('PP010', 'PP020', 'PP030')
+     AND NVL(P.PBANC_TYPE_CD, '-') &lt;&gt; 'PY040'
+     AND NVL(P.TRCK_STTS_CD, '-') &lt;&gt; 'TR030')
+  </sql>
+
   <select id="salesCounts" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$SalesCounts">
-    SELECT NVL(SUM(CASE WHEN PBANC_STTS_CD = 'PS010' AND PBANC_STEP_CD = 'PP030' THEN 1 ELSE 0 END), 0) AS assignWait,
-           NVL(SUM(CASE WHEN PBANC_STTS_CD = 'PS020' THEN 1 ELSE 0 END), 0) AS awaitingTeam,
-           NVL(SUM(CASE WHEN PBANC_STTS_CD = 'PS010' AND RTRN_SE_CD IS NOT NULL THEN 1 ELSE 0 END), 0) AS returned,
-           NVL(SUM(CASE WHEN TRCK_STTS_CD = 'TR010' THEN 1 ELSE 0 END), 0) AS tracking
-      FROM TB_BID_PBANC
+    SELECT NVL(SUM(CASE WHEN <include refid="assignWait"/> THEN 1 ELSE 0 END), 0) AS assignWait,
+           NVL(SUM(CASE WHEN P.PBANC_STTS_CD = 'PS020' THEN 1 ELSE 0 END), 0) AS awaitingTeam,
+           NVL(SUM(CASE WHEN P.PBANC_STTS_CD = 'PS010' AND P.RTRN_SE_CD IS NOT NULL THEN 1 ELSE 0 END), 0) AS returned,
+           NVL(SUM(CASE WHEN P.TRCK_STTS_CD = 'TR010' THEN 1 ELSE 0 END), 0) AS tracking
+      FROM TB_BID_PBANC P
   </select>
 
   <select id="salesTodo" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$Bid">
     SELECT <include refid="bidCols"/>
     <include refid="bidJoins"/>
-     WHERE (P.PBANC_STTS_CD = 'PS010' AND P.PBANC_STEP_CD = 'PP030') OR P.PBANC_STTS_CD = 'PS020'
+     WHERE <include refid="assignWait"/> OR P.PBANC_STTS_CD = 'PS020'
      ORDER BY P.BID_DDLN_DT, P.PBANC_SN
      FETCH FIRST 30 ROWS ONLY
   </select>

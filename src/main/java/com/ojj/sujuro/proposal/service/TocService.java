@@ -89,6 +89,16 @@ public interface TocService {
     void addTop(Long pbancSn, String tocSeCd, String label);
 
     /**
+     * 빈 제안서 목차에서 새 주관팀 양식을 이름부터 만들고 이 사업건의 현재 양식으로 정한다 (FR-048, 2026-11-01 결정).
+     * 양식은 항목 없이 먼저 생기고, 이후 목차를 추가·수정할 때마다 그 양식에 바로 반영된다(syncForm).
+     * 이미 목차가 있거나 같은 팀에 같은 이름의 양식이 있으면 막는다. 만든 양식 이름을 돌려준다.
+     */
+    String startNewForm(Long pbancSn, String formName, Long teamSn, String userId);
+
+    /** 양식 없이 이 사업건에서만 쓰는 목차를 첫 목차부터 만든다 (주관팀이 아닌 제안팀원·요약서). 현재 양식은 비운다 */
+    void startBlank(Long pbancSn, String tocSeCd, String label);
+
+    /**
      * 기준 목차 옆에 목차를 추가한다. mode가 "d"면 기준 목차의 마지막 하위로, "s"면 기준 목차(와 그 하위) 바로 뒤 같은 단계로 넣는다.
      * 최하위 목차에 하위를 만들면 그 목차는 묶음이 되어 담당자·쪽수가 비워지고, 연결된 요구사항은 미매핑이 된다.
      * 그 목차에 올린 파일이 있으면 막는다. 미매핑된 요구사항 수를 돌려준다.

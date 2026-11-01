@@ -3,7 +3,8 @@
 <!--/*
   제안서 목차 · 담당자 · 요구사항 탭 (FR-046~056). proposal.html에서 tab == 'prop'일 때 불러온다.
   목차 조각은 fragments/toc.html, 요구사항 조각은 fragments/rqt.html
-  unmapView(?view=unmapped)면 목차 표 대신 미매핑 요구사항 화면을 보여 준다 (FR-052 v4.0)
+  unmapView(?view=unmapped)면 목차 표 대신 "요구사항 추가 · 미매핑" 화면을 보여 준다 (FR-052 v4.0).
+  요구사항 PDF 추출·수기 등록·수정도 이 화면에 있다. 목차가 아직 없어도 요구사항은 먼저 등록할 수 있다.
 */-->
 <body>
 <th:block th:fragment="tab">
@@ -52,20 +53,44 @@
   </div>
 
   <!-- 목차가 없으면: 팀 양식 불러오기 / 직접 목차 만들기 (FR-046, FR-047) -->
-  <div class="card" th:if="${#lists.isEmpty(tocs)}">
+  <!-- 새 양식을 이름부터 만든 직후에는 목차가 비어 있어도 목차 표를 보여 준다(curForm 있음) -->
+  <!-- PDF 요구사항 추출 미리보기 (FR-050-1): 목차 표 대신 보여 준다 -->
+  <th:block th:if="${extract != null}">
+    <th:block th:replace="~{proposal/fragments/rqt :: rqExtractView}"></th:block>
+  </th:block>
+
+  <div class="card" th:if="${#lists.isEmpty(tocs) and curForm == null and extract == null and !unmapView}">
     <div class="empty">
       아직 제안서 목차가 없습니다.<br><br>
       <th:block th:replace="~{proposal/fragments/toc :: emptyToc('prop')}"></th:block>
+      <div style="margin-top:14px" th:if="${canReq or rqtTotal > 0}">
+        <a class="btn sm" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped')}"
+           th:text="${rqtTotal > 0} ? '등록된 요구사항 ' + ${rqtTotal} + '건 보기 →' : '요구사항 먼저 등록하기 →'">요구사항 먼저 등록하기 →</a>
+      </div>
     </div>
   </div>
 
-  <!-- 미매핑 요구사항 화면 (FR-052 v4.0): ID / 명칭 / 연결할 세부 목차 -->
-  <th:block th:if="${unmapView and !#lists.isEmpty(tocs)}">
+  <!-- 요구사항 추가 · 미매핑 화면 (FR-050~052 v4.0): 미매핑 목록(ID / 명칭 / 연결할 세부 목차) + PDF 추출 + 수기 등록·수정 -->
+  <th:block th:if="${unmapView}">
     <div class="row"><a class="btn sm" th:href="@{/proposal(bid=${bid.pbancSn})}">← 목차·요구사항으로 돌아가기</a></div>
     <div class="card">
       <div class="card-head">
         <h3 th:text="'미매핑 요구사항 ' + ${unmapped} + '건 · ' + ${bid.label}">미매핑 요구사항</h3>
-        <span class="faint" style="font-size:11.5px">모든 요구사항은 세부 목차 하나에 연결되어야 합니다 · 담당자를 지정한 세부 목차만 고를 수 있습니다</span>
+        <span class="row" style="gap:8px">
+          <span class="faint" style="font-size:11.5px">모든 요구사항은 세부 목차 하나에 연결되어야 합니다 · 담당자를 지정한 세부 목차만 고를 수 있습니다</span>
+          <!-- 요구사항 전체 삭제 (주관팀 팀장): 추출을 다시 할 때. 목차 연결도 함께 사라진다 -->
+          <form th:if="${canAssign and rqtTotal > 0}" th:action="@{/proposal/rqt/delete-all}" method="post" style="display:inline"
+                th:data-msg="'이 사업건의 요구사항 ' + ${rqtTotal} + '건을 모두 삭제합니다.'
+                             + (${rqtTotal - unmapped > 0} ? ' 목차에 연결된 ' + ${rqtTotal - unmapped} + '건의 연결도 함께 사라집니다.' : '')
+                             + ' 삭제하면 되돌릴 수 없습니다. 삭제할까요?'"
+                onsubmit="return confirm(this.dataset.msg)">
+            <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+            <button class="btn sm danger" type="submit" th:text="'요구사항 전체 삭제 (' + ${rqtTotal} + '건)'">요구사항 전체 삭제</button>
+          </form>
+        </span>
+      </div>
+      <div class="banner info" style="margin:10px 14px 0" th:if="${!#lists.isEmpty(unmappedList) and #lists.isEmpty(mapTargets)}">
+        <span>아직 연결할 수 있는 세부 목차가 없습니다. 목차를 만들고 최하위 목차에 담당자를 지정하면 여기서 연결할 수 있습니다.</span>
       </div>
       <div class="ts">
         <table>
@@ -76,14 +101,21 @@
               <td><th:block th:replace="~{proposal/fragments/rqt :: rqInfo(${q})}"></th:block></td>
               <td><th:block th:replace="~{proposal/fragments/rqt :: rqPickToc(${q})}"></th:block></td>
             </tr>
-            <tr th:if="${#lists.isEmpty(unmappedList)}"><td colspan="3" class="empty">미매핑 요구사항이 없습니다.</td></tr>
+            <tr th:if="${#lists.isEmpty(unmappedList)}"><td colspan="3" class="empty"
+                th:text="${rqtTotal == 0} ? '아직 등록된 요구사항이 없습니다. 아래에서 제안요청서 PDF로 추출하거나 수기로 등록하세요.' : '미매핑 요구사항이 없습니다. 모든 요구사항이 목차에 연결됐습니다.'">미매핑 요구사항이 없습니다.</td></tr>
           </tbody>
         </table>
       </div>
     </div>
+
+    <!-- 요구사항 추가: PDF 자동 추출(FR-050-1) · 수기 등록·수정(FR-050). 등록한 요구사항은 위 미매핑 목록에 나타난다 -->
+    <th:block th:if="${canReq}">
+      <th:block th:replace="~{proposal/fragments/rqt :: rqExtract}"></th:block>
+      <th:block th:replace="~{proposal/fragments/rqt :: rqForm}"></th:block>
+    </th:block>
   </th:block>
 
-  <th:block th:unless="${#lists.isEmpty(tocs) or unmapView}">
+  <th:block th:unless="${(#lists.isEmpty(tocs) and curForm == null) or unmapView or extract != null}">
 
     <th:block th:if="${canLoad}"><th:block th:replace="~{proposal/fragments/toc :: formBar('prop')}"></th:block></th:block>
 
@@ -102,9 +134,11 @@
             · 요구사항 하나는 가장 하위 목차 하나에만 연결됩니다(비기능 요구사항 포함)
             · 담당자를 지정한 세부 목차부터 연결할 수 있습니다
           </span>
-          <a class="btn sm danger" th:if="${unmapped > 0}" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped')}"
-             th:text="'미매핑 ' + ${unmapped} + '건 보기 →'">미매핑 0건 보기 →</a>
-          <span class="pill success" th:if="${unmapped == 0 and rqtTotal > 0}">미매핑 없음</span>
+          <span class="row" style="gap:6px">
+            <span class="pill success" th:if="${unmapped == 0 and rqtTotal > 0}">미매핑 없음</span>
+            <a class="btn sm" th:classappend="${unmapped > 0} ? 'danger'" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped')}"
+               th:text="${unmapped > 0} ? '미매핑 ' + ${unmapped} + '건 · 요구사항 추가 →' : '요구사항 추가 →'">요구사항 추가 →</a>
+          </span>
         </div>
         <div class="bar ok" style="margin-top:6px"><i th:style="'width:' + ${progress} + '%'"></i></div>
       </div>
@@ -117,6 +151,9 @@
             </tr>
           </thead>
           <tbody>
+            <tr th:if="${#lists.isEmpty(tocs)}">
+              <td th:colspan="${cols}" class="empty">아직 목차가 없습니다. 오른쪽 위 [+ 1단계 목차 추가]로 첫 목차를 만드세요. 만드는 목차는 현재 양식에 바로 저장됩니다.</td>
+            </tr>
             <th:block th:each="t : ${tocs}">
 
               <!-- 묶음 목차 (하위가 있는 목차): 아래 최하위 목차 수·요구사항 수·쪽수만 보여 준다 -->
@@ -173,12 +210,6 @@
         </table>
       </div>
     </div>
-  </th:block>
-
-  <!-- 요구사항 자동 추출 안내(FR-050-1, 조사 중) · 수기 등록·수정 (FR-050). 미매핑 화면에서는 숨긴다 -->
-  <th:block th:if="${canReq and !unmapView}">
-    <th:block th:replace="~{proposal/fragments/rqt :: rqExtract}"></th:block>
-    <th:block th:replace="~{proposal/fragments/rqt :: rqForm}"></th:block>
   </th:block>
 
 </th:block>

@@ -28,6 +28,15 @@ public interface RqtMapper {
 
     int delete(@Param("rqtMttrSn") Long rqtMttrSn);
 
+    /** 사업건 요구사항을 모두 지운다. 지운 수를 돌려준다 */
+    int deleteByBid(@Param("pbancSn") Long pbancSn);
+
+    /** 이 요구사항을 가리키는 Q&A의 관련 요구사항을 비운다 (지우기 전에) */
+    int clearQuestion(@Param("rqtMttrSn") Long rqtMttrSn);
+
+    /** 이 사업건 요구사항을 가리키는 Q&A의 관련 요구사항을 모두 비운다 (전체 삭제 전에) */
+    int clearQuestionsByBid(@Param("pbancSn") Long pbancSn);
+
     /** 요구사항을 목차에 연결한다. tocSn이 null이면 미매핑으로 돌린다. (FR-051) */
     int updateToc(@Param("rqtMttrSn") Long rqtMttrSn, @Param("tocSn") Long tocSn);
 

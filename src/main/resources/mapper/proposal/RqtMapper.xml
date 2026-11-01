@@ -47,6 +47,21 @@
     DELETE FROM TB_RQT_MTTR WHERE RQT_MTTR_SN = #{rqtMttrSn}
   </delete>
 
+  <!-- 사업건 요구사항 전체 삭제 (다시 추출할 때) -->
+  <delete id="deleteByBid">
+    DELETE FROM TB_RQT_MTTR WHERE PBANC_SN = #{pbancSn}
+  </delete>
+
+  <!-- 요구사항을 지우기 전에 Q&A의 관련 요구사항 연결을 푼다 (FK_QSTN_ANS_RQT_MTTR_SN). Q&A 기록은 그대로 둔다 -->
+  <update id="clearQuestion">
+    UPDATE TB_QSTN_ANS SET RQT_MTTR_SN = NULL WHERE RQT_MTTR_SN = #{rqtMttrSn}
+  </update>
+
+  <update id="clearQuestionsByBid">
+    UPDATE TB_QSTN_ANS SET RQT_MTTR_SN = NULL
+     WHERE RQT_MTTR_SN IN (SELECT RQT_MTTR_SN FROM TB_RQT_MTTR WHERE PBANC_SN = #{pbancSn})
+  </update>
+
   <update id="updateToc">
     UPDATE TB_RQT_MTTR SET TOC_SN = #{tocSn, jdbcType=NUMERIC} WHERE RQT_MTTR_SN = #{rqtMttrSn}
   </update>

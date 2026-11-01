@@ -183,7 +183,8 @@ public class PrpFileServiceImpl implements PrpFileService {
 
     /** 파일 검사(용량·실행 파일, FileStorage.checkUpload)를 하고 DB에 넣을 정보를 채운다. (FR-065) */
     private PrpFileDto newFile(Long pbancSn, String fileSeCd, MultipartFile file, String memo, String userId) {
-        String original = FileStorage.checkUpload(file);
+        long max = PrpFileDto.SE_FULL.equals(fileSeCd) ? FileStorage.MAX_SIZE_FULL : FileStorage.MAX_SIZE;
+        String original = FileStorage.checkUpload(file, max);
         String m = memo == null || memo.trim().isEmpty() ? null : memo.trim();
         if (m != null && m.length() > 1000) {
             throw new BusinessException("메모는 1000자까지 입력할 수 있습니다.");

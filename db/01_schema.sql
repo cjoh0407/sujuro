@@ -713,7 +713,7 @@ COMMENT ON COLUMN TB_ATCH_FILE.ORGNL_FILE_NM IS '원본파일명';
 COMMENT ON COLUMN TB_ATCH_FILE.ORGNL_URL IS '원본URL - 나라장터에서 받은 내려받기 주소. 사람이 올린 파일은 NULL';
 COMMENT ON COLUMN TB_ATCH_FILE.STRG_FILE_NM IS '저장파일명 - 서버에 저장한 이름. 공고 첨부는 아직 안 내려받았으면 NULL';
 COMMENT ON COLUMN TB_ATCH_FILE.FILE_PATH_NM IS '파일경로명 - 서버 저장 경로. 아직 안 내려받았으면 NULL';
-COMMENT ON COLUMN TB_ATCH_FILE.FILE_SZ IS '파일크기 - byte. 통합본은 300MB, 그 외 파일은 50MB 제한 (v4.1, 300MB는 구현 예정). API에 없으므로 내려받은 뒤 기록한다 (FR-036, FR-065)';
+COMMENT ON COLUMN TB_ATCH_FILE.FILE_SZ IS '파일크기 - byte. 통합본은 300MB, 그 외 파일은 50MB 제한. API에 없으므로 내려받은 뒤 기록한다 (FR-036, FR-065)';
 COMMENT ON COLUMN TB_ATCH_FILE.FILE_EXTN_NM IS '파일확장자명';
 COMMENT ON COLUMN TB_ATCH_FILE.MEMO_CN IS '메모내용 - 업로드 메모';
 COMMENT ON COLUMN TB_ATCH_FILE.RGTR_ID IS '등록자아이디 - 업로드한 사람';

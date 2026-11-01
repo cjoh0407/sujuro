@@ -4,11 +4,14 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/default}">
 <!--/*
-  질의응답 기록 (FR-074~076). 사업건 단위, 그 사업건 제안팀만 연다.
-    탭 exp: 예상 Q&amp;A — 예상 질문 · 준비한 답변 · 답변 담당자 (FR-074)
-    탭 prs: 발표 Q&amp;A — 발표 때 실제로 나온 질문과 답변 · 예상 질문과 일치했는지 (FR-075)
+  질의응답 기록 (FR-074~076-1). 사업건 단위, 그 사업건 제안팀만 연다.
+    탭 exp: 예상 Q&amp;A — 예상 질문 · 준비한 답변 (FR-074)
+    탭 prs: 발표 Q&amp;A — 발표 때 실제로 나온 질문과 답변 (FR-075)
+    입력은 질문 · 답변 · 관련 요구사항(선택)만. 목록은 관련 요구사항의 1단계 목차별로 묶은 표 + 질문·답변 검색 (FR-076)
+    이전 사업 Q&amp;A 보기: 내가 제안팀이었던 다른 사업건의 Q&amp;A를 읽기 전용으로 본다 (FR-076-1)
   제안팀 누구나 등록·수정하고, 삭제는 작성자 또는 주관팀 팀장만 한다.
-  필요한 모델: bids, bid, tab, me, items, expCnt, prsCnt, unansweredCnt, members, tocs, canDeleteAll, editQna(수정 중일 때)
+  필요한 모델: bids, bid, tab, q, me, groups, itemCnt, foundCnt, expCnt, prsCnt, unansweredCnt, rqts, canDeleteAll,
+              pastBids, pastBid·pastGroups(이전 사업을 고른 때), editQna(수정 중일 때)
 */-->
 <head>
   <title>질의응답 기록</title>
@@ -42,51 +45,116 @@
          th:text="'발표 Q&amp;A (' + ${prsCnt} + ')'">발표 Q&amp;A (0)</a>
     </div>
 
-    <div class="banner info" th:unless="${prs}">제안 평가 전에 나올 만한 질문과 준비한 답변을 정리하고, 질문마다 답변할 사람을 정해 두세요.</div>
-    <div class="banner info" th:if="${prs}">발표 때 실제로 나온 질문과 답변을 기록합니다. 함께 들은 제안팀 누구나 기록할 수 있고, 예상 질문과 일치했는지도 표시해 두면 다음 제안 준비에 참고가 됩니다.</div>
+    <div class="banner info" th:unless="${prs}">제안 평가 전에 나올 만한 질문과 준비한 답변을 정리하세요. 관련 요구사항을 고르면 그 요구사항의 목차별로 묶여 보입니다.</div>
+    <div class="banner info" th:if="${prs}">발표 때 실제로 나온 질문과 답변을 기록합니다. 함께 들은 제안팀 누구나 기록할 수 있습니다.</div>
 
-    <!-- 목록 -->
+    <!-- 검색 · 이전 사업 Q&amp;A 보기 -->
+    <div class="qa-bar">
+      <form th:action="@{/qa}" method="get" class="row">
+        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+        <input type="hidden" name="tab" th:value="${tab}">
+        <input type="search" name="q" th:value="${q}" placeholder="질문·답변 검색" maxlength="100" style="width:240px">
+        <button class="btn sm" type="submit">검색</button>
+        <a class="link" style="font-size:12px" th:if="${!#strings.isEmpty(q)}" th:href="@{/qa(bid=${bid.pbancSn}, tab=${tab})}">검색 지우기</a>
+      </form>
+      <form th:action="@{/qa}" method="get" class="row">
+        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+        <input type="hidden" name="tab" th:value="${tab}">
+        <select name="past" onchange="this.form.submit()" th:disabled="${#lists.isEmpty(pastBids)}" aria-label="이전 사업 Q&amp;A 보기">
+          <option value="" th:text="${#lists.isEmpty(pastBids)} ? '볼 수 있는 이전 사업 Q&amp;A 없음' : '이전 사업 Q&amp;A 보기'">이전 사업 Q&amp;A 보기</option>
+          <option th:each="pb : ${pastBids}" th:value="${pb.pbancSn}" th:selected="${pastBid != null and pastBid.pbancSn == pb.pbancSn}"
+                  th:text="${pb.label} + ' (' + ${pb.qnaCnt} + '건)'">사업명 (3건)</option>
+        </select>
+      </form>
+    </div>
+
+    <!-- 이전 사업 Q&amp;A (읽기 전용, FR-076-1) -->
+    <div class="card" th:if="${pastBid != null}">
+      <div class="card-head">
+        <h3>
+          <span class="pill neutral">이전 사업</span>
+          <span th:text="${pastBid.label}">사업명</span>
+          <span class="faint" style="font-weight:400" th:text="'· Q&amp;A ' + ${pastBid.qnaCnt} + '건'">· Q&amp;A 0건</span>
+        </h3>
+        <a class="btn sm" th:href="@{/qa(bid=${bid.pbancSn}, tab=${tab}, q=${q})}">닫기</a>
+      </div>
+      <div class="pad faint" style="font-size:11.5px;padding-bottom:0">읽기 전용입니다. 참고할 질문과 답변이 있으면 아래 등록 칸에 옮겨 적으세요.</div>
+      <div class="ts">
+        <table class="qa-grid">
+          <thead><tr><th style="width:60px">구분</th><th>질문</th><th>답변</th><th style="width:22%">관련 요구사항</th></tr></thead>
+          <tbody th:each="g : ${pastGroups}">
+            <tr class="qa-group"><td colspan="4" th:text="${g.title} + ' (' + ${#lists.size(g.items)} + ')'">Ⅰ. 사업의 이해 (2)</td></tr>
+            <tr class="hv" th:each="x : ${g.items}">
+              <td><span class="pill" th:classappend="${x.presented} ? 'accent' : 'neutral'" th:text="${x.presented} ? '발표' : '예상'">예상</span></td>
+              <td class="qa-txt" th:text="${x.qstnCn}">질문</td>
+              <td class="qa-txt">
+                <span th:unless="${x.unanswered}" th:text="${x.ansCn}">답변</span>
+                <span class="faint" th:if="${x.unanswered}">답변 없음</span>
+              </td>
+              <td>
+                <th:block th:if="${x.rqtMttrSn != null}">
+                  <span class="mono" th:text="${x.rqtMttrNo}">SFR-001</span>
+                  <span th:text="${x.rqtMttrNm}">요구사항명</span>
+                </th:block>
+                <span class="faint" th:if="${x.rqtMttrSn == null}">-</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 목록: 관련 요구사항의 1단계 목차별 표 (FR-076) -->
     <div class="card">
       <div class="card-head">
         <h3>
           <span th:text="${prs} ? '발표 Q&amp;A' : '예상 Q&amp;A'">예상 Q&amp;A</span>
+          <span class="faint" style="font-weight:400" th:if="${!#strings.isEmpty(q)}"
+                th:text="'· \'' + ${q} + '\' 검색 결과 ' + ${foundCnt} + ' / ' + ${itemCnt} + '건'">· 검색 결과</span>
           <span class="faint" style="font-weight:400" th:if="${unansweredCnt > 0}" th:text="'· 답변 미작성 ' + ${unansweredCnt} + '건'">· 답변 미작성 0건</span>
         </h3>
       </div>
 
-      <div class="empty" th:if="${#lists.isEmpty(items)}"
+      <div class="empty" th:if="${itemCnt == 0}"
            th:text="${prs} ? '기록한 발표 Q&amp;A가 없습니다. 아래에서 발표 때 나온 질문을 기록하세요.' : '등록한 예상 Q&amp;A가 없습니다. 아래에서 예상 질문을 등록하세요.'">없습니다.</div>
+      <div class="empty" th:if="${itemCnt > 0 and foundCnt == 0}">검색어가 들어 있는 질문·답변이 없습니다.</div>
 
-      <div th:each="q, st : ${items}" class="pad" style="border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px">
-        <div class="row" style="align-items:flex-start;gap:8px">
-          <span class="pill neutral mono" th:text="'Q' + ${st.count}">Q1</span>
-          <b style="white-space:pre-wrap;flex:1" th:text="${q.qstnCn}">질문</b>
-          <span class="pill success" th:if="${prs and q.ccrncYn == 'Y'}">예상 질문과 일치</span>
-          <span class="pill warning" th:if="${prs and q.ccrncYn == 'N'}">예상에 없던 질문</span>
-        </div>
-        <div class="row" style="align-items:flex-start;gap:8px">
-          <span class="pill accent mono">A</span>
-          <span style="white-space:pre-wrap;flex:1" th:if="${!q.unanswered}" th:text="${q.ansCn}">답변</span>
-          <span class="faint" style="flex:1" th:if="${q.unanswered}">답변을 아직 적지 않았습니다.</span>
-        </div>
-        <div class="faint" style="font-size:11.5px">
-          답변 담당 <span th:text="${q.answrNm ?: '미지정'}">미지정</span>
-          · 관련 목차 <span th:text="${q.tocLabel ?: '-'}">-</span>
-          · 작성 <span th:text="${(q.wrtrNm ?: q.wrtrId) + ' ' + #dates.format(q.wrtDt, 'yyyy-MM-dd HH:mm')}">작성자 일시</span>
-          · <a class="link" style="font-size:11px" th:href="@{/qa(bid=${bid.pbancSn}, tab=${tab}, edit=${q.qstnAnsSn})}">수정</a>
-          <form th:if="${canDeleteAll or q.wrtrId == me}" th:action="@{/qa/delete}" method="post" style="display:inline"
-                onsubmit="return confirm('이 질의응답을 삭제할까요?')">
-            <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-            <input type="hidden" name="tab" th:value="${tab}">
-            <input type="hidden" name="qstnAnsSn" th:value="${q.qstnAnsSn}">
-            · <button class="link" style="font-size:11px" type="submit">삭제</button>
-          </form>
-        </div>
+      <div class="ts" th:if="${foundCnt > 0}">
+        <table class="qa-grid">
+          <thead><tr><th>질문</th><th>답변</th><th style="width:22%">관련 요구사항</th><th style="width:64px"></th></tr></thead>
+          <tbody th:each="g : ${groups}">
+            <tr class="qa-group"><td colspan="4" th:text="${g.title} + ' (' + ${#lists.size(g.items)} + ')'">Ⅰ. 사업의 이해 (2)</td></tr>
+            <tr class="hv" th:each="x : ${g.items}" th:classappend="${editQna != null and editQna.qstnAnsSn == x.qstnAnsSn} ? 'qa-editing'">
+              <td class="qa-txt" th:text="${x.qstnCn}">질문</td>
+              <td class="qa-txt">
+                <span th:unless="${x.unanswered}" th:text="${x.ansCn}">답변</span>
+                <span class="faint" th:if="${x.unanswered}">답변을 아직 적지 않았습니다.</span>
+              </td>
+              <td>
+                <th:block th:if="${x.rqtMttrSn != null}">
+                  <span class="mono" th:text="${x.rqtMttrNo}">SFR-001</span>
+                  <span th:text="${x.rqtMttrNm}">요구사항명</span>
+                </th:block>
+                <span class="faint" th:if="${x.rqtMttrSn == null}">-</span>
+              </td>
+              <td style="white-space:nowrap">
+                <a class="ico" title="수정" th:href="@{/qa(bid=${bid.pbancSn}, tab=${tab}, q=${q}, edit=${x.qstnAnsSn})} + '#qaform'">✎</a>
+                <form th:if="${canDeleteAll or x.wrtrId == me}" th:action="@{/qa/delete}" method="post" style="display:inline"
+                      onsubmit="return confirm('이 질의응답을 삭제할까요?')">
+                  <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                  <input type="hidden" name="tab" th:value="${tab}">
+                  <input type="hidden" name="qstnAnsSn" th:value="${x.qstnAnsSn}">
+                  <button class="ico" type="submit" title="삭제">🗑</button>
+                </form>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
-    <!-- 등록·수정 -->
-    <div class="card">
+    <!-- 등록·수정: 질문 · 답변 · 관련 요구사항(선택) (FR-074) -->
+    <div class="card" id="qaform">
       <div class="card-head">
         <h3 th:text="${editQna != null} ? '질의응답 수정' : (${prs} ? '발표 Q&amp;A 기록' : '예상 Q&amp;A 등록')">예상 Q&amp;A 등록</h3>
       </div>
@@ -104,36 +172,18 @@
           <label for="ansCn" th:text="${prs} ? '답변 (발표 때 한 답변)' : '준비한 답변 (나중에 채워도 됩니다)'">답변</label>
           <textarea id="ansCn" name="ansCn" rows="3" maxlength="4000" th:text="${editQna?.ansCn}"></textarea>
         </div>
-        <div class="grid2">
-          <div class="fld">
-            <label for="answrId" th:text="${prs} ? '답변한 사람' : '답변 담당자'">답변 담당자</label>
-            <select id="answrId" name="answrId">
-              <option value="">미지정</option>
-              <option th:each="m : ${members}" th:value="${m.userId}"
-                      th:text="${m.userNm + (m.teamNm != null ? ' (' + m.teamNm + ')' : '')}"
-                      th:selected="${editQna != null and m.userId == editQna.answrId}">이름 (팀)</option>
-            </select>
-          </div>
-          <div class="fld">
-            <label for="tocSn">관련 목차 (선택)</label>
-            <select id="tocSn" name="tocSn">
-              <option value="">선택 안 함</option>
-              <option th:each="t : ${tocs}" th:value="${t.tocSn}" th:text="${t.label}"
-                      th:selected="${editQna != null and t.tocSn == editQna.tocSn}">1.1 목차</option>
-            </select>
-          </div>
-        </div>
-        <div class="fld" th:if="${prs}" style="max-width:320px">
-          <label for="ccrncYn">예상 질문과 일치했나요?</label>
-          <select id="ccrncYn" name="ccrncYn">
-            <option value="">확인 안 함</option>
-            <option value="Y" th:selected="${editQna != null and editQna.ccrncYn == 'Y'}">예상 질문과 일치</option>
-            <option value="N" th:selected="${editQna != null and editQna.ccrncYn == 'N'}">예상에 없던 질문</option>
+        <div class="fld" style="max-width:520px">
+          <label for="rqtMttrSn">관련 요구사항 (선택)</label>
+          <select id="rqtMttrSn" name="rqtMttrSn">
+            <option value="">선택 안 함</option>
+            <option th:each="r : ${rqts}" th:value="${r.rqtMttrSn}" th:text="${r.rqtMttrNo + ' ' + r.rqtMttrNm}"
+                    th:selected="${editQna != null and r.rqtMttrSn == editQna.rqtMttrSn}">SFR-001 요구사항명</option>
           </select>
+          <span class="faint" style="font-size:11.5px" th:if="${#lists.isEmpty(rqts)}">이 사업건에 등록한 요구사항이 없습니다. 제안서 목차 화면에서 요구사항을 먼저 추가하세요.</span>
         </div>
         <div class="row">
           <button class="btn primary" type="submit" th:text="${editQna != null} ? '수정 저장' : (${prs} ? '기록' : '등록')">등록</button>
-          <a class="btn" th:if="${editQna != null}" th:href="@{/qa(bid=${bid.pbancSn}, tab=${tab})}">취소</a>
+          <a class="btn" th:if="${editQna != null}" th:href="@{/qa(bid=${bid.pbancSn}, tab=${tab}, q=${q})}">취소</a>
         </div>
       </form>
     </div>

@@ -60,6 +60,11 @@ public class DocDto {
         return OWNER_TEAM.equals(tkcgSeCd);
     }
 
+    /** 체크리스트의 "최종 제안서" 항목인지 (띄어쓰기 무시). 위쪽 통계 카드에 준비 상태를 보여 준다. */
+    public boolean isFinalProposal() {
+        return dcmntNm != null && dcmntNm.replace(" ", "").contains("최종제안서");
+    }
+
     public boolean isReady() {
         return ST_READY.equals(prgrsSttsCd);
     }

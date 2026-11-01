@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.ojj.sujuro.proposal.dto.DocDto;
+import com.ojj.sujuro.proposal.dto.EvlArtclDto;
 import com.ojj.sujuro.proposal.dto.ProposalBidDto;
 import com.ojj.sujuro.proposal.dto.PrpFileDto;
 import com.ojj.sujuro.proposal.dto.SubmissionDto;
@@ -14,7 +15,8 @@ import com.ojj.sujuro.proposal.dto.SubmissionDto;
  * 제출서류 · 조견표 · 나라장터 등록 (FR-015, FR-067~073).
  *   경영지원실(admin): 체크리스트 항목 추가·삭제·기한, 모든 서류 상태, 나라장터 등록 완료 처리
  *   제안팀(team): 제안팀 담당 서류의 상태
- *   함께: 서류 파일·조견표 파일 올리기와 내려받기 (조견표는 RFP 서식대로 만든 파일을 올려 함께 확인하고 공유한다)
+ *   함께: 서류 파일 올리기와 내려받기
+ *   조견표(웹 입력, FR-071): 경영지원실이 평가 항목·배점을 추가·삭제하고, 제안팀이 항목별 쪽번호를 적는다
  * 누가 이 사업건을 열 수 있는지는 컨트롤러가 먼저 확인한다. 나라장터 등록 뒤에는 모두 읽기 전용이다.
  */
 public interface DocService {
@@ -31,8 +33,8 @@ public interface DocService {
 
     List<DocDto> docs(Long pbancSn);
 
-    /** 조견표 파일 전체 (최신 버전 먼저) */
-    List<PrpFileDto> cheatFiles(Long pbancSn);
+    /** 조견표 평가 항목 (정렬순서대로) */
+    List<EvlArtclDto> articles(Long pbancSn);
 
     /* ---------- 체크리스트 (경영지원실) ---------- */
 
@@ -50,12 +52,19 @@ public interface DocService {
     /** 서류 파일 올리기 (경영지원실·제안팀). 미준비였으면 준비 중으로 바뀐다. (FR-069) */
     void uploadDoc(Long pbancSn, Long dcmntSn, MultipartFile file, String userId);
 
-    /* ---------- 조견표 ---------- */
+    /* ---------- 조견표 (FR-071) ---------- */
+
+    /** 평가 항목 추가 (경영지원실). 이름은 사업건 안에서 겹칠 수 없고, 배점 합계는 100점을 넘을 수 없다. */
+    void addArticle(Long pbancSn, String name, String score);
+
+    /** 평가 항목 삭제 (경영지원실). 결과 분석에서 점수를 넣은 항목은 지울 수 없다. */
+    void deleteArticle(Long pbancSn, Long evlArtclSn);
 
     /**
-     * 조견표 파일 등록 (경영지원실·제안팀). 다시 올리면 새 버전으로 쌓인다. 승인·반려 없이 함께 확인하고 공유한다. (FR-072)
+     * 쪽번호 저장 (제안팀). 항목 번호와 쪽번호를 같은 순서로 받는다. 비우면 지운다.
+     * 형식: 숫자, 숫자-숫자, 쉼표로 여러 개 (예: 12-15, 3, 20-21). 저장한 항목 수를 돌려준다.
      */
-    void uploadCheatFile(Long pbancSn, MultipartFile file, String userId);
+    int savePages(Long pbancSn, List<Long> evlArtclSns, List<String> pageNos);
 
     /* ---------- 나라장터 등록 (경영지원실) ---------- */
 
@@ -65,7 +74,7 @@ public interface DocService {
      */
     void register(Long pbancSn, String userId);
 
-    /** 삭제(숨김)한 제출서류·조견표 파일 (최근 삭제 먼저) */
+    /** 삭제(숨김)한 제출서류·(예전) 조견표 파일 (최근 삭제 먼저) */
     List<PrpFileDto> deletedFiles(Long pbancSn);
 
     /**

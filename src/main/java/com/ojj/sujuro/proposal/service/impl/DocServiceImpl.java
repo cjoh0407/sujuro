@@ -1,10 +1,12 @@
 package com.ojj.sujuro.proposal.service.impl;
 
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,7 @@ import com.ojj.sujuro.history.code.ProcessType;
 import com.ojj.sujuro.notification.service.NotificationService;
 import com.ojj.sujuro.notification.code.NotificationType;
 import com.ojj.sujuro.proposal.dto.DocDto;
+import com.ojj.sujuro.proposal.dto.EvlArtclDto;
 import com.ojj.sujuro.proposal.dto.ProposalBidDto;
 import com.ojj.sujuro.proposal.dto.PrpFileDto;
 import com.ojj.sujuro.proposal.dto.SubmissionDto;
@@ -32,7 +35,13 @@ import lombok.RequiredArgsConstructor;
 public class DocServiceImpl implements DocService {
 
     private static final String SE_DOC = "FL050";   // 제출서류
-    private static final String SE_CHEAT = "FL060"; // 조견표
+    private static final String SE_CHEAT = "FL060"; // 조견표 파일: v4.1부터 올리지 않는다. 예전 파일의 기록·내려받기만 남긴다
+
+    private static final int ARTICLE_NAME_MAX = 100;
+    private static final int PAGE_MAX = 20;
+    private static final BigDecimal HUNDRED = new BigDecimal(100);
+    /** 쪽번호: 12 / 12-15 / 12~15 를 쉼표로 이어 쓸 수 있다 */
+    private static final Pattern PAGE = Pattern.compile("\\d{1,4}(\\s*[-~]\\s*\\d{1,4})?(\\s*,\\s*\\d{1,4}(\\s*[-~]\\s*\\d{1,4})?)*");
 
     private final DocMapper mapper;
     private final FileStorage storage;
@@ -70,8 +79,8 @@ public class DocServiceImpl implements DocService {
     }
 
     @Override
-    public List<PrpFileDto> cheatFiles(Long pbancSn) {
-        return mapper.findCheatFiles(pbancSn);
+    public List<EvlArtclDto> articles(Long pbancSn) {
+        return mapper.findArticles(pbancSn);
     }
 
     /* ---------- 체크리스트 ---------- */
@@ -86,6 +95,9 @@ public class DocServiceImpl implements DocService {
         }
         if (nm.length() > 100) {
             throw new BusinessException("서류명은 100자까지 입력할 수 있습니다.");
+        }
+        if (nm.replace(" ", "").contains("조견표")) {
+            throw new BusinessException("조견표는 체크리스트에 넣지 않고 아래 조견표에서 평가 항목별 쪽번호로 입력합니다.");
         }
         for (DocDto d : mapper.findDocs(pbancSn)) {
             if (d.getDcmntNm().equals(nm)) {
@@ -146,15 +158,84 @@ public class DocServiceImpl implements DocService {
         }
     }
 
-    /* ---------- 조견표 ---------- */
+    /* ---------- 조견표 (FR-071) ---------- */
 
     @Transactional
     @Override
-    public void uploadCheatFile(Long pbancSn, MultipartFile file, String userId) {
+    public void addArticle(Long pbancSn, String name, String score) {
         requireOpen(pbancSn);
-        PrpFileDto f = newFile(pbancSn, SE_CHEAT, file, userId, String.valueOf(mapper.countCheatFiles(pbancSn) + 1));
-        // 승인·반려 없이 올린 파일을 경영지원실과 제안팀이 함께 확인한다 (FR-072)
-        store(f, file, null);
+        String nm = name == null ? "" : name.trim();
+        if (nm.isEmpty()) {
+            throw new BusinessException("평가 항목 이름을 입력하세요.");
+        }
+        if (nm.length() > ARTICLE_NAME_MAX) {
+            throw new BusinessException("평가 항목 이름은 " + ARTICLE_NAME_MAX + "자까지 입력할 수 있습니다.");
+        }
+        BigDecimal scr;
+        try {
+            scr = new BigDecimal(score == null ? "" : score.trim());
+        } catch (NumberFormatException e) {
+            throw new BusinessException("배점은 숫자로 입력하세요.");
+        }
+        if (scr.signum() <= 0 || scr.compareTo(HUNDRED) > 0) {
+            throw new BusinessException("배점은 0보다 크고 100 이하로 입력하세요.");
+        }
+        if (scr.scale() > 3) {
+            throw new BusinessException("배점은 소수점 아래 세 자리까지 입력할 수 있습니다.");
+        }
+        BigDecimal sum = scr;
+        for (EvlArtclDto a : mapper.findArticles(pbancSn)) {
+            if (a.getEvlArtclNm().equals(nm)) {
+                throw new BusinessException("같은 이름의 평가 항목이 이미 있습니다.");
+            }
+            if (a.getEvlScorScr() != null) {
+                sum = sum.add(a.getEvlScorScr());
+            }
+        }
+        if (sum.compareTo(HUNDRED) > 0) {
+            throw new BusinessException("배점 합계가 100점을 넘습니다 (" + sum.stripTrailingZeros().toPlainString() + "점).");
+        }
+        EvlArtclDto a = new EvlArtclDto();
+        a.setPbancSn(pbancSn);
+        a.setEvlArtclNm(nm);
+        a.setEvlScorScr(scr);
+        mapper.insertArticle(a);
+    }
+
+    @Transactional
+    @Override
+    public void deleteArticle(Long pbancSn, Long evlArtclSn) {
+        requireOpen(pbancSn);
+        EvlArtclDto a = ownArticle(pbancSn, evlArtclSn);
+        if (mapper.countArticleUses(evlArtclSn) > 0) {
+            throw new BusinessException("'" + a.getEvlArtclNm() + "'은 결과 분석에서 쓰고 있어 지울 수 없습니다.");
+        }
+        mapper.deleteArticle(evlArtclSn);
+    }
+
+    @Transactional
+    @Override
+    public int savePages(Long pbancSn, List<Long> evlArtclSns, List<String> pageNos) {
+        requireOpen(pbancSn);
+        if (evlArtclSns == null || evlArtclSns.isEmpty()) {
+            throw new BusinessException("저장할 평가 항목이 없습니다.");
+        }
+        if (pageNos == null || pageNos.size() != evlArtclSns.size()) {
+            throw new BusinessException("쪽번호를 다시 입력해 주세요.");
+        }
+        List<String> clean = new ArrayList<>();
+        for (int i = 0; i < evlArtclSns.size(); i++) {
+            EvlArtclDto a = ownArticle(pbancSn, evlArtclSns.get(i));
+            String p = pageNos.get(i) == null ? "" : pageNos.get(i).trim();
+            if (!p.isEmpty() && (p.length() > PAGE_MAX || !PAGE.matcher(p).matches())) {
+                throw new BusinessException("'" + a.getEvlArtclNm() + "'의 쪽번호 형식이 올바르지 않습니다. 예: 12-15, 3, 20-21");
+            }
+            clean.add(p.isEmpty() ? null : p);
+        }
+        for (int i = 0; i < evlArtclSns.size(); i++) {
+            mapper.updateArticlePage(evlArtclSns.get(i), clean.get(i));
+        }
+        return evlArtclSns.size();
     }
 
     /* ---------- 나라장터 등록 ---------- */
@@ -208,7 +289,7 @@ public class DocServiceImpl implements DocService {
         PrpFileDto f = fileSn == null ? null : mapper.findFile(fileSn);
         if (f == null || !f.getPbancSn().equals(pbancSn)
                 || !(SE_DOC.equals(f.getFileSeCd()) || SE_CHEAT.equals(f.getFileSeCd()))) {
-            throw new BusinessException("이 사업건의 제출서류·조견표 파일이 아닙니다.");
+            throw new BusinessException("이 사업건의 제출서류 파일이 아닙니다.");
         }
         if (f.isDeleted()) {
             throw new BusinessException("이미 삭제된 파일입니다.");
@@ -248,6 +329,14 @@ public class DocServiceImpl implements DocService {
         if (s.isSubmitted()) {
             throw new BusinessException("나라장터 등록이 끝난 사업건은 수정할 수 없습니다.");
         }
+    }
+
+    private EvlArtclDto ownArticle(Long pbancSn, Long evlArtclSn) {
+        EvlArtclDto a = evlArtclSn == null ? null : mapper.findArticle(evlArtclSn);
+        if (a == null || !a.getPbancSn().equals(pbancSn)) {
+            throw new BusinessException("이 사업건의 평가 항목이 아닙니다.");
+        }
+        return a;
     }
 
     private DocDto own(Long pbancSn, Long dcmntSn) {

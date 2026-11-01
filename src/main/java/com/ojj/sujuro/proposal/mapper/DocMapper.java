@@ -7,12 +7,13 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import com.ojj.sujuro.proposal.dto.DocDto;
+import com.ojj.sujuro.proposal.dto.EvlArtclDto;
 import com.ojj.sujuro.proposal.dto.ProposalBidDto;
 import com.ojj.sujuro.proposal.dto.PrpFileDto;
 import com.ojj.sujuro.proposal.dto.SubmissionDto;
 
 
-/** 제출서류·조견표·나라장터 등록 SQL. 쿼리는 src/main/resources/mapper/proposal/DocMapper.xml 에 있다. */
+/** 제출서류·조견표(평가 항목)·나라장터 등록 SQL. 쿼리는 src/main/resources/mapper/proposal/DocMapper.xml 에 있다. */
 @Mapper
 public interface DocMapper {
 
@@ -44,22 +45,34 @@ public interface DocMapper {
 
     int deleteDoc(@Param("dcmntSn") Long dcmntSn);
 
-    /* ---------- 파일 (FL050 제출서류 / FL060 조견표) ---------- */
+    /* ---------- 조견표: 평가 항목·배점·쪽번호 (FR-071) ---------- */
+
+    /** 이 사업건 평가 항목 (정렬순서대로) */
+    List<EvlArtclDto> findArticles(@Param("pbancSn") Long pbancSn);
+
+    EvlArtclDto findArticle(@Param("evlArtclSn") Long evlArtclSn);
+
+    /** 평가 항목 추가. 정렬순서는 맨 뒤 */
+    int insertArticle(EvlArtclDto a);
+
+    int deleteArticle(@Param("evlArtclSn") Long evlArtclSn);
+
+    /** 쪽번호 저장 (비우면 NULL) */
+    int updateArticlePage(@Param("evlArtclSn") Long evlArtclSn, @Param("pageNo") String pageNo);
+
+    /** 이 평가 항목을 쓰는 위원별 점수·세부 항목 수 (결과 분석에서 쓰고 있으면 지우지 않는다) */
+    int countArticleUses(@Param("evlArtclSn") Long evlArtclSn);
+
+    /* ---------- 파일 (FL050 제출서류. FL060 조견표 파일은 v4.1부터 올리지 않고 이전 기록만 남는다) ---------- */
 
     /** 파일 정보를 넣는다 (서류 파일이면 dcmntSn 채움). 만들어진 번호가 file.fileSn에 채워진다. */
     int insertFile(@Param("f") PrpFileDto f, @Param("dcmntSn") Long dcmntSn);
 
-    /** 이 사업건 조견표 파일 중 삭제하지 않은 것 (최신 버전 먼저) (FR-072) */
-    List<PrpFileDto> findCheatFiles(@Param("pbancSn") Long pbancSn);
-
-    /** 이 사업건 제출서류·조견표 파일 중 삭제(숨김)한 것 (최근 삭제 먼저) */
+    /** 이 사업건 제출서류·(예전) 조견표 파일 중 삭제(숨김)한 것 (최근 삭제 먼저) */
     List<PrpFileDto> findDeletedFiles(@Param("pbancSn") Long pbancSn);
 
     /** 삭제(숨김) 처리. 원본과 이력은 남긴다 (NFR-009) */
     int markFileDeleted(@Param("fileSn") Long fileSn, @Param("userId") String userId, @Param("reason") String reason);
-
-    /** 이 사업건 조견표 파일 수 (삭제한 것 포함 → 버전 번호가 되돌아가지 않는다) */
-    int countCheatFiles(@Param("pbancSn") Long pbancSn);
 
     PrpFileDto findFile(@Param("fileSn") Long fileSn);
 }

@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.ojj.sujuro.auth.support.AccessChecker;
 import com.ojj.sujuro.auth.dto.LoginUser;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 알림 화면 (FR-032, FR-033). 로그인한 사용자 누구나 자기 알림만 본다.
@@ -25,15 +26,11 @@ import com.ojj.sujuro.auth.dto.LoginUser;
  *   POST /alerts/read-all   모두 읽음
  */
 @Controller
+@RequiredArgsConstructor
 public class NotificationController {
 
     private final NotificationInboxMapper mapper;
     private final AccessChecker accessChecker;
-
-    public NotificationController(NotificationInboxMapper mapper, AccessChecker accessChecker) {
-        this.mapper = mapper;
-        this.accessChecker = accessChecker;
-    }
 
     @GetMapping("/alerts")
     public String list(@AuthenticationPrincipal LoginUser user,

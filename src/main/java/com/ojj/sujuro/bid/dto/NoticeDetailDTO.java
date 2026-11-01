@@ -121,14 +121,11 @@ public class NoticeDetailDTO extends BidNoticeDTO {
 
     /**
      * 팀장이 지금 결정할 수 없는 이유. 없으면 null.
-     * 참여·불참은 입찰공고가 난 뒤에 정한다(목업 v3.2). 사전규격 단계에서 배정해 두는 것은 된다.
+     * 발주계획·사전규격·입찰공고 어느 단계에서도 결정할 수 있다(v4.0). 개찰 이후에만 막는다.
      */
     public String getDecideBlockReason() {
         if (isOpenedOrLater()) {
             return "개찰이 끝난 공고라 결정할 수 없습니다.";
-        }
-        if (!BidCode.is(getPbancStepCd(), BidCode.STEP_BID_NOTICE)) {
-            return "아직 " + getPbancStepNm() + " 단계입니다. 입찰공고가 나면 결정할 수 있습니다.";
         }
         return null;
     }

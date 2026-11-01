@@ -112,7 +112,6 @@ public interface TocService {
      * 담당자는 이 사업건 제안팀원(주관팀·참여팀) 중에서 고르거나, 외부 회사명(coName)을 적는다(둘 중 하나, FR-043-1).
      * 외부 회사명은 이 사업건에 이미 쓴 이름과 공백·대소문자·(주) 표기만 다르면 기존 이름으로 맞춘다.
      * 연결된 요구사항의 담당자는 목차 담당자를 그대로 따르므로 따로 바꾸지 않는다. (FR-051)
-     * 새 담당자에게는 지정 알림, 이전 담당자에게는 해제 알림을 보낸다(NT100). 처리한 본인(actorId)에게는 보내지 않는다.
      */
     void assign(Long pbancSn, Long tocSn, String picId, String coName, String actorId);
 }

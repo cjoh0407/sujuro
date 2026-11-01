@@ -8,11 +8,16 @@ import com.ojj.sujuro.dashboard.dto.DashboardRows.DocRow;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.MyToc;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.TeamStat;
 import com.ojj.sujuro.notification.dto.NotificationDto;
+import lombok.Getter;
+import lombok.Setter;
 
 /** 대시보드 화면에 필요한 모든 값. 역할에 해당하는 항목만 채워진다. (FR-089, 090) */
+@Getter
+@Setter
 public class DashboardView {
 
     /** 숫자 카드 한 칸 */
+    @Getter
     public static class Stat {
         private final String label;
         private final int value;
@@ -24,9 +29,6 @@ public class DashboardView {
             this.hint = hint;
         }
 
-        public String getLabel() { return label; }
-        public int getValue() { return value; }
-        public String getHint() { return hint; }
     }
 
     private String roleKey;     // SALES, LEADER, MEMBER, MGMT
@@ -38,22 +40,4 @@ public class DashboardView {
     private List<DocRow> docRows = new ArrayList<>();     // 경영지원실: 제출서류 준비 현황
     private List<TeamStat> teamStats = new ArrayList<>(); // 팀별 현황
     private List<NotificationDto> alerts = new ArrayList<>();
-
-    public String getRoleKey() { return roleKey; }
-    public void setRoleKey(String v) { this.roleKey = v; }
-    public String getSubtitle() { return subtitle; }
-    public void setSubtitle(String v) { this.subtitle = v; }
-    public List<Stat> getStats() { return stats; }
-    public List<Bid> getTodoBids() { return todoBids; }
-    public void setTodoBids(List<Bid> v) { this.todoBids = v; }
-    public List<Bid> getTeamBids() { return teamBids; }
-    public void setTeamBids(List<Bid> v) { this.teamBids = v; }
-    public List<MyToc> getMyTocs() { return myTocs; }
-    public void setMyTocs(List<MyToc> v) { this.myTocs = v; }
-    public List<DocRow> getDocRows() { return docRows; }
-    public void setDocRows(List<DocRow> v) { this.docRows = v; }
-    public List<TeamStat> getTeamStats() { return teamStats; }
-    public void setTeamStats(List<TeamStat> v) { this.teamStats = v; }
-    public List<NotificationDto> getAlerts() { return alerts; }
-    public void setAlerts(List<NotificationDto> v) { this.alerts = v; }
 }

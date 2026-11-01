@@ -14,6 +14,7 @@ import com.ojj.sujuro.dashboard.dto.DashboardRows.SalesCounts;
 import com.ojj.sujuro.dashboard.dto.DashboardView.Stat;
 import com.ojj.sujuro.notification.dto.NotificationDto;
 import com.ojj.sujuro.notification.mapper.NotificationInboxMapper;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 대시보드 구성 (FR-089, 090)
@@ -25,17 +26,13 @@ import com.ojj.sujuro.notification.mapper.NotificationInboxMapper;
  * - 보는 범위는 화면에서 받은 값이 아니라 로그인한 사용자(역할·소속 팀)로만 정한다. (NFR-001)
  */
 @Service
+@RequiredArgsConstructor
 public class DashboardService {
 
     private static final int ALERT_LIMIT = 5;
 
     private final DashboardMapper mapper;
     private final NotificationInboxMapper inboxMapper;
-
-    public DashboardService(DashboardMapper mapper, NotificationInboxMapper inboxMapper) {
-        this.mapper = mapper;
-        this.inboxMapper = inboxMapper;
-    }
 
     public DashboardView build(LoginUser user) {
         DashboardView v = new DashboardView();

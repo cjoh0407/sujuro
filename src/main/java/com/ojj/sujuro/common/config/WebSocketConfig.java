@@ -6,6 +6,7 @@ import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
 import com.ojj.sujuro.notification.support.NotificationSocketHandler;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 웹소켓 설정 (FR-034 실시간 알림).
@@ -16,15 +17,12 @@ import com.ojj.sujuro.notification.support.NotificationSocketHandler;
  */
 @Configuration
 @EnableWebSocket
+@RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketConfigurer {
 
     public static final String NOTIFICATION_PATH = "/ws/notifications";
 
     private final NotificationSocketHandler notificationHandler;
-
-    public WebSocketConfig(NotificationSocketHandler notificationHandler) {
-        this.notificationHandler = notificationHandler;
-    }
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {

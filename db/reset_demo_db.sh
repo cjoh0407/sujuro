@@ -23,4 +23,4 @@ run 06_test_team.sql
 run 06_test_stats.sql
 sudo systemctl start sujuro
 
-echo "완료. http://3.35.131.20:8080 에서 확인하세요."
+echo "완료. http://3.35.131.20 에서 확인하세요."

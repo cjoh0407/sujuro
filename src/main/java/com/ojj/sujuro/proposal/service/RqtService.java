@@ -26,7 +26,6 @@ public interface RqtService {
 
     void register(Long pbancSn, RqtDto in, String userId);
 
-    /** 연결된 목차가 있으면 그 담당자에게 알린다(NT120). 처리한 본인(actorId)에게는 보내지 않는다. 아래 delete·map도 같다. */
     void edit(Long pbancSn, Long rqtMttrSn, RqtDto in, String actorId);
 
     void delete(Long pbancSn, Long rqtMttrSn, String actorId);

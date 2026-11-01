@@ -1,12 +1,11 @@
 package com.ojj.sujuro.notification.support;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 알림 메일 발송 (FR-031). 메일 서버 설정(spring.mail.*)이 없으면 보내지 않고 false를 돌려준다.
@@ -19,9 +18,8 @@ import org.springframework.stereotype.Component;
  *   notice.mail.from=noreply@example.com
  */
 @Component
+@Slf4j
 public class NotificationMailSender {
-
-    private static final Logger log = LoggerFactory.getLogger(NotificationMailSender.class);
 
     private final ObjectProvider<JavaMailSender> mailSender;
     private final String from;

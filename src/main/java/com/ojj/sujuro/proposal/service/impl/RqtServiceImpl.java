@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ojj.sujuro.common.exception.BusinessException;
-import com.ojj.sujuro.notification.code.NotificationType;
 import com.ojj.sujuro.notification.service.NotificationService;
 import com.ojj.sujuro.proposal.dto.RqtDto;
 import com.ojj.sujuro.proposal.dto.TocDto;
@@ -108,16 +107,13 @@ public class RqtServiceImpl implements RqtService {
         validate(in);
         in.setRqtMttrSn(rqtMttrSn);
         mapper.update(in);
-        RqtDto now = mapper.findOne(rqtMttrSn);
-        notifyOwner(now, actorId, "수정되었습니다. 바뀐 내용을 제안서에 반영해 주세요.");
     }
 
     @Transactional
     @Override
     public void delete(Long pbancSn, Long rqtMttrSn, String actorId) {
-        RqtDto q = own(pbancSn, rqtMttrSn);
+        own(pbancSn, rqtMttrSn);
         mapper.delete(rqtMttrSn);
-        notifyOwner(q, actorId, "삭제되었습니다.");
     }
 
     @Override
@@ -135,7 +131,7 @@ public class RqtServiceImpl implements RqtService {
     @Transactional
     @Override
     public void map(Long pbancSn, Long rqtMttrSn, Long tocSn, String actorId) {
-        RqtDto before = own(pbancSn, rqtMttrSn);
+        own(pbancSn, rqtMttrSn);
         if (tocSn != null) {
             TocDto t = mapper.findMapTarget(tocSn);
             if (t == null || t.getPbancSn() == null || !t.getPbancSn().equals(pbancSn)) {
@@ -152,32 +148,6 @@ public class RqtServiceImpl implements RqtService {
             }
         }
         mapper.updateToc(rqtMttrSn, tocSn);
-
-        // 알림 (NT120 요구사항 변경): 새로 연결된 목차 담당자, 연결이 풀린 이전 담당자
-        if (tocSn == null ? before.getTocSn() == null : tocSn.equals(before.getTocSn())) {
-            return;
-        }
-        RqtDto after = mapper.findOne(rqtMttrSn);
-        String newPic = after.getPicId();
-        String oldPic = before.getPicId();
-        if (newPic != null) {
-            notifyOwner(after, actorId, "담당 목차에 연결되었습니다. 제안서에 반영해 주세요.");
-        }
-        if (oldPic != null && !oldPic.equals(newPic)) {
-            notifyOwner(before, actorId, "담당 목차에서 연결이 해제되었습니다.");
-        }
-    }
-
-    /** 요구사항이 연결된 목차의 담당자에게 알린다. 담당자가 없거나 처리한 본인이면 보내지 않는다. (NT120) */
-    private void notifyOwner(RqtDto q, String actorId, String what) {
-        String pic = q.getPicId();
-        if (pic == null || pic.equals(actorId)) {
-            return;
-        }
-        String toc = q.getTocNm() == null ? "" : " (목차 " + (q.getTocNo() == null ? "" : q.getTocNo() + " ") + q.getTocNm() + ")";
-        notificationService.send(pic, NotificationType.RQT_CHANGED, q.getPbancSn(),
-                "'" + proposalMapper.findBid(q.getPbancSn()).getLabel() + "' 요구사항 '" + q.getRqtMttrNo() + " "
-                        + q.getRqtMttrNm() + "'" + toc + "이(가) " + what);
     }
 
     private RqtDto own(Long pbancSn, Long rqtMttrSn) {

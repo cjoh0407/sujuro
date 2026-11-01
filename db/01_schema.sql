@@ -10,7 +10,7 @@
 --       + 2026-10-31(오창준): 요구사항 v4.1 · ERD v4.1 반영 — TB_TOC 외부담당회사명, TB_BID_PBANC 원본공고일련번호,
 --         TB_EVL_ARTCL 쪽번호, TB_QSTN_ANS 요구사항일련번호 추가 (이미 만든 DB는 10_v41_schema_patch.sql)
 --       + 2026-10-31(이세종): TB_BID_PBANC 목차양식일련번호 추가 - 제안서 목차의 현재 양식 표시
---         (이미 만든 DB는 11_toc_form_patch.sql)
+--         (이미 만든 DB는 12_toc_form_patch.sql)
 -- 테이블 23개
 -- 실행: sqlplus 계정/비밀번호@//localhost:1521/XEPDB1 @01_schema.sql
 --       (SQL Developer·DBeaver는 파일을 열고 '스크립트 실행' F5)
@@ -113,7 +113,7 @@ CREATE TABLE TB_USER (
   ENPSWD         VARCHAR2(256 CHAR)  NOT NULL,
   ACNT_STTS_CD   CHAR(5)             DEFAULT 'AS020'  NOT NULL,
   TELNO          VARCHAR2(11 CHAR),
-  EML_ADDR       VARCHAR2(320 CHAR),
+  EML_ADDR       VARCHAR2(320 CHAR)  NOT NULL,
   LGN_FAIL_NMTM  NUMBER(10)          DEFAULT 0  NOT NULL,
   RGTR_ID        VARCHAR2(20 CHAR),
   REG_DT         DATE                DEFAULT SYSDATE  NOT NULL,
@@ -131,7 +131,7 @@ COMMENT ON COLUMN TB_USER.AUTHRT_CD IS '권한코드 - 공통코드 AUTHS (영�
 COMMENT ON COLUMN TB_USER.ENPSWD IS '암호화비밀번호 - BCrypt 단방향 암호화 값';
 COMMENT ON COLUMN TB_USER.ACNT_STTS_CD IS '계정상태코드 - 공통코드 ACSTS (초기 비밀번호/활성/잠금/비활성)';
 COMMENT ON COLUMN TB_USER.TELNO IS '전화번호 - 연락처';
-COMMENT ON COLUMN TB_USER.EML_ADDR IS '이메일주소 - 메일 알림 수신 주소';
+COMMENT ON COLUMN TB_USER.EML_ADDR IS '이메일주소 - 필수. 메일 알림 수신 주소';
 COMMENT ON COLUMN TB_USER.LGN_FAIL_NMTM IS '로그인실패횟수 - 5회 이상이면 잠금';
 COMMENT ON COLUMN TB_USER.RGTR_ID IS '등록자아이디 - 계정을 추가한 경영지원실 직원';
 COMMENT ON COLUMN TB_USER.REG_DT IS '등록일시';

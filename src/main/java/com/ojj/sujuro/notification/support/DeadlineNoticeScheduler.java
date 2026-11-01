@@ -2,12 +2,12 @@ package com.ojj.sujuro.notification.support;
 
 import com.ojj.sujuro.notification.service.DeadlineNoticeService;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 마감 임박 알림 실행 시각 (FR-031, NFR-017). 스케줄러 사용 설정은 AsyncSchedulingConfig 에 있다.
@@ -18,15 +18,11 @@ import org.springframework.stereotype.Component;
  * 실행 중 오류가 나도 스케줄러가 멈추지 않도록 여기서 잡는다.
  */
 @Component
+@Slf4j
+@RequiredArgsConstructor
 public class DeadlineNoticeScheduler {
 
-    private static final Logger log = LoggerFactory.getLogger(DeadlineNoticeScheduler.class);
-
     private final DeadlineNoticeService service;
-
-    public DeadlineNoticeScheduler(DeadlineNoticeService service) {
-        this.service = service;
-    }
 
     @Scheduled(cron = "${notice.deadline.cron:0 0 9 * * *}")
     public void createNotices() {

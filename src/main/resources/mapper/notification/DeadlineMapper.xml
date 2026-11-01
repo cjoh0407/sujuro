@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <!--
   마감 임박 알림 SQL (FR-031, NFR-017). 테이블: TB_BID_PBANC, TB_NOTI, TB_USER (db/01_schema.sql)
-  같은 알림을 두 번 보내지 않도록 알림 내용 맨 앞의 표시([D-3], [D-1])로 보낸 적이 있는지 확인한다.
+  같은 알림을 두 번 보내지 않도록 알림 내용 맨 앞의 표시([D-1])로 보낸 적이 있는지 확인한다.
 -->
 <mapper namespace="com.ojj.sujuro.notification.mapper.DeadlineMapper">
 
@@ -25,6 +25,31 @@
        AND PBANC_SN = #{pbancSn}
        AND NOTI_TYPE_CD = #{typeCd}
        AND NOTI_CN LIKE #{tag} || '%'
+  </select>
+
+  <!-- 직접 등록한 사업건 일정(AUTO_REG_YN=N)만. 공고 마감 자동 일정은 findTargets 의 마감 알림이 따로 보낸다 -->
+  <select id="findScheduleTargets" resultType="com.ojj.sujuro.notification.dto.ScheduleTarget">
+    SELECT S.SCHDL_SN AS schdlSn,
+           S.PBANC_SN AS pbancSn,
+           P.PBANC_NM AS pbancNm,
+           S.SCHDL_TTL AS title,
+           CASE WHEN TO_CHAR(S.SCHDL_BGNG_DT, 'HH24:MI') = '00:00'
+                THEN TO_CHAR(S.SCHDL_BGNG_DT, 'YYYY-MM-DD')
+                ELSE TO_CHAR(S.SCHDL_BGNG_DT, 'YYYY-MM-DD HH24:MI') END AS whenText
+      FROM TB_SCHDL S
+      JOIN TB_BID_PBANC P ON P.PBANC_SN = S.PBANC_SN
+     WHERE S.AUTO_REG_YN = 'N'
+       AND TRUNC(S.SCHDL_BGNG_DT) - TRUNC(SYSDATE) = #{daysLeft}
+     ORDER BY S.SCHDL_SN
+  </select>
+
+  <select id="countSentByContent" resultType="int">
+    SELECT COUNT(*)
+      FROM TB_NOTI
+     WHERE RCVR_ID = #{receiverId}
+       AND NOTI_TYPE_CD = #{typeCd}
+       AND NOTI_CN = #{content}
+       AND CRT_DT >= SYSDATE - 2
   </select>
 
   <select id="findPendingMails" resultType="com.ojj.sujuro.notification.dto.PendingMail">

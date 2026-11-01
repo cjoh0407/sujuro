@@ -12,19 +12,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.ojj.sujuro.auth.dto.LoginUser;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 내 정보 화면 (FR-002-2). 내 기본 정보를 보여 주고, 현재 비밀번호를 확인한 뒤 새 비밀번호로 바꾼다.
  * 로그인한 사용자 모두(외부 인력 포함)가 쓴다.
  */
 @Controller
+@RequiredArgsConstructor
 public class ProfileController {
 
     private final PasswordService passwordService;
-
-    public ProfileController(PasswordService passwordService) {
-        this.passwordService = passwordService;
-    }
 
     @GetMapping("/profile")
     public String profile() {

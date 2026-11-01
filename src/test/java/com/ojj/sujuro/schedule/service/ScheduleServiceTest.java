@@ -2,6 +2,8 @@ package com.ojj.sujuro.schedule.service;
 
 import com.ojj.sujuro.schedule.dto.ScheduleEvent;
 import com.ojj.sujuro.schedule.dto.ScheduleView;
+import com.ojj.sujuro.notification.code.NotificationType;
+import com.ojj.sujuro.notification.service.NotificationService;
 import com.ojj.sujuro.schedule.mapper.ScheduleMapper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -11,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -37,19 +40,22 @@ class ScheduleServiceTest {
     private ScheduleMapper mapper;
     private ScheduleService service;
 
+    private NotificationService notificationService;
+
     @BeforeEach
     void setUp() {
         mapper = mock(ScheduleMapper.class);
-        service = new ScheduleService(mapper);
+        notificationService = mock(NotificationService.class);
+        service = new ScheduleService(mapper, notificationService);
     }
 
     private LoginUser user(String empNo, Role role) {
         return new LoginUser(empNo, empNo, "사원", "개발1팀", role, LoginUser.STATUS_ACTIVE, "x");
     }
 
-    private CodeOption team(String sn, String nm) {
+    private CodeOption opt(String code, String nm) {
         CodeOption c = new CodeOption();
-        c.setCode(sn);
+        c.setCode(code);
         c.setName(nm);
         return c;
     }
@@ -63,106 +69,156 @@ class ScheduleServiceTest {
         return e;
     }
 
-    @Test
-    void 영업부는_고른_팀의_일정을_본다() {
-        when(mapper.findDevTeams()).thenReturn(Arrays.asList(team("1", "개발1팀"), team("2", "개발2팀")));
-        when(mapper.findAutoEvents(eq(2L), anyString(), anyString())).thenReturn(new ArrayList<ScheduleEvent>());
-        when(mapper.findInternalEvents(eq(2L), anyString(), anyString())).thenReturn(new ArrayList<ScheduleEvent>());
+    private void noEvents() {
+        when(mapper.findAutoEvents(any(), any(), any(), anyString(), anyString())).thenReturn(new ArrayList<ScheduleEvent>());
+        when(mapper.findInternalEvents(any(), any(), any(), anyString(), anyString())).thenReturn(new ArrayList<ScheduleEvent>());
+    }
 
-        ScheduleView v = service.month(user("S1", Role.SALES), "2026-10", 2L, null);
+    @Test
+    void 영업부는_고른_팀의_사업_일정을_본다() {
+        when(mapper.findDevTeams()).thenReturn(Arrays.asList(opt("1", "공공사업1Div"), opt("2", "공공사업2Div")));
+        noEvents();
+
+        ScheduleView v = service.month(user("S1", Role.SALES), "2026-10", 2L, null, null);
 
         assertEquals(Long.valueOf(2L), v.getSelectedTeamSn());
         assertFalse(v.isCanEdit());
-        verify(mapper).findAutoEvents(eq(2L), anyString(), anyString());
+        // 팀 범위만 걸고, 제안팀원 제한(memberId)은 없다
+        verify(mapper).findAutoEvents(eq(2L), eq((String) null), eq((Long) null), anyString(), anyString());
     }
 
     @Test
     void 없는_팀을_고르면_전체로_본다() {
-        when(mapper.findDevTeams()).thenReturn(Arrays.asList(team("1", "개발1팀")));
-        when(mapper.findAutoEvents(eq((Long) null), anyString(), anyString())).thenReturn(new ArrayList<ScheduleEvent>());
-        when(mapper.findInternalEvents(eq((Long) null), anyString(), anyString())).thenReturn(new ArrayList<ScheduleEvent>());
+        when(mapper.findDevTeams()).thenReturn(Arrays.asList(opt("1", "공공사업1Div")));
+        noEvents();
 
-        ScheduleView v = service.month(user("G1", Role.MGMT), "2026-10", 999L, null);
+        ScheduleView v = service.month(user("G1", Role.MGMT), "2026-10", 999L, null, null);
 
         assertNull(v.getSelectedTeamSn());
     }
 
     @Test
-    void 팀원은_요청한_팀과_상관없이_자기_팀만_본다() {
-        when(mapper.findMyTeamSn("M1")).thenReturn(1L);
-        when(mapper.findAutoEvents(eq(1L), anyString(), anyString())).thenReturn(new ArrayList<ScheduleEvent>());
-        when(mapper.findInternalEvents(eq(1L), anyString(), anyString())).thenReturn(new ArrayList<ScheduleEvent>());
+    void 팀원은_제안팀원으로_들어간_사업만_본다() {
+        when(mapper.findMyPbancs("M1")).thenReturn(Arrays.asList(opt("10", "A사업")));
+        noEvents();
 
-        ScheduleView v = service.month(user("M1", Role.MEMBER), "2026-10", 2L, null);
+        ScheduleView v = service.month(user("M1", Role.MEMBER), "2026-10", 2L, null, null);
 
-        assertEquals(Long.valueOf(1L), v.getSelectedTeamSn());
         assertFalse(v.isCanEdit());
+        assertNull(v.getSelectedTeamSn()); // 요청한 팀은 무시한다
         verify(mapper, never()).findDevTeams();
+        verify(mapper).findAutoEvents(eq((Long) null), eq("M1"), eq((Long) null), anyString(), anyString());
     }
 
     @Test
-    void 소속_팀이_없는_팀원에게는_일정을_보여_주지_않는다() {
-        when(mapper.findMyTeamSn("M1")).thenReturn(null);
+    void 사업별로_고르면_그_사업만_본다_목록에_없는_사업은_전체로_본다() {
+        when(mapper.findMyPbancs("M1")).thenReturn(Arrays.asList(opt("10", "A사업"), opt("11", "B사업")));
+        noEvents();
 
-        ScheduleView v = service.month(user("M1", Role.MEMBER), "2026-10", null, null);
+        ScheduleView picked = service.month(user("M1", Role.MEMBER), "2026-10", null, 11L, null);
+        ScheduleView wrong = service.month(user("M1", Role.MEMBER), "2026-10", null, 99L, null);
 
-        verify(mapper, never()).findAutoEvents(any(), anyString(), anyString());
-        verify(mapper, never()).findInternalEvents(any(), anyString(), anyString());
+        assertEquals(Long.valueOf(11L), picked.getSelectedPbancSn());
+        assertNull(wrong.getSelectedPbancSn());
+        verify(mapper).findAutoEvents(eq((Long) null), eq("M1"), eq(11L), anyString(), anyString());
+    }
+
+    @Test
+    void 참여하는_사업이_없는_팀원에게는_일정을_보여_주지_않는다() {
+        when(mapper.findMyPbancs("M1")).thenReturn(Collections.<CodeOption>emptyList());
+
+        ScheduleView v = service.month(user("M1", Role.MEMBER), "2026-10", null, null, null);
+
+        verify(mapper, never()).findAutoEvents(any(), any(), any(), anyString(), anyString());
+        verify(mapper, never()).findInternalEvents(any(), any(), any(), anyString(), anyString());
         assertTrue(v.getCells().stream().allMatch(c -> c.getEvents().isEmpty()));
     }
 
     @Test
-    void 팀장만_내부_일정을_관리할_수_있다() {
+    void 팀장은_자기_팀이_만든_내부_일정만_고칠_수_있다() {
         when(mapper.findMyTeamSn("L1")).thenReturn(1L);
-        when(mapper.findKinds()).thenReturn(Arrays.asList(team("SC010", "제출 마감"), team("SC020", "내부 1차 마감"),
-                team("SC030", "내부 2차 마감"), team("SC040", "발표"), team("SC050", "서류 마감")));
-        when(mapper.findAutoEvents(eq(1L), anyString(), anyString())).thenReturn(new ArrayList<ScheduleEvent>());
-        when(mapper.findInternalEvents(eq(1L), anyString(), anyString())).thenReturn(new ArrayList<ScheduleEvent>());
+        when(mapper.findMyPbancs("L1")).thenReturn(Arrays.asList(opt("10", "A사업")));
+        when(mapper.findKinds()).thenReturn(Arrays.asList(opt("SC010", "제출 마감"), opt("SC020", "내부 일정"),
+                opt("SC030", "내부 2차 마감"), opt("SC040", "발표"), opt("SC050", "서류 마감")));
+        when(mapper.findEditablePbancs(1L)).thenReturn(Arrays.asList(opt("10", "A사업")));
+        ScheduleEvent mine = event("2026-10-29", "우리 점검", "SC020", 5L);
+        mine.setTeamSn(1L);
+        ScheduleEvent others = event("2026-10-29", "주관팀 점검", "SC020", 6L);
+        others.setTeamSn(2L);
+        ScheduleEvent auto = event("2026-10-29", "제출 마감", "SC010", null);
+        auto.setTeamSn(1L);
+        when(mapper.findAutoEvents(any(), any(), any(), anyString(), anyString())).thenReturn(new ArrayList<>(Arrays.asList(auto)));
+        when(mapper.findInternalEvents(any(), any(), any(), anyString(), anyString())).thenReturn(new ArrayList<>(Arrays.asList(mine, others)));
 
-        ScheduleView v = service.month(user("L1", Role.LEADER), "2026-10", null, null);
+        ScheduleView v = service.month(user("L1", Role.LEADER), "2026-10", null, null, null);
 
         assertTrue(v.isCanEdit());
-        assertEquals(3, v.getEditableKinds().size()); // 내부 1차·2차 마감, 서류 마감
+        assertEquals(1, v.getEditProjects().size());
+        assertTrue(mine.isEditable());
+        assertFalse(others.isEditable()); // 참여팀 팀장은 주관팀 일정을 보기만 한다
+        assertFalse(auto.isEditable());
     }
 
     @Test
-    void 팀원은_내부_일정을_추가할_수_없다() {
+    void 팀원은_일정을_추가할_수_없다() {
         assertThrows(AccessDeniedException.class,
-                () -> service.add(user("M1", Role.MEMBER), "SC020", "중간 점검", "2026-10-28"));
-        verify(mapper, never()).insert(any(), anyString(), anyString(), anyString(), anyString());
+                () -> service.add(user("M1", Role.MEMBER), 10L, "중간 점검", "2026-10-28", "14:00"));
+        verify(mapper, never()).insert(any(), any(), anyString(), anyString(), anyString(), anyString());
     }
 
     @Test
-    void 팀장은_자기_팀에_내부_일정을_추가한다() {
+    void 팀장은_사업을_골라_시간과_함께_추가하고_제안팀원에게_알린다() {
         when(mapper.findMyTeamSn("L1")).thenReturn(1L);
+        when(mapper.findEditablePbancs(1L)).thenReturn(Arrays.asList(opt("10", "A사업")));
 
-        service.add(user("L1", Role.LEADER), "SC020", "  중간 점검  ", "2026-10-28");
+        service.add(user("L1", Role.LEADER), 10L, "  중간 점검  ", "2026-10-28", "14:00");
 
-        verify(mapper).insert(1L, "SC020", "중간 점검", "2026-10-28", "L1");
+        verify(mapper).insert(1L, 10L, "SC020", "중간 점검", "2026-10-28 14:00", "L1");
+        // 등록한 본인도 받도록 제안팀원 전원에게 보낸다 (제외 없음)
+        verify(notificationService).sendToProposalTeam(eq(10L), eq(NotificationType.SCHEDULE_CHANGED), contains("중간 점검"));
     }
 
     @Test
-    void 제출_마감과_발표는_직접_만들_수_없다() {
+    void 시간을_비우면_00시로_저장한다() {
         when(mapper.findMyTeamSn("L1")).thenReturn(1L);
-        assertThrows(BusinessException.class, () -> service.add(user("L1", Role.LEADER), "SC010", "제출", "2026-10-28"));
-        assertThrows(BusinessException.class, () -> service.add(user("L1", Role.LEADER), "SC040", "발표", "2026-10-28"));
+        when(mapper.findEditablePbancs(1L)).thenReturn(Arrays.asList(opt("10", "A사업")));
+
+        service.add(user("L1", Role.LEADER), 10L, "점검", "2026-10-28", "");
+
+        verify(mapper).insert(1L, 10L, "SC020", "점검", "2026-10-28 00:00", "L1");
     }
 
     @Test
-    void 이름과_날짜를_검사한다() {
+    void 우리_팀이_주관하지_않는_사업에는_추가할_수_없다() {
         when(mapper.findMyTeamSn("L1")).thenReturn(1L);
+        when(mapper.findEditablePbancs(1L)).thenReturn(Arrays.asList(opt("10", "A사업")));
         LoginUser l = user("L1", Role.LEADER);
-        assertThrows(BusinessException.class, () -> service.add(l, "SC020", "   ", "2026-10-28"));
-        assertThrows(BusinessException.class, () -> service.add(l, "SC020", "점검", "2026-13-40"));
-        assertThrows(BusinessException.class, () -> service.add(l, "SC020", "점검", ""));
+
+        assertThrows(BusinessException.class, () -> service.add(l, 99L, "점검", "2026-10-28", "09:00"));
+        assertThrows(BusinessException.class, () -> service.add(l, null, "점검", "2026-10-28", "09:00"));
+        verify(mapper, never()).insert(any(), any(), anyString(), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void 이름_날짜_시간을_검사한다() {
+        when(mapper.findMyTeamSn("L1")).thenReturn(1L);
+        when(mapper.findEditablePbancs(1L)).thenReturn(Arrays.asList(opt("10", "A사업")));
+        LoginUser l = user("L1", Role.LEADER);
+        assertThrows(BusinessException.class, () -> service.add(l, 10L, "   ", "2026-10-28", ""));
+        assertThrows(BusinessException.class, () -> service.add(l, 10L, "점검", "2026-13-40", ""));
+        assertThrows(BusinessException.class, () -> service.add(l, 10L, "점검", "", ""));
+        assertThrows(BusinessException.class, () -> service.add(l, 10L, "점검", "2026-10-28", "25:99"));
     }
 
     @Test
     void 남의_팀_일정은_수정할_수_없다() {
         when(mapper.findMyTeamSn("L1")).thenReturn(1L);
-        when(mapper.update(9L, 1L, "SC020", "점검", "2026-10-28")).thenReturn(0);
+        when(mapper.findEditablePbancs(1L)).thenReturn(Arrays.asList(opt("10", "A사업")));
+        when(mapper.update(9L, 1L, 10L, "점검", "2026-10-28 00:00")).thenReturn(0);
 
-        assertThrows(BusinessException.class, () -> service.edit(user("L1", Role.LEADER), 9L, "SC020", "점검", "2026-10-28"));
+        assertThrows(BusinessException.class,
+                () -> service.edit(user("L1", Role.LEADER), 9L, 10L, "점검", "2026-10-28", ""));
+        verify(notificationService, never()).sendToProposalTeam(any(), anyString(), anyString());
     }
 
     @Test
@@ -171,17 +227,32 @@ class ScheduleServiceTest {
         when(mapper.delete(9L, 1L)).thenReturn(0);
 
         assertThrows(BusinessException.class, () -> service.delete(user("L1", Role.LEADER), 9L));
+        verify(notificationService, never()).sendToProposalTeam(any(), anyString(), anyString());
+    }
+
+    @Test
+    void 삭제하면_제안팀원에게_알린다() {
+        when(mapper.findMyTeamSn("L1")).thenReturn(1L);
+        ScheduleEvent before = event("2026-10-28", "중간 점검", "SC020", 9L);
+        before.setPbancSn(10L);
+        before.setPbancNm("A사업");
+        when(mapper.findInternalOne(9L, 1L)).thenReturn(before);
+        when(mapper.delete(9L, 1L)).thenReturn(1);
+
+        service.delete(user("L1", Role.LEADER), 9L);
+
+        verify(notificationService).sendToProposalTeam(eq(10L), eq(NotificationType.SCHEDULE_CHANGED), contains("삭제"));
     }
 
     @Test
     void 캘린더는_일요일부터_시작하고_날짜별로_일정을_담는다() {
         when(mapper.findDevTeams()).thenReturn(Collections.<CodeOption>emptyList());
-        when(mapper.findAutoEvents(eq((Long) null), anyString(), anyString()))
+        when(mapper.findAutoEvents(any(), any(), any(), anyString(), anyString()))
                 .thenReturn(new ArrayList<>(Arrays.asList(event("2026-10-29", "제출 마감 · A사업", "SC010", null))));
-        when(mapper.findInternalEvents(eq((Long) null), anyString(), anyString()))
+        when(mapper.findInternalEvents(any(), any(), any(), anyString(), anyString()))
                 .thenReturn(new ArrayList<>(Arrays.asList(event("2026-10-29", "내부 점검", "SC020", 5L))));
 
-        ScheduleView v = service.month(user("S1", Role.SALES), "2026-10", null, null);
+        ScheduleView v = service.month(user("S1", Role.SALES), "2026-10", null, null, null);
 
         // 2026-10-01 은 목요일이라 앞에 빈 칸 4개가 있다. 29일은 그 뒤 29번째 칸.
         assertEquals(4 + 31, v.getCells().size());
@@ -197,6 +268,13 @@ class ScheduleServiceTest {
         assertEquals(1, ScheduleEvent.kindNo("SC010"));
         assertEquals(5, ScheduleEvent.kindNo("SC050"));
         assertEquals(3, ScheduleEvent.kindNo(null));
+    }
+
+    @Test
+    void 팀_색_번호는_1에서_6이다() {
+        assertEquals(0, ScheduleEvent.teamNo(null));
+        assertEquals(2, ScheduleEvent.teamNo(1L));
+        assertEquals(1, ScheduleEvent.teamNo(6L));
     }
 
     @Test

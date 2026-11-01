@@ -8,15 +8,13 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class HistoryServiceImpl implements HistoryService {
 
     private final HistoryMapper historyMapper;
-
-    public HistoryServiceImpl(HistoryMapper historyMapper) {
-        this.historyMapper = historyMapper;
-    }
 
     @Override
     @Transactional

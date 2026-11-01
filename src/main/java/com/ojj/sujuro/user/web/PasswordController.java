@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.ojj.sujuro.auth.dto.LoginUser;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 초기 비밀번호 변경 화면 (FR-002).
@@ -24,13 +25,10 @@ import com.ojj.sujuro.auth.dto.LoginUser;
  * (로그인 정보 객체에 옛 계정 상태가 남지 않게 하기 위해서이다.)
  */
 @Controller
+@RequiredArgsConstructor
 public class PasswordController {
 
     private final PasswordService passwordService;
-
-    public PasswordController(PasswordService passwordService) {
-        this.passwordService = passwordService;
-    }
 
     @GetMapping("/password/initial")
     public String form(@AuthenticationPrincipal LoginUser user) {

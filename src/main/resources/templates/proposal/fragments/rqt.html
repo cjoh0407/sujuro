@@ -7,7 +7,8 @@
     rqInfo(q)     : 요구사항 명칭 + ✎ 수정 · 🗑 삭제 아이콘 (FR-051 v4.0: ID와 명칭만, 정의·세부내용은 수정 화면에서)
     rqAdd(t)      : 최하위 목차 줄의 "+ 요구사항 추가" (미매핑 요구사항 중 선택)
     rqPickToc(q)  : 미매핑 화면의 "연결할 세부 목차" (담당자가 있는 최하위 목차만, 연결 뒤 미매핑 화면으로 돌아온다)
-    rqExtract     : 요구사항 자동 추출 안내 카드 (FR-050-1, 조사 중 · 아직 동작하지 않음)
+    rqExtract     : 제안요청서 PDF에서 요구사항 ID·명칭 추출 (FR-050-1, AI 사용 안 함) → ?view=extract 미리보기
+    rqExtractView : 추출 미리보기. 개수 경고를 보고 고친 뒤 체크한 줄만 등록 (모델 extract)
     rqForm        : 요구사항 수기 등록·수정 (FR-050). v4.0부터 ID와 명칭만 받는다
 */-->
 <body>
@@ -24,11 +25,12 @@
 <div th:fragment="rqInfo(q)" class="rq-line">
   <span th:text="${q.rqtMttrNm}">요구사항명</span>
   <span th:if="${canReq}" style="display:inline-flex;gap:3px">
-    <a class="ico" title="수정" aria-label="수정" th:href="@{/proposal(bid=${bid.pbancSn}, edit=${q.rqtMttrSn})} + '#rqform'">✎</a>
+    <a class="ico" title="수정" aria-label="수정" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped', edit=${q.rqtMttrSn})} + '#rqform'">✎</a>
     <form th:action="@{/proposal/rqt/delete}" method="post" style="display:inline"
           th:data-no="${q.rqtMttrNo}" onsubmit="return confirm('요구사항 ' + this.dataset.no + '을(를) 삭제할까요?')">
       <input type="hidden" name="bid" th:value="${bid.pbancSn}">
       <input type="hidden" name="rqtMttrSn" th:value="${q.rqtMttrSn}">
+      <input type="hidden" name="view" value="unmapped" th:if="${unmapView}">
       <button class="ico" type="submit" title="삭제" aria-label="삭제">🗑</button>
     </form>
   </span>
@@ -57,31 +59,91 @@
   <span class="faint" th:unless="${canReq}">미매핑</span>
 </th:block>
 
-<!-- 요구사항 자동 추출 (FR-050-1): 설계안 · 조사 중. 화면만 두고 실제 추출은 아직 없다 (AI 사용 안 함) -->
+<!-- 요구사항 자동 추출 (FR-050-1, AI 사용 안 함): 제안요청서 PDF의 "요구사항 총괄표·목록표"에서 ID와 명칭만 뽑는다.
+     파일은 저장하지 않고, 뽑은 결과를 미리보기로 보여 준 뒤 사람이 확인하고 등록한다 -->
 <div class="card" th:fragment="rqExtract">
   <div class="card-head">
-    <h3>요구사항 자동 추출 <span class="faint" style="font-weight:400">(설계안 · 조사 중, FR-050-1)</span></h3>
+    <h3>요구사항 자동 추출 <span class="faint" style="font-weight:400">(제안요청서 PDF, FR-050-1)</span></h3>
     <span class="pill neutral">AI 사용 안 함</span>
   </div>
   <div class="pad" style="display:flex;flex-direction:column;gap:8px;font-size:12.5px">
     <div class="steps">
-      <div class="step"><b>① 구간 지정</b><span>제안요청서 PDF의 요구사항 쪽 범위</span></div>
-      <div class="step"><b>② 고유번호 추출</b><span>줄 맨 앞 SFR-001 등 ID·명칭</span></div>
-      <div class="step"><b>③ 누락 검사</b><span>번호 순번·개수 비교</span></div>
-      <div class="step"><b>④ 사람이 검토</b><span>고친 뒤 등록 → 미매핑에 표시</span></div>
+      <div class="step"><b>① PDF 올리기</b><span>요구사항 총괄표·목록표 쪽만 담은 PDF</span></div>
+      <div class="step"><b>② ID·명칭 추출</b><span>SFR 01 → SFR-001</span></div>
+      <div class="step"><b>③ 개수 검사</b><span>총괄표 개수·합계와 비교</span></div>
+      <div class="step"><b>④ 확인 후 등록</b><span>고친 뒤 등록 → 미매핑에 표시</span></div>
     </div>
-    <div class="row">
-      <input type="text" placeholder="요구사항 쪽 범위 (예: 47-62)" style="width:200px" disabled>
-      <input type="text" placeholder="ID 접두어 (예: SFR, SER)" style="width:180px" disabled>
-      <button class="btn sm" type="button" disabled title="조사 중입니다. 지금은 아래에서 수기로 등록하세요.">추출해 보기 (준비 중)</button>
-    </div>
-    <div class="faint" style="font-size:11.5px">SW·시스템 사업(업종제한사항의 업종코드)부터 적용을 검토합니다. 번호가 없는 문서는 수기 등록 또는 엑셀 양식 업로드로 대신합니다. 지금은 아래에서 수기로 등록하세요.</div>
+    <form th:action="@{/proposal/rqt/extract}" method="post" enctype="multipart/form-data" class="row">
+      <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+      <input type="file" name="file" accept=".pdf,application/pdf" required>
+      <button class="btn sm primary" type="submit">추출해 보기</button>
+    </form>
+    <div class="faint" style="font-size:11.5px">제안요청서에서 요구사항 총괄표와 목록표 쪽만 골라 PDF로 올려 주세요. 스캔한 이미지 PDF나 번호가 없는 문서는 읽지 못하니 아래에서 수기로 등록하세요.</div>
   </div>
 </div>
 
+<!-- 추출 미리보기: 경고(개수 불일치 등) → 표에서 ID·명칭 확인·수정 → 체크한 줄만 등록. 이미 있는 ID는 체크를 풀어 둔다 -->
+<th:block th:fragment="rqExtractView">
+  <div class="row">
+    <form th:action="@{/proposal/rqt/extract/cancel}" method="post" style="display:inline">
+      <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+      <button class="btn sm" type="submit">← 취소하고 요구사항 추가 화면으로 돌아가기</button>
+    </form>
+  </div>
+  <div class="banner warn" th:unless="${#lists.isEmpty(extract.warnings)}">
+    <div>
+      <b>개수가 맞지 않거나 확인이 필요한 내용이 있습니다. 원본 제안요청서와 비교해 확인해 주세요. (등록은 할 수 있습니다)</b>
+      <ul style="margin:6px 0 0 18px;padding:0">
+        <li th:each="w : ${extract.warnings}" th:text="${w}">경고</li>
+      </ul>
+    </div>
+  </div>
+  <div class="banner ok" th:if="${#lists.isEmpty(extract.warnings)}">
+    <span>총괄표의 요구사항 수와 목록에서 읽은 수가 모두 맞습니다.</span>
+  </div>
+  <form th:action="@{/proposal/rqt/extract/register}" method="post" class="card">
+    <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+    <div class="card-head">
+      <h3 th:text="'추출 결과 · ' + ${extract.fileNm}">추출 결과</h3>
+      <span class="faint" style="font-size:11.5px"
+            th:text="'목록에서 읽은 수 ' + ${extract.foundCount} + '개 · 총괄표 항목별 합 ' + ${extract.expectedSum} + '개'
+                     + (${extract.declaredTotal != null} ? ' · 총괄표 합계 ' + ${extract.declaredTotal} + '개' : '')
+                     + ' · 새로 등록 가능 ' + ${extract.newCount} + '개'">개수</span>
+    </div>
+    <div class="ts" style="max-height:520px;overflow:auto">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:34px"><input type="checkbox" checked onclick="toggleExtract(this)" aria-label="전체 선택"></th>
+            <th style="width:56px">No</th><th style="width:150px">요구사항 ID</th><th>명칭</th><th style="width:120px">상태</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="it, st : ${extract.items}">
+            <td><input type="checkbox" name="pick" class="ex-pick" th:value="${st.index}" th:checked="${!it.exists}"
+                       th:aria-label="${it.rqtMttrNo} + ' 선택'"></td>
+            <td class="faint" th:text="${it.no}">01</td>
+            <td><input type="text" name="rqtMttrNo" th:value="${it.rqtMttrNo}" maxlength="50" style="width:130px" class="mono"></td>
+            <td><input type="text" name="rqtMttrNm" th:value="${it.rqtMttrNm}" maxlength="300" style="width:100%"></td>
+            <td>
+              <span class="pill neutral" th:if="${it.exists}">이미 등록됨</span>
+              <span class="pill danger" th:if="${it.note != null}" th:text="${it.note}">확인 필요</span>
+            </td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(extract.items)}"><td colspan="5" class="empty">읽은 요구사항이 없습니다.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pad row" style="justify-content:flex-end">
+      <span class="faint" style="font-size:11.5px">체크한 줄만 등록됩니다. 이미 등록된 ID와 목록 안에서 겹친 ID는 건너뜁니다.</span>
+      <button class="btn primary" type="submit" th:disabled="${#lists.isEmpty(extract.items)}">선택한 요구사항 등록</button>
+    </div>
+  </form>
+</th:block>
+
 <div class="card" id="rqform" th:fragment="rqForm">
   <div class="card-head">
-    <h3 th:text="${editRqt != null} ? '요구사항 수정 · ' + ${editRqt.rqtMttrNo} : '요구사항 수기 등록 (등록하면 &quot;미매핑 보기&quot;에 나타납니다)'">요구사항 수기 등록</h3>
+    <h3 th:text="${editRqt != null} ? '요구사항 수정 · ' + ${editRqt.rqtMttrNo} : '요구사항 수기 등록 (등록하면 위 미매핑 목록에 나타납니다)'">요구사항 수기 등록</h3>
   </div>
   <form th:action="${editRqt != null} ? @{/proposal/rqt/edit} : @{/proposal/rqt/add}" method="post"
         class="pad" style="display:flex;flex-direction:column;gap:10px">
@@ -101,7 +163,7 @@
     </div>
     <div class="row">
       <button class="btn primary" type="submit" th:text="${editRqt != null} ? '수정 저장' : '등록'">등록</button>
-      <a class="btn" th:if="${editRqt != null}" th:href="@{/proposal(bid=${bid.pbancSn})}">취소</a>
+      <a class="btn" th:if="${editRqt != null}" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped')}">취소</a>
     </div>
   </form>
 </div>

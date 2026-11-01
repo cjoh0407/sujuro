@@ -223,3 +223,10 @@ document.addEventListener('click', function (e) {
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') closeMemPop();
 });
+
+/* ---------- 요구사항 PDF 추출 미리보기 (FR-050-1) ---------- */
+
+/* 머리 칸 체크박스로 전체 선택·해제 */
+function toggleExtract(all) {
+  document.querySelectorAll('.ex-pick').forEach(function (c) { c.checked = all.checked; });
+}

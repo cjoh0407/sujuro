@@ -3,6 +3,7 @@ package com.ojj.sujuro.proposal.service;
 import java.util.List;
 
 import com.ojj.sujuro.proposal.dto.RqtDto;
+import com.ojj.sujuro.proposal.dto.RqtExtractDto;
 
 /** 요구사항 등록·수정·삭제, 목차 매핑과 현황 계산 (FR-050~054, FR-016-1) */
 public interface RqtService {
@@ -26,9 +27,28 @@ public interface RqtService {
 
     void register(Long pbancSn, RqtDto in, String userId);
 
+    /**
+     * 제안요청서 PDF에서 요구사항 ID·명칭을 뽑는다 (FR-050-1). 저장하지 않고 미리보기용 결과만 돌려준다.
+     * 이 사업건에 이미 있는 ID는 exists로 표시한다. 총괄표와 개수가 다르면 경고만 담는다.
+     * PDF는 제안팀이 요구사항 총괄표·목록표 쪽만 골라서 올린다.
+     */
+    RqtExtractDto extract(Long pbancSn, java.io.InputStream pdf, String fileNm);
+
+    /**
+     * 미리보기에서 고른 요구사항을 한 번에 등록한다. 비어 있거나 이미 있는 ID, 목록 안에서 겹친 ID는 건너뛴다.
+     * {등록한 수, 건너뛴 수}를 돌려준다. 등록한 요구사항은 미매핑 상태다.
+     */
+    int[] registerAll(Long pbancSn, List<String> nos, List<String> names, String userId);
+
     void edit(Long pbancSn, Long rqtMttrSn, RqtDto in, String actorId);
 
     void delete(Long pbancSn, Long rqtMttrSn, String actorId);
+
+    /**
+     * 이 사업건 요구사항을 모두 지운다 (PDF를 다시 추출할 때). 목차 연결도 함께 사라지고,
+     * Q&A의 관련 요구사항은 비운다(Q&A 기록은 남는다). 지운 수를 돌려준다.
+     */
+    int deleteAll(Long pbancSn);
 
     /**
      * 요구사항 등록·수정·삭제·매핑을 할 수 있는지. 이 사업건 주관팀 팀장(lead)이거나,

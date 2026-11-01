@@ -8,8 +8,7 @@
 
   <sql id="rqtSelect">
     SELECT R.RQT_MTTR_SN AS rqtMttrSn, R.PBANC_SN AS pbancSn, R.RQT_MTTR_NO AS rqtMttrNo,
-           R.CLSF_NM AS clsfNm, R.RQT_MTTR_NM AS rqtMttrNm, R.RQT_MTTR_DFN AS rqtMttrDfn,
-           R.DTL_CN AS dtlCn, R.PAGE_NO AS pageNo, R.TOC_SN AS tocSn, R.RGTR_ID AS rgtrId,
+           R.RQT_MTTR_NM AS rqtMttrNm, R.TOC_SN AS tocSn, R.RGTR_ID AS rgtrId,
            T.TOC_NO AS tocNo, T.TOC_NM AS tocNm, T.PIC_ID AS picId, U.USER_NM AS picNm
       FROM TB_RQT_MTTR R
       LEFT JOIN TB_TOC T ON T.TOC_SN = R.TOC_SN
@@ -32,11 +31,11 @@
   </select>
 
   <insert id="insert" parameterType="com.ojj.sujuro.proposal.dto.RqtDto" useGeneratedKeys="true" keyProperty="rqtMttrSn" keyColumn="RQT_MTTR_SN">
-    INSERT INTO TB_RQT_MTTR (PBANC_SN, RQT_MTTR_NO, CLSF_NM, RQT_MTTR_NM, RQT_MTTR_DFN, DTL_CN, PAGE_NO, RGTR_ID)
-    VALUES (#{pbancSn}, #{rqtMttrNo}, #{clsfNm}, #{rqtMttrNm}, #{rqtMttrDfn}, #{dtlCn}, #{pageNo}, #{rgtrId})
+    INSERT INTO TB_RQT_MTTR (PBANC_SN, RQT_MTTR_NO, RQT_MTTR_NM, RGTR_ID)
+    VALUES (#{pbancSn}, #{rqtMttrNo}, #{rqtMttrNm}, #{rgtrId})
   </insert>
 
-  <!-- v4.0: 화면에서는 명칭만 고친다. 분류·정의·세부내용·RFP 쪽 컬럼은 남겨 두고 건드리지 않는다 -->
+  <!-- 명칭만 고친다 (v4.0: 요구사항은 ID·명칭만, 번호와 연결 목차는 그대로) -->
   <update id="update">
     UPDATE TB_RQT_MTTR
        SET RQT_MTTR_NM = #{rqtMttrNm}
@@ -46,6 +45,21 @@
   <delete id="delete">
     DELETE FROM TB_RQT_MTTR WHERE RQT_MTTR_SN = #{rqtMttrSn}
   </delete>
+
+  <!-- 사업건 요구사항 전체 삭제 (다시 추출할 때) -->
+  <delete id="deleteByBid">
+    DELETE FROM TB_RQT_MTTR WHERE PBANC_SN = #{pbancSn}
+  </delete>
+
+  <!-- 요구사항을 지우기 전에 Q&A의 관련 요구사항 연결을 푼다 (FK_QSTN_ANS_RQT_MTTR_SN). Q&A 기록은 그대로 둔다 -->
+  <update id="clearQuestion">
+    UPDATE TB_QSTN_ANS SET RQT_MTTR_SN = NULL WHERE RQT_MTTR_SN = #{rqtMttrSn}
+  </update>
+
+  <update id="clearQuestionsByBid">
+    UPDATE TB_QSTN_ANS SET RQT_MTTR_SN = NULL
+     WHERE RQT_MTTR_SN IN (SELECT RQT_MTTR_SN FROM TB_RQT_MTTR WHERE PBANC_SN = #{pbancSn})
+  </update>
 
   <update id="updateToc">
     UPDATE TB_RQT_MTTR SET TOC_SN = #{tocSn, jdbcType=NUMERIC} WHERE RQT_MTTR_SN = #{rqtMttrSn}

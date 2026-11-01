@@ -3,7 +3,8 @@
 <!--/*
   목차 화면 조각 (제안서·제안요약서 탭 공통). k는 탭 값 'prop' / 'sum', t는 목차(TocDto)
   필요한 모델: bid, canLoad·canEdit·canAssign, forms, me, members, coNames(주관팀 팀장)
-    emptyToc(k)        : 목차가 없을 때 - 제안서: 팀 양식 불러오기(주관팀) / 요약서: 기본 목차로 시작 / 직접 목차 만들기(제안팀)
+    emptyToc(k)        : 목차가 없을 때 - 제안서(주관팀): 팀 양식 불러오기 · 새로운 목차로 작성하기(양식 이름부터)
+                         제안서(그 밖의 제안팀원): 직접 목차 만들기(첫 목차 이름) / 요약서: 기본 목차로 시작
     summaryReset       : 요약서 목차를 기본 목차로 되돌리기 (주관팀)
     curForm            : 현재 목차 양식 표시 (제안팀원 모두, 모델 curForm)
     formBar(k)         : 제안서 목차만. 주관팀 양식 바꾸기·이름 바꾸기·삭제 · 새 이름으로 양식 저장 (FR-048)
@@ -28,21 +29,30 @@
     <div class="faint" style="font-size:11.5px;margin-top:6px">Ⅰ. 사업의 이해 · Ⅱ. 사업 추진 전략(Action 1~4) · Ⅲ. 완성도 제고 방안으로 만들어지고, 이후 이 사업건에 맞게 고칩니다.</div>
     <br>
   </th:block>
+  <!-- 제안서 · 주관팀 인원: 저장된 양식을 고르거나, 새 양식 이름부터 정해 만든다. 새 양식은 목차를 고칠 때마다 바로 저장된다 -->
   <th:block th:if="${k == 'prop' and canLoad}">
-    <form th:unless="${#lists.isEmpty(forms)}" th:action="@{/proposal/toc/import}" method="post" class="row" style="justify-content:center">
-      <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-      <input type="hidden" name="tab" th:value="${k}">
-      <select name="tocFormSn" required>
-        <option th:each="f, st : ${forms}" th:value="${f.tocFormSn}" th:text="${f.labelFor(me)}" th:selected="${st.first}">양식</option>
-      </select>
-      <button class="btn primary" type="submit">팀 양식 불러오기</button>
-    </form>
-    <div class="row" style="justify-content:center" th:if="${#lists.isEmpty(forms)}">
-      <span class="faint">우리 팀이 저장한 목차 양식이 아직 없습니다.</span>
+    <div class="row" style="justify-content:center;gap:18px;align-items:flex-start">
+      <form th:unless="${#lists.isEmpty(forms)}" th:action="@{/proposal/toc/import}" method="post" class="row">
+        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+        <input type="hidden" name="tab" th:value="${k}">
+        <select name="tocFormSn" required>
+          <option value="" disabled selected>목차 양식 고르기</option>
+          <option th:each="f : ${forms}" th:value="${f.tocFormSn}" th:text="${f.labelFor(me)}">양식</option>
+        </select>
+        <button class="btn primary" type="submit">팀 양식 불러오기</button>
+      </form>
+      <form th:action="@{/proposal/toc/form/new}" method="post" class="row">
+        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+        <input type="text" name="tocFormNm" placeholder="새 목차 양식 이름" maxlength="100" required style="width:200px" autocomplete="off">
+        <button class="btn" th:classappend="${#lists.isEmpty(forms)} ? 'primary'" type="submit"
+                th:text="${#lists.isEmpty(forms)} ? '새 목차 양식 만들기' : '새로운 목차로 작성하기'">새로운 목차로 작성하기</button>
+      </form>
     </div>
-    <br>
+    <div class="faint" style="font-size:11.5px;margin-top:8px"
+         th:text="${#lists.isEmpty(forms)} ? '우리 팀이 저장한 목차 양식이 아직 없습니다. 양식 이름을 먼저 정하면, 목차를 만들 때마다 그 양식에 바로 저장되어 중간에 나가도 사라지지 않습니다.' : '새로운 목차로 작성하면 그 이름의 양식이 먼저 만들어지고, 목차를 만들 때마다 그 양식에 바로 저장됩니다.'">안내</div>
   </th:block>
-  <form th:if="${canEdit}" th:action="@{/proposal/toc/add}" method="post" class="row" style="justify-content:center">
+  <!-- 요약서이거나, 제안서에서 양식을 다룰 수 없는 제안팀원(참여팀 등): 이 사업건에서만 쓰는 목차를 첫 목차부터 만든다 -->
+  <form th:if="${canEdit and (k == 'sum' or !canLoad)}" th:action="@{/proposal/toc/start-blank}" method="post" class="row" style="justify-content:center">
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
     <input type="hidden" name="tab" th:value="${k}">
     <input type="text" name="label" placeholder="첫 목차 이름 (번호 포함)" maxlength="250" required style="width:240px">

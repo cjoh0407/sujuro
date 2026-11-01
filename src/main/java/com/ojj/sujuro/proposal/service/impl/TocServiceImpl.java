@@ -210,11 +210,45 @@ public class TocServiceImpl implements TocService {
     public void addTop(Long pbancSn, String tocSeCd, String label) {
         String se = checkSe(tocSeCd);
         String[] nl = cleanLabel(label);
-        if (TocDto.SE_PROPOSAL.equals(se) && mapper.countByBid(pbancSn, se) == 0) {
-            mapper.updateBidForm(pbancSn, null); // 빈 목차에서 직접 만들기 시작: 양식 없이 만든 목차
-        }
         insert(pbancSn, se, null, mapper.nextSortSeq(pbancSn, se, null), nl);
         syncForm(pbancSn, se);
+    }
+
+    @Transactional
+    @Override
+    public String startNewForm(Long pbancSn, String formName, Long teamSn, String userId) {
+        if (teamSn == null) {
+            throw new BusinessException("이 사업건의 주관팀이 정해지지 않아 양식을 만들 수 없습니다.");
+        }
+        String se = TocDto.SE_PROPOSAL;
+        if (mapper.countByBid(pbancSn, se) > 0) {
+            throw new BusinessException("이미 제안서 목차가 있습니다. 화면을 새로고침해 확인하세요.");
+        }
+        String nm = cleanFormName(formName);
+        if (mapper.findFormByName(teamSn, nm) != null) {
+            throw new BusinessException("'" + nm + "'은(는) 이미 있는 양식 이름입니다. 그 양식을 불러오거나 다른 이름을 쓰세요.");
+        }
+        TocFormDto form = new TocFormDto();
+        form.setTeamSn(teamSn);
+        form.setTocFormNm(nm);
+        form.setTocSeCd(se);
+        form.setRgtrId(userId);
+        mapper.insertForm(form);
+        mapper.updateBidForm(pbancSn, form.getTocFormSn()); // 이제부터 목차를 고치면 이 양식에 바로 반영된다
+        return nm;
+    }
+
+    @Transactional
+    @Override
+    public void startBlank(Long pbancSn, String tocSeCd, String label) {
+        String se = checkSe(tocSeCd);
+        if (mapper.countByBid(pbancSn, se) > 0) {
+            throw new BusinessException("이미 목차가 있습니다. 화면을 새로고침해 확인하세요.");
+        }
+        if (TocDto.SE_PROPOSAL.equals(se)) {
+            mapper.updateBidForm(pbancSn, null); // 양식 없이 이 사업건에서만 쓰는 목차
+        }
+        insert(pbancSn, se, null, 0, cleanLabel(label));
     }
 
     @Transactional
@@ -312,7 +346,7 @@ public class TocServiceImpl implements TocService {
         if (pic != null && mapper.countAssignableMember(pbancSn, pic) == 0) {
             throw new BusinessException("담당자는 이 사업건의 제안팀원 중에서만 고를 수 있습니다.");
         }
-        mapper.updatePic(tocSn, pic ,co);
+        mapper.updatePic(tocSn, pic, co);
     }
 
     @Override

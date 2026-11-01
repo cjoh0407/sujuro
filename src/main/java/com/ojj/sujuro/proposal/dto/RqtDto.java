@@ -12,12 +12,8 @@ public class RqtDto {
     private Long pbancSn;
     /** 요구사항번호(RFP의 요구사항 ID). 같은 사업건 안에서 중복될 수 없다. */
     private String rqtMttrNo;
-    private String clsfNm;
+    /** 요구사항명. v4.0부터 요구사항은 ID·명칭만 받는다 (분류·정의·상세내용·쪽번호 컬럼은 삭제) */
     private String rqtMttrNm;
-    private String rqtMttrDfn;
-    private String dtlCn;
-    /** RFP 원본 쪽 */
-    private String pageNo;
     private Long tocSn;
     private String rgtrId;
 

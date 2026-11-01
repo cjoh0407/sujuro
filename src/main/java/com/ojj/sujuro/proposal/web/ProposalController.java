@@ -8,6 +8,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import javax.servlet.http.HttpSession;
+
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -47,6 +49,8 @@ public class ProposalController {
     static final String TAB_SUMMARY = "sum";
     /** 제안서 탭 안의 미매핑 요구사항 화면 (?view=unmapped) */
     static final String VIEW_UNMAPPED = "unmapped";
+    /** 제안서 탭 안의 PDF 요구사항 추출 미리보기 화면 (?view=extract) */
+    static final String VIEW_EXTRACT = "extract";
     /** 담당자 선택칸에서 외부 회사를 나타내는 값의 앞부분 ("co:회사명") */
     static final String CO_PREFIX = "co:";
     /** 담당자 선택칸의 "외부 회사 직접 입력" (화면에서만 쓰고 서버로는 회사명 칸을 보낸다) */
@@ -64,7 +68,7 @@ public class ProposalController {
                         @RequestParam(value = "tab", defaultValue = TAB_PROPOSAL) String tab,
                         @RequestParam(value = "edit", required = false) Long edit,
                         @RequestParam(value = "view", required = false) String view,
-                        Model model) {
+                        HttpSession session, Model model) {
         String me = user.getEmpNo();
         List<ProposalBidDto> bids = proposalService.myBids(me);
         model.addAttribute("bids", bids);
@@ -150,6 +154,9 @@ public class ProposalController {
         model.addAttribute("unmapped", unmappedList.size());
         model.addAttribute("progress", rqtService.progress(all));
         model.addAttribute("unmapView", VIEW_UNMAPPED.equals(view)); // 미매핑 요구사항 화면 (FR-052 v4.0)
+        if (VIEW_EXTRACT.equals(view) && canReq) { // PDF 추출 미리보기 (FR-050-1)
+            model.addAttribute("extract", RqtController.extractOf(session, pbancSn));
+        }
         if (edit != null && canReq) {
             model.addAttribute("editRqt", rqtService.findForEdit(pbancSn, edit));
         }
@@ -224,7 +231,27 @@ public class ProposalController {
         });
     }
 
-    /** 1단계 목차 추가 (목차가 없을 때 "직접 목차 만들기"도 여기로 온다). label은 번호 포함 이름 */
+    /** 빈 제안서 목차에서 "새로운 목차로 작성하기": 양식 이름부터 정해 새 양식을 만들고 현재 양식으로 둔다. 주관팀 인원만 */
+    @PostMapping("/proposal/toc/form/new")
+    public String newForm(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
+                          @RequestParam(value = "tocFormNm", required = false) String tocFormNm, RedirectAttributes ra) {
+        return run(user, bid, TAB_PROPOSAL, ra, accessChecker::requireLeadTeamMember, b -> () ->
+                "'" + tocService.startNewForm(bid, tocFormNm, b.getSprvsnTeamSn(), user.getEmpNo())
+                        + "' 양식을 만들었습니다. [+ 1단계 목차 추가]로 목차를 만들면 이 양식에 바로 저장됩니다.");
+    }
+
+    /** 양식 없이 첫 목차부터 만들기 (주관팀이 아닌 제안팀원, 요약서). label은 번호 포함 이름 */
+    @PostMapping("/proposal/toc/start-blank")
+    public String startBlank(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
+                             @RequestParam(value = "tab", defaultValue = TAB_PROPOSAL) String tab,
+                             @RequestParam(value = "label", required = false) String label, RedirectAttributes ra) {
+        return run(user, bid, tab, ra, accessChecker::requireProposalMember, b -> () -> {
+            tocService.startBlank(bid, se(tab), label);
+            return "목차를 만들었습니다. 이 사업건에서만 쓰는 목차입니다.";
+        });
+    }
+
+    /** 1단계 목차 추가. label은 번호 포함 이름 */
     @PostMapping("/proposal/toc/add")
     public String addToc(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
                          @RequestParam(value = "tab", defaultValue = TAB_PROPOSAL) String tab,

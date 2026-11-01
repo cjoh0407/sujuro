@@ -6,6 +6,7 @@
 <!--/*
   제출서류 · 조견표 · 나라장터 등록 (FR-015, FR-067~073, 화면 설계 v3.2)
   경영지원실(admin)과 제안팀(team)이 함께 준비하고 경영지원실이 나라장터에 등록한다. 등록 뒤(open=false)에는 읽기 전용.
+  조견표는 웹으로 입력한다 (v4.1, FR-071): 경영지원실이 평가 항목·배점을 추가·삭제하고 제안팀이 항목별 쪽번호를 적는다.
 */-->
 <head>
   <title>제출서류 · 조견표</title>
@@ -44,9 +45,9 @@
         <div class="h" th:text="${missing.isEmpty()} ? '없음' : ${missing}">없음</div>
       </div>
       <div class="stat">
-        <div class="l">조견표 파일</div>
-        <div class="v" th:text="${#lists.isEmpty(cheatFiles)} ? '미등록' : '등록'">미등록</div>
-        <div class="h" th:text="${#lists.isEmpty(cheatFiles)} ? '경영지원실·제안팀이 등록' : ${cheatFiles[0].orgnlFileNm}">경영지원실·제안팀이 등록</div>
+        <div class="l">최종 제안서</div>
+        <div class="v" th:text="${finalDoc == null} ? '-' : ${finalDoc.statusNm}">미준비</div>
+        <div class="h" th:text="${finalDoc == null} ? '체크리스트에 \'최종 제안서\' 항목이 없음' : (${finalDoc.fileSn != null} ? ${finalDoc.orgnlFileNm} : '올린 파일 없음')">체크리스트의 최종 제안서</div>
       </div>
       <div class="stat">
         <div class="l">나라장터 등록</div>
@@ -153,41 +154,68 @@
       </form>
     </div>
 
-    <!-- ===== 조견표 (FR-072): RFP 서식대로 만든 파일을 올려 경영지원실과 제안팀이 함께 확인하고 공유한다 (승인·반려 없음) ===== -->
-    <div class="card">
+    <!-- ===== 조견표 (FR-071): 경영지원실이 평가 항목·배점을, 제안팀이 항목별 쪽번호를 웹에서 입력한다. 나라장터 등록 뒤에는 잠긴다 ===== -->
+    <div class="card" th:with="canPage=${team and open and !#lists.isEmpty(articles)}">
       <div class="card-head">
-        <h3 th:text="'조견표 파일 (' + ${#lists.size(cheatFiles)} + ')'">조견표 파일 (0)</h3>
-        <form th:if="${open}" th:action="@{/docs/cheat-file}" method="post" enctype="multipart/form-data" class="row">
-          <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-          <input type="file" name="file" required style="max-width:220px">
-          <button class="btn sm" type="submit">+ 조견표 올리기</button>
-        </form>
+        <h3>
+          조견표
+          <span class="faint" style="font-weight:400" th:text="'· 쪽번호 입력 ' + ${pagedCnt} + ' / ' + ${#lists.size(articles)}">· 쪽번호 입력 0 / 0</span>
+        </h3>
+        <span class="pill neutral" th:unless="${open}">나라장터 등록 후 잠김</span>
       </div>
       <div class="pad faint" style="font-size:11.5px;padding-bottom:0">
-        제안요청서(RFP)의 평가 항목·배점을 기준으로, 항목별 해당 목차와 쪽을 적은 조견표를 RFP 서식대로 만들어 올리세요.
-        경영지원실과 제안팀이 함께 확인하고, 다시 올리면 새 버전으로 쌓입니다. 나라장터에는 최신 버전을 제출합니다.
+        제안요청서(RFP)의 평가 항목과 배점은 경영지원실이 넣고, 제안팀은 항목마다 해당 내용이 있는 최종 제안서의 쪽번호를 적습니다. (예: 12-15, 3, 20-21)
       </div>
-      <div class="item" th:each="f, st : ${cheatFiles}">
-        <span>📄</span>
-        <div style="min-width:0">
-          <b th:text="${f.orgnlFileNm}">조견표.hwp</b>
-          <div class="faint" style="font-size:11.5px"
-               th:text="${(f.rgtrNm ?: f.rgtrId) + ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm') + ' · ' + f.sizeLabel}">올린 사람 · 일시 · 크기</div>
-        </div>
-        <span class="pill accent" th:text="'v' + ${f.verNo}">v1</span>
-        <span class="pill success" th:if="${st.first}">최신</span>
-        <span class="t row">
-          <a class="btn sm" th:href="@{/docs/download(bid=${bid.pbancSn}, fileSn=${f.fileSn})}">내려받기</a>
-          <form th:if="${#sets.contains(deletable, f.fileSn)}" th:action="@{/docs/file-delete}" method="post" style="display:inline"
-                onsubmit="return askReason(this)">
-            <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-            <input type="hidden" name="fileSn" th:value="${f.fileSn}">
-            <input type="hidden" name="reason">
-            <button class="btn sm danger" type="submit">삭제</button>
-          </form>
-        </span>
+      <form id="evPages" th:if="${canPage}" th:action="@{/docs/article/pages}" method="post">
+        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+      </form>
+      <div class="ts">
+        <table>
+          <thead>
+            <tr><th style="width:44px">No</th><th>평가 항목</th><th style="width:90px">배점</th><th style="width:160px">쪽번호</th><th th:if="${admin and open}" style="width:60px"></th></tr>
+          </thead>
+          <tbody>
+            <tr class="hv" th:each="a, st : ${articles}">
+              <td class="mono" th:text="${st.count}">1</td>
+              <td th:text="${a.evlArtclNm}">사업 이해도</td>
+              <td class="mono" th:text="${a.scoreLabel}">15</td>
+              <td>
+                <th:block th:if="${canPage}">
+                  <input type="hidden" name="evlArtclSn" form="evPages" th:value="${a.evlArtclSn}">
+                  <input type="text" name="pageNo" form="evPages" class="ev-page mono" maxlength="20" placeholder="예: 12-15" th:value="${a.pageNo}">
+                </th:block>
+                <th:block th:unless="${canPage}">
+                  <span class="mono" th:if="${a.paged}" th:text="${a.pageNo}">12-15</span>
+                  <span class="faint" th:unless="${a.paged}">미입력</span>
+                </th:block>
+              </td>
+              <td th:if="${admin and open}">
+                <form th:action="@{/docs/article/delete}" method="post" th:data-name="${a.evlArtclNm}"
+                      onsubmit="return confirm('&quot;' + this.dataset.name + '&quot; 평가 항목을 삭제할까요? 적어 둔 쪽번호도 함께 지워집니다.')">
+                  <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                  <input type="hidden" name="evlArtclSn" th:value="${a.evlArtclSn}">
+                  <button class="ico" type="submit" title="삭제">🗑</button>
+                </form>
+              </td>
+            </tr>
+            <tr class="ev-sum" th:unless="${#lists.isEmpty(articles)}">
+              <td></td><td>합계</td><td class="mono" th:text="${scoreSum}">100</td><td></td><td th:if="${admin and open}"></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(articles)}">
+              <td th:colspan="${admin and open} ? 5 : 4" class="empty" th:text="${admin} ? '평가 항목이 없습니다. 아래에서 RFP의 평가 항목과 배점을 추가하세요.' : '경영지원실이 평가 항목과 배점을 넣으면 쪽번호를 입력할 수 있습니다.'">평가 항목이 없습니다.</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <div class="empty" th:if="${#lists.isEmpty(cheatFiles)}">아직 올린 조견표가 없습니다.</div>
+      <div class="pad row" th:if="${canPage}" style="justify-content:flex-end">
+        <button class="btn primary sm" type="submit" form="evPages">쪽번호 저장</button>
+      </div>
+      <form class="pad row" th:if="${admin and open}" th:action="@{/docs/article/add}" method="post">
+        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+        <input type="text" name="evlArtclNm" placeholder="평가 항목 (예: 사업 이해도)" maxlength="100" required style="width:240px">
+        <input type="number" name="evlScorScr" placeholder="배점" min="0.001" max="100" step="0.001" required style="width:90px">
+        <button class="btn sm" type="submit">+ 평가 항목 추가</button>
+      </form>
     </div>
 
     <!-- ===== 삭제된 파일 (원본·이력 보관, NFR-009) ===== -->
@@ -199,7 +227,7 @@
     <div class="card" th:if="${showDeleted}">
       <div class="card-head">
         <h3 th:text="'삭제된 파일 (' + ${deletedCnt} + ')'">삭제된 파일</h3>
-        <span class="faint" style="font-size:11.5px">목록에서만 숨긴 제출서류·조견표 파일입니다. 원본과 기록은 보관되며 내려받을 수 있습니다.</span>
+        <span class="faint" style="font-size:11.5px">목록에서만 숨긴 제출서류 파일입니다. 원본과 기록은 보관되며 내려받을 수 있습니다.</span>
       </div>
       <div class="ts">
         <table>

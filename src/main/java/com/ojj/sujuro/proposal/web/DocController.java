@@ -1,5 +1,6 @@
 package com.ojj.sujuro.proposal.web;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -26,6 +27,7 @@ import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.auth.code.Role;
 import com.ojj.sujuro.common.file.FileStorage;
 import com.ojj.sujuro.proposal.dto.DocDto;
+import com.ojj.sujuro.proposal.dto.EvlArtclDto;
 import com.ojj.sujuro.proposal.dto.ProposalBidDto;
 import com.ojj.sujuro.proposal.dto.PrpFileDto;
 import com.ojj.sujuro.proposal.dto.SubmissionDto;
@@ -42,7 +44,8 @@ import lombok.RequiredArgsConstructor;
  * 할 수 있는 일:
  *   경영지원실 — 체크리스트 항목 추가·삭제·기한, 모든 서류 상태, 나라장터 등록 완료
  *   제안팀     — 제안팀 담당 서류 상태
- *   함께       — 서류 파일·조견표 파일 올리기·내려받기 (조견표는 승인·반려 없이 함께 확인하고 공유, FR-072)
+ *   함께       — 서류 파일 올리기·내려받기
+ *   조견표(웹 입력, FR-071) — 경영지원실이 평가 항목·배점 추가·삭제, 제안팀이 항목별 쪽번호 입력 (조견표 파일 등록은 v4.1에서 뺐다)
  *   파일 삭제(숨김) — 올린 사람, 주관팀 팀장, 경영지원실. 사유 필수, 원본·이력은 남긴다 (NFR-009)
  * 나라장터 등록 뒤에는 모두 읽기 전용이다. 권한이 없으면 403, 업무 규칙 위반은 안내 띠로 보여 준다.
  */
@@ -92,8 +95,32 @@ public class DocController {
         model.addAttribute("missingCnt", missing.size());
         model.addAttribute("missing", String.join(", ", missing));
         model.addAttribute("canRegister", admin && sub.isSubmittable() && !docs.isEmpty() && missing.isEmpty());
-        List<PrpFileDto> cheatFiles = docService.cheatFiles(pbancSn);
-        model.addAttribute("cheatFiles", cheatFiles);
+
+        // 위쪽 통계 카드: 체크리스트의 "최종 제안서"가 준비 완료인지
+        DocDto finalDoc = null;
+        for (DocDto d : docs) {
+            if (d.isFinalProposal()) {
+                finalDoc = d;
+                break;
+            }
+        }
+        model.addAttribute("finalDoc", finalDoc);
+
+        // 조견표: 평가 항목 · 배점 · 쪽번호 (FR-071)
+        List<EvlArtclDto> articles = docService.articles(pbancSn);
+        int paged = 0;
+        BigDecimal scoreSum = BigDecimal.ZERO;
+        for (EvlArtclDto a : articles) {
+            if (a.isPaged()) {
+                paged++;
+            }
+            if (a.getEvlScorScr() != null) {
+                scoreSum = scoreSum.add(a.getEvlScorScr());
+            }
+        }
+        model.addAttribute("articles", articles);
+        model.addAttribute("pagedCnt", paged);
+        model.addAttribute("scoreSum", scoreSum.stripTrailingZeros().toPlainString());
 
         // 삭제 버튼을 보여 줄 파일 (올린 사람·주관팀 팀장·경영지원실, 나라장터 등록 전)
         String me = user.getEmpNo();
@@ -102,11 +129,6 @@ public class DocController {
         for (DocDto d : docs) {
             if (d.getFileSn() != null && docService.canDeleteFile(d.getFileRgtrId(), sub.isSubmitted(), me, admin, lead)) {
                 deletable.add(d.getFileSn());
-            }
-        }
-        for (PrpFileDto f : cheatFiles) {
-            if (docService.canDeleteFile(f.getRgtrId(), sub.isSubmitted(), me, admin, lead)) {
-                deletable.add(f.getFileSn());
             }
         }
         model.addAttribute("deletable", deletable);
@@ -164,7 +186,7 @@ public class DocController {
         return FlashRedirect.run(ra, PATH, bid, null, "서류 파일을 올렸습니다.", () -> docService.uploadDoc(bid, dcmntSn, file, user.getEmpNo()));
     }
 
-    /** 서류·조견표 파일 삭제: 목록에서만 숨기고 원본·삭제자·일시·사유를 남긴다 (NFR-009) */
+    /** 서류 파일 삭제: 목록에서만 숨기고 원본·삭제자·일시·사유를 남긴다 (NFR-009) */
     @PostMapping("/docs/file-delete")
     public String deleteFile(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
                              @RequestParam("fileSn") Long fileSn,
@@ -176,14 +198,38 @@ public class DocController {
                 () -> docService.deleteFile(bid, fileSn, reason, user.getEmpNo(), admin, lead));
     }
 
-    /* ---------- 조견표 ---------- */
+    /* ---------- 조견표: 웹 입력 (FR-071) ---------- */
 
-    /** 조견표 파일 등록 (경영지원실·제안팀 함께, 승인·반려 없음) (FR-072) */
-    @PostMapping("/docs/cheat-file")
-    public String uploadCheatFile(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
-                                  @RequestParam(value = "file", required = false) MultipartFile file, RedirectAttributes ra) {
-        requireViewer(bid, user);
-        return FlashRedirect.run(ra, PATH, bid, null, "조견표 파일을 등록했습니다.", () -> docService.uploadCheatFile(bid, file, user.getEmpNo()));
+    /** 평가 항목 추가 (경영지원실) */
+    @PostMapping("/docs/article/add")
+    public String addArticle(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
+                             @RequestParam(value = "evlArtclNm", required = false) String name,
+                             @RequestParam(value = "evlScorScr", required = false) String score, RedirectAttributes ra) {
+        requireMgmt(bid, user);
+        return FlashRedirect.run(ra, PATH, bid, null, "평가 항목을 추가했습니다.", () -> docService.addArticle(bid, name, score));
+    }
+
+    /** 평가 항목 삭제 (경영지원실) */
+    @PostMapping("/docs/article/delete")
+    public String deleteArticle(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
+                                @RequestParam("evlArtclSn") Long evlArtclSn, RedirectAttributes ra) {
+        requireMgmt(bid, user);
+        return FlashRedirect.run(ra, PATH, bid, null, "평가 항목을 삭제했습니다.", () -> docService.deleteArticle(bid, evlArtclSn));
+    }
+
+    /** 쪽번호 저장 (제안팀). 표의 모든 항목을 한 번에 저장한다 */
+    @PostMapping("/docs/article/pages")
+    public String savePages(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
+                            @RequestParam(value = "evlArtclSn", required = false) List<Long> sns,
+                            @RequestParam(value = "pageNo", required = false) List<String> pages, RedirectAttributes ra) {
+        if (isMgmt(user)) {
+            throw new AccessDeniedException("쪽번호는 제안팀이 입력합니다.");
+        }
+        accessChecker.requireProposalMember(bid, user);
+        return FlashRedirect.run(ra, PATH, bid, null, () -> {
+            docService.savePages(bid, sns, pages);
+            return "조견표 쪽번호를 저장했습니다.";
+        });
     }
 
     /* ---------- 나라장터 등록 완료 (경영지원실) (FR-073) ---------- */
@@ -195,7 +241,7 @@ public class DocController {
                 () -> docService.register(bid, user.getEmpNo()));
     }
 
-    /** 제출서류·조견표 파일 내려받기 */
+    /** 제출서류 파일 내려받기 (예전 조견표 파일 기록 포함) */
     @GetMapping("/docs/download")
     public ResponseEntity<Resource> download(@AuthenticationPrincipal LoginUser user,
                                              @RequestParam("bid") Long bid, @RequestParam("fileSn") Long fileSn) {

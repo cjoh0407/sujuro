@@ -14,21 +14,23 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.ojj.sujuro.auth.support.AccessChecker;
 import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.proposal.dto.ProposalBidDto;
+import com.ojj.sujuro.proposal.dto.QnaBidDto;
 import com.ojj.sujuro.proposal.dto.QnaDto;
-import com.ojj.sujuro.proposal.dto.TocDto;
 import com.ojj.sujuro.proposal.service.ProposalService;
 import com.ojj.sujuro.proposal.service.QnaService;
-import com.ojj.sujuro.proposal.service.TocService;
 
 import lombok.RequiredArgsConstructor;
 
 /**
- * 질의응답 기록 화면 (FR-074~076). 사업건 단위, 그 사업건 제안팀만 연다.
- *   탭 exp: 예상 Q&A — 제안 평가 전에 예상 질문·준비 답변·답변 담당자 (FR-074)
- *   탭 prs: 발표 Q&A — 발표 때 실제로 나온 질문과 답변, 예상 질문과 일치했는지 (FR-075)
+ * 질의응답 기록 화면 (FR-074~076-1). 사업건 단위, 그 사업건 제안팀만 연다.
+ *   탭 exp: 예상 Q&A — 제안 평가 전에 예상 질문과 준비 답변 (FR-074)
+ *   탭 prs: 발표 Q&A — 발표 때 실제로 나온 질문과 답변 (FR-075)
+ *   입력은 질문·답변·관련 요구사항(선택)만. 목록은 관련 요구사항의 1단계 목차별로 묶은 표이고 질문·답변으로 검색한다. (FR-076)
+ *   이전 사업 Q&A 보기: 내가 제안팀이었던 다른 사업건의 Q&A를 읽기 전용으로 본다. 복사하지 않는다. (FR-076-1)
  * 권한 (AccessChecker, 없으면 403):
  *   보기·등록·수정 — requireProposalMember (제안팀 누구나 기록한다, FR-075)
  *   삭제           — 제안팀원 중 작성자 또는 주관팀 팀장 (서비스에서 확인)
+ *   이전 사업 보기 — 그 사업건의 제안팀원이었어야 한다 (requireProposalMember)
  * 나라장터 제출 뒤에도 발표가 있으므로 잠그지 않는다.
  */
 @Controller
@@ -41,7 +43,6 @@ public class QnaController {
 
     private final AccessChecker accessChecker;
     private final ProposalService proposalService;
-    private final TocService tocService;
     private final QnaService qnaService;
 
     @GetMapping("/qa")
@@ -49,6 +50,8 @@ public class QnaController {
                         @RequestParam(value = "bid", required = false) Long bid,
                         @RequestParam(value = "tab", defaultValue = TAB_EXPECTED) String tab,
                         @RequestParam(value = "edit", required = false) Long edit,
+                        @RequestParam(value = "q", required = false) String keyword,
+                        @RequestParam(value = "past", required = false) Long past,
                         Model model) {
         String me = user.getEmpNo();
         List<ProposalBidDto> bids = proposalService.myBids(me);
@@ -60,30 +63,47 @@ public class QnaController {
         accessChecker.requireProposalMember(pbancSn, user);
         ProposalBidDto current = proposalService.openBid(pbancSn, me);
         String tk = TAB_PRESENTED.equals(tab) ? TAB_PRESENTED : TAB_EXPECTED;
+        String q = keyword == null ? "" : keyword.trim();
 
         List<QnaDto> all = qnaService.list(pbancSn);
         List<QnaDto> expected = qnaService.filter(all, QnaDto.SE_EXPECTED);
         List<QnaDto> presented = qnaService.filter(all, QnaDto.SE_PRESENTED);
+        List<QnaDto> items = TAB_PRESENTED.equals(tk) ? presented : expected;
+        int unanswered = 0;
+        for (QnaDto x : items) {
+            if (x.isUnanswered()) {
+                unanswered++;
+            }
+        }
+        List<QnaDto> found = qnaService.search(items, q);
 
         model.addAttribute("me", me);
         model.addAttribute("bid", current);
         model.addAttribute("tab", tk);
+        model.addAttribute("q", q);
         model.addAttribute("canDeleteAll", accessChecker.isLeadTeamLeader(pbancSn, user));
         model.addAttribute("expCnt", expected.size());
         model.addAttribute("prsCnt", presented.size());
-        List<QnaDto> items = TAB_PRESENTED.equals(tk) ? presented : expected;
-        int unanswered = 0;
-        for (QnaDto q : items) {
-            if (q.isUnanswered()) {
-                unanswered++;
-            }
-        }
-        model.addAttribute("items", items);
+        model.addAttribute("itemCnt", items.size());
+        model.addAttribute("foundCnt", found.size());
         model.addAttribute("unansweredCnt", unanswered);
-        model.addAttribute("members", proposalService.members(pbancSn));
-        model.addAttribute("tocs", tocService.list(pbancSn, TocDto.SE_PROPOSAL));
+        model.addAttribute("groups", qnaService.group(pbancSn, found));
+        model.addAttribute("rqts", qnaService.rqtOptions(pbancSn));
         if (edit != null) {
             model.addAttribute("editQna", qnaService.findForEdit(pbancSn, edit));
+        }
+
+        // 이전 사업 Q&A 보기 (읽기 전용, FR-076-1)
+        List<QnaBidDto> pastBids = qnaService.pastBids(me, pbancSn);
+        model.addAttribute("pastBids", pastBids);
+        if (past != null) {
+            accessChecker.requireProposalMember(past, user);
+            for (QnaBidDto pb : pastBids) {
+                if (pb.getPbancSn().equals(past)) {
+                    model.addAttribute("pastBid", pb);
+                    model.addAttribute("pastGroups", qnaService.group(past, qnaService.list(past)));
+                }
+            }
         }
         return "proposal/qa";
     }

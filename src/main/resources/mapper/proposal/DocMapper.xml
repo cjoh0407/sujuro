@@ -2,9 +2,10 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <!--
   제출서류·조견표·나라장터 등록 SQL (FR-067~073).
-  사용 테이블: TB_BID_PBANC, TB_SBMSN_DCMNT, TB_ATCH_FILE(FL050 제출서류 / FL060 조견표), TB_TEAM, TB_USER, TB_COM_CD
+  사용 테이블: TB_BID_PBANC, TB_SBMSN_DCMNT, TB_EVL_ARTCL, TB_EVL_CMSNR_SCR, TB_ATCH_FILE(FL050 제출서류), TB_TEAM, TB_USER, TB_COM_CD
   파일 삭제는 DEL_YN='Y'로 숨기기만 한다(원본·이력 보관, NFR-009). 목록·최신 파일·파일 수는 삭제하지 않은 것만, 버전 계산은 전부 센다.
-  조견표는 파일로만 주고받는다 (평가 항목은 나라장터 API로 받을 수 없어 웹 입력(FR-071)과 TB_EVL_TOC_MPNG는 쓰지 않는다, 10/27 결정)
+  조견표는 웹으로 입력한다 (v4.1, FR-071): 경영지원실이 TB_EVL_ARTCL에 평가 항목·배점을 넣고 제안팀이 PAGE_NO에 쪽번호를 적는다.
+  조견표 파일(FL060)은 더 올리지 않는다 (FR-072 미적용). 예전에 올린 파일 중 삭제(숨김)한 것만 삭제된 파일 기록에 보인다. TB_EVL_TOC_MPNG는 쓰지 않는다.
 -->
 <mapper namespace="com.ojj.sujuro.proposal.mapper.DocMapper">
 
@@ -108,7 +109,48 @@
     DELETE FROM TB_SBMSN_DCMNT WHERE DCMNT_SN = #{dcmntSn}
   </delete>
 
-  <!-- ===== 파일 (FL050 제출서류 / FL060 조견표) ===== -->
+  <!-- ===== 조견표: 평가 항목·배점·쪽번호 (FR-071) ===== -->
+
+  <sql id="artclCols">
+    A.EVL_ARTCL_SN AS evlArtclSn, A.PBANC_SN AS pbancSn, A.EVL_ARTCL_NM AS evlArtclNm,
+    A.EVL_SCOR_SCR AS evlScorScr, A.PAGE_NO AS pageNo, A.SORT_SEQ AS sortSeq
+  </sql>
+
+  <select id="findArticles" resultType="com.ojj.sujuro.proposal.dto.EvlArtclDto">
+    SELECT <include refid="artclCols"/>
+      FROM TB_EVL_ARTCL A
+     WHERE A.PBANC_SN = #{pbancSn}
+     ORDER BY A.SORT_SEQ, A.EVL_ARTCL_SN
+  </select>
+
+  <select id="findArticle" resultType="com.ojj.sujuro.proposal.dto.EvlArtclDto">
+    SELECT <include refid="artclCols"/>
+      FROM TB_EVL_ARTCL A
+     WHERE A.EVL_ARTCL_SN = #{evlArtclSn}
+  </select>
+
+  <insert id="insertArticle" parameterType="com.ojj.sujuro.proposal.dto.EvlArtclDto"
+          useGeneratedKeys="true" keyProperty="evlArtclSn" keyColumn="EVL_ARTCL_SN">
+    INSERT INTO TB_EVL_ARTCL (PBANC_SN, EVL_ARTCL_NM, EVL_SCOR_SCR, SORT_SEQ)
+    VALUES (#{pbancSn}, #{evlArtclNm}, #{evlScorScr},
+            (SELECT NVL(MAX(SORT_SEQ), 0) + 1 FROM TB_EVL_ARTCL WHERE PBANC_SN = #{pbancSn}))
+  </insert>
+
+  <delete id="deleteArticle">
+    DELETE FROM TB_EVL_ARTCL WHERE EVL_ARTCL_SN = #{evlArtclSn}
+  </delete>
+
+  <update id="updateArticlePage">
+    UPDATE TB_EVL_ARTCL SET PAGE_NO = #{pageNo, jdbcType=VARCHAR} WHERE EVL_ARTCL_SN = #{evlArtclSn}
+  </update>
+
+  <select id="countArticleUses" resultType="int">
+    SELECT (SELECT COUNT(*) FROM TB_EVL_CMSNR_SCR WHERE EVL_ARTCL_SN = #{evlArtclSn})
+         + (SELECT COUNT(*) FROM TB_EVL_ARTCL WHERE UP_EVL_ARTCL_SN = #{evlArtclSn})
+      FROM DUAL
+  </select>
+
+  <!-- ===== 파일 (FL050 제출서류. FL060 조견표 파일은 예전 기록만) ===== -->
 
   <insert id="insertFile" useGeneratedKeys="true" keyProperty="f.fileSn" keyColumn="FILE_SN">
     INSERT INTO TB_ATCH_FILE (PBANC_SN, FILE_SE_CD, DCMNT_SN, VER_NO, LAST_YN,
@@ -134,13 +176,6 @@
       LEFT JOIN TB_SBMSN_DCMNT DC ON DC.DCMNT_SN = F.DCMNT_SN
   </sql>
 
-  <select id="findCheatFiles" resultType="com.ojj.sujuro.proposal.dto.PrpFileDto">
-    SELECT <include refid="fileCols"/>
-    <include refid="fileFrom"/>
-     WHERE F.PBANC_SN = #{pbancSn} AND F.FILE_SE_CD = 'FL060' AND F.DEL_YN = 'N'
-     ORDER BY F.FILE_SN DESC
-  </select>
-
   <select id="findDeletedFiles" resultType="com.ojj.sujuro.proposal.dto.PrpFileDto">
     SELECT <include refid="fileCols"/>
     <include refid="fileFrom"/>
@@ -153,10 +188,6 @@
        SET DEL_YN = 'Y', DLTR_ID = #{userId}, DEL_DT = SYSDATE, DEL_RSN = #{reason}
      WHERE FILE_SN = #{fileSn} AND DEL_YN = 'N'
   </update>
-
-  <select id="countCheatFiles" resultType="int">
-    SELECT COUNT(*) FROM TB_ATCH_FILE WHERE PBANC_SN = #{pbancSn} AND FILE_SE_CD = 'FL060'
-  </select>
 
   <select id="findFile" resultType="com.ojj.sujuro.proposal.dto.PrpFileDto">
     SELECT <include refid="fileCols"/>

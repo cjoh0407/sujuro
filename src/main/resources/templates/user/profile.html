@@ -18,7 +18,7 @@
       <div><div class="k">이름</div><div class="v" sec:authentication="principal.name">이름</div></div>
       <div><div class="k">사번</div><div class="v" sec:authentication="principal.empNo">사번</div></div>
       <div><div class="k">소속</div><div class="v" sec:authentication="principal.team">소속</div></div>
-      <div><div class="k">직급</div><div class="v" sec:authentication="principal.rank">직급</div></div>
+      <div><div class="k">직급</div><div class="v" th:text="${#authentication.principal.rank ?: '-'}">직급</div></div>
       <div><div class="k">권한</div><div class="v" sec:authentication="principal.roleLabel">권한</div></div>
     </div>
   </div>

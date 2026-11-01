@@ -30,13 +30,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class UserService {
 
-    /** 공통코드 DEPTS: 경영지원실 / 영업부 */
+    /** 공통코드 DEPTS: 경영지원실 / 영업부 (이 두 부서는 직급이 없다) */
     private static final String DEPT_MGMT = "DP010";
     private static final String DEPT_SALES = "DP020";
     /** 공통코드 JBGDS: 팀장 */
     private static final String RANK_LEADER = "JG020";
 
-    private static final Pattern EMP_NO = Pattern.compile("^[A-Za-z0-9-]{3,20}$");
+    private static final Pattern EMP_NO = Pattern.compile("^[0-9]{4}-[0-9]{4}$");
     private static final Pattern PHONE = Pattern.compile("^[0-9]{9,11}$");
     private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
@@ -75,7 +75,7 @@ public class UserService {
         if (id == null || id.isEmpty()) {
             errors.add("사번을 입력해 주세요.");
         } else if (!EMP_NO.matcher(id).matches()) {
-            errors.add("사번은 영문, 숫자, 하이픈(-)으로 3~20자여야 합니다.");
+            errors.add("사번은 숫자 4자리-숫자 4자리 형식이어야 합니다. (예: 2024-0001)");
         } else if (userMapper.countById(id) > 0) {
             errors.add("이미 등록된 사번입니다.");
         }
@@ -178,13 +178,20 @@ public class UserService {
             errors.add("이름은 100자 이하여야 합니다.");
         }
 
+        String dept = null;
         if (form.getTeamSn() == null) {
             errors.add("소속 팀을 선택해 주세요.");
-        } else if (userMapper.findDeptCd(form.getTeamSn()) == null) {
-            errors.add("사용할 수 없는 팀입니다.");
+        } else {
+            dept = trim(userMapper.findDeptCd(form.getTeamSn()));
+            if (dept == null) {
+                errors.add("사용할 수 없는 팀입니다.");
+            }
         }
 
-        if (form.getJbgdCd() == null || form.getJbgdCd().isEmpty()) {
+        if (DEPT_MGMT.equals(dept) || DEPT_SALES.equals(dept)) {
+            // 경영지원실·영업부는 직급이 없다. 화면에서 값이 와도 비워서 저장한다. (v4.3)
+            form.setJbgdCd(null);
+        } else if (form.getJbgdCd() == null || form.getJbgdCd().isEmpty()) {
             errors.add("직급을 선택해 주세요.");
         } else if (!isRank(form.getJbgdCd())) {
             errors.add("선택할 수 없는 직급입니다.");

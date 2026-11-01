@@ -213,18 +213,10 @@ public class RqtServiceImpl implements RqtService {
 
     private void validate(RqtDto in) {
         in.setRqtMttrNm(trim(in.getRqtMttrNm()));
-        in.setClsfNm(blankToNull(in.getClsfNm()));
-        in.setRqtMttrDfn(blankToNull(in.getRqtMttrDfn()));
-        in.setDtlCn(blankToNull(in.getDtlCn()));
-        in.setPageNo(blankToNull(in.getPageNo()));
         if (in.getRqtMttrNm().isEmpty()) {
             throw new BusinessException("요구사항 명칭을 입력해 주세요.");
         }
         max(in.getRqtMttrNm(), 300, "요구사항 명칭은 300자");
-        max(in.getClsfNm(), 100, "분류는 100자");
-        max(in.getRqtMttrDfn(), 2000, "정의는 2000자");
-        max(in.getDtlCn(), 4000, "세부 내용은 4000자");
-        max(in.getPageNo(), 20, "RFP 쪽은 20자");
     }
 
     private void max(String v, int n, String label) {
@@ -235,9 +227,5 @@ public class RqtServiceImpl implements RqtService {
 
     private String trim(String s) {
         return s == null ? "" : s.trim();
-    }
-
-    private String blankToNull(String s) {
-        return s == null || s.trim().isEmpty() ? null : s.trim();
     }
 }

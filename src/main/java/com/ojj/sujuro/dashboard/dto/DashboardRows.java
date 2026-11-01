@@ -17,6 +17,7 @@ public final class DashboardRows {
         private String pbancNm;
         private String statusCd;
         private String statusNm;
+        private String stepNm;     // 공고 단계 (발주계획·사전규격·입찰공고 ...)
         private String returnNm;   // 불참·중도 철회로 영업부에 돌아온 건의 구분 (없으면 null)
         private String teamNm;     // 주관팀
         private String ddlnText;   // 입찰 마감 (2026-10-29 17:00)
@@ -84,7 +85,7 @@ public final class DashboardRows {
     @Getter
     @Setter
     public static class SalesCounts {
-        private int assignWait;    // 배정 대기 (신규 입찰공고)
+        private int assignWait;    // 배정 대기 (신규 공고: 발주계획·사전규격·입찰공고)
         private int awaitingTeam;  // 팀장 응답 대기 (배정 완료)
         private int returned;      // 반환 건
         private int tracking;      // 입찰공고 대기 (발주계획·사전규격 추적 중)

@@ -22,7 +22,7 @@ public interface DashboardMapper {
 
     SalesCounts salesCounts();
 
-    /** 영업부가 처리할 공고: 배정 대기(신규 입찰공고)와 팀장 응답 대기(배정 완료) */
+    /** 영업부가 처리할 공고: 배정 대기(신규 공고: 발주계획·사전규격·입찰공고, 취소·추적 종료 제외)와 팀장 응답 대기(배정 완료) */
     List<Bid> salesTodo();
 
     LeaderCounts leaderCounts(@Param("userId") String userId);

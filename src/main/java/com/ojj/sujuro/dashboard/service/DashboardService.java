@@ -58,7 +58,7 @@ public class DashboardService {
         v.setRoleKey("SALES");
         v.setSubtitle("영업부 · 전체 팀 현황과 처리할 일");
         SalesCounts c = mapper.salesCounts();
-        v.getStats().add(new Stat("배정 대기", c.getAssignWait(), "신규 입찰공고"));
+        v.getStats().add(new Stat("배정 대기", c.getAssignWait(), "신규 공고 · 발주계획부터"));
         v.getStats().add(new Stat("팀장 응답 대기", c.getAwaitingTeam(), "배정 완료 · 결정 전"));
         v.getStats().add(new Stat("반환 건", c.getReturned(), "불참·중도 철회로 돌아옴"));
         v.getStats().add(new Stat("입찰공고 대기", c.getTracking(), "발주계획·사전규격 추적 중"));

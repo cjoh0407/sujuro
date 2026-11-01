@@ -123,10 +123,10 @@ CREATE TABLE TB_USER (
   CONSTRAINT FK_USER_RGTR_ID FOREIGN KEY (RGTR_ID) REFERENCES TB_USER (USER_ID)
 );
 COMMENT ON TABLE TB_USER IS '사용자';
-COMMENT ON COLUMN TB_USER.USER_ID IS '사용자아이디 - 사번 = 로그인 ID';
+COMMENT ON COLUMN TB_USER.USER_ID IS '사용자아이디 - 사번 = 로그인 ID. 형식 0000-0000 (숫자 4자리-숫자 4자리)';
 COMMENT ON COLUMN TB_USER.USER_NM IS '사용자명 - 이름';
 COMMENT ON COLUMN TB_USER.TEAM_SN IS '팀일련번호 - 소속 팀';
-COMMENT ON COLUMN TB_USER.JBGD_CD IS '직급코드 - 공통코드 JBGDS';
+COMMENT ON COLUMN TB_USER.JBGD_CD IS '직급코드 - 공통코드 JBGDS. 영업부·경영지원실은 직급이 없어 NULL';
 COMMENT ON COLUMN TB_USER.AUTHRT_CD IS '권한코드 - 공통코드 AUTHS (영업부/경영지원실/팀장/팀원), 직급·부서로 자동 결정';
 COMMENT ON COLUMN TB_USER.ENPSWD IS '암호화비밀번호 - BCrypt 단방향 암호화 값';
 COMMENT ON COLUMN TB_USER.ACNT_STTS_CD IS '계정상태코드 - 공통코드 ACSTS (초기 비밀번호/활성/잠금/비활성)';
@@ -713,7 +713,7 @@ COMMENT ON COLUMN TB_ATCH_FILE.ORGNL_FILE_NM IS '원본파일명';
 COMMENT ON COLUMN TB_ATCH_FILE.ORGNL_URL IS '원본URL - 나라장터에서 받은 내려받기 주소. 사람이 올린 파일은 NULL';
 COMMENT ON COLUMN TB_ATCH_FILE.STRG_FILE_NM IS '저장파일명 - 서버에 저장한 이름. 공고 첨부는 아직 안 내려받았으면 NULL';
 COMMENT ON COLUMN TB_ATCH_FILE.FILE_PATH_NM IS '파일경로명 - 서버 저장 경로. 아직 안 내려받았으면 NULL';
-COMMENT ON COLUMN TB_ATCH_FILE.FILE_SZ IS '파일크기 - byte. 통합본은 300MB, 그 외 파일은 50MB 제한 (v4.1, 300MB는 구현 예정). API에 없으므로 내려받은 뒤 기록한다 (FR-036, FR-065)';
+COMMENT ON COLUMN TB_ATCH_FILE.FILE_SZ IS '파일크기 - byte. 통합본은 300MB, 그 외 파일은 50MB 제한. API에 없으므로 내려받은 뒤 기록한다 (FR-036, FR-065)';
 COMMENT ON COLUMN TB_ATCH_FILE.FILE_EXTN_NM IS '파일확장자명';
 COMMENT ON COLUMN TB_ATCH_FILE.MEMO_CN IS '메모내용 - 업로드 메모';
 COMMENT ON COLUMN TB_ATCH_FILE.RGTR_ID IS '등록자아이디 - 업로드한 사람';

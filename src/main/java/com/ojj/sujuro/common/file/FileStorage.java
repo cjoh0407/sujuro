@@ -31,6 +31,9 @@ public class FileStorage {
     /** 파일당 최대 용량 50MB (FR-065) */
     public static final long MAX_SIZE = 50L * 1024 * 1024;
 
+    /** 통합본(전체 제안서)만 최대 300MB (FR-065) */
+    public static final long MAX_SIZE_FULL = 300L * 1024 * 1024;
+
     /** 보안을 위해 막는 실행 파일 확장자 (FR-065) */
     private static final Set<String> BLOCKED_EXT = new HashSet<>(Arrays.asList(
             "exe", "bat", "cmd", "com", "msi", "scr", "ps1", "vbs", "js", "jar", "sh", "dll", "cpl"));
@@ -40,11 +43,16 @@ public class FileStorage {
      * 비었거나, 50MB를 넘거나, 실행 파일이면 업무 예외 (FR-065)
      */
     public static String checkUpload(MultipartFile file) {
+        return checkUpload(file, MAX_SIZE);
+    }
+
+    /** 용량 한도를 지정해서 검사한다. 통합본은 MAX_SIZE_FULL(300MB)을 넘긴다. */
+    public static String checkUpload(MultipartFile file, long maxSize) {
         if (file == null || file.isEmpty()) {
             throw new BusinessException("올릴 파일을 골라 주세요.");
         }
-        if (file.getSize() > MAX_SIZE) {
-            throw new BusinessException("파일당 최대 50MB까지 올릴 수 있습니다. ZIP으로 압축해서 다시 올려 주세요.");
+        if (file.getSize() > maxSize) {
+            throw new BusinessException("이 파일은 최대 " + (maxSize / 1024 / 1024) + "MB까지 올릴 수 있습니다. ZIP으로 압축해서 다시 올려 주세요.");
         }
         String name = cleanName(file.getOriginalFilename());
         String ext = extension(name);

@@ -48,6 +48,7 @@
 
     <div class="banner info" th:unless="${prs}">제안 평가 전에 나올 만한 질문과 준비한 답변을 정리하세요. 관련 요구사항을 고르면 그 요구사항의 목차별로 묶여 보입니다.</div>
     <div class="banner info" th:if="${prs}">발표 때 실제로 나온 질문과 답변을 기록합니다. 함께 들은 제안팀 누구나 기록할 수 있습니다.</div>
+    <div class="banner info" th:unless="${canWrite}">영업부·경영지원실은 질의응답 기록을 볼 수만 있습니다. 입력·수정·삭제는 그 사업건의 제안팀이 합니다.</div>
 
     <!-- 검색 · 이전 사업 Q&amp;A 보기 -->
     <div class="qa-bar">
@@ -114,7 +115,7 @@
                 th:text="'· \'' + ${q} + '\' 검색 결과 ' + ${foundCnt} + ' / ' + ${itemCnt} + '건'">· 검색 결과</span>
           <span class="faint" style="font-weight:400" th:if="${unansweredCnt > 0}" th:text="'· 답변 미작성 ' + ${unansweredCnt} + '건'">· 답변 미작성 0건</span>
         </h3>
-        <button class="btn sm primary" type="button" onclick="addQa()" th:text="${prs} ? '+ 발표 Q&amp;A 기록' : '+ 예상 Q&amp;A 추가'">+ 예상 Q&amp;A 추가</button>
+        <button class="btn sm primary" type="button" onclick="addQa()" th:if="${canWrite}" th:text="${prs} ? '+ 발표 Q&amp;A 기록' : '+ 예상 Q&amp;A 추가'">+ 예상 Q&amp;A 추가</button>
       </div>
 
       <div class="empty" th:if="${itemCnt == 0}"
@@ -130,7 +131,7 @@
             <tr class="hv qa-row" th:each="x : ${g.items}" title="눌러서 자세히 보기" onclick="openQa(this, event)"
                 th:data-q="${x.qstnCn}" th:data-a="${x.ansCn}"
                 th:data-r="${x.rqtMttrSn != null} ? ${x.rqtMttrNo + ' ' + x.rqtMttrNm} : ''"
-                th:data-sn="${x.qstnAnsSn}" th:data-rsn="${x.rqtMttrSn}" th:data-del="${canDeleteAll or x.wrtrId == me}">
+                th:data-sn="${canWrite} ? ${x.qstnAnsSn} : null" th:data-rsn="${x.rqtMttrSn}" th:data-del="${canDeleteAll or x.wrtrId == me}">
               <td><div class="qa-clip" th:text="${x.qstnCn}">질문</div></td>
               <td>
                 <div class="qa-clip" th:unless="${x.unanswered}" th:text="${x.ansCn}">답변</div>

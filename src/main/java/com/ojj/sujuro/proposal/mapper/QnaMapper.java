@@ -29,4 +29,7 @@ public interface QnaMapper {
 
     /** 이전 사업 Q&A 보기: 이 사용자가 제안팀이었고 Q&A가 있는 다른 사업건 (최근 사업건 먼저) (FR-076-1) */
     List<QnaBidDto> findPastBids(@Param("userId") String userId, @Param("pbancSn") Long pbancSn);
+
+    /** 영업부·경영지원실용: Q&A가 있는 모든 다른 사업건 */
+    List<QnaBidDto> findAllPastBids(@Param("pbancSn") Long pbancSn);
 }

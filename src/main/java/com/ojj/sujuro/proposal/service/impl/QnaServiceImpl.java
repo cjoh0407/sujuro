@@ -119,6 +119,11 @@ public class QnaServiceImpl implements QnaService {
     }
 
     @Override
+    public List<QnaBidDto> allPastBids(Long currentPbancSn) {
+        return mapper.findAllPastBids(currentPbancSn);
+    }
+
+    @Override
     public QnaDto findForEdit(Long pbancSn, Long qstnAnsSn) {
         return own(pbancSn, qstnAnsSn);
     }

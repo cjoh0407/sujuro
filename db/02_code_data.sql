@@ -10,7 +10,6 @@
 --                          일정구분 SC040 발표 · SC050 서류 마감 사용 안 함 (캘린더에는 제출 마감과 직접 등록한 일정만 보인다)
 --                          일정구분 SC020 '내부 1차 마감' → '내부 일정', SC030 '내부 2차 마감' 사용 안 함 (일정은 자유 입력)
 -- v4.2(2026-11-02, 김종민): 알림유형 NT170 공고 수집 결과 추가 (자동 수집이 끝나면 영업부에 결과 요약 알림)
-SET DEFINE OFF
 DELETE FROM TB_COM_CD;
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('DEPTS', 'DP010', '부서', '경영지원실', 1, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('DEPTS', 'DP020', '부서', '영업부', 2, 'Y');
@@ -90,8 +89,8 @@ INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUE
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('FILSE', 'FL070', '파일구분', '평가표', 7, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('FILSE', 'FL080', '파일구분', '사전규격 규격서', 8, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('FILSE', 'FL090', '파일구분', '입찰공고 첨부', '나라장터 입찰공고에 붙은 공고서·과업지시서·협약서 등. 제안요청서는 FL010', 9, 'Y');
-INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('QNASE', 'QA010', '질문답변구분', '예상 Q&A', 1, 'Y');
-INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('QNASE', 'QA020', '질문답변구분', '발표 Q&A', 2, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('QNASE', 'QA010', '질문답변구분', '예상 Q' || CHR(38) || 'A', 1, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('QNASE', 'QA020', '질문답변구분', '발표 Q' || CHR(38) || 'A', 2, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('BDRST', 'BR010', '입찰결과', '수주', 1, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('BDRST', 'BR020', '입찰결과', '탈락', 2, 'Y');
 -- 나라장터 API 사용 프로세스(2026-10-19)에서 추가된 코드

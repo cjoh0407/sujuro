@@ -37,6 +37,10 @@ public class TocDto {
     private int sortSeq;
     private String picId;
     private String picNm;
+    /** 담당자의 계정상태코드 (비활성 AS050이면 이름 옆에 "(비활성)") */
+    private String picSttsCd;
+    /** 담당자의 지금 소속이 이 사업건의 주관팀·참여팀이 아닌지 (이름 옆에 "(다른 팀)") */
+    private boolean picOtherTeam;
     /** 외부담당회사명 - 외부 회사가 맡은 목차의 회사명. 담당자아이디와 둘 중 하나만 채운다 (FR-043-1, FR-049) */
     private String picCoNm;
     private Integer expcPageCnt;
@@ -70,7 +74,11 @@ public class TocDto {
     /** 화면에 보여 줄 담당자: 제안팀원 이름, 외부 회사면 "🏢 회사명 (외부)", 없으면 null */
     public String getOwnerLabel() {
         if (picId != null) {
-            return picNm != null ? picNm : picId;
+            String nm = picNm != null ? picNm : picId;
+            if ("AS050".equals(picSttsCd == null ? null : picSttsCd.trim())) {
+                return nm + " (비활성)";
+            }
+            return picOtherTeam ? nm + " (다른 팀)" : nm;
         }
         return picCoNm == null ? null : "\uD83C\uDFE2 " + picCoNm + " (외부)";
     }

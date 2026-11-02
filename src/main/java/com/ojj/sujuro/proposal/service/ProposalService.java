@@ -12,6 +12,12 @@ public interface ProposalService {
     /** 내가 제안팀원인 사업건 목록 */
     List<ProposalBidDto> myBids(String userId);
 
+    /** 제안팀이 꾸려진 모든 사업건 (영업부·경영지원실이 질의응답을 읽을 때) */
+    List<ProposalBidDto> proposalBids();
+
+    /** 제안팀 여부와 상관없이 사업건을 연다 (읽기 전용 화면. 권한은 AccessChecker가 먼저 검사한다) */
+    ProposalBidDto viewBid(Long pbancSn);
+
     /** 제안팀원인 사업건만 열 수 있다. 아니면 업무 예외 (권한 검사는 AccessChecker가 먼저 한다) */
     ProposalBidDto openBid(Long pbancSn, String userId);
 

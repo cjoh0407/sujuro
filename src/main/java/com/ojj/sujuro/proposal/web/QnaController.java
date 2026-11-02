@@ -22,15 +22,16 @@ import com.ojj.sujuro.proposal.service.QnaService;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 질의응답 기록 화면 (FR-074~076-1). 사업건 단위, 그 사업건 제안팀만 연다.
+ * 질의응답 기록 화면 (FR-074~076-1). 사업건 단위. 제안팀(주관+참여)이 쓰고, 영업부·경영지원실은 모든 사업건을 읽기만 한다.
  *   탭 exp: 예상 Q&A — 제안 평가 전에 예상 질문과 준비 답변 (FR-074)
  *   탭 prs: 발표 Q&A — 발표 때 실제로 나온 질문과 답변 (FR-075)
  *   입력은 질문·답변·관련 요구사항(선택)만. 목록은 관련 요구사항의 1단계 목차별로 묶은 표이고 질문·답변으로 검색한다. (FR-076)
  *   이전 사업 Q&A 보기: 내가 제안팀이었던 다른 사업건의 Q&A를 읽기 전용으로 본다. 복사하지 않는다. (FR-076-1)
  * 권한 (AccessChecker, 없으면 403):
- *   보기·등록·수정 — requireProposalMember (제안팀 누구나 기록한다, FR-075)
+ *   보기           — requireQnaReader (그 사업건 제안팀, 영업부, 경영지원실)
+ *   등록·수정      — requireProposalMember (제안팀 누구나 기록한다, FR-075. 영업부·경영지원실은 403)
  *   삭제           — 제안팀원 중 작성자 또는 주관팀 팀장 (서비스에서 확인)
- *   이전 사업 보기 — 그 사업건의 제안팀원이었어야 한다 (requireProposalMember)
+ *   이전 사업 보기 — 제안팀원은 내가 제안팀이었던 사업건, 영업부·경영지원실은 모든 사업건 (읽기 전용)
  * 나라장터 제출 뒤에도 발표가 있으므로 잠그지 않는다.
  */
 @Controller
@@ -54,14 +55,16 @@ public class QnaController {
                         @RequestParam(value = "past", required = false) Long past,
                         Model model) {
         String me = user.getEmpNo();
-        List<ProposalBidDto> bids = proposalService.myBids(me);
+        boolean reader = accessChecker.isQnaViewer(user); // 영업부·경영지원실: 모든 사업건을 읽기만
+        List<ProposalBidDto> bids = reader ? proposalService.proposalBids() : proposalService.myBids(me);
         model.addAttribute("bids", bids);
+        model.addAttribute("canWrite", !reader);
         if (bids.isEmpty()) {
             return "proposal/qa";
         }
         Long pbancSn = bid != null ? bid : bids.get(0).getPbancSn();
-        accessChecker.requireProposalMember(pbancSn, user);
-        ProposalBidDto current = proposalService.openBid(pbancSn, me);
+        accessChecker.requireQnaReader(pbancSn, user);
+        ProposalBidDto current = reader ? proposalService.viewBid(pbancSn) : proposalService.openBid(pbancSn, me);
         String tk = TAB_PRESENTED.equals(tab) ? TAB_PRESENTED : TAB_EXPECTED;
         String q = keyword == null ? "" : keyword.trim();
 
@@ -94,10 +97,10 @@ public class QnaController {
         }
 
         // 이전 사업 Q&A 보기 (읽기 전용, FR-076-1)
-        List<QnaBidDto> pastBids = qnaService.pastBids(me, pbancSn);
+        List<QnaBidDto> pastBids = reader ? qnaService.allPastBids(pbancSn) : qnaService.pastBids(me, pbancSn);
         model.addAttribute("pastBids", pastBids);
         if (past != null) {
-            accessChecker.requireProposalMember(past, user);
+            accessChecker.requireQnaReader(past, user);
             for (QnaBidDto pb : pastBids) {
                 if (pb.getPbancSn().equals(past)) {
                     model.addAttribute("pastBid", pb);

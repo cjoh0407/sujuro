@@ -32,6 +32,15 @@
      ORDER BY B.PBANC_SN DESC
   </select>
 
+  <select id="findProposalBids" resultType="com.ojj.sujuro.proposal.dto.ProposalBidDto">
+    SELECT <include refid="bidCols"/>
+      FROM TB_BID_PBANC B
+      LEFT JOIN TB_COM_CD C ON C.GROUP_CD = 'PBSTS' AND C.CD = B.PBANC_STTS_CD
+      LEFT JOIN TB_TEAM ST ON ST.TEAM_SN = B.SPRVSN_TEAM_SN
+     WHERE EXISTS (SELECT 1 FROM TB_PRP_TMMBR M WHERE M.PBANC_SN = B.PBANC_SN)
+     ORDER BY B.PBANC_SN DESC
+  </select>
+
   <select id="findBid" resultType="com.ojj.sujuro.proposal.dto.ProposalBidDto">
     SELECT <include refid="bidCols"/>
       FROM TB_BID_PBANC B
@@ -44,9 +53,15 @@
     SELECT COUNT(*) FROM TB_PRP_TMMBR WHERE PBANC_SN = #{pbancSn} AND USER_ID = #{userId}
   </select>
 
-  <!-- 목차 담당자 후보: 주관팀(PT010)·참여팀(PT020) 인원, 비활성(AS050) 계정 제외 (FR-049) -->
+  <!-- 제안팀 명단·목차 담당자 후보: 주관팀(PT010)·참여팀(PT020) 인원. 비활성(AS050) 계정은 명단에서 자연스럽게 빠진다 (FR-049).
+       다른 팀으로 옮겼는데 [그대로 두기]를 고른 사람은 남아 있으므로 화면이 "(다른 팀)"으로 표시한다 -->
   <select id="findMembers" resultType="com.ojj.sujuro.proposal.dto.ProposalMemberDto">
-    SELECT U.USER_ID AS userId, U.USER_NM AS userNm, U.TEAM_SN AS teamSn, T.TEAM_NM AS teamNm, M.PTCP_SE_CD AS ptcpSeCd, U.AUTHRT_CD AS authrtCd
+    SELECT U.USER_ID AS userId, U.USER_NM AS userNm, U.TEAM_SN AS teamSn, T.TEAM_NM AS teamNm, M.PTCP_SE_CD AS ptcpSeCd, U.AUTHRT_CD AS authrtCd,
+           U.ACNT_STTS_CD AS acntSttsCd,
+           (CASE WHEN U.USER_ID IS NOT NULL AND U.TEAM_SN IS NOT NULL
+               AND U.TEAM_SN &lt;&gt; (SELECT B.SPRVSN_TEAM_SN FROM TB_BID_PBANC B WHERE B.PBANC_SN = M.PBANC_SN)
+               AND NOT EXISTS (SELECT 1 FROM TB_PTCP_TEAM P WHERE P.PBANC_SN = M.PBANC_SN AND P.TEAM_SN = U.TEAM_SN)
+          THEN 1 ELSE 0 END) AS otherTeam
       FROM TB_PRP_TMMBR M
       JOIN TB_USER U ON U.USER_ID = M.USER_ID
       LEFT JOIN TB_TEAM T ON T.TEAM_SN = U.TEAM_SN

@@ -87,6 +87,18 @@ public class AccessChecker {
         }
     }
 
+    /** 영업부·경영지원실인가. 제안팀이 아니어도 질의응답 기록을 읽을 수 있다 (읽기 전용) */
+    public boolean isQnaViewer(LoginUser user) {
+        return user != null && (user.getRole() == Role.SALES || user.getRole() == Role.MGMT);
+    }
+
+    /** 질의응답 기록 읽기: 제안팀원이거나 영업부·경영지원실이 아니면 403 */
+    public void requireQnaReader(Long pbancSn, LoginUser user) {
+        if (!isQnaViewer(user) && !isProposalMember(pbancSn, user)) {
+            throw new AccessDeniedException("해당 사업건의 제안팀, 영업부, 경영지원실만 볼 수 있습니다.");
+        }
+    }
+
     /** @deprecated {@link #requireLeadTeamLeader}를 쓴다. */
     @Deprecated
     public void requireProposalLeader(Long pbancSn, LoginUser user) {

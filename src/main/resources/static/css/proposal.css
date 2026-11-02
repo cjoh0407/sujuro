@@ -55,6 +55,8 @@
 .mem-chip{position:relative;width:160px;box-sizing:border-box;justify-content:center;align-items:center;padding:3px 20px}
 .mem-chip .mem-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;text-align:center;font-size:11px}
 .mem-chip form{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:flex !important}
+.mem-co{background:#fdf1e1 !important;color:#8a5200 !important}
+.mem-co .x-btn{color:#8a5200}
 .file-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .file-info{display:flex;flex-direction:column;gap:2px;min-width:0}
 .file-acts{align-items:center}
@@ -78,7 +80,7 @@
 .cur-form{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12.5px}
 /* 목차 담당자: 외부 회사 직접 입력 칸 */
 .owner-form{display:inline-flex;gap:4px;align-items:center;flex-wrap:wrap}
-.owner-form .co-new{display:inline-flex;gap:4px;align-items:center}
+.owner-form .co-new{display:inline-flex;flex-wrap:wrap;gap:4px;align-items:center;max-width:360px}
 .owner-form .co-new[hidden]{display:none}
 tr.addrow>td{background:var(--accent-soft)}
 tr.addrow .cap{font-size:11.5px}

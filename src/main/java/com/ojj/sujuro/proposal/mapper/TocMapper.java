@@ -87,6 +87,9 @@ public interface TocMapper {
     /** 이 사업건 목차에 이미 쓴 외부 회사명 (자동완성 후보) */
     List<String> findCoNames(@Param("pbancSn") Long pbancSn);
 
+    /** 그 외부 회사가 맡은 이 사업건의 목차를 모두 미지정으로 돌린다. 돌린 목차 수를 돌려준다 */
+    int clearCoName(@Param("pbancSn") Long pbancSn, @Param("coNm") String coNm);
+
     /** 목차 진행 상태를 바꾼다. TS020 작성 중 / TS030 검토 완료 (FR-066) */
     int updateProgress(@Param("tocSn") Long tocSn, @Param("prgrsSttsCd") String prgrsSttsCd);
 

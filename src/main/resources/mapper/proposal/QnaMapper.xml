@@ -59,4 +59,12 @@
      WHERE B.PBANC_SN &lt;&gt; #{pbancSn}
      ORDER BY B.PBANC_SN DESC
   </select>
+
+  <select id="findAllPastBids" resultType="com.ojj.sujuro.proposal.dto.QnaBidDto">
+    SELECT B.PBANC_SN AS pbancSn, B.BID_PBANC_NO AS bidPbancNo, B.PBANC_NM AS pbancNm, Q.CNT AS qnaCnt
+      FROM TB_BID_PBANC B
+      JOIN (SELECT PBANC_SN, COUNT(*) AS CNT FROM TB_QSTN_ANS GROUP BY PBANC_SN) Q ON Q.PBANC_SN = B.PBANC_SN
+     WHERE B.PBANC_SN &lt;&gt; #{pbancSn}
+     ORDER BY B.PBANC_SN DESC
+  </select>
 </mapper>

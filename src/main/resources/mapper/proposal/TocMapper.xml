@@ -11,7 +11,12 @@
   <sql id="tocCols">
     T.TOC_SN AS tocSn, T.PBANC_SN AS pbancSn, T.TOC_FORM_SN AS tocFormSn, T.UP_TOC_SN AS upTocSn,
     T.TOC_SE_CD AS tocSeCd, T.TOC_NO AS tocNo, T.TOC_NM AS tocNm, T.SORT_SEQ AS sortSeq,
-    T.PIC_ID AS picId, U.USER_NM AS picNm, T.PIC_CO_NM AS picCoNm,
+    T.PIC_ID AS picId, U.USER_NM AS picNm, T.PIC_CO_NM AS picCoNm, U.ACNT_STTS_CD AS picSttsCd,
+    <!-- 담당자의 지금 소속이 이 사업건의 주관팀·참여팀이 아니면 1 (경영지원실이 팀을 옮긴 뒤 [그대로 두기]를 고른 경우) -->
+    (CASE WHEN T.PIC_ID IS NOT NULL AND U.TEAM_SN IS NOT NULL
+               AND U.TEAM_SN &lt;&gt; (SELECT B.SPRVSN_TEAM_SN FROM TB_BID_PBANC B WHERE B.PBANC_SN = T.PBANC_SN)
+               AND NOT EXISTS (SELECT 1 FROM TB_PTCP_TEAM P WHERE P.PBANC_SN = T.PBANC_SN AND P.TEAM_SN = U.TEAM_SN)
+          THEN 1 ELSE 0 END) AS picOtherTeam,
     T.EXPC_PAGE_CNT AS expcPageCnt, T.PRGRS_STTS_CD AS prgrsSttsCd,
     (SELECT COUNT(*) FROM TB_RQT_MTTR R WHERE R.TOC_SN = T.TOC_SN)  AS rqtCnt,
     (SELECT COUNT(*) FROM TB_TOC C WHERE C.UP_TOC_SN = T.TOC_SN)    AS childCnt,
@@ -185,6 +190,11 @@
      WHERE PBANC_SN = #{pbancSn} AND PIC_CO_NM IS NOT NULL
      ORDER BY PIC_CO_NM
   </select>
+
+  <update id="clearCoName">
+    UPDATE TB_TOC SET PIC_CO_NM = NULL
+     WHERE PBANC_SN = #{pbancSn} AND PIC_CO_NM = #{coNm}
+  </update>
 
   <update id="updateProgress">
     UPDATE TB_TOC SET PRGRS_STTS_CD = #{prgrsSttsCd} WHERE TOC_SN = #{tocSn}

@@ -37,7 +37,7 @@
   <div class="pad" style="display:flex;flex-direction:column;gap:12px">
     <div class="mem-grid">
       <span class="pill mem-chip" th:each="m : ${members}" th:classappend="${m.leader} ? 'accent' : 'neutral'">
-        <span class="mem-nm" th:text="${m.userNm + (m.teamNm != null ? ' · ' + m.teamNm : '')}">이름 · 팀</span>
+        <span class="mem-nm" th:title="${m.userNm + (m.teamNm != null ? ' · ' + m.teamNm : '') + m.stateMark}" th:text="${m.userNm + (m.teamNm != null ? ' · ' + m.teamNm : '') + m.stateMark}">이름 · 팀</span>
         <form th:if="${canAssign} and ${m.removable}" th:action="@{/proposal/team/member/remove}" method="post" style="display:inline"
               th:data-name="${m.userNm}" onsubmit="return confirm('&quot;' + this.dataset.name + '&quot;을(를) 제안팀에서 뺄까요?')">
           <input type="hidden" name="bid" th:value="${bid.pbancSn}">
@@ -46,7 +46,18 @@
           <button type="submit" class="x-btn" title="제안팀에서 빼기" aria-label="제안팀에서 빼기"><span class="ic ic-close"></span></button>
         </form>
       </span>
-      <span class="faint" th:if="${#lists.isEmpty(members)}">제안팀원이 없습니다.</span>
+      <!-- 외부 회사: 목차 담당자로 적은 회사. ✕를 누르면 그 회사 이름을 지우고, 맡던 목차는 미지정이 된다 -->
+      <span class="pill mem-chip mem-co" th:each="c : ${coNames}" th:if="${coNames != null}">
+        <span class="mem-nm" th:title="${c + ' · 외부 회사'}" th:text="${c + ' · 외부'}">회사 · 외부</span>
+        <form th:if="${canAssign}" th:action="@{/proposal/toc/co/delete}" method="post" style="display:inline"
+              th:data-name="${c}" onsubmit="return confirm('&quot;' + this.dataset.name + '&quot; 회사를 지울까요?\n그 회사가 맡은 목차는 모두 미지정이 됩니다.')">
+          <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+          <input type="hidden" name="tab" th:value="${tab}">
+          <input type="hidden" name="coNm" th:value="${c}">
+          <button type="submit" class="x-btn" title="외부 회사 지우기" aria-label="외부 회사 지우기"><span class="ic ic-close"></span></button>
+        </form>
+      </span>
+      <span class="faint" th:if="${#lists.isEmpty(members) and #lists.isEmpty(coNames)}">제안팀원이 없습니다.</span>
     </div>
 
     <div class="grid2" th:if="${canAssign}">

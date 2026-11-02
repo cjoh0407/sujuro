@@ -16,6 +16,9 @@ public interface ProposalMapper {
     /** 내가 제안팀원으로 들어가 있는 사업건 (FR-011) */
     List<ProposalBidDto> findMyBids(@Param("userId") String userId);
 
+    /** 제안팀이 꾸려진 모든 사업건 (영업부·경영지원실의 질의응답 읽기용) */
+    List<ProposalBidDto> findProposalBids();
+
     /** 사업건 한 건 (제안팀원 여부와 관계없이) */
     ProposalBidDto findBid(@Param("pbancSn") Long pbancSn);
 

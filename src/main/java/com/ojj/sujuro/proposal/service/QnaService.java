@@ -30,6 +30,9 @@ public interface QnaService {
     /** 이전 사업 Q&A 보기에서 고를 사업건: 내가 제안팀이었고 Q&A가 있는 다른 사업건 (FR-076-1) */
     List<QnaBidDto> pastBids(String userId, Long currentPbancSn);
 
+    /** 영업부·경영지원실용: Q&A가 있는 모든 다른 사업건 (읽기 전용) */
+    List<QnaBidDto> allPastBids(Long currentPbancSn);
+
     /** 수정 화면에 채울 한 건. 이 사업건 것이 아니면 업무 예외 */
     QnaDto findForEdit(Long pbancSn, Long qstnAnsSn);
 

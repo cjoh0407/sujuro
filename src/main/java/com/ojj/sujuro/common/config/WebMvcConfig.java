@@ -4,18 +4,29 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import com.ojj.sujuro.auth.support.AccountRecheckInterceptor;
 import com.ojj.sujuro.auth.support.InitialPasswordInterceptor;
 import lombok.RequiredArgsConstructor;
 
-/** 웹 MVC 설정. 초기 비밀번호 사용자를 비밀번호 변경 화면으로 보내는 인터셉터를 등록한다. (FR-002) */
+/**
+ * 웹 MVC 설정. 인터셉터 두 개를 이 순서로 등록한다.
+ * 1) 계정 재확인: 로그인 뒤 비활성·잠금·권한·소속 변경·비밀번호 초기화가 있으면 로그아웃 (FR-005~008)
+ * 2) 초기 비밀번호 사용자를 비밀번호 변경 화면으로 보낸다 (FR-002)
+ */
 @Configuration
 @RequiredArgsConstructor
 public class WebMvcConfig implements WebMvcConfigurer {
 
+    private final AccountRecheckInterceptor accountRecheckInterceptor;
     private final InitialPasswordInterceptor initialPasswordInterceptor;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(accountRecheckInterceptor)
+                .addPathPatterns("/**")
+                .excludePathPatterns(
+                        "/css/**", "/js/**", "/lib/**", "/images/**", "/favicon.ico",
+                        "/login", "/logout", "/error", "/error/**");
         registry.addInterceptor(initialPasswordInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(

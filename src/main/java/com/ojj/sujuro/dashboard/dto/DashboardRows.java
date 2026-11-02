@@ -20,7 +20,8 @@ public final class DashboardRows {
         private String stepNm;     // 공고 단계 (발주계획·사전규격·입찰공고 ...)
         private String returnNm;   // 불참·중도 철회로 영업부에 돌아온 건의 구분 (없으면 null)
         private String teamNm;     // 주관팀
-        private String ddlnText;   // 입찰 마감 (2026-10-29 17:00)
+        private String ddlnNm;     // 마감 이름: 사전규격은 '의견등록 마감', 그 밖에는 '제출 마감'. 마감일이 없으면 null
+        private String ddlnText;   // 그 마감 일시 (2026-10-29 17:00)
         private Integer dday;      // 마감까지 남은 일수. 마감일이 없으면 null
 
         public String getDdayLabel() { return DashboardRows.ddayLabel(dday); }
@@ -38,6 +39,7 @@ public final class DashboardRows {
         private Integer expcPageCnt;
         private String tocStatusNm;
         private Integer fileCnt;
+        private String ddlnNm;
         private String ddlnText;
         private Integer dday;
 

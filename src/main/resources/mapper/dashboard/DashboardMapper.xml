@@ -10,18 +10,22 @@
   <!-- 로그인한 사용자의 소속 팀 -->
   <sql id="myTeam">(SELECT U.TEAM_SN FROM TB_USER U WHERE U.USER_ID = #{userId})</sql>
 
-  <!-- 공고 P 가 내 팀의 사업인가: 주관팀이거나 참여팀 -->
-  <sql id="myTeamBid">
-    (P.SPRVSN_TEAM_SN = <include refid="myTeam"/>
-     OR EXISTS (SELECT 1 FROM TB_PTCP_TEAM PT WHERE PT.PBANC_SN = P.PBANC_SN AND PT.TEAM_SN = <include refid="myTeam"/>))
+  <!-- 공고 P 가 내가 제안팀원인 사업인가 (주관팀·참여팀 상관없이 제안팀 명단 기준).
+       제안팀 화면(/proposal)이 제안팀원만 들어오게 하므로, 팀 기준으로 세면 눌러도 열리지 않는 사업이 생긴다. -->
+  <sql id="myProposalBid">
+    EXISTS (SELECT 1 FROM TB_PRP_TMMBR M WHERE M.PBANC_SN = P.PBANC_SN AND M.USER_ID = #{userId})
   </sql>
+  <!-- 마감: 사전규격은 의견등록 마감, 그 밖에는 제출 마감 (공고 목록 FR-017 과 같은 기준) -->
+  <sql id="keyDdln">CASE WHEN P.PBANC_STEP_CD = 'PP020' AND P.OPNN_DDLN_DT IS NOT NULL THEN P.OPNN_DDLN_DT ELSE P.BID_DDLN_DT END</sql>
 
   <sql id="bidCols">
     P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, P.PBANC_STTS_CD AS statusCd, S.CD_NM AS statusNm,
     ST.CD_NM AS stepNm,
     R.CD_NM AS returnNm, TM.TEAM_NM AS teamNm,
-    TO_CHAR(P.BID_DDLN_DT, 'YYYY-MM-DD HH24:MI') AS ddlnText,
-    TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE) AS dday
+    CASE WHEN P.PBANC_STEP_CD = 'PP020' AND P.OPNN_DDLN_DT IS NOT NULL THEN '의견등록 마감'
+         WHEN P.BID_DDLN_DT IS NOT NULL THEN '제출 마감' END AS ddlnNm,
+    TO_CHAR(<include refid="keyDdln"/>, 'YYYY-MM-DD HH24:MI') AS ddlnText,
+    TRUNC(<include refid="keyDdln"/>) - TRUNC(SYSDATE) AS dday
   </sql>
 
   <sql id="bidJoins">
@@ -65,11 +69,11 @@
     SELECT (SELECT COUNT(*) FROM TB_BID_PBANC P
              WHERE P.PBANC_STTS_CD = 'PS020' AND P.SPRVSN_TEAM_SN = <include refid="myTeam"/>) AS decisionWait,
            (SELECT COUNT(*) FROM TB_BID_PBANC P
-             WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040') AND <include refid="myTeamBid"/>) AS inProgress,
+             WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040', 'PS050') AND <include refid="myProposalBid"/>) AS inProgress,
            (SELECT COUNT(*) FROM TB_RQT_MTTR Q JOIN TB_BID_PBANC P ON P.PBANC_SN = Q.PBANC_SN
-             WHERE Q.TOC_SN IS NULL AND P.PBANC_STTS_CD IN ('PS030', 'PS040') AND <include refid="myTeamBid"/>) AS unmapped,
+             WHERE Q.TOC_SN IS NULL AND P.PBANC_STTS_CD IN ('PS030', 'PS040') AND <include refid="myProposalBid"/>) AS unmapped,
            (SELECT COUNT(*) FROM TB_BID_PBANC P
-             WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040') AND <include refid="myTeamBid"/>
+             WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040') AND <include refid="myProposalBid"/>
                AND TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE) BETWEEN 0 AND 7) AS dueSoon
       FROM DUAL
   </select>
@@ -85,7 +89,7 @@
   <select id="teamProposals" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$Bid">
     SELECT <include refid="bidCols"/>
     <include refid="bidJoins"/>
-     WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040', 'PS050') AND <include refid="myTeamBid"/>
+     WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040', 'PS050') AND <include refid="myProposalBid"/>
      ORDER BY P.BID_DDLN_DT, P.PBANC_SN
      FETCH FIRST 30 ROWS ONLY
   </select>
@@ -95,6 +99,7 @@
     SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, T.TOC_NO AS tocNo, T.TOC_NM AS tocNm,
            T.EXPC_PAGE_CNT AS expcPageCnt, C.CD_NM AS tocStatusNm,
            (SELECT COUNT(*) FROM TB_ATCH_FILE F WHERE F.TOC_SN = T.TOC_SN) AS fileCnt,
+           CASE WHEN P.BID_DDLN_DT IS NOT NULL THEN '제출 마감' END AS ddlnNm,
            TO_CHAR(P.BID_DDLN_DT, 'YYYY-MM-DD HH24:MI') AS ddlnText,
            TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE) AS dday
       FROM TB_TOC T
@@ -125,7 +130,8 @@
     SELECT COUNT(*) FROM TB_BID_PBANC WHERE PBANC_STTS_CD = 'PS050'
   </select>
 
-  <!-- ===== 팀별 현황 ===== -->
+  <!-- ===== 팀별 현황 =====
+       팀이 주관하는 사업 기준으로 센다 (참여팀으로 들어간 사업은 주관팀 쪽에 잡힌다). 화면 제목에 "주관 사업 기준"으로 적는다. -->
   <select id="teamStats" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$TeamStat">
     SELECT TM.TEAM_NM AS teamNm,
            NVL(SUM(CASE WHEN P.PBANC_STTS_CD = 'PS020' THEN 1 ELSE 0 END), 0) AS assigned,

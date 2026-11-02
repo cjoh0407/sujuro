@@ -6,6 +6,16 @@
       layout:decorate="~{layout/default}">
 <head>
   <title>대시보드</title>
+  <th:block layout:fragment="head">
+    <style>
+      /* 최근 알림 한 줄 전체를 누를 수 있게 한다 */
+      .dash-alert{margin:0}
+      .dash-alert-btn{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;cursor:pointer}
+      .dash-alert-btn .t{margin-left:auto}
+      .dash-alert-btn:hover span:not(.pill){text-decoration:underline}
+      .dash-alert-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    </style>
+  </th:block>
 </head>
 <body>
 
@@ -38,7 +48,7 @@
         <span class="pill" th:classappend="${b.statusPill}" th:text="${b.statusNm}">신규</span>
         <span class="pill danger" th:if="${b.returnNm != null}" th:text="|${b.returnNm} 반환|">불참 반환</span>
         <span th:text="${b.teamNm != null} ? ${b.teamNm} : ''"></span>
-        <span th:text="${b.ddlnText != null} ? ${b.ddayLabel} : '마감일 미정'">D-3</span>
+        <span th:text="${b.ddlnText != null} ? |${b.ddlnNm} ${b.ddayLabel}| : '마감일 미정'">제출 마감 D-3</span>
       </span>
     </div>
   </div>
@@ -50,7 +60,7 @@
       <div class="empty pad faint" th:if="${#lists.isEmpty(view.todoBids)}">대기 공고가 없습니다.</div>
       <div class="item" th:each="b : ${view.todoBids}">
         <a class="sl" th:href="@{/notices/{sn}(sn=${b.pbancSn})}" th:text="${b.pbancNm}">공고명</a>
-        <span class="t" th:text="${b.ddlnText != null} ? |${b.ddlnText} 마감 · ${b.ddayLabel}| : '마감일 미정'">마감</span>
+        <span class="t" th:text="${b.ddlnText != null} ? |${b.ddlnNm} ${b.ddlnText} · ${b.ddayLabel}| : '마감일 미정'">제출 마감</span>
       </div>
     </div>
     <div class="card">
@@ -60,7 +70,7 @@
         <a class="sl" th:href="@{/proposal(bid=${b.pbancSn})}" th:text="${b.pbancNm}">공고명</a>
         <span class="t">
           <span class="pill" th:classappend="${b.statusPill}" th:text="${b.statusNm}">제안 작성 중</span>
-          <span th:text="${b.ddayLabel}">D-3</span>
+          <span th:text="${b.ddlnText != null} ? |${b.ddlnNm} ${b.ddayLabel}| : '마감일 미정'">제출 마감 D-3</span>
         </span>
       </div>
     </div>
@@ -83,7 +93,7 @@
               <span class="pill success" th:if="${t.fileCnt > 0}" th:text="|파일 ${t.fileCnt}건|">파일 1건</span>
               <span class="pill warning" th:if="${t.fileCnt == 0}">미업로드</span>
             </td>
-            <td th:text="${t.ddlnText != null} ? |${t.ddlnText} (${t.ddayLabel})| : '미정'">마감</td>
+            <td th:text="${t.ddlnText != null} ? |${t.ddlnText} (${t.ddayLabel})| : '마감일 미정'">마감</td>
           </tr>
         </tbody>
       </table>
@@ -99,7 +109,7 @@
         <tbody>
           <tr th:if="${#lists.isEmpty(view.docRows)}"><td colspan="5" class="faint">준비 중인 사업건이 없습니다.</td></tr>
           <tr th:each="r : ${view.docRows}">
-            <td><a class="sl" th:href="@{/docs}" th:text="${r.pbancNm}">사업건</a></td>
+            <td><a class="sl" th:href="@{/docs(bid=${r.pbancSn})}" th:text="${r.pbancNm}">사업건</a></td>
             <td th:text="${r.teamNm}">팀</td>
             <td th:text="|${r.docReady} / ${r.docTotal}|">1 / 3</td>
             <td>
@@ -115,7 +125,8 @@
 
   <!-- 팀별 현황 (FR-089): 영업부·경영지원실은 전체 개발팀, 팀장·팀원은 내 팀 -->
   <div class="card" style="margin-bottom:16px">
-    <div class="card-head"><h3 th:text="${view.roleKey == 'SALES' or view.roleKey == 'MGMT'} ? '팀별 현황' : '우리 팀 현황'">팀별 현황</h3></div>
+    <div class="card-head"><h3 th:text="${view.roleKey == 'SALES' or view.roleKey == 'MGMT'} ? '팀별 현황' : '우리 팀 현황'">팀별 현황</h3>
+      <span class="faint" style="font-size:11.5px">팀이 주관하는 사업 기준</span></div>
     <div class="ts">
       <table>
         <thead><tr><th>팀</th><th>결정 대기</th><th>진행 중</th><th>제출 완료</th><th>결과 등록</th></tr></thead>
@@ -137,11 +148,15 @@
   <div class="card">
     <div class="card-head"><h3>최근 알림</h3><a class="btn sm" th:href="@{/alerts}">전체 보기</a></div>
     <div class="empty pad faint" th:if="${#lists.isEmpty(view.alerts)}">알림이 없습니다.</div>
-    <div class="item" th:each="n : ${view.alerts}" th:classappend="${n.read} ? '' : 'unread'">
-      <span class="pill neutral" th:text="${n.typeNm != null} ? ${n.typeNm} : ${n.typeCd}">유형</span>
-      <span th:text="${n.content}">내용</span>
-      <span class="t" th:text="${#dates.format(n.crtDt, 'MM-dd HH:mm')}">10-26 14:00</span>
-    </div>
+    <!-- 알림을 누르면 읽음 처리하고 관련 화면으로 간다 (알림 화면과 같은 /alerts/{id}/open). 갈 곳이 없으면 알림 화면으로 -->
+    <form class="item dash-alert" th:each="n : ${view.alerts}" th:classappend="${n.read} ? '' : 'unread'"
+          th:action="@{/alerts/{id}/open(id=${n.notiSn})}" method="post">
+      <button type="submit" class="dash-alert-btn" title="눌러서 열기 (읽음 처리 후 관련 화면으로 이동)">
+        <span class="pill neutral" th:text="${n.typeNm != null} ? ${n.typeNm} : ${n.typeCd}">유형</span>
+        <span th:text="${n.content}">내용</span>
+        <span class="t" th:text="${#dates.format(n.crtDt, 'MM-dd HH:mm')}">10-26 14:00</span>
+      </button>
+    </form>
   </div>
 </th:block>
 

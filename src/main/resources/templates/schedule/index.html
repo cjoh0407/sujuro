@@ -60,14 +60,15 @@
   <!-- 월 캘린더 (FR-091) -->
   <div class="cal">
     <div class="dow">일</div><div class="dow">월</div><div class="dow">화</div><div class="dow">수</div><div class="dow">목</div><div class="dow">금</div><div class="dow">토</div>
-    <div class="cell" th:each="c : ${view.cells}" th:classappend="${c.blank} ? 'dim' : (${c.today} ? 'today' : '')">
+    <div class="cell" th:each="c : ${view.cells}" th:classappend="${c.blank} ? 'dim' : (${c.today} ? 'today' : '')"
+         th:attr="data-date=${c.blank} ? null : ${view.ym + '-' + (c.day < 10 ? '0' + c.day : c.day)}">
       <div class="d" th:if="${!c.blank}" th:text="${c.day}">1</div>
       <th:block th:each="e : ${c.events}">
         <!-- 자기 팀이 등록한 일정은 팀장이 누르면 수정·삭제 모달이 열린다. 그 밖의 일정은 보기만 한다 -->
         <button th:if="${e.editable}" type="button" class="ev sch-ev" th:classappend="|tm${e.teamNo}|"
-                th:attr="data-id=${e.id},data-title=${e.title},data-date=${e.eventDate},data-time=${e.timeText},data-pbanc=${e.pbancNm},data-changeable=${e.changeable},data-reason=${e.lockReason}"
+                th:attr="data-id=${e.id},data-title=${e.title},data-date=${e.eventDate},data-time=${e.timeText},data-pbanc=${e.pbancNm},data-changeable=${e.changeable},data-reason=${e.lockReason},draggable=${e.changeable} ? 'true' : null"
                 onclick="schOpenEdit(this)"
-                th:title="|${e.label}${e.pbancNm != null ? ' · ' + e.pbancNm : ''} · 눌러서 수정·삭제|"
+                th:title="|${e.label}${e.pbancNm != null ? ' · ' + e.pbancNm : ''} · ${e.changeable ? '눌러서 수정·삭제, 끌어서 날짜 옮기기' : '눌러서 삭제'}|"
                 th:text="${(view.teams.isEmpty() ? '' : e.teamNm + ' · ') + e.label}">14:00 내부 점검</button>
         <div th:unless="${e.editable}" class="ev" th:classappend="|tm${e.teamNo}|"
              th:title="|${e.label}${e.pbancNm != null ? ' · ' + e.pbancNm : ''}${e.teamNm != null ? ' · ' + e.teamNm : ''}|"
@@ -75,6 +76,15 @@
       </th:block>
     </div>
   </div>
+
+  <!-- 드래그로 옮기기: 일정을 다른 날짜 칸에 놓으면 이 폼으로 보낸다. 시간은 그대로, 날짜만 바뀐다 (서버에서 다시 검사) -->
+  <form id="sch-move" method="post" th:if="${view.canEdit}" th:action="@{/schedule/move}" th:data-today="${view.today}" hidden>
+    <input type="hidden" name="ym" th:value="${view.ym}">
+    <input type="hidden" name="team" th:if="${view.selectedTeamSn != null}" th:value="${view.selectedTeamSn}">
+    <input type="hidden" name="pbanc" th:if="${view.selectedPbancSn != null}" th:value="${view.selectedPbancSn}">
+    <input type="hidden" name="id" id="sm-id">
+    <input type="hidden" name="date" id="sm-date">
+  </form>
 
   <!-- 아이콘 원본 (세종 아이콘 시안과 같은 모양). 색은 버튼 색을 따라간다 -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -111,13 +121,13 @@
           </select>
         </label>
         <label>일정 이름
-          <input type="text" name="title" maxlength="256" placeholder="예: 내부 검토 회의" required>
+          <input type="text" name="title" maxlength="30" placeholder="예: 내부 검토 회의 (30자까지)" required>
         </label>
         <div class="sch-two">
           <label><span class="lbl">날짜</span><input type="date" name="date" required th:min="${view.today}"></label>
           <label><span class="lbl">시간 <span class="faint">(선택)</span></span><input type="time" name="time"></label>
         </div>
-        <div class="faint sch-help">오늘 이전 날짜는 등록할 수 없습니다. 등록하면 그 사업의 제안팀원 전원에게 화면 알림이 갑니다(메일 없음).</div>
+        <div class="faint sch-help">일정 이름은 30자까지입니다. 오늘 이전 날짜는 등록할 수 없습니다. 등록한 일정은 캘린더에서 끌어서 날짜를 옮길 수 있습니다. 등록하면 그 사업의 제안팀원 전원에게 화면 알림이 갑니다(메일 없음).</div>
         <div class="sch-actions">
           <button class="btn sm" type="button" onclick="schClose('schAdd')">취소</button>
           <button class="btn sm primary" type="submit">등록</button>
@@ -141,7 +151,7 @@
           <input type="hidden" name="team" th:if="${view.selectedTeamSn != null}" th:value="${view.selectedTeamSn}">
           <input type="hidden" name="pbanc" th:if="${view.selectedPbancSn != null}" th:value="${view.selectedPbancSn}">
           <input type="hidden" name="id" id="se-id">
-          <label>일정 이름<input type="text" name="title" id="se-title" maxlength="256" required></label>
+          <label>일정 이름<input type="text" name="title" id="se-title" maxlength="30" placeholder="30자까지" required></label>
           <div class="sch-two">
             <label><span class="lbl">날짜</span><input type="date" name="date" id="se-date" required th:min="${view.today}"></label>
             <label><span class="lbl">시간 <span class="faint">(선택)</span></span><input type="time" name="time" id="se-time"></label>

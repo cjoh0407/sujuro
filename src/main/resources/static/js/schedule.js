@@ -46,3 +46,57 @@ document.addEventListener('keydown', function (e) {
   if (e.key !== 'Escape') return;
   ['schAdd', 'schEdit'].forEach(schClose);
 });
+
+/* 드래그로 일정 옮기기 (주관팀 팀장, 우리 팀이 등록한 일정).
+   다른 날짜 칸에 놓으면 날짜만 바꿔 저장한다(시간은 그대로). 오늘 이전 칸에는 놓을 수 없다.
+   권한·지난 일정·끝난 사업은 서버에서 다시 막고, 막히면 화면 위에 이유가 나온다. */
+(function () {
+  var form = document.getElementById('sch-move');
+  if (!form) return;
+  var today = form.getAttribute('data-today');
+  var dragging = null;
+
+  function clear(cell) { cell.classList.remove('drop-ok', 'drop-no'); }
+  function canDrop(cell) { return cell.dataset.date && cell.dataset.date >= today; }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.sch .sch-ev[draggable="true"]'), function (ev) {
+    ev.addEventListener('dragstart', function (e) {
+      dragging = ev;
+      ev.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', ev.dataset.id);
+    });
+    ev.addEventListener('dragend', function () {
+      ev.classList.remove('dragging');
+      dragging = null;
+      Array.prototype.forEach.call(document.querySelectorAll('.sch .cal .cell'), clear);
+    });
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('.sch .cal .cell[data-date]'), function (cell) {
+    cell.addEventListener('dragover', function (e) {
+      if (!dragging) return;
+      if (!canDrop(cell)) {
+        cell.classList.add('drop-no');
+        e.dataTransfer.dropEffect = 'none';
+        return;
+      }
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      cell.classList.add('drop-ok');
+    });
+    cell.addEventListener('dragleave', function (e) {
+      if (e.relatedTarget && cell.contains(e.relatedTarget)) return;
+      clear(cell);
+    });
+    cell.addEventListener('drop', function (e) {
+      e.preventDefault();
+      clear(cell);
+      if (!dragging || !canDrop(cell)) return;
+      if (cell.dataset.date === dragging.dataset.date) return; // 같은 날짜면 그대로
+      document.getElementById('sm-id').value = dragging.dataset.id;
+      document.getElementById('sm-date').value = cell.dataset.date;
+      form.submit();
+    });
+  });
+})();

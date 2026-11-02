@@ -38,7 +38,7 @@ import lombok.RequiredArgsConstructor;
  * - 참여가 확정된 사업건의 제출 마감이 자동으로 나타난다. 발표일·서류 마감은 넣지 않는다. (FR-092)
  * - 주관팀 팀장만 우리 팀이 주관하는 진행 중 사업에 일정을 등록·수정·삭제한다. 참여팀 팀장·팀원은 보기만 한다. (FR-093)
  *   오늘 이전 날짜(오늘이면 지난 시각)는 등록·수정할 수 없다. 지난 일정과 끝난 사업의 일정은 삭제만 된다.
- *   수정할 때 붙은 사업건은 바꾸지 않는다.
+ *   수정할 때 붙은 사업건은 바꾸지 않는다. 캘린더에서 끌어서 날짜만 옮길 수도 있다(시간은 그대로).
  * - 일정은 팀 색으로 구분하고, 제출 마감(자동)과 직접 등록한 일정은 글자로 구분한다. (FR-094)
  *
  * 보는 팀과 고칠 수 있는 팀은 화면에서 받은 값이 아니라 로그인한 사용자의 역할과 소속 팀으로 정한다. (NFR-001)
@@ -50,7 +50,8 @@ public class ScheduleService {
     /** 팀장이 직접 등록하는 일정은 모두 "내부 일정"(SC020)이다. 구분은 고르지 않고 이름·날짜·시간을 직접 쓴다. */
     static final String KIND_INTERNAL = "SC020";
 
-    private static final int TITLE_MAX = 256;
+    /** 일정 이름 최대 글자 수. 캘린더 한 칸에 들어가도록 짧게 둔다 (DB 컬럼은 256자) */
+    static final int TITLE_MAX = 30;
 
     private final ScheduleMapper mapper;
     private final NotificationService notificationService;
@@ -163,6 +164,28 @@ public class ScheduleService {
             throw new BusinessException("수정할 일정을 찾을 수 없습니다. 자기 팀의 내부 일정만 수정할 수 있습니다.");
         }
         notifyProposalTeam(before.getPbancSn(), before.getPbancNm(), "일정이 변경되었습니다", checkedTitle, dateTime);
+    }
+
+    /**
+     * 캘린더에서 끌어서 다른 날짜로 옮긴다. 이름·시간·사업건은 그대로 두고 날짜만 바꾼다.
+     * 수정과 같은 규칙(우리 팀 일정, 지난 일정·끝난 사업 불가, 오늘 이전 날짜 불가)을 따르고 제안팀원에게 알린다.
+     */
+    @Transactional
+    public void move(LoginUser user, Long schdlSn, String date) {
+        Long teamSn = requireLeaderTeam(user);
+        ScheduleEvent before = mapper.findInternalOne(schdlSn, teamSn);
+        if (before == null) {
+            throw new BusinessException("옮길 일정을 찾을 수 없습니다. 우리 팀이 등록한 일정만 옮길 수 있습니다.");
+        }
+        String reason = lockReason(before, mapper.findEditablePbancs(teamSn));
+        if (reason != null) {
+            throw new BusinessException(reason);
+        }
+        String dateTime = checkNotPast(checkDate(date), before.getTimeText());
+        if (mapper.update(schdlSn, teamSn, before.getTitle(), dateTime) == 0) {
+            throw new BusinessException("옮길 일정을 찾을 수 없습니다. 우리 팀이 등록한 일정만 옮길 수 있습니다.");
+        }
+        notifyProposalTeam(before.getPbancSn(), before.getPbancNm(), "일정이 변경되었습니다", before.getTitle(), dateTime);
     }
 
     @Transactional

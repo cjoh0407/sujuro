@@ -8,10 +8,21 @@ read -s -p "DB 사용자(ojj) 비밀번호: " APP_PW
 echo
 
 cd ~/db
+# SQL 파일에는 SET·/ 가 없다(DBeaver 겸용). SQL*Plus 설정은 여기서 앞에 붙인다.
+# 오류(ORA-)가 있으면 파일 끝에 모아서 보여 준다. 01번의 ORA-00942(지울 테이블 없음)는 정상이라 뺀다.
 run() {
   echo ">>> $1 실행"
-  docker exec -i -e NLS_LANG=AMERICAN_AMERICA.AL32UTF8 oracle \
-    sqlplus -s ojj/"$APP_PW"@//localhost:1521/FREEPDB1 < "$1"
+  out=$( { echo "SET DEFINE OFF"; echo "SET FEEDBACK OFF"; cat "$1"; echo; echo "EXIT"; } | \
+    docker exec -i -e NLS_LANG=AMERICAN_AMERICA.AL32UTF8 oracle \
+    sqlplus -s ojj/"$APP_PW"@//localhost:1521/FREEPDB1 2>&1 )
+  # 01번은 지우기 결과뿐이라 출력하지 않는다. 나머지는 끝부분(확인표 등)을 보여 준다.
+  case "$1" in 01_*) ;; *) echo "$out" | sed '/^$/d' | tail -20 ;; esac
+  check="$out"
+  case "$1" in 01_*) check=$(echo "$out" | grep -v "ORA-00942") ;; esac
+  if echo "$check" | grep -E -q "ORA-[0-9]+|SP2-[0-9]+"; then
+    echo "!!! $1 오류:"
+    echo "$check" | grep -E -B2 "ORA-[0-9]+|SP2-[0-9]+" | head -20
+  fi
 }
 
 sudo systemctl stop sujuro

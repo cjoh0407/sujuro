@@ -25,7 +25,6 @@
 -- v1.0  2026-10-19  오창준  최초 작성 (팀 3개, 테스트 계정 5명)
 -- ============================================================
 
-SET DEFINE OFF
 
 -- 1) 팀: 같은 이름이 이미 있으면 넣지 않는다
 INSERT INTO TB_TEAM (TEAM_NM, DEPT_CD)
@@ -319,17 +318,17 @@ SELECT PBANC_SN, 2, 'PP030', 'R26BK00945112', 0, 'PY010', 760000000,
 --   주소는 가짜라 눌러도 받아지지 않는다. 크기는 지어낸 값이다.
 INSERT INTO TB_ATCH_FILE (PBANC_SN, FILE_SE_CD, ORGNL_FILE_NM, ORGNL_URL, FILE_SZ, FILE_EXTN_NM, RGTR_ID, REG_DT)
 SELECT PBANC_SN, 'FL080', '제안요청서(안)_통합민원 포털 고도화.hwpx',
-       'https://www.g2b.go.kr/pn/pnz/pnza/UntyAtchFile/downloadFile.do?bfSpecRegNo=R26BD00011088&fileType=BFDTL&fileSeq=1',
+       'https://www.g2b.go.kr/pn/pnz/pnza/UntyAtchFile/downloadFile.do?bfSpecRegNo=R26BD00011088' || CHR(38) || 'fileType=BFDTL' || CHR(38) || 'fileSeq=1',
        1843200, 'hwpx', '2023-0067', TO_DATE('2026-09-29 09:05', 'YYYY-MM-DD HH24:MI')
   FROM TB_BID_PBANC WHERE BID_PBANC_NO = 'R26BK00945112';
 INSERT INTO TB_ATCH_FILE (PBANC_SN, FILE_SE_CD, ORGNL_FILE_NM, ORGNL_URL, FILE_SZ, FILE_EXTN_NM, RGTR_ID, REG_DT)
 SELECT PBANC_SN, 'FL090', '[입찰공고문] 통합민원 포털 고도화 사업.hwp',
-       'https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK00945112&bidPbancOrd=000&fileSeq=1',
+       'https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK00945112' || CHR(38) || 'bidPbancOrd=000' || CHR(38) || 'fileSeq=1',
        96256, 'hwp', '2023-0067', TO_DATE('2026-10-16 08:09', 'YYYY-MM-DD HH24:MI')
   FROM TB_BID_PBANC WHERE BID_PBANC_NO = 'R26BK00945112';
 INSERT INTO TB_ATCH_FILE (PBANC_SN, FILE_SE_CD, ORGNL_FILE_NM, ORGNL_URL, FILE_SZ, FILE_EXTN_NM, RGTR_ID, REG_DT)
 SELECT PBANC_SN, 'FL010', '[제안요청서] 통합민원 포털 고도화 사업.hwpx',
-       'https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK00945112&bidPbancOrd=000&fileSeq=2',
+       'https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK00945112' || CHR(38) || 'bidPbancOrd=000' || CHR(38) || 'fileSeq=2',
        2097152, 'hwpx', '2023-0067', TO_DATE('2026-10-16 08:09', 'YYYY-MM-DD HH24:MI')
   FROM TB_BID_PBANC WHERE BID_PBANC_NO = 'R26BK00945112';
 

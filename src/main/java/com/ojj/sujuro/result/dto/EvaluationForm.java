@@ -10,8 +10,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 평가표 직접 입력 (경영지원실). 나라장터 기술평가점수 조회의 엑셀을 올린 뒤, 그 엑셀을 보며
- * 평가 항목·배점·평가위원별 점수를 옮겨 적는다. 우리 회사 점수만 적는다.
+ * 평가표 입력 칸 (담당 팀 팀장). 나라장터 기술평가점수 조회의 엑셀을 올리면 EvaluationExcelReader 가 읽어
+ * 평가 항목·배점·평가위원별 점수를 채우고, 팀장이 확인·수정해 저장한다. 못 읽으면 직접 적는다. 우리 회사 점수만 적는다.
  * 숫자 검사는 ResultEntryServiceImpl 이 맡아 문자열로 받는다. 틀리면 입력한 그대로 다시 채워 준다.
  *
  * 화면 이름: cmsnrCnt, items[0].nm, items[0].max, items[0].scores[0] ...

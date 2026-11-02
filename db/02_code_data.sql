@@ -9,6 +9,7 @@
 --                          알림유형 NT100 목차 담당 · NT120 요구사항 변경 · NT130 제안팀 변경 삭제 (해당 알림을 보내지 않기로 함)
 --                          일정구분 SC040 발표 · SC050 서류 마감 사용 안 함 (캘린더에는 제출 마감과 직접 등록한 일정만 보인다)
 --                          일정구분 SC020 '내부 1차 마감' → '내부 일정', SC030 '내부 2차 마감' 사용 안 함 (일정은 자유 입력)
+-- v4.2(2026-11-02, 김종민): 알림유형 NT170 공고 수집 결과 추가 (자동 수집이 끝나면 영업부에 결과 요약 알림)
 SET DEFINE OFF
 DELETE FROM TB_COM_CD;
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('DEPTS', 'DP010', '부서', '경영지원실', 1, 'Y');
@@ -61,6 +62,7 @@ INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUE
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT110', '알림유형', '평가표 업로드 요청', 11, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT150', '알림유형', '공고 단계 전환', '발주계획→사전규격, 발주계획·사전규격→입찰공고 전환 시 영업부에 메일·화면 알림 (FR-027)', 15, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT160', '알림유형', '일정 등록·변경', '팀장이 일정을 등록·변경하면 팀원·참여팀에 실시간 알림 (FR-034)', 16, 'Y');
+INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('NOTIT', 'NT170', '알림유형', '공고 수집 결과', '평일 오후 5시 자동 수집이 끝나면 바뀐 공고 수·확인 실패를 영업부에 화면 알림 (FR-025)', 17, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, SORT_SEQ, USE_YN) VALUES ('SCHSE', 'SC010', '일정구분', '제출 마감', 1, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('SCHSE', 'SC020', '일정구분', '내부 일정', '팀장이 자유롭게 등록하는 내부 일정 (일정명 직접 입력, 시간 포함) (FR-093)', 2, 'Y');
 INSERT INTO TB_COM_CD (GROUP_CD, CD, CD_GROUP_NM, CD_NM, CD_EXPLN, SORT_SEQ, USE_YN) VALUES ('SCHSE', 'SC030', '일정구분', '내부 2차 마감', '사용 안 함. 내부 일정(SC020)으로 통합 (FR-093)', 3, 'N');

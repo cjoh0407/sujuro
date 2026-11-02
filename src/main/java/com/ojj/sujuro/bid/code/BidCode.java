@@ -78,6 +78,12 @@ public final class BidCode {
     public static final String CLCT_TO_CONTRACT = "CL070";   // 계약 전환
     public static final String CLCT_FAILED = "CL090";      // 실패
 
+    /**
+     * 알림유형 (NOTIT) 중 공고 수집만 쓰는 것. 나머지 알림유형은 notification.code.NotificationType 에 있다.
+     * 자동 수집(평일 오후 5시)이 끝나면 결과 요약을 영업부에 알림으로 남긴다 (FR-025).
+     */
+    public static final String NOTI_COLLECT_RESULT = "NT170";
+
     /** 처리구분 (PRCSE) - 공고처리이력에 남기는 사람의 행동 */
     public static final String PRCS_REGIST = "PC010";    // 공고 등록
     public static final String PRCS_CORRECT = "PC020";   // 공고 정정

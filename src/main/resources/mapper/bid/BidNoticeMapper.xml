@@ -172,6 +172,11 @@
     SELECT COUNT(*) FROM TB_BID_PBANC WHERE BID_PBANC_NO = #{bidPbancNo}
   </select>
 
+  <!-- 배정된 팀. 수집이 단계 전환·정정 알림을 그 팀 팀장에게도 보낼 때 쓴다. 미배정·반환이면 NULL -->
+  <select id="findSprvsnTeamSn" parameterType="long" resultType="long">
+    SELECT SPRVSN_TEAM_SN FROM TB_BID_PBANC WHERE PBANC_SN = #{pbancSn}
+  </select>
+
   <!-- PBANC_SN 은 IDENTITY 라서 DB가 만든다. 그 값을 param.pbancSn 으로 돌려받아
        이어서 넣을 이력 행들이 쓴다. -->
   <insert id="insertNotice" parameterType="com.ojj.sujuro.bid.dto.NoticeRegisterDTO"

@@ -100,13 +100,14 @@
                 <span th:unless="${admin and open}" th:text="${d.sbmsnDdlnDt != null} ? ${#dates.format(d.sbmsnDdlnDt, 'yyyy-MM-dd')} : '-'">-</span>
               </td>
               <td>
-                <div th:if="${d.fileSn != null}" style="display:flex;flex-direction:column;gap:2px">
+                <div class="file-line">
+                <div th:if="${d.fileSn != null}" class="file-info">
                   <span th:text="${d.orgnlFileNm}">파일명</span>
                   <span class="faint" style="font-size:11px"
                         th:text="${(d.fileRgtrNm ?: '') + ' · ' + #dates.format(d.fileRegDt, 'yyyy-MM-dd HH:mm') + ' · ' + d.sizeLabel + (d.fileCnt > 1 ? ' · v' + d.fileCnt : '')}">올린 사람 · 일시</span>
                 </div>
                 <span class="faint" th:if="${d.fileSn == null}">없음</span>
-                <div class="row" style="margin-top:4px">
+                <div class="row file-acts">
                   <a class="btn sm" th:if="${d.fileSn != null}" th:href="@{/docs/download(bid=${bid.pbancSn}, fileSn=${d.fileSn})}">내려받기</a>
                   <form th:if="${#sets.contains(deletable, d.fileSn)}" th:action="@{/docs/file-delete}" method="post" style="display:inline"
                         onsubmit="return askReason(this)">
@@ -115,12 +116,20 @@
                     <input type="hidden" name="reason">
                     <button class="btn sm danger" type="submit">파일 삭제</button>
                   </form>
-                  <form th:if="${open}" th:action="@{/docs/upload}" method="post" enctype="multipart/form-data" class="row">
+                  <form th:if="${open}" th:action="@{/docs/upload}" method="post" enctype="multipart/form-data" class="drop-row">
                     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                     <input type="hidden" name="dcmntSn" th:value="${d.dcmntSn}">
-                    <input type="file" name="file" required style="max-width:190px">
+                    <label class="drop sm">
+                      <input type="file" name="file" required data-max-mb="50">
+                      <span class="ic ic-upload"></span>
+                      <span class="drop-body">
+                        <span class="drop-text"><span><b>파일 선택</b> · 끌어 놓기</span></span>
+                        <span class="drop-hint"></span>
+                      </span>
+                    </label>
                     <button class="btn sm" type="submit" th:text="${d.fileSn != null} ? '다시 올리기' : '올리기'">올리기</button>
                   </form>
+                </div>
                 </div>
               </td>
               <td th:if="${admin and open}">
@@ -194,7 +203,7 @@
                       onsubmit="return confirm('&quot;' + this.dataset.name + '&quot; 평가 항목을 삭제할까요? 적어 둔 쪽번호도 함께 지워집니다.')">
                   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                   <input type="hidden" name="evlArtclSn" th:value="${a.evlArtclSn}">
-                  <button class="ico" type="submit" title="삭제">🗑</button>
+                  <button class="ico danger" type="submit" title="삭제" aria-label="삭제"><span class="ic ic-trash"></span></button>
                 </form>
               </td>
             </tr>

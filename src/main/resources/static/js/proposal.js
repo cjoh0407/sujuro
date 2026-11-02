@@ -1,6 +1,6 @@
 /* 제안 업무 화면 공통 스크립트 (templates/proposal: 목차·요구사항, 제안서 파일, 제출서류) */
 
-/* "↳ 하위" / "＋ 같은 단계" 입력 줄을 연다. 버튼의 data-t(목차), data-m(d: 하위, s: 같은 단계), data-label, data-depth */
+/* "하위 목차 추가" / "같은 단계 목차 추가" 입력 줄을 연다. 버튼의 data-t(목차), data-m(d: 하위, s: 같은 단계), data-label, data-depth */
 function openAdd(btn) {
   document.querySelectorAll('tr.addrow').forEach(function (r) { r.hidden = true; });
   var d = btn.dataset, row = document.getElementById('add-' + d.t);
@@ -230,3 +230,178 @@ document.addEventListener('keydown', function (e) {
 function toggleExtract(all) {
   document.querySelectorAll('.ex-pick').forEach(function (c) { c.checked = all.checked; });
 }
+
+/* ---------- 질의응답 팝업 (qa.html): 보기 · 추가 · 수정 ---------- */
+
+var qaRow = null; // 지금 팝업에 띄운 목록 줄 (추가 중이면 null)
+
+function qaEl(id) { return document.getElementById(id); }
+
+/* 보기(view)와 입력(form) 중 하나만 보이게 하고 팝업을 연다 */
+function qaShow(form, title) {
+  qaEl('qaView').hidden = form;
+  qaEl('qaForm').hidden = !form;
+  qaEl('qaPopTitle').textContent = title;
+  qaEl('qaPop').hidden = false;
+  if (form) qaEl('qaFormQ').focus();
+}
+
+/* 목록 줄을 누르면 전체 질문·답변 보기. 현재 사업 Q&A(data-sn 있음)면 수정·삭제 버튼 */
+function openQa(row, e) {
+  if (e && e.target.closest('a, button, form, input, select, textarea')) return;
+  if (!qaEl('qaPop')) return;
+  qaRow = row;
+  qaEl('qaPopQ').textContent = row.dataset.q || '';
+  var a = row.dataset.a;
+  qaEl('qaPopA').textContent = a ? a : '답변을 아직 적지 않았습니다.';
+  qaEl('qaPopA').classList.toggle('faint', !a);
+  var r = row.dataset.r;
+  qaEl('qaPopR').textContent = r ? r : '-';
+  qaEl('qaPopR').classList.toggle('faint', !r);
+  var mine = !!row.dataset.sn;
+  qaEl('qaViewAct').hidden = !mine;
+  if (mine) {
+    qaEl('qaDelSn').value = row.dataset.sn;
+    qaEl('qaPopDel').hidden = row.dataset.del !== 'true';
+  }
+  qaShow(false, '질의응답 상세');
+}
+
+/* [+ 추가] 버튼: 빈 입력 칸 */
+function addQa() {
+  qaRow = null;
+  var f = qaEl('qaForm');
+  f.reset();
+  f.action = f.dataset.add;
+  qaEl('qaFormSn').disabled = true;
+  qaEl('qaFormSubmit').textContent = '등록';
+  qaShow(true, qaEl('qaPop').dataset.addTitle || '질의응답 추가');
+}
+
+/* 보기에서 [수정]: 같은 팝업에서 입력 칸으로 */
+function editQa() {
+  if (!qaRow) return;
+  var f = qaEl('qaForm');
+  f.reset();
+  f.action = f.dataset.edit;
+  qaEl('qaFormSn').disabled = false;
+  qaEl('qaFormSn').value = qaRow.dataset.sn;
+  qaEl('qaFormQ').value = qaRow.dataset.q || '';
+  qaEl('qaFormA').value = qaRow.dataset.a || '';
+  qaEl('qaFormR').value = qaRow.dataset.rsn || '';
+  qaEl('qaFormSubmit').textContent = '저장';
+  qaShow(true, '질의응답 수정');
+}
+
+/* 입력 중 [취소]: 수정이면 보기로 돌아가고, 추가면 닫는다 */
+function cancelQaForm() {
+  if (qaRow) openQa(qaRow);
+  else closeQa();
+}
+
+function closeQa() {
+  var pop = qaEl('qaPop');
+  if (pop) pop.hidden = true;
+}
+
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') closeQa();
+});
+
+/* ---------- 파일 첨부 영역 (.drop): 눌러서 고르기 + 끌어 놓기 ---------- */
+
+function dropSize(b) {
+  return b >= 1048576 ? (b / 1048576).toFixed(1) + 'MB' : Math.max(1, Math.round(b / 1024)) + 'KB';
+}
+
+/* accept(".pdf,application/pdf")에 맞는 파일인지 */
+function dropAccepts(accept, f) {
+  if (!accept) return true;
+  var name = f.name.toLowerCase(), type = (f.type || '').toLowerCase();
+  return accept.split(',').some(function (a) {
+    a = a.trim().toLowerCase();
+    if (!a) return false;
+    if (a.charAt(0) === '.') return name.slice(-a.length) === a;
+    if (a.slice(-2) === '/*') return type.indexOf(a.slice(0, -1)) === 0;
+    return type === a;
+  });
+}
+
+/* 고른 파일 이름·크기를 보여 주고, 형식·용량이 맞지 않으면 비우고 안내한다 */
+function dropRender(zone) {
+  var input = zone.querySelector('input[type=file]');
+  var text = zone.querySelector('.drop-text');
+  var hint = zone.querySelector('.drop-hint');
+  if (zone.dataset.text === undefined) {
+    zone.dataset.text = text.innerHTML;
+    zone.dataset.hint = hint ? hint.textContent : '';
+  }
+  var f = input.files && input.files[0];
+  var max = Number(input.dataset.maxMb || 0);
+  var err = null;
+  if (f && !dropAccepts(input.accept, f)) err = '이 형식은 올릴 수 없습니다: ' + f.name;
+  else if (f && max && f.size > max * 1048576) err = '최대 ' + max + 'MB까지 올릴 수 있습니다 (' + dropSize(f.size) + ')' + (input.accept ? '.' : '. ZIP으로 압축해 보세요.');
+  if (err) {
+    input.value = '';
+    f = null;
+  }
+  zone.classList.toggle('err', !!err);
+  zone.classList.toggle('has', !!f);
+  if (f) {
+    text.innerHTML = '';
+    var nm = document.createElement('span');
+    nm.className = 'nm';
+    nm.textContent = f.name;
+    var sz = document.createElement('span');
+    sz.className = 'sz';
+    sz.textContent = dropSize(f.size);
+    text.appendChild(nm);
+    text.appendChild(sz);
+    zone.title = f.name;
+  } else {
+    text.innerHTML = zone.dataset.text;
+    zone.removeAttribute('title');
+  }
+  if (hint) hint.textContent = err ? err : (f ? '다른 파일을 놓거나 눌러서 바꿀 수 있습니다' : zone.dataset.hint);
+}
+
+function dropZoneOf(e) {
+  return e.target && e.target.closest ? e.target.closest('.drop') : null;
+}
+
+function dropHasFiles(e) {
+  return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') >= 0;
+}
+
+document.addEventListener('change', function (e) {
+  var z = dropZoneOf(e);
+  if (z && e.target.type === 'file') dropRender(z);
+});
+['dragenter', 'dragover'].forEach(function (t) {
+  document.addEventListener(t, function (e) {
+    if (!dropHasFiles(e)) return;
+    e.preventDefault(); // 영역 밖에 놓아도 브라우저가 파일을 열어 버리지 않게
+    var z = dropZoneOf(e);
+    if (z) z.classList.add('over');
+    if (e.dataTransfer) e.dataTransfer.dropEffect = z ? 'copy' : 'none';
+  });
+});
+document.addEventListener('dragleave', function (e) {
+  var z = dropZoneOf(e);
+  if (z && !z.contains(e.relatedTarget)) z.classList.remove('over');
+});
+document.addEventListener('drop', function (e) {
+  if (!dropHasFiles(e)) return;
+  e.preventDefault();
+  var z = dropZoneOf(e);
+  if (!z) return;
+  z.classList.remove('over');
+  var input = z.querySelector('input[type=file]');
+  if (e.dataTransfer.files.length) {
+    var dt = new DataTransfer();
+    dt.items.add(e.dataTransfer.files[0]); // 한 번에 한 파일
+    input.files = dt.files;
+    dropRender(z);
+  }
+});
+

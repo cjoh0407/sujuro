@@ -1,9 +1,7 @@
 package com.ojj.sujuro.proposal.service.impl;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,11 +69,6 @@ public class ProposalServiceImpl implements ProposalService {
         return mapper.findRankNames();
     }
 
-    @Override
-    public List<ProposalTeamDto> teamOptions(Long pbancSn) {
-        return mapper.findTeamOptions(pbancSn);
-    }
-
     @Transactional
     @Override
     public String addMember(Long pbancSn, String userId) {
@@ -139,39 +132,12 @@ public class ProposalServiceImpl implements ProposalService {
             throw new BusinessException("'" + m.getUserNm() + "'이(가) 담당한 목차가 " + owned + "개 있습니다. 담당자를 먼저 바꿔 주세요.");
         }
         mapper.deleteMember(pbancSn, m.getUserId());
+        // 참여팀 인원이 모두 빠지면 그 팀도 참여팀에서 뺀다 (참여팀은 인원을 넣고 빼는 것으로만 정해진다)
+        if (PT_JOIN.equals(m.getPtcpSeCd()) && m.getTeamSn() != null
+                && mapper.countTeamMembers(pbancSn, m.getTeamSn()) == 0) {
+            mapper.deletePtcpTeam(pbancSn, m.getTeamSn());
+        }
         return m.getUserNm();
-    }
-
-    @Transactional
-    @Override
-    public void saveTeams(Long pbancSn, List<Long> teamSns) {
-        Set<Long> want = new HashSet<>();
-        if (teamSns != null) {
-            for (Long t : teamSns) {
-                if (t != null) {
-                    want.add(t);
-                }
-            }
-        }
-        List<ProposalTeamDto> options = mapper.findTeamOptions(pbancSn); // 주관팀은 여기에 없다
-        List<String> blocked = new ArrayList<>();
-        for (ProposalTeamDto t : options) {
-            if (t.isPtcp() && !want.contains(t.getTeamSn()) && t.getMemberCnt() > 0) {
-                blocked.add(t.getTeamNm() + "(" + t.getMemberCnt() + "명)");
-            }
-        }
-        if (!blocked.isEmpty()) {
-            throw new BusinessException("제안팀에 인원이 남아 있는 팀은 참여팀에서 뺄 수 없습니다: "
-                    + String.join(", ", blocked) + ". 인원을 먼저 빼 주세요.");
-        }
-        for (ProposalTeamDto t : options) {
-            boolean on = want.contains(t.getTeamSn());
-            if (on && !t.isPtcp()) {
-                mapper.insertPtcpTeam(pbancSn, t.getTeamSn());
-            } else if (!on && t.isPtcp()) {
-                mapper.deletePtcpTeam(pbancSn, t.getTeamSn());
-            }
-        }
     }
 
     @Transactional

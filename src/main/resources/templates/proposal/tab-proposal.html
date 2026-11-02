@@ -156,12 +156,10 @@
             </tr>
             <th:block th:each="t : ${tocs}">
 
-              <!-- 묶음 목차 (하위가 있는 목차): 아래 최하위 목차 수·요구사항 수·쪽수만 보여 준다 -->
+              <!-- 묶음 목차 (하위가 있는 목차): 이름과 편집 아이콘만 -->
               <tr th:if="${t.group}">
                 <td th:colspan="${canEdit ? cols - 1 : cols}" class="toc-group" th:style="'padding-left:' + ${t.indent} + 'px'">
                   <th:block th:replace="~{proposal/fragments/toc :: labelCell(${t}, 'prop')}"></th:block>
-                  <span class="faint" style="font-weight:400"
-                        th:text="'· 최하위 ' + ${t.leafCnt} + '개 · 요구사항 ' + ${t.subRqtCnt} + '건 · ' + ${t.subPages} + '쪽'">· 최하위 0개</span>
                   <th:block th:replace="~{proposal/fragments/toc :: tocTools(${t})}"></th:block>
                 </td>
                 <td th:if="${canEdit}" class="toc-group-bg">

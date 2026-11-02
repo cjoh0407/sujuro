@@ -3,7 +3,7 @@
 <!--/*
   제안 업무 화면 공통 머리 부분. 목차·요구사항, 제안서 파일, 제출서류, Q&A 화면에서 같이 쓴다.
   필요한 모델: bids(사업건 목록), bid(선택한 사업건), members(제안팀원, teamCard만), tab(있으면 유지)
-              teamCard 편집용(주관팀 팀장만): canAssign, teamOptions, memTeams·memRanks(인원 찾기 팝업 필터)
+              teamCard 편집용(주관팀 팀장만): canAssign, memTeams·memRanks(인원 찾기 팝업 필터). 참여팀은 인원을 넣고 빼면 자동으로 정해진다
     bidSelect(action) : 사업건 선택. action은 이 화면 주소 (예: '/proposal')
     bizHead           : 사업명 · 기관 · 공고번호 · 상태 (NFR-023: 어떤 사업건을 보고 있는지 항상 보이게)
     teamCard          : 제안팀 구성. 주관팀 팀장이면 인원 추가(찾기 팝업, 여러 명)·제외와 참여팀 지정도 한다 (FR-043~044)
@@ -35,15 +35,15 @@
     <h3 th:text="'제안팀 구성 · 주관 ' + ${bid.sprvsnTeamNm ?: '미정'} + (${bid.ptcpTeamNms != null} ? ' · 참여 ' + ${bid.ptcpTeamNms} : '')">제안팀 구성</h3>
   </div>
   <div class="pad" style="display:flex;flex-direction:column;gap:12px">
-    <div class="row">
-      <span class="pill" th:each="m : ${members}" th:classappend="${m.leader} ? 'accent' : 'neutral'">
-        <span th:text="${m.userNm + (m.teamNm != null ? ' · ' + m.teamNm : '')}">이름 · 팀</span>
+    <div class="mem-grid">
+      <span class="pill mem-chip" th:each="m : ${members}" th:classappend="${m.leader} ? 'accent' : 'neutral'">
+        <span class="mem-nm" th:text="${m.userNm + (m.teamNm != null ? ' · ' + m.teamNm : '')}">이름 · 팀</span>
         <form th:if="${canAssign} and ${m.removable}" th:action="@{/proposal/team/member/remove}" method="post" style="display:inline"
               th:data-name="${m.userNm}" onsubmit="return confirm('&quot;' + this.dataset.name + '&quot;을(를) 제안팀에서 뺄까요?')">
           <input type="hidden" name="bid" th:value="${bid.pbancSn}">
           <input type="hidden" name="tab" th:value="${tab}">
           <input type="hidden" name="userId" th:value="${m.userId}">
-          <button type="submit" class="x-btn" title="제안팀에서 빼기">✕</button>
+          <button type="submit" class="x-btn" title="제안팀에서 빼기" aria-label="제안팀에서 빼기"><span class="ic ic-close"></span></button>
         </form>
       </span>
       <span class="faint" th:if="${#lists.isEmpty(members)}">제안팀원이 없습니다.</span>
@@ -53,22 +53,9 @@
       <div class="fld">
         <label>인원 추가 (다른 팀 인원 포함)</label>
         <div class="row">
-          <button class="btn sm primary" type="button" onclick="openMemPop()">🔍 팝업에서 인원 찾기</button>
+          <button class="btn sm primary" type="button" onclick="openMemPop()"><span class="ic ic-search"></span>팝업에서 인원 찾기</button>
           <span class="faint" style="font-size:11.5px">팀·직급·이름으로 검색해 여러 명을 한 번에 추가</span>
         </div>
-      </div>
-      <div class="fld">
-        <label>참여 팀 (제안서 작성을 함께하는 팀 · 주관 팀은 1개, 참여 팀은 여러 개)</label>
-        <form th:action="@{/proposal/team/teams}" method="post" class="row">
-          <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-          <input type="hidden" name="tab" th:value="${tab}">
-          <label th:each="t : ${teamOptions}" style="font-size:12.5px">
-            <input type="checkbox" name="teamSn" th:value="${t.teamSn}" th:checked="${t.ptcp}">
-            <span th:text="${t.teamNm}">개발2팀</span><span class="faint" th:if="${t.memberCnt > 0}" th:text="' (' + ${t.memberCnt} + '명)'"> (1명)</span>
-          </label>
-          <span class="faint" th:if="${#lists.isEmpty(teamOptions)}">고를 수 있는 다른 개발팀이 없습니다.</span>
-          <button class="btn sm" type="submit" th:unless="${#lists.isEmpty(teamOptions)}">저장</button>
-        </form>
       </div>
     </div>
   </div>

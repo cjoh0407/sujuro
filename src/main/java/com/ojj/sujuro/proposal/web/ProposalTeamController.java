@@ -92,17 +92,6 @@ public class ProposalTeamController {
                 "'" + proposalService.removeMember(bid, userId) + "'을(를) 제안팀에서 뺐습니다.");
     }
 
-    /** 참여팀 지정 (체크한 팀만 참여팀으로 남는다) */
-    @PostMapping("/proposal/team/teams")
-    public String saveTeams(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
-                            @RequestParam(value = "tab", defaultValue = TAB_PROPOSAL) String tab,
-                            @RequestParam(value = "teamSn", required = false) List<Long> teamSns, RedirectAttributes ra) {
-        return run(user, bid, tab, ra, () -> {
-            proposalService.saveTeams(bid, teamSns);
-            return "참여팀을 저장했습니다.";
-        });
-    }
-
     /** 주관팀 팀장 확인(아니면 403) 후 사업건을 열고 처리한다. 안내 띠·redirect는 FlashRedirect가 맡는다. */
     private String run(LoginUser user, Long bid, String tab, RedirectAttributes ra, Supplier<String> action) {
         accessChecker.requireLeadTeamLeader(bid, user);

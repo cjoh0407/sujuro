@@ -25,10 +25,10 @@ public interface PrpFileService {
      * 최하위 목차에만 올릴 수 있고, 주관팀 팀장(lead) 또는 그 목차 담당자만 올린다.
      * 검토 완료였던 목차에 새 버전을 올리면 다시 "작성 중"이 된다. 붙은 버전 번호를 돌려준다.
      */
-    String uploadToc(Long pbancSn, String fileSeCd, Long tocSn, MultipartFile file, String memo, String userId, boolean lead);
+    String uploadToc(Long pbancSn, String fileSeCd, Long tocSn, MultipartFile file, String userId, boolean lead);
 
     /** 통합본을 올린다. 1차, 2차처럼 차수가 늘어난다. (FR-060) 붙은 차수를 돌려준다. */
-    int uploadFull(Long pbancSn, MultipartFile file, String memo, String userId);
+    int uploadFull(Long pbancSn, MultipartFile file, String userId);
 
     /** 목차 진행 상태: 검토 완료로 표시하거나 되돌린다. 파일이 없는 목차는 검토 완료로 할 수 없다. (FR-066) */
     void markReviewed(Long pbancSn, Long tocSn, boolean done);

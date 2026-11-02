@@ -127,7 +127,6 @@ public class PrpFileController {
     public String upload(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
                          @RequestParam(value = "tab", defaultValue = TAB_PART) String tab,
                          @RequestParam(value = "tocSn", required = false) Long tocSn,
-                         @RequestParam(value = "memo", required = false) String memo,
                          @RequestParam(value = "file", required = false) MultipartFile file, RedirectAttributes ra) {
         if (TAB_FULL.equals(tab)) {
             accessChecker.requireLeadTeamLeader(bid, user);
@@ -136,11 +135,11 @@ public class PrpFileController {
         }
         return FlashRedirect.run(ra, PATH, bid, tabParam(tab), () -> {
             if (TAB_FULL.equals(tab)) {
-                int cycl = fileService.uploadFull(bid, file, memo, user.getEmpNo());
+                int cycl = fileService.uploadFull(bid, file, user.getEmpNo());
                 return cycl + "차 통합본을 올렸습니다.";
             }
             String se = TAB_SUMMARY.equals(tab) ? PrpFileDto.SE_SUMMARY : PrpFileDto.SE_PART;
-            String ver = fileService.uploadToc(bid, se, tocSn, file, memo, user.getEmpNo(),
+            String ver = fileService.uploadToc(bid, se, tocSn, file, user.getEmpNo(),
                     accessChecker.isLeadTeamLeader(bid, user));
             return "파일을 올렸습니다. (v" + ver + ")";
         });

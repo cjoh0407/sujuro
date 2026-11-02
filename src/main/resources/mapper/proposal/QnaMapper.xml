@@ -3,7 +3,7 @@
 <!--
   질의응답 SQL (FR-074~076). 사용 테이블: TB_QSTN_ANS, TB_RQT_MTTR, TB_PRP_TMMBR, TB_BID_PBANC
   구분코드 QNASE: QA010 예상 Q&A, QA020 발표 Q&A.
-  v4.1: 질문·답변·관련 요구사항(RQT_MTTR_SN)만 쓴다. ANSWR_ID·TOC_SN·CCRNC_YN 컬럼은 남겨 두고 읽거나 바꾸지 않는다.
+  v4.1: 질문·답변·관련 요구사항(RQT_MTTR_SN)만 쓴다. (답변자·목차·일치여부 컬럼은 db/15 패치로 삭제)
   요구사항을 지우면 RqtMapper가 RQT_MTTR_SN을 비운다.
 -->
 <mapper namespace="com.ojj.sujuro.proposal.mapper.QnaMapper">

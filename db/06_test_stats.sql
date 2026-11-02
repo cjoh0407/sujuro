@@ -1,5 +1,6 @@
 -- ============================================================
--- 통계 화면 확인용 입찰 결과 데이터 (03_test_data.sql 실행 후)
+-- 06_test_stats.sql : 통계 화면 확인용 입찰 결과 데이터 (03_test_data.sql 실행 후)
+-- 순서: 01 → 02 → 03 → 04 → 05 → 06 → 07 (db/README.md)
 -- 실행: docker exec -i -e NLS_LANG=AMERICAN_AMERICA.AL32UTF8 oracle sqlplus -s 계정/비밀번호@//localhost:1521/FREEPDB1 < 06_test_stats.sql
 -- 결과 등록 공고 R26BK00938420(통합 보안관제 체계 구축, 상태 PS060)에 수주 결과와 평가 점수를 넣는다.
 -- 유찰(PS070)·제출 완료(PS050) 공고는 03_test_data.sql 에 이미 있어서 통계의 참여·유찰 건수에 잡힌다.

@@ -8,13 +8,15 @@ import org.apache.ibatis.annotations.Param;
 
 import com.ojj.sujuro.result.dto.BidRsltDTO;
 import com.ojj.sujuro.result.dto.CoEvlRsltDTO;
+import com.ojj.sujuro.result.dto.CompanyArticleScoreDTO;
 import com.ojj.sujuro.result.dto.EvaluationArticleDTO;
 import com.ojj.sujuro.result.dto.EvaluationFileDTO;
+import com.ojj.sujuro.result.dto.EvaluationScoreDTO;
 import com.ojj.sujuro.result.dto.ResultBidDTO;
 import com.ojj.sujuro.result.dto.ResultCompanyDTO;
 import com.ojj.sujuro.result.dto.ResultTargetDTO;
 
-/** 결과 등록(수집)과 평가·결과 입력(경영지원실). SQL 은 mapper/result/ResultMapper.xml */
+/** 결과 등록(수집)과 평가·결과 입력(경영지원실·팀장). SQL 은 mapper/result/ResultMapper.xml */
 @Mapper
 public interface ResultMapper {
 
@@ -49,15 +51,21 @@ public interface ResultMapper {
     /** 개찰 업체 (순위 순) */
     List<ResultCompanyDTO> findCompanies(@Param("pbancSn") Long pbancSn);
 
-    /* ---- 입력 (경영지원실) ---- */
+    /** 업체 한 곳이 저장한 평가 항목·위원별 점수 (입력 칸을 채울 때). 저장한 것이 없으면 빈 목록 */
+    List<EvaluationScoreDTO> findCompanyScores(@Param("coEvlRsltSn") Long coEvlRsltSn);
+
+    /** 업체별·항목별 위원 평균 점수 (업체별 평가표 비교). 점수를 저장한 업체만 나온다 */
+    List<CompanyArticleScoreDTO> findCompanyArticleScores(@Param("pbancSn") Long pbancSn);
+
+    /** 업체 한 곳의 마지막 평가표 파일. 없으면 null */
+    EvaluationFileDTO findCompanyEvaluationFile(@Param("coEvlRsltSn") Long coEvlRsltSn);
+
+    /* ---- 입력 (경영지원실·팀장) ---- */
 
     /** 장단점 분석 (FR-081). null 은 그 칸을 지운다 */
     int updateAnalysis(@Param("pbancSn") Long pbancSn, @Param("strptCn") String strptCn,
                        @Param("sbptCsCn") String sbptCsCn, @Param("splmntCn") String splmntCn,
                        @Param("userId") String userId);
-
-    /** 개찰 목록의 우리 회사 행. 없으면 null */
-    Long findOurCoEvlRsltSn(@Param("pbancSn") Long pbancSn);
 
     /** 평가표 파일의 다음 버전 번호 */
     int nextEvaluationFileVer(@Param("pbancSn") Long pbancSn);
@@ -67,8 +75,8 @@ public interface ResultMapper {
                              @Param("f") EvaluationFileDTO f, @Param("fileSz") long fileSz,
                              @Param("fileExtnNm") String fileExtnNm, @Param("userId") String userId);
 
-    /** 이 공고의 평가표 파일·업로드 기록에서 '마지막' 표시를 뗀다 */
-    int clearLastEvaluationFiles(@Param("pbancSn") Long pbancSn);
+    /** 이 업체의 지난 평가표 파일에서 '마지막' 표시를 뗀다 (업체마다 평가표가 따로 있다). clearLastUploads 보다 먼저 부른다 */
+    int clearLastEvaluationFiles(@Param("coEvlRsltSn") Long coEvlRsltSn);
 
     int clearLastUploads(@Param("coEvlRsltSn") Long coEvlRsltSn);
 
@@ -76,15 +84,22 @@ public interface ResultMapper {
 
     int markUploaded(@Param("coEvlRsltSn") Long coEvlRsltSn);
 
-    /** 이 공고의 평가 항목과 위원 점수를 모두 지운다 (다시 입력하기 전에). 점수 → 세부 항목 → 항목 순서로 부른다 */
-    int deleteScores(@Param("pbancSn") Long pbancSn);
+    /** 이 업체의 위원 점수를 모두 지운다 (다시 저장하기 전에). 다른 업체 점수는 그대로 둔다 */
+    int deleteCompanyScores(@Param("coEvlRsltSn") Long coEvlRsltSn);
 
-    int deleteSubArticles(@Param("pbancSn") Long pbancSn);
-
-    int deleteArticles(@Param("pbancSn") Long pbancSn);
+    /** 이 공고의 평가 항목 (세부 항목 제외). 업체들이 같은 항목을 함께 쓴다 */
+    List<EvaluationArticleDTO> findArticles(@Param("pbancSn") Long pbancSn);
 
     /** 평가 항목 한 줄. 저장 뒤 a.evlArtclSn 이 채워진다 */
     int insertArticle(EvaluationArticleDTO a);
+
+    /** 이미 있는 항목의 배점·순서를 고친다 */
+    int updateArticle(EvaluationArticleDTO a);
+
+    /** 어느 업체도 점수를 넣지 않은 항목을 지운다. 세부 항목 → 항목 순서로 부른다 */
+    int deleteUnusedSubArticles(@Param("pbancSn") Long pbancSn);
+
+    int deleteUnusedArticles(@Param("pbancSn") Long pbancSn);
 
     int insertScore(@Param("coEvlRsltSn") Long coEvlRsltSn, @Param("evlArtclSn") Long evlArtclSn,
                     @Param("cmsnrNo") int cmsnrNo, @Param("evlScr") BigDecimal evlScr);

@@ -1,12 +1,16 @@
 package com.ojj.sujuro.result.service.impl;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -21,9 +25,12 @@ import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.common.exception.BusinessException;
 import com.ojj.sujuro.common.file.FileStorage;
 import com.ojj.sujuro.result.dto.EvaluationArticleDTO;
+import com.ojj.sujuro.result.dto.EvaluationCompareDTO;
 import com.ojj.sujuro.result.dto.EvaluationFileDTO;
 import com.ojj.sujuro.result.dto.EvaluationForm;
+import com.ojj.sujuro.result.dto.EvaluationScoreDTO;
 import com.ojj.sujuro.result.dto.ResultBidDTO;
+import com.ojj.sujuro.result.dto.ResultCompanyDTO;
 import com.ojj.sujuro.result.dto.ResultOutcomeDTO;
 import com.ojj.sujuro.result.dto.ResultTargetDTO;
 import com.ojj.sujuro.result.dto.ResultsViewDTO;
@@ -34,6 +41,7 @@ import com.ojj.sujuro.result.mapper.StatsMapper;
 import com.ojj.sujuro.result.service.ResultCollectService;
 import com.ojj.sujuro.result.service.ResultEntryService;
 import com.ojj.sujuro.result.service.StatsService;
+import com.ojj.sujuro.result.support.EvaluationExcelReader;
 import com.ojj.sujuro.result.support.StatsFormat;
 
 /** 평가·결과 입력 (경영지원실·팀장). 규칙은 인터페이스(ResultEntryService)에 있다. */
@@ -74,7 +82,7 @@ public class ResultEntryServiceImpl implements ResultEntryService {
 
     @Override
     @Transactional(readOnly = true)
-    public ResultsViewDTO build(LoginUser user, Long bid) {
+    public ResultsViewDTO build(LoginUser user, Long bid, Long coSn, boolean fromFile) {
         ResultsViewDTO v = new ResultsViewDTO();
         v.setReady(resultCollectService.isReady());
         v.setCanImport(user.getRole() == Role.MGMT);
@@ -97,11 +105,67 @@ public class ResultEntryServiceImpl implements ResultEntryService {
         if (picked.isResulted()) {
             StatsArchiveDTO a = statsService.findArchive(user, sn); // 개발팀 사업이 아니거나 결과 행이 없으면 null
             v.setArchive(a);
-            v.setCompanies(resultMapper.findCompanies(sn));
+            List<ResultCompanyDTO> companies = resultMapper.findCompanies(sn);
+            v.setCompanies(companies);
             v.setCanUpload(a != null && (user.getRole() == Role.MGMT || isTeamLeader(user, a)));
             v.setCanScore(a != null && isTeamLeader(user, a));
+            ResultCompanyDTO co = pickCompany(companies, coSn);
+            if (a != null && co != null) {
+                fillCompany(v, sn, co, fromFile);
+            }
         }
         return v;
+    }
+
+    /** 평가표 칸: 고른 업체의 저장된 점수·마지막 평가표, 팀장이면 엑셀에서 읽은 값, 그리고 업체별 비교 */
+    private void fillCompany(ResultsViewDTO v, Long pbancSn, ResultCompanyDTO co, boolean fromFile) {
+        v.setCompany(co);
+        List<EvaluationScoreDTO> saved = resultMapper.findCompanyScores(co.getCoEvlRsltSn());
+        v.setCompanyForm(EvaluationForm.fromSaved(saved));
+        EvaluationFileDTO file = resultMapper.findCompanyEvaluationFile(co.getCoEvlRsltSn());
+        v.setCompanyFile(file);
+        if (v.isCanScore() && file != null && (fromFile || saved.isEmpty())) {
+            fillFromExcel(v, file, co);
+        }
+        v.setEvaluationCompare(EvaluationCompareDTO.of(v.getCompanies(), resultMapper.findCompanyArticleScores(pbancSn)));
+    }
+
+    /** 고른 업체. 목록에 없거나 고르지 않았으면 우리 회사, 우리 회사도 없으면 null */
+    static ResultCompanyDTO pickCompany(List<ResultCompanyDTO> companies, Long coSn) {
+        return companies.stream().filter(c -> c.getCoEvlRsltSn() != null && c.getCoEvlRsltSn().equals(coSn)).findFirst()
+                .orElseGet(() -> companies.stream().filter(ResultCompanyDTO::isOurs).findFirst().orElse(null));
+    }
+
+    /** 올린 평가표 엑셀을 읽어 입력 칸을 채운다. 읽지 못하면 이유만 보여 주고 직접 입력하게 둔다 */
+    private void fillFromExcel(ResultsViewDTO v, EvaluationFileDTO file, ResultCompanyDTO co) {
+        try (InputStream in = storage.load(file.getFilePathNm(), file.getStrgFileNm()).getInputStream()) {
+            EvaluationForm f = EvaluationExcelReader.read(in);
+            v.setExcelForm(f);
+            v.setExcelNote("올린 엑셀에서 평가 항목 " + f.getItems().size() + "개와 평가위원 " + f.getCmsnrCnt()
+                    + "명의 점수를 읽어 채웠습니다. 확인한 뒤 [평가표 저장]을 누르세요.");
+        } catch (BusinessException e) {
+            v.setExcelError(e.getMessage());
+            return;
+        } catch (IOException e) {
+            v.setExcelError("엑셀 파일을 열지 못했습니다. 아래에 직접 입력하세요.");
+            return;
+        }
+        // 엑셀 안에는 업체명이 없다. 다른 업체 것을 올리면 그 점수가 고른 업체 점수로 들어가므로 파일 이름으로 확인한다
+        String fileCo = EvaluationExcelReader.companyOf(file.getOrgnlFileNm());
+        if (fileCo != null && co.getCoNm() != null && !EvaluationExcelReader.sameCompany(fileCo, co.getCoNm())) {
+            v.setExcelWarn("파일 이름의 업체(" + fileCo + ")가 고른 업체(" + co.getCoNm() + ")와 다릅니다. "
+                    + "업체를 맞게 골랐는지, 다른 업체의 평가표가 아닌지 확인하세요.");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public EvaluationFileDTO findCompanyEvaluationFile(LoginUser user, Long pbancSn, Long coSn) {
+        StatsArchiveDTO a = requireArchive(pbancSn);
+        if (user.getRole() != Role.MGMT && !isTeamLeader(user, a)) {
+            throw new AccessDeniedException("이 사업의 평가표는 경영지원실과 담당 팀 팀장만 내려받을 수 있습니다.");
+        }
+        return resultMapper.findCompanyEvaluationFile(requireCompany(pbancSn, coSn).getCoEvlRsltSn());
     }
 
     @Override
@@ -137,13 +201,13 @@ public class ResultEntryServiceImpl implements ResultEntryService {
     }
 
     @Override
-    public void uploadEvaluationFile(LoginUser user, Long pbancSn, MultipartFile file) {
+    public void uploadEvaluationFile(LoginUser user, Long pbancSn, Long coSn, MultipartFile file) {
         if (user.getRole() != Role.MGMT) {
             requireTeamLeader(user, pbancSn);
         } else {
             requireArchive(pbancSn);
         }
-        Long coSn = requireOurCompany(pbancSn);
+        Long co = requireCompany(pbancSn, coSn).getCoEvlRsltSn();
         String name = FileStorage.checkUpload(file);
         String ext = FileStorage.extension(name);
         if (!EXCEL_EXT.contains(ext)) {
@@ -158,11 +222,11 @@ public class ResultEntryServiceImpl implements ResultEntryService {
             f.setStrgFileNm(stored);
             f.setFilePathNm(subDir);
             String ver = String.valueOf(resultMapper.nextEvaluationFileVer(pbancSn));
-            resultMapper.clearLastEvaluationFiles(pbancSn);
+            resultMapper.clearLastEvaluationFiles(co); // 업로드 기록의 '마지막'을 떼기 전에 불러야 지난 파일을 찾는다
             resultMapper.insertEvaluationFile(pbancSn, ver, f, file.getSize(), FileStorage.extColumn(ext), user.getEmpNo());
-            resultMapper.clearLastUploads(coSn);
-            resultMapper.insertUpload(coSn, f.getFileSn(), user.getEmpNo());
-            resultMapper.markUploaded(coSn);
+            resultMapper.clearLastUploads(co);
+            resultMapper.insertUpload(co, f.getFileSn(), user.getEmpNo());
+            resultMapper.markUploaded(co);
         } catch (RuntimeException e) {
             storage.deleteQuietly(subDir, stored);
             throw e;
@@ -170,11 +234,11 @@ public class ResultEntryServiceImpl implements ResultEntryService {
     }
 
     @Override
-    public void saveEvaluation(LoginUser user, Long pbancSn, EvaluationForm form) {
+    public void saveEvaluation(LoginUser user, Long pbancSn, Long coSn, EvaluationForm form) {
         requireTeamLeader(user, pbancSn);
-        Long coSn = requireOurCompany(pbancSn);
-        if (statsMapper.findEvaluationFile(pbancSn) == null) {
-            throw new BusinessException("평가표 엑셀을 먼저 올려 주세요. 올린 엑셀을 보며 항목과 점수를 입력합니다.");
+        Long co = requireCompany(pbancSn, coSn).getCoEvlRsltSn();
+        if (resultMapper.findCompanyEvaluationFile(co) == null) {
+            throw new BusinessException("이 업체의 평가표 엑셀을 먼저 올려 주세요. 올린 엑셀에서 항목과 점수를 읽어 채웁니다.");
         }
 
         int cmsnr = cmsnrCount(form.getCmsnrCnt());
@@ -231,18 +295,29 @@ public class ResultEntryServiceImpl implements ResultEntryService {
             throw new BusinessException("배점 합계가 100점을 넘습니다(" + StatsFormat.score(maxSum.doubleValue()) + "점). 엑셀의 배점기준을 확인하세요.");
         }
 
-        resultMapper.deleteScores(pbancSn);
-        resultMapper.deleteSubArticles(pbancSn);
-        resultMapper.deleteArticles(pbancSn);
+        // 평가 항목은 같은 공고의 업체들이 함께 쓴다. 이 업체 점수만 지우고, 이름이 같은 항목은 다시 쓴다
+        Map<String, Long> existing = new HashMap<>();
+        for (EvaluationArticleDTO e : resultMapper.findArticles(pbancSn)) {
+            existing.put(e.getEvlArtclNm(), e.getEvlArtclSn());
+        }
+        resultMapper.deleteCompanyScores(co);
         for (int i = 0; i < articles.size(); i++) {
             EvaluationArticleDTO a = articles.get(i);
-            resultMapper.insertArticle(a);
+            Long sn = existing.get(a.getEvlArtclNm());
+            if (sn == null) {
+                resultMapper.insertArticle(a);
+            } else {
+                a.setEvlArtclSn(sn);
+                resultMapper.updateArticle(a);
+            }
             List<BigDecimal> row = scores.get(i);
             for (int j = 0; j < row.size(); j++) {
-                resultMapper.insertScore(coSn, a.getEvlArtclSn(), j + 1, row.get(j));
+                resultMapper.insertScore(co, a.getEvlArtclSn(), j + 1, row.get(j));
             }
         }
-        resultMapper.updateUploadCmsnrCnt(coSn, cmsnr);
+        resultMapper.deleteUnusedSubArticles(pbancSn);
+        resultMapper.deleteUnusedArticles(pbancSn);
+        resultMapper.updateUploadCmsnrCnt(co, cmsnr);
     }
 
     private static void requireMgmt(LoginUser user) {
@@ -275,13 +350,18 @@ public class ResultEntryServiceImpl implements ResultEntryService {
         return a;
     }
 
-    private Long requireOurCompany(Long pbancSn) {
-        Long coSn = resultMapper.findOurCoEvlRsltSn(pbancSn);
-        if (coSn == null) {
+    /** 평가표를 넣을 개찰 업체. coSn 이 없으면 우리 회사. 우리 회사 행이 없거나 이 공고의 업체가 아니면 BusinessException */
+    private ResultCompanyDTO requireCompany(Long pbancSn, Long coSn) {
+        List<ResultCompanyDTO> companies = resultMapper.findCompanies(pbancSn);
+        if (companies.stream().noneMatch(ResultCompanyDTO::isOurs)) {
             throw new BusinessException("개찰 목록에 우리 회사 행이 없어 평가표를 넣을 수 없습니다. "
                     + "나라장터 개찰 결과로 자동 등록된 사업만 평가표를 넣을 수 있습니다.");
         }
-        return coSn;
+        ResultCompanyDTO c = pickCompany(companies, coSn);
+        if (coSn != null && !coSn.equals(c.getCoEvlRsltSn())) {
+            throw new BusinessException("이 사업의 개찰 업체가 아닙니다. 업체를 다시 골라 주세요.");
+        }
+        return c;
     }
 
     /** 위원 수 1~20 */

@@ -104,12 +104,46 @@
   </select>
 
   <select id="findCompanies" resultType="com.ojj.sujuro.result.dto.ResultCompanyDTO">
-    SELECT OPENG_RNK AS opengRnk, BIZ_NO AS bizNo, CO_NM AS coNm, BID_AMT AS bidAmt,
+    SELECT CO_EVL_RSLT_SN AS coEvlRsltSn, OPENG_RNK AS opengRnk, BIZ_NO AS bizNo, CO_NM AS coNm, BID_AMT AS bidAmt,
            TECH_EVL_SCR AS techEvlScr, TECH_EVL_ORGNL_SCR AS techEvlOrgnlScr, PRC_EVL_SCR AS prcEvlScr,
-           SNTHS_EVL_SCR AS snthsEvlScr, OUR_CO_YN AS ourCoYn, SCSBD_YN AS scsbdYn
+           SNTHS_EVL_SCR AS snthsEvlScr, OUR_CO_YN AS ourCoYn, SCSBD_YN AS scsbdYn, EVL_TBL_UPLD_YN AS evlTblUpldYn
       FROM TB_CO_EVL_RSLT
      WHERE PBANC_SN = #{pbancSn}
      ORDER BY OPENG_RNK NULLS LAST, CO_NM
+  </select>
+
+  <!-- 업체 한 곳이 저장한 항목·위원별 점수. 입력 칸을 다시 채울 때 쓴다 (EvaluationForm.fromSaved) -->
+  <select id="findCompanyScores" resultType="com.ojj.sujuro.result.dto.EvaluationScoreDTO">
+    SELECT A.EVL_ARTCL_SN AS evlArtclSn, A.EVL_ARTCL_NM AS evlArtclNm, A.EVL_SCOR_SCR AS evlScorScr,
+           S.CMSNR_NO AS cmsnrNo, S.EVL_SCR AS evlScr
+      FROM TB_EVL_CMSNR_SCR S
+      JOIN TB_EVL_ARTCL A ON A.EVL_ARTCL_SN = S.EVL_ARTCL_SN
+     WHERE S.CO_EVL_RSLT_SN = #{coEvlRsltSn}
+     ORDER BY A.SORT_SEQ, A.EVL_ARTCL_SN, S.CMSNR_NO
+  </select>
+
+  <!-- 업체별 평가표 비교: 업체·항목마다 위원 점수 평균. 세부 항목이 있는 상위 항목은 뺀다(통계와 같은 규칙) -->
+  <select id="findCompanyArticleScores" resultType="com.ojj.sujuro.result.dto.CompanyArticleScoreDTO">
+    SELECT S.CO_EVL_RSLT_SN AS coEvlRsltSn, A.EVL_ARTCL_SN AS evlArtclSn, A.EVL_ARTCL_NM AS evlArtclNm,
+           A.EVL_SCOR_SCR AS evlScorScr, AVG(S.EVL_SCR) AS avgScr
+      FROM TB_EVL_ARTCL A
+      JOIN TB_EVL_CMSNR_SCR S ON S.EVL_ARTCL_SN = A.EVL_ARTCL_SN
+     WHERE A.PBANC_SN = #{pbancSn}
+       AND NOT EXISTS (SELECT 1 FROM TB_EVL_ARTCL K WHERE K.UP_EVL_ARTCL_SN = A.EVL_ARTCL_SN)
+     GROUP BY S.CO_EVL_RSLT_SN, A.EVL_ARTCL_SN, A.EVL_ARTCL_NM, A.EVL_SCOR_SCR, A.SORT_SEQ
+     ORDER BY A.SORT_SEQ, A.EVL_ARTCL_SN
+  </select>
+
+  <!-- 업체 한 곳의 마지막 평가표 파일 (업로드 기록 TB_EVL_TBL_UPLD 의 마지막 줄) -->
+  <select id="findCompanyEvaluationFile" resultType="com.ojj.sujuro.result.dto.EvaluationFileDTO">
+    SELECT F.FILE_SN AS fileSn, F.ORGNL_FILE_NM AS orgnlFileNm, F.STRG_FILE_NM AS strgFileNm,
+           F.FILE_PATH_NM AS filePathNm, U.USER_NM AS rgtrNm, F.REG_DT AS regDt
+      FROM TB_EVL_TBL_UPLD E
+      JOIN TB_ATCH_FILE F ON F.FILE_SN = E.FILE_SN
+      LEFT JOIN TB_USER U ON U.USER_ID = F.RGTR_ID
+     WHERE E.CO_EVL_RSLT_SN = #{coEvlRsltSn} AND E.LAST_YN = 'Y' AND F.DEL_YN = 'N'
+     ORDER BY E.EVL_TBL_UPLD_SN DESC
+     FETCH FIRST 1 ROWS ONLY
   </select>
 
   <!-- 장단점 분석 (FR-081). 누가 언제 고쳤는지 MDFR_ID·MDFCN_DT 에 남긴다 -->
@@ -123,10 +157,6 @@
      WHERE PBANC_SN = #{pbancSn}
   </update>
 
-  <select id="findOurCoEvlRsltSn" resultType="long">
-    SELECT CO_EVL_RSLT_SN FROM TB_CO_EVL_RSLT WHERE PBANC_SN = #{pbancSn} AND OUR_CO_YN = 'Y'
-  </select>
-
   <select id="nextEvaluationFileVer" resultType="int">
     SELECT COUNT(*) + 1 FROM TB_ATCH_FILE WHERE PBANC_SN = #{pbancSn} AND FILE_SE_CD = 'FL070'
   </select>
@@ -138,8 +168,11 @@
             #{fileSz}, #{fileExtnNm, jdbcType=VARCHAR}, #{userId})
   </insert>
 
+  <!-- 업체마다 평가표가 따로 있어, 이 업체가 지난번에 올린 파일만 '마지막'을 뗀다 -->
   <update id="clearLastEvaluationFiles">
-    UPDATE TB_ATCH_FILE SET LAST_YN = 'N' WHERE PBANC_SN = #{pbancSn} AND FILE_SE_CD = 'FL070' AND LAST_YN = 'Y'
+    UPDATE TB_ATCH_FILE SET LAST_YN = 'N'
+     WHERE FILE_SE_CD = 'FL070' AND LAST_YN = 'Y'
+       AND FILE_SN IN (SELECT FILE_SN FROM TB_EVL_TBL_UPLD WHERE CO_EVL_RSLT_SN = #{coEvlRsltSn} AND LAST_YN = 'Y')
   </update>
 
   <update id="clearLastUploads">
@@ -155,25 +188,43 @@
     UPDATE TB_CO_EVL_RSLT SET EVL_TBL_UPLD_YN = 'Y' WHERE CO_EVL_RSLT_SN = #{coEvlRsltSn}
   </update>
 
-  <delete id="deleteScores">
-    DELETE FROM TB_EVL_CMSNR_SCR
-     WHERE EVL_ARTCL_SN IN (SELECT EVL_ARTCL_SN FROM TB_EVL_ARTCL WHERE PBANC_SN = #{pbancSn})
+  <!-- 이 업체 점수만 지운다. 평가 항목은 업체들이 함께 쓰므로 여기서 지우지 않는다 -->
+  <delete id="deleteCompanyScores">
+    DELETE FROM TB_EVL_CMSNR_SCR WHERE CO_EVL_RSLT_SN = #{coEvlRsltSn}
   </delete>
 
-  <!-- 세부 항목(자식)을 먼저 지운다. 직접 입력은 대분류만 쓰지만 예전 데이터에 세부 항목이 있을 수 있다 -->
-  <delete id="deleteSubArticles">
-    DELETE FROM TB_EVL_ARTCL WHERE PBANC_SN = #{pbancSn} AND UP_EVL_ARTCL_SN IS NOT NULL
-  </delete>
-
-  <delete id="deleteArticles">
-    DELETE FROM TB_EVL_ARTCL WHERE PBANC_SN = #{pbancSn}
-  </delete>
+  <!-- 이 공고의 평가 항목 (대분류만). 저장할 때 이름이 같은 항목은 다시 쓰고, 없으면 새로 넣는다 -->
+  <select id="findArticles" resultType="com.ojj.sujuro.result.dto.EvaluationArticleDTO">
+    SELECT EVL_ARTCL_SN AS evlArtclSn, PBANC_SN AS pbancSn, EVL_ARTCL_NM AS evlArtclNm,
+           EVL_SCOR_SCR AS evlScorScr, SORT_SEQ AS sortSeq
+      FROM TB_EVL_ARTCL
+     WHERE PBANC_SN = #{pbancSn} AND UP_EVL_ARTCL_SN IS NULL
+     ORDER BY SORT_SEQ, EVL_ARTCL_SN
+  </select>
 
   <insert id="insertArticle" parameterType="com.ojj.sujuro.result.dto.EvaluationArticleDTO"
           useGeneratedKeys="true" keyProperty="evlArtclSn" keyColumn="EVL_ARTCL_SN">
     INSERT INTO TB_EVL_ARTCL (PBANC_SN, EVL_ARTCL_NM, EVL_SCOR_SCR, SORT_SEQ)
     VALUES (#{pbancSn}, #{evlArtclNm}, #{evlScorScr}, #{sortSeq})
   </insert>
+
+  <update id="updateArticle" parameterType="com.ojj.sujuro.result.dto.EvaluationArticleDTO">
+    UPDATE TB_EVL_ARTCL SET EVL_SCOR_SCR = #{evlScorScr}, SORT_SEQ = #{sortSeq} WHERE EVL_ARTCL_SN = #{evlArtclSn}
+  </update>
+
+  <!-- 어느 업체도 점수를 넣지 않은 항목 정리. 세부 항목(자식)을 먼저, 그다음 자식이 없는 항목 -->
+  <delete id="deleteUnusedSubArticles">
+    DELETE FROM TB_EVL_ARTCL A
+     WHERE A.PBANC_SN = #{pbancSn} AND A.UP_EVL_ARTCL_SN IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM TB_EVL_CMSNR_SCR S WHERE S.EVL_ARTCL_SN = A.EVL_ARTCL_SN)
+  </delete>
+
+  <delete id="deleteUnusedArticles">
+    DELETE FROM TB_EVL_ARTCL A
+     WHERE A.PBANC_SN = #{pbancSn} AND A.UP_EVL_ARTCL_SN IS NULL
+       AND NOT EXISTS (SELECT 1 FROM TB_EVL_CMSNR_SCR S WHERE S.EVL_ARTCL_SN = A.EVL_ARTCL_SN)
+       AND NOT EXISTS (SELECT 1 FROM TB_EVL_ARTCL K WHERE K.UP_EVL_ARTCL_SN = A.EVL_ARTCL_SN)
+  </delete>
 
   <insert id="insertScore">
     INSERT INTO TB_EVL_CMSNR_SCR (CO_EVL_RSLT_SN, EVL_ARTCL_SN, CMSNR_NO, EVL_SCR)

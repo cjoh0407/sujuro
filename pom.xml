@@ -34,6 +34,9 @@
     <!-- 제안요청서 PDF에서 요구사항 ID·명칭 추출 (FR-050-1, proposal/support/RfpRqtParser) -->
     <dependency><groupId>org.apache.pdfbox</groupId><artifactId>pdfbox</artifactId><version>2.0.32</version></dependency>
 
+    <!-- 평가표 엑셀(xls·xlsx)에서 평가 항목·배점·위원별 점수 읽기 (FR-078·079, result/support/EvaluationExcelReader) -->
+    <dependency><groupId>org.apache.poi</groupId><artifactId>poi-ooxml</artifactId><version>5.2.5</version></dependency>
+
     <dependency><groupId>org.projectlombok</groupId><artifactId>lombok</artifactId><optional>true</optional></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-devtools</artifactId><optional>true</optional></dependency>
 

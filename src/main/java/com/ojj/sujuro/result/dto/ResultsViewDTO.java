@@ -39,6 +39,29 @@ public class ResultsViewDTO {
     /** 결과 등록 사업만: 개찰 업체 (순위 순) */
     private List<ResultCompanyDTO> companies = new ArrayList<>();
 
+    /* 평가표는 개찰 업체마다 따로 올린다. 아래는 화면에서 고른 업체(기본은 우리 회사)의 것이다 */
+
+    /** 고른 업체. 우리 회사 행이 없으면 null */
+    private ResultCompanyDTO company;
+    /** 고른 업체가 저장한 항목·위원별 점수. 없으면 빈 줄 */
+    private EvaluationForm companyForm;
+    /** 고른 업체의 마지막 평가표 엑셀. 없으면 null */
+    private EvaluationFileDTO companyFile;
+    /** 업체별 항목 점수 비교. 점수를 저장한 업체만 열로 나온다 */
+    private EvaluationCompareDTO evaluationCompare;
+
+    /*
+     * 평가표 엑셀에서 읽어 채운 입력 칸 (팀장 화면만). 저장 전이라 팀장이 확인한 뒤 [평가표 저장]을 누른다.
+     * 고른 업체가 저장한 점수가 없을 때, 또는 [엑셀에서 다시 불러오기]·엑셀을 새로 올렸을 때 읽는다.
+     */
+    private EvaluationForm excelForm;
+    /** 읽어 채웠다는 안내 */
+    private String excelNote;
+    /** 파일 이름의 업체가 우리 회사와 다를 때 경고 */
+    private String excelWarn;
+    /** 엑셀 모양이 달라 읽지 못한 이유. 이때는 직접 입력한다 */
+    private String excelError;
+
     /**
      * 우리와 비교할 업체. 우리가 1위면 2위, 아니면 1위. 개찰 목록에 우리나 비교할 업체가 없으면 null.
      * 장단점 분석의 근거로 쓴다 (총점 차이를 기술·가격으로 나눠 본다).

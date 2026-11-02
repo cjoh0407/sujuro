@@ -17,7 +17,9 @@ public class ScheduleEvent {
     private Long pbancSn;
     private String pbancNm;    // 사업건 이름
     private Long teamSn;       // 일정을 맡은 팀 (자동 일정은 주관팀)
-    private boolean editable;  // 보는 사람이 고칠 수 있는 내부 일정인가 (주관팀 팀장 본인 팀 것)
+    private boolean editable;  // 보는 사람이 눌러서 관리(수정·삭제)할 수 있는 내부 일정인가 (등록한 팀의 팀장)
+    private boolean changeable; // 그중 내용까지 고칠 수 있는가. 지난 일정이거나 사업이 끝났으면 false (삭제만 된다)
+    private String lockReason;  // changeable 이 false 인 이유 (화면 안내)
 
     /** 팀 색 번호 1~6 (common.css 의 .ev.tm1 ~ .tm6). 팀이 없으면 0 */
     public int getTeamNo() {
@@ -26,6 +28,18 @@ public class ScheduleEvent {
 
     public static int teamNo(Long teamSn) {
         return teamSn == null ? 0 : (int) (Math.abs(teamSn) % 6) + 1;
+    }
+
+    /**
+     * 캘린더에 보이는 글자. 제출 마감(자동)은 "[마감] 10:00 사업명", 직접 등록한 일정은 "14:00 일정명" (FR-094).
+     * 팀 이름은 화면에서 영업부·경영지원실에게만 앞에 붙인다 (FR-091).
+     */
+    public String getLabel() {
+        String time = timeText == null ? "" : timeText + " ";
+        if (isAuto()) {
+            return "[마감] " + time + (pbancNm != null ? pbancNm : title);
+        }
+        return time + title;
     }
 
     /** 공고에서 자동으로 들어온 일정인가 (수정·삭제 불가) */

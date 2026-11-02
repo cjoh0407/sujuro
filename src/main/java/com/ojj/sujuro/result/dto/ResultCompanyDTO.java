@@ -10,6 +10,7 @@ import lombok.Setter;
 @Setter
 public class ResultCompanyDTO {
 
+    private Long coEvlRsltSn;
     private Integer opengRnk;
     private String bizNo;
     private String coNm;
@@ -20,9 +21,21 @@ public class ResultCompanyDTO {
     private Double snthsEvlScr;
     private String ourCoYn;
     private String scsbdYn;
+    /** 평가표 엑셀을 올렸는지 (업체마다 따로 올린다) */
+    private String evlTblUpldYn;
 
     public boolean isOurs() {
         return "Y".equals(ourCoYn);
+    }
+
+    public boolean isUploaded() {
+        return "Y".equals(evlTblUpldYn);
+    }
+
+    /** 평가표 업체 고르기 목록의 이름. 예: "1위 엑사아이엔티 주식회사 · 평가표 있음" */
+    public String getOptionLabel() {
+        return (opengRnk == null ? "" : opengRnk + "위 ") + coNm + (isOurs() ? " (우리 회사)" : "")
+                + (isUploaded() ? " · 평가표 있음" : "");
     }
 
     public boolean isWinner() {

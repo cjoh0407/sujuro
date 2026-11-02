@@ -9,8 +9,8 @@
   팀장: 자기 팀 사업만, 평가표 올리기·평가 항목·점수·장단점 입력(view.canScore). 회의 결정, 2026-11-02 반영.
   사업건 선택 → 머리 줄 → 상태별 안내 →
     제출 완료 : 입찰 결과 카드 + [나라장터에서 결과 가져오기] (평일 오후 5시 수집도 같은 일을 한다)
-    결과 등록 : 입찰 결과(순위·점수·원점수·비교) → 개찰 업체 점수 → 평가표(엑셀 올리기 → 항목·배점·위원별 점수 입력)
-               → 평가 항목별 점수·득점률 → 장단점 분석
+    결과 등록 : 입찰 결과(순위·점수·원점수·비교) → 개찰 업체 점수 → 평가표(업체 고르기 → 엑셀 올리기 → 읽어 채운 항목·배점·위원별 점수 저장)
+               → 업체별 평가표 비교 → 평가 항목별 점수·득점률(우리 회사) → 장단점 분석
     유찰      : 점수 없음 안내
   목업의 '수행 인력 기록'은 넣지 않았다 (사업별 결과 분석의 PM/투입을 빼기로 한 것과 같은 결정, 2026-10-29).
 
@@ -79,7 +79,7 @@
     <th:block th:if="${b.submitted or b.resulted}">
       <div class="banner info">
         <span><b>입찰 결과·순위·기술·가격·종합 점수</b>는 나라장터 API 에서 우리 회사 사업자번호로 가져옵니다.
-          <b>평가 항목·배점·항목별 점수</b>는 API 에 없어서 <b>평가표 엑셀을 올린 뒤</b> 담당 팀 팀장이 그 엑셀을 보며 입력합니다.</span>
+          <b>평가 항목·배점·항목별 점수</b>는 API 에 없어서 <b>평가표 엑셀을 올리면</b> 그 엑셀에서 읽어 채우고, 담당 팀 팀장이 확인해 저장합니다.</span>
       </div>
       <div class="banner warn" th:unless="${view.ready}">
         우리 회사 사업자번호(company.biz-no)가 설정되지 않아 나라장터에서 결과를 가져올 수 없습니다.
@@ -161,11 +161,12 @@
         </div>
       </div>
 
-      <!-- FR-078·079 평가표: 1) 엑셀 올리기 → 2) 엑셀을 보며 항목·배점·위원별 점수 적기 (우리 회사) -->
-      <div class="card">
+      <!-- FR-078·079 평가표: 업체 고르기 → 1) 엑셀 올리기 → 2) 엑셀에서 읽어 채운 항목·배점·위원별 점수 확인·저장.
+           업체마다 따로 올려 아래 '업체별 평가표 비교'에서 나란히 본다. 통계에는 우리 회사 점수만 들어간다. -->
+      <div class="card" th:with="co=${view.company}, cf=${view.companyFile}">
         <div class="card-head">
           <h3>평가 항목·배점 (평가표)</h3>
-          <span class="faint" style="font-size:11.5px">우리 회사 점수만 적습니다</span>
+          <span class="faint" style="font-size:11.5px">업체별로 올립니다 · 통계에는 우리 회사 점수만 들어갑니다</span>
         </div>
         <div class="pad" style="display:flex;flex-direction:column;gap:12px">
           <div class="banner ok" th:if="${evaluationMessage}" th:text="${evaluationMessage}">저장했습니다.</div>
@@ -175,32 +176,60 @@
             개찰 목록에 우리 회사 행이 없어 평가표를 넣을 수 없습니다. 나라장터 개찰 결과로 자동 등록된 사업만 넣을 수 있습니다.
           </div>
 
-          <th:block th:if="${a.ourCompanyListed}">
+          <th:block th:if="${a.ourCompanyListed and co != null}">
+            <!-- 업체 고르기: 개찰 업체 (순위 순). 고르면 그 업체의 평가표·점수를 보인다 -->
+            <form class="row" method="get" th:action="@{/results}">
+              <input type="hidden" name="bid" th:value="${b.pbancSn}">
+              <label for="evl-co" class="lbl">업체</label>
+              <select id="evl-co" name="co" onchange="this.form.submit()" style="min-width:320px">
+                <option th:each="c : ${view.companies}" th:value="${c.coEvlRsltSn}" th:text="${c.optionLabel}"
+                        th:selected="${c.coEvlRsltSn == co.coEvlRsltSn}">1위 업체</option>
+              </select>
+            </form>
+
             <form class="row" method="post" enctype="multipart/form-data" th:action="@{/results/evaluation-file}"
                   th:if="${view.canUpload}">
               <input type="hidden" name="bid" th:value="${b.pbancSn}">
+              <input type="hidden" name="co" th:value="${co.coEvlRsltSn}">
               <b style="font-size:12.5px">1. 평가표 엑셀</b>
               <input type="file" name="file" accept=".xls,.xlsx" required>
-              <button class="btn sm" type="submit" th:text="${a.evaluationFile} ? '다시 올리기' : '평가표 올리기'">평가표 올리기</button>
-              <span class="faint" style="font-size:11.5px">나라장터 개찰결과 → 기술평가점수 조회 → 우리 회사 → [엑셀다운로드] 로 받은 파일</span>
+              <button class="btn sm" type="submit" th:text="${cf} ? '다시 올리기' : '평가표 올리기'">평가표 올리기</button>
+              <span class="faint" style="font-size:11.5px"
+                    th:text="|나라장터 개찰결과 → 기술평가점수 조회 → ${co.coNm} → [엑셀다운로드] 로 받은 파일|">받은 파일</span>
             </form>
-            <th:block th:replace="~{stats/fragments/result-parts :: evaluationFile(${a})}"></th:block>
-
-            <div class="empty" th:unless="${a.evaluationFile}">
-              아직 평가표가 없습니다. 엑셀을 올리면 담당 팀 팀장이 그 엑셀을 보며 평가 항목, 배점, 위원별 점수를 입력합니다.
-            </div>
-            <div class="faint" style="font-size:12px" th:if="${a.evaluationFile != null and !view.canScore}">
-              평가 항목과 위원별 점수는 담당 팀 팀장이 입력합니다. 입력한 결과는 아래 평가 항목별 점수에 보입니다.
+            <div class="evl-file" th:if="${cf}">
+              <span>📊</span>
+              <span class="faint" th:text="|평가표 ${cf.orgnlFileNm} · ${cf.rgtrNm ?: '-'}${cf.regDt != null ? ' · ' + #dates.format(cf.regDt, 'yyyy-MM-dd HH:mm') : ''}|">평가표</span>
+              <a class="btn sm" th:href="@{/results/evaluation-file(bid=${b.pbancSn}, co=${co.coEvlRsltSn})}">내려받기</a>
             </div>
 
-            <form id="evl-form" method="post" th:if="${a.evaluationFile != null and view.canScore}" th:action="@{/results/evaluation}"
+            <div class="empty" th:unless="${cf}"
+                 th:text="|${co.coNm}의 평가표가 아직 없습니다. 엑셀을 올리면 평가 항목, 배점, 위원별 점수를 읽어 채웁니다. 담당 팀 팀장이 확인해 저장합니다.|">
+              아직 평가표가 없습니다.
+            </div>
+            <div class="faint" style="font-size:12px" th:if="${cf != null and !view.canScore}">
+              평가 항목과 위원별 점수는 담당 팀 팀장이 엑셀에서 읽은 값을 확인해 저장합니다. 저장한 결과는 아래 표들에 보입니다.
+            </div>
+
+            <!-- 엑셀 자동 채우기 결과 (팀장). 저장에 실패해 돌아온 때는 입력하던 값을 보여 주므로 안내를 숨긴다 -->
+            <th:block th:if="${view.canScore and evaluationError == null}">
+              <div class="banner info" th:if="${view.excelNote}" th:text="${view.excelNote}">엑셀에서 읽어 채웠습니다.</div>
+              <div class="banner warn" th:if="${view.excelWarn}" th:text="${view.excelWarn}">파일 이름의 업체가 다릅니다.</div>
+              <div class="banner warn" th:if="${view.excelError}" th:text="${view.excelError}">엑셀을 읽지 못했습니다.</div>
+            </th:block>
+
+            <form id="evl-form" method="post" th:if="${cf != null and view.canScore}" th:action="@{/results/evaluation}"
                   th:with="n=${evaluationForm.cmsnrCount}" style="display:flex;flex-direction:column;gap:10px">
               <input type="hidden" name="bid" th:value="${b.pbancSn}">
+              <input type="hidden" name="co" th:value="${co.coEvlRsltSn}">
               <div class="row">
-                <b style="font-size:12.5px">2. 항목·배점·위원별 점수</b>
+                <b style="font-size:12.5px" th:text="|2. ${co.coNm} 항목·배점·위원별 점수|">2. 항목·배점·위원별 점수</b>
                 <label for="evl-cnt" class="lbl">평가위원 수</label>
                 <input id="evl-cnt" name="cmsnrCnt" type="number" min="1" max="20" step="1" th:value="${n}" style="width:72px">
                 <button type="button" class="btn sm" id="evl-add">항목 추가</button>
+                <!-- 저장한 점수가 보일 때만: 올린 엑셀에서 다시 채운다 (저장 전까지 바뀌지 않는다) -->
+                <a class="btn sm" th:if="${view.excelForm == null and !#lists.isEmpty(view.companyForm.filledItems)}"
+                   th:href="@{/results(bid=${b.pbancSn}, co=${co.coEvlRsltSn}, fromFile=true)}">엑셀에서 다시 불러오기</a>
               </div>
               <div class="ts">
                 <table class="evl-grid">
@@ -225,11 +254,54 @@
               <div class="row">
                 <button class="btn primary sm" type="submit">평가표 저장</button>
                 <span class="faint" style="font-size:11.5px">
-                  다 비운 줄은 저장하지 않습니다. "전략 및 방법론(15)" 처럼 이름 끝의 배점은 떼고 저장합니다. 저장하면 이 사업의 항목과 점수를 통째로 바꿉니다.
+                  다 비운 줄은 저장하지 않습니다. "전략 및 방법론(15)" 처럼 이름 끝의 배점은 떼고 저장합니다. 저장하면 이 업체의 점수를 통째로 바꿉니다(다른 업체 점수는 그대로).
                 </span>
               </div>
             </form>
           </th:block>
+        </div>
+      </div>
+
+      <!-- 업체별 평가표 비교: 평가표를 저장한 업체끼리 항목별 위원 평균을 나란히 본다. 괄호는 우리 − 그 업체 (빨강 = 우리가 뒤진 항목) -->
+      <div class="card" th:if="${a.ourCompanyListed and view.evaluationCompare != null}" th:with="cmp=${view.evaluationCompare}">
+        <div class="card-head">
+          <h3>업체별 평가표 비교</h3>
+          <span class="faint" style="font-size:11.5px">위원 평균 점수 · 괄호는 우리 − 그 업체</span>
+        </div>
+        <div class="empty" th:unless="${cmp.comparable}">
+          위에서 업체를 골라 다른 업체의 평가표도 올리고 저장하면, 항목별 점수를 우리 회사와 나란히 비교합니다.
+        </div>
+        <div class="ts" th:if="${cmp.comparable}">
+          <table>
+            <thead>
+              <tr>
+                <th>평가 항목</th><th>배점</th>
+                <th th:each="c : ${cmp.columns}">
+                  <span th:text="${c.rank != null} ? |${c.rank}위 ${c.coNm}| : ${c.coNm}">1위 업체</span>
+                  <span class="pill accent" th:if="${c.ours}">우리</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="hv" th:each="r : ${cmp.rows}">
+                <td th:text="${r.nm}">전략 및 방법론</td>
+                <td class="mono" th:text="${r.maxText}">15</td>
+                <td class="mono" th:each="x : ${r.cells}">
+                  <span th:text="${x.text}">14.5</span>
+                  <span th:if="${x.diff}" th:style="${x.behind} ? 'color:var(--danger)' : 'color:var(--faint)'"
+                        th:text="|(${x.diff})|">(−0.5)</span>
+                </td>
+              </tr>
+              <tr>
+                <td><b>합계</b></td>
+                <td></td>
+                <td class="mono" th:each="c : ${cmp.columns}">
+                  <b th:text="${c.totalText}">96.5</b>
+                  <span class="faint" th:if="${c.totalDiff}" th:text="|(${c.totalDiff})|">(−1.2)</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 

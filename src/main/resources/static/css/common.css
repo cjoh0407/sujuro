@@ -162,13 +162,14 @@ a.tab{text-decoration:none}
 .ev.k4{background:var(--info-soft);color:var(--info)}
 .ev.k5{background:var(--success-soft);color:var(--success)}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
-/* 일정: 팀 색 (왼쪽 띠). 영업부·경영지원실이 팀별로 구분해서 본다 */
-.ev.tm1{box-shadow:inset 3px 0 0 #2f6fed}
-.ev.tm2{box-shadow:inset 3px 0 0 #d9534f}
-.ev.tm3{box-shadow:inset 3px 0 0 #2e9d6b}
-.ev.tm4{box-shadow:inset 3px 0 0 #e0961f}
-.ev.tm5{box-shadow:inset 3px 0 0 #8a56c9}
-.ev.tm6{box-shadow:inset 3px 0 0 #1fa2b8}
+/* 일정: 팀 색으로 칠한다 (FR-094). 바탕은 연하게, 왼쪽 선과 글자는 진하게. 밝은·어두운 화면 모두 읽히도록 반투명 바탕 */
+.ev.tm1{background:rgba(47,111,237,.14);color:#2f6fed;box-shadow:inset 3px 0 0 #2f6fed}
+.ev.tm2{background:rgba(217,83,79,.14);color:#c9423e;box-shadow:inset 3px 0 0 #d9534f}
+.ev.tm3{background:rgba(46,157,107,.15);color:#23845a;box-shadow:inset 3px 0 0 #2e9d6b}
+.ev.tm4{background:rgba(224,150,31,.16);color:#b97810;box-shadow:inset 3px 0 0 #e0961f}
+.ev.tm5{background:rgba(138,86,201,.15);color:#7a45b9;box-shadow:inset 3px 0 0 #8a56c9}
+.ev.tm6{background:rgba(31,162,184,.15);color:#168a9d;box-shadow:inset 3px 0 0 #1fa2b8}
+.ev.tm0{background:var(--neutral-soft);color:var(--neutral)}
 .dot.tm1{background:#2f6fed}.dot.tm2{background:#d9534f}.dot.tm3{background:#2e9d6b}
 .dot.tm4{background:#e0961f}.dot.tm5{background:#8a56c9}.dot.tm6{background:#1fa2b8}
 

@@ -1,0 +1,40 @@
+/* 일정 관리 화면 전용 (schedule/index.html).
+   포인트 색은 오티아이 로고 색: 남색 #1d4b7e(버튼·강조), 빨간색 #a4292f(삭제). 이 화면 안에서만 바꾼다.
+   캘린더 일정 색은 팀 색(common.css 의 .ev.tm1~6)을 그대로 쓴다. */
+.sch{--accent:#1d4b7e;--accent-s:#163a62;--accent-soft:rgba(29,75,126,.1);--sch-red:#a4292f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sch{--accent:#6f9bd1;--accent-s:#8fb3de;--accent-soft:rgba(111,155,209,.16);--sch-red:#e07a7f}}
+:root[data-theme="dark"] .sch{--accent:#6f9bd1;--accent-s:#8fb3de;--accent-soft:rgba(111,155,209,.16);--sch-red:#e07a7f}
+
+.sch .btn .ic{width:15px;height:15px}
+.sch .btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* 캘린더에서 누를 수 있는 일정 (우리 팀이 등록한 일정) */
+.sch .sch-ev{border:0;width:100%;text-align:left;font-family:inherit}
+.sch .sch-ev:hover{filter:brightness(.95);text-decoration:underline}
+.sch .sch-ev:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+/* 모달 */
+.sch .modal{position:fixed;inset:0;background:rgba(15,19,24,.45);display:flex;align-items:center;justify-content:center;z-index:70;padding:16px}
+.sch .modal[hidden]{display:none}
+.sch .modal .box{width:460px;max-width:94vw;max-height:86vh;overflow:auto;background:var(--surface);border-radius:12px;border:1px solid var(--border);box-shadow:0 12px 32px rgba(0,0,0,.18)}
+.sch .modal .box.sm{width:400px}
+.sch .modal .card-head h3{color:var(--accent)}
+.sch .icon-x{border:0;background:none;font-size:20px;line-height:1;color:var(--muted);cursor:pointer;padding:2px 6px;border-radius:50%}
+.sch .icon-x:hover{background:var(--accent-soft);color:var(--accent)}
+.sch .sch-form{display:flex;flex-direction:column;gap:10px}
+.sch .sch-form label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted)}
+.sch .sch-form input,.sch .sch-form select{width:100%;box-sizing:border-box}
+.sch .sch-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sch .sch-help{font-size:11.5px}
+.sch .sch-pbanc{font-size:12.5px;margin-bottom:10px}
+.sch .sch-actions{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:14px}
+.sch .sch-gap{flex:1}
+.sch .sch-del{color:var(--sch-red);border-color:var(--sch-red)}
+.sch .sch-del:hover{background:rgba(164,41,47,.08)}
+.sch div.ev{cursor:default}
+/* 날짜·시간 두 칸: 제목 한 줄 + 입력칸 높이를 같게 맞춘다 */
+.sch .sch-two{align-items:end}
+.sch .sch-two .lbl{line-height:18px;white-space:nowrap}
+.sch .sch-two input{height:36px}
+/* hidden 속성이 .banner·.btn 의 display 값에 덮이지 않게 한다 (수정 모달의 빈 노란 안내줄이 보이던 문제) */
+.sch [hidden]{display:none !important}

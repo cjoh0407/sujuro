@@ -43,7 +43,7 @@ public class PrpFileServiceImpl implements PrpFileService {
 
     @Transactional
     @Override
-    public String uploadToc(Long pbancSn, String fileSeCd, Long tocSn, MultipartFile file, String memo,
+    public String uploadToc(Long pbancSn, String fileSeCd, Long tocSn, MultipartFile file,
                             String userId, boolean lead) {
         String tocSe = PrpFileDto.SE_PART.equals(fileSeCd) ? TocDto.SE_PROPOSAL
                      : PrpFileDto.SE_SUMMARY.equals(fileSeCd) ? TocDto.SE_SUMMARY : null;
@@ -61,7 +61,7 @@ public class PrpFileServiceImpl implements PrpFileService {
             throw new BusinessException("이 목차의 파일은 담당자와 주관팀 팀장만 올릴 수 있습니다.");
         }
         String ver = String.valueOf(mapper.nextTocVersion(pbancSn, fileSeCd, tocSn));
-        PrpFileDto f = newFile(pbancSn, fileSeCd, file, memo, userId);
+        PrpFileDto f = newFile(pbancSn, fileSeCd, file, userId);
         f.setTocSn(tocSn);
         f.setVerNo(ver);
         store(f, file);
@@ -73,9 +73,9 @@ public class PrpFileServiceImpl implements PrpFileService {
 
     @Transactional
     @Override
-    public int uploadFull(Long pbancSn, MultipartFile file, String memo, String userId) {
+    public int uploadFull(Long pbancSn, MultipartFile file, String userId) {
         int cycl = mapper.nextIntgCycl(pbancSn);
-        PrpFileDto f = newFile(pbancSn, PrpFileDto.SE_FULL, file, memo, userId);
+        PrpFileDto f = newFile(pbancSn, PrpFileDto.SE_FULL, file, userId);
         f.setIntgCycl(cycl);
         f.setVerNo(String.valueOf(cycl));
         store(f, file);
@@ -182,20 +182,15 @@ public class PrpFileServiceImpl implements PrpFileService {
     /* ---------- 내부 처리 ---------- */
 
     /** 파일 검사(용량·실행 파일, FileStorage.checkUpload)를 하고 DB에 넣을 정보를 채운다. (FR-065) */
-    private PrpFileDto newFile(Long pbancSn, String fileSeCd, MultipartFile file, String memo, String userId) {
+    private PrpFileDto newFile(Long pbancSn, String fileSeCd, MultipartFile file, String userId) {
         long max = PrpFileDto.SE_FULL.equals(fileSeCd) ? FileStorage.MAX_SIZE_FULL : FileStorage.MAX_SIZE;
         String original = FileStorage.checkUpload(file, max);
-        String m = memo == null || memo.trim().isEmpty() ? null : memo.trim();
-        if (m != null && m.length() > 1000) {
-            throw new BusinessException("메모는 1000자까지 입력할 수 있습니다.");
-        }
         PrpFileDto f = new PrpFileDto();
         f.setPbancSn(pbancSn);
         f.setFileSeCd(fileSeCd);
         f.setOrgnlFileNm(original);
         f.setFileSz(file.getSize());
         f.setFileExtnNm(FileStorage.extColumn(FileStorage.extension(original)));
-        f.setMemoCn(m);
         f.setRgtrId(userId);
         f.setFilePathNm("proposal/" + pbancSn);
         return f;

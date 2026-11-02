@@ -13,7 +13,7 @@
     F.INTG_CYCL AS intgCycl, F.VER_NO AS verNo, F.LAST_YN AS lastYn,
     F.DCSMKR_ID AS dcsmkrId, D.USER_NM AS dcsmkrNm, F.CFMTN_DT AS cfmtnDt,
     F.ORGNL_FILE_NM AS orgnlFileNm, F.STRG_FILE_NM AS strgFileNm, F.FILE_PATH_NM AS filePathNm,
-    F.FILE_SZ AS fileSz, F.FILE_EXTN_NM AS fileExtnNm, F.MEMO_CN AS memoCn,
+    F.FILE_SZ AS fileSz, F.FILE_EXTN_NM AS fileExtnNm,
     F.RGTR_ID AS rgtrId, U.USER_NM AS rgtrNm, F.REG_DT AS regDt,
     F.DEL_YN AS delYn, F.DLTR_ID AS dltrId, X.USER_NM AS dltrNm, F.DEL_DT AS delDt, F.DEL_RSN AS delRsn,
     CASE WHEN F.FILE_SE_CD = 'FL030' THEN F.INTG_CYCL || '차 통합본'
@@ -76,10 +76,9 @@
 
   <insert id="insert" parameterType="com.ojj.sujuro.proposal.dto.PrpFileDto" useGeneratedKeys="true" keyProperty="fileSn" keyColumn="FILE_SN">
     INSERT INTO TB_ATCH_FILE (PBANC_SN, FILE_SE_CD, TOC_SN, INTG_CYCL, VER_NO, LAST_YN,
-                              ORGNL_FILE_NM, STRG_FILE_NM, FILE_PATH_NM, FILE_SZ, FILE_EXTN_NM, MEMO_CN, RGTR_ID)
+                              ORGNL_FILE_NM, STRG_FILE_NM, FILE_PATH_NM, FILE_SZ, FILE_EXTN_NM, RGTR_ID)
     VALUES (#{pbancSn}, #{fileSeCd}, #{tocSn, jdbcType=NUMERIC}, #{intgCycl, jdbcType=NUMERIC}, #{verNo}, 'N',
-            #{orgnlFileNm}, #{strgFileNm}, #{filePathNm}, #{fileSz}, #{fileExtnNm, jdbcType=VARCHAR},
-            #{memoCn, jdbcType=VARCHAR}, #{rgtrId})
+            #{orgnlFileNm}, #{strgFileNm}, #{filePathNm}, #{fileSz}, #{fileExtnNm, jdbcType=VARCHAR}, #{rgtrId})
   </insert>
 
   <update id="clearFinal">

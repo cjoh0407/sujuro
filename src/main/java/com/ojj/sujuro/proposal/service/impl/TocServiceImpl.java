@@ -440,12 +440,10 @@ public class TocServiceImpl implements TocService {
         }
     }
 
-    /** 목차 하나를 지운다. 연결된 요구사항·질문답변·조견표 연결을 먼저 정리하고, 미매핑된 요구사항 수를 돌려준다. */
+    /** 목차 하나를 지운다. 연결된 요구사항을 먼저 미매핑으로 돌리고, 미매핑된 요구사항 수를 돌려준다. */
     private int removeOne(Long tocSn) {
         int unmapped = mapper.countRequirements(tocSn);
         mapper.clearRequirements(tocSn);
-        mapper.clearQuestions(tocSn);
-        mapper.clearEvaluationMappings(tocSn);
         mapper.delete(tocSn);
         return unmapped;
     }

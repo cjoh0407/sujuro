@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <!--
-  목차 SQL (FR-046~049, FR-056, FR-063). 사용 테이블: TB_TOC, TB_TOC_FORM, TB_USER, TB_PRP_TMMBR, TB_RQT_MTTR, TB_ATCH_FILE, TB_QSTN_ANS, TB_EVL_TOC_MPNG
+  목차 SQL (FR-046~049, FR-056, FR-063). 사용 테이블: TB_TOC, TB_TOC_FORM, TB_USER, TB_PRP_TMMBR, TB_RQT_MTTR, TB_ATCH_FILE
   목차는 단계 제한 없는 부모-자식 구조라 CONNECT BY로 "부모 바로 아래에 자식" 순서로 읽는다.
   TB_TOC는 PBANC_SN(사업건 목차)과 TOC_FORM_SN(양식 항목) 중 하나만 채운다. 사업건 목차는 TOC_SE_CD(제안서/제안요약서)로 나눈다.
   목차 양식(TB_TOC_FORM)은 저장한 주관팀(TEAM_SN) 것이다. 기관 대표 양식은 없다. (요구사항 v3.2)
@@ -221,12 +221,4 @@
   <update id="clearRequirements">
     UPDATE TB_RQT_MTTR SET TOC_SN = NULL WHERE TOC_SN = #{tocSn}
   </update>
-
-  <update id="clearQuestions">
-    UPDATE TB_QSTN_ANS SET TOC_SN = NULL WHERE TOC_SN = #{tocSn}
-  </update>
-
-  <delete id="clearEvaluationMappings">
-    DELETE FROM TB_EVL_TOC_MPNG WHERE TOC_SN = #{tocSn}
-  </delete>
 </mapper>

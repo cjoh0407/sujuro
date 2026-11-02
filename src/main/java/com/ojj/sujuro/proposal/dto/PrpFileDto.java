@@ -39,7 +39,6 @@ public class PrpFileDto {
     private String filePathNm;
     private Long fileSz;
     private String fileExtnNm;
-    private String memoCn;
     private String rgtrId;
     private String rgtrNm;
     private Date regDt;

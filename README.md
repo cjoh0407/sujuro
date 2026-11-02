@@ -131,11 +131,11 @@ flowchart LR
 ```
 sujuro
 ├─ db
-│  ├─ 01_schema.sql                  # 테이블 생성 (기존 테이블을 지우고 다시 만든다)
-│  ├─ 02_code_data.sql               # 공통코드
-│  ├─ 03_test_data.sql               # 팀·테스트 계정·테스트 공고 (개발용)
-│  ├─ 03_sample_data.sql             # 목차 양식·샘플 사업건·요구사항 (개발용)
-│  ├─ 05_test_notifications.sql      # 알림 화면 확인용 (선택)
+│  ├─ README.md                      # 파일별 역할, 실행 순서, DB 변경 규칙
+│  ├─ 01_schema.sql ~ 07_test_screens.sql  # 새 DB: 번호 순서대로 실행 (테이블·코드·테스트 데이터)
+│  ├─ patches/                       # 예전 패치 08~15 (기록용. 실행하지 않음)
+│  ├─ reset_local.sh                 # 로컬 DB를 01~07로 다시 만들기
+│  ├─ reset_demo_db.sh               # 서버 DB를 01~07로 다시 만들기
 │  └─ sujuro_테이블정의서_표준용어.xlsx
 ├─ src/main/java/com/ojj/sujuro
 │  ├─ SujuroApplication.java         # 메인 클래스
@@ -180,15 +180,8 @@ git clone https://github.com/cjoh0407/sujuro.git
 ```
 
 1. STS → File → Import → Existing Maven Projects → `sujuro` 선택. `pom.xml`이 바뀌면 프로젝트 우클릭 → Maven → Update Project(Alt+F5)를 합니다.
-2. 본인 로컬 DB에 아래 순서로 실행합니다. `01`은 기존 테이블을 먼저 지우고 다시 만들기 때문에, 실행했다면 뒤 파일도 모두 다시 실행합니다.
-
-   | 순서 | 파일 | 비고 |
-   | --- | --- | --- |
-   | 1 | `01_schema.sql` | 테이블 생성 |
-   | 2 | `02_code_data.sql` | 공통코드 |
-   | 3 | `03_test_data.sql` | 팀·테스트 계정·테스트 공고 |
-   | 4 | `03_sample_data.sql` | 목차 양식·샘플 사업건 (3번이 먼저 있어야 함) |
-   | 5 | `05_test_notifications.sql` | 선택 |
+2. 본인 로컬 DB를 만듭니다. 프로젝트 폴더에서 `bash db/reset_local.sh`를 실행하면 `db`의 `01`~`07`을 번호 순서대로 실행합니다. (기존 데이터는 지워집니다. 파일별 역할은 `db/README.md`)
+   DBeaver로 하나씩 실행해도 됩니다. `01_schema.sql`부터 `07_test_screens.sql`까지 번호 순서대로 실행하고, `patches/` 폴더의 패치는 실행하지 않습니다.
 
    > **DBeaver에서 실행할 때:** `SET DEFINE OFF`와 `/` 줄은 DBeaver가 다음 문장과 붙여 보내 ORA-00922 등의 오류가 납니다. 그 줄은 빼고 나머지를 선택해 Alt+X로 실행하세요. WHERE 없는 DELETE 경고는 확인을 누르면 됩니다.
 

@@ -106,10 +106,4 @@ public interface TocMapper {
 
     /** 이 목차에 연결된 요구사항을 미매핑으로 돌린다. (FR-056) */
     int clearRequirements(@Param("tocSn") Long tocSn);
-
-    /** 이 목차에 연결된 질문답변의 관련 목차를 비운다. */
-    int clearQuestions(@Param("tocSn") Long tocSn);
-
-    /** 이 목차를 조견표(평가 항목별 목차·쪽)에서 뺀다. (FR-071) */
-    int clearEvaluationMappings(@Param("tocSn") Long tocSn);
 }

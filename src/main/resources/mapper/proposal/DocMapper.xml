@@ -5,7 +5,7 @@
   사용 테이블: TB_BID_PBANC, TB_SBMSN_DCMNT, TB_EVL_ARTCL, TB_EVL_CMSNR_SCR, TB_ATCH_FILE(FL050 제출서류), TB_TEAM, TB_USER, TB_COM_CD
   파일 삭제는 DEL_YN='Y'로 숨기기만 한다(원본·이력 보관, NFR-009). 목록·최신 파일·파일 수는 삭제하지 않은 것만, 버전 계산은 전부 센다.
   조견표는 웹으로 입력한다 (v4.1, FR-071): 경영지원실이 TB_EVL_ARTCL에 평가 항목·배점을 넣고 제안팀이 PAGE_NO에 쪽번호를 적는다.
-  조견표 파일(FL060)은 더 올리지 않는다 (FR-072 미적용). 예전에 올린 파일 중 삭제(숨김)한 것만 삭제된 파일 기록에 보인다. TB_EVL_TOC_MPNG는 쓰지 않는다.
+  조견표 파일(FL060)은 더 올리지 않는다 (FR-072 미적용). 예전에 올린 파일 중 삭제(숨김)한 것만 삭제된 파일 기록에 보인다.
 -->
 <mapper namespace="com.ojj.sujuro.proposal.mapper.DocMapper">
 
@@ -154,16 +154,15 @@
 
   <insert id="insertFile" useGeneratedKeys="true" keyProperty="f.fileSn" keyColumn="FILE_SN">
     INSERT INTO TB_ATCH_FILE (PBANC_SN, FILE_SE_CD, DCMNT_SN, VER_NO, LAST_YN,
-                              ORGNL_FILE_NM, STRG_FILE_NM, FILE_PATH_NM, FILE_SZ, FILE_EXTN_NM, MEMO_CN, RGTR_ID)
+                              ORGNL_FILE_NM, STRG_FILE_NM, FILE_PATH_NM, FILE_SZ, FILE_EXTN_NM, RGTR_ID)
     VALUES (#{f.pbancSn}, #{f.fileSeCd}, #{dcmntSn, jdbcType=NUMERIC}, #{f.verNo}, 'N',
-            #{f.orgnlFileNm}, #{f.strgFileNm}, #{f.filePathNm}, #{f.fileSz}, #{f.fileExtnNm, jdbcType=VARCHAR},
-            #{f.memoCn, jdbcType=VARCHAR}, #{f.rgtrId})
+            #{f.orgnlFileNm}, #{f.strgFileNm}, #{f.filePathNm}, #{f.fileSz}, #{f.fileExtnNm, jdbcType=VARCHAR}, #{f.rgtrId})
   </insert>
 
   <sql id="fileCols">
     F.FILE_SN AS fileSn, F.PBANC_SN AS pbancSn, F.FILE_SE_CD AS fileSeCd, F.TOC_SN AS tocSn,
     F.VER_NO AS verNo, F.ORGNL_FILE_NM AS orgnlFileNm, F.STRG_FILE_NM AS strgFileNm, F.FILE_PATH_NM AS filePathNm,
-    F.FILE_SZ AS fileSz, F.FILE_EXTN_NM AS fileExtnNm, F.MEMO_CN AS memoCn,
+    F.FILE_SZ AS fileSz, F.FILE_EXTN_NM AS fileExtnNm,
     F.RGTR_ID AS rgtrId, U.USER_NM AS rgtrNm, F.REG_DT AS regDt,
     F.DEL_YN AS delYn, F.DLTR_ID AS dltrId, X.USER_NM AS dltrNm, F.DEL_DT AS delDt, F.DEL_RSN AS delRsn,
     CASE WHEN F.FILE_SE_CD = 'FL060' THEN '조견표' ELSE DC.DCMNT_NM END AS targetNm

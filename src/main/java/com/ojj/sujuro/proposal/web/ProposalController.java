@@ -104,9 +104,8 @@ public class ProposalController {
         if (TAB_PROPOSAL.equals(tk)) { // 현재 목차 양식: 제안팀원 모두에게 보여 준다
             model.addAttribute("curForm", tocService.currentForm(pbancSn));
         }
-        if (canAssign) { // 담당자 칸의 외부 회사 자동완성 후보 (FR-043-1)
-            model.addAttribute("coNames", tocService.coNames(pbancSn));
-        }
+        // 담당자 칸의 외부 회사 자동완성 후보(FR-043-1)이자, 제안팀 구성 카드에 함께 보여 줄 외부 회사 (지우는 건 canAssign만)
+        model.addAttribute("coNames", tocService.coNames(pbancSn));
 
         List<TocDto> tocs = tocService.list(pbancSn, se);
         model.addAttribute("tocs", tocs);
@@ -337,6 +336,17 @@ public class ProposalController {
                 return "외부 회사를 담당으로 지정했습니다.";
             }
             return pid.isEmpty() ? "담당자 지정을 해제했습니다." : "담당자를 지정했습니다.";
+        });
+    }
+
+    /** 외부 회사 이름을 담당자 목록에서 지운다. 그 회사가 맡던 목차는 모두 미지정이 된다. */
+    @PostMapping("/proposal/toc/co/delete")
+    public String deleteCo(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
+                           @RequestParam(value = "tab", defaultValue = TAB_PROPOSAL) String tab,
+                           @RequestParam(value = "coNm", required = false) String coNm, RedirectAttributes ra) {
+        return run(user, bid, tab, ra, accessChecker::requireLeadTeamLeader, b -> () -> {
+            int n = tocService.removeCoName(bid, coNm);
+            return "외부 회사 '" + coNm.trim() + "'을(를) 목록에서 지웠습니다." + (n > 0 ? " 그 회사가 맡던 목차 " + n + "개는 미지정이 됩니다." : "");
         });
     }
 

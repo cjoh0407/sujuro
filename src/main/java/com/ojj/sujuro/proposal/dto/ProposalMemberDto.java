@@ -22,6 +22,8 @@ public class ProposalMemberDto {
     private String deptCd;
     /** 직급명 (공통코드 JBGDS). 인원 추가 팝업의 직급 필터·표시용, 추가 후보 조회에서만 채운다 (FR-043) */
     private String jbgdNm;
+    /** 지금 소속이 이 사업건의 주관팀·참여팀이 아니면 true (조회에서 채움) */
+    private boolean otherTeam;
 
     public void setPtcpSeCd(String ptcpSeCd) { this.ptcpSeCd = ptcpSeCd == null ? null : ptcpSeCd.trim(); }
 
@@ -44,6 +46,16 @@ public class ProposalMemberDto {
     /** 팀장인지 (제안팀 구성 표시용) */
     public boolean isLeader() {
         return com.ojj.sujuro.auth.code.Role.CD_LEADER.equals(authrtCd);
+    }
+
+    /** 비활성(퇴사) 계정인지 */
+    public boolean isInactive() {
+        return "AS050".equals(acntSttsCd);
+    }
+
+    /** 이름 옆에 붙일 표시: 비활성이면 "(비활성)", 지금 소속이 이 사업의 팀이 아니면 "(다른 팀)", 아니면 빈 문자열 */
+    public String getStateMark() {
+        return isInactive() ? " (비활성)" : (otherTeam ? " (다른 팀)" : "");
     }
 
     /** 담당자 선택 목록에 보여 줄 이름 */

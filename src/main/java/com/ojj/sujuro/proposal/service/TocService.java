@@ -83,6 +83,9 @@ public interface TocService {
     /** 이 사업건 목차에 이미 쓴 외부 회사명 (담당자 자동완성 후보, FR-043-1) */
     List<String> coNames(Long pbancSn);
 
+    /** 외부 회사 이름을 목록에서 지운다. 그 회사가 맡던 목차는 모두 미지정이 된다. 미지정이 된 목차 수를 돌려준다 */
+    int removeCoName(Long pbancSn, String coName);
+
     /* ---------- 목차 편집 (FR-047, FR-056) ---------- */
 
     /** 1단계 목차를 맨 뒤에 추가한다. label은 번호를 포함한 이름 (예: "Ⅴ. 사업 관리") */

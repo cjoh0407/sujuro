@@ -35,6 +35,20 @@ public class ProposalServiceImpl implements ProposalService {
         return mapper.findMyBids(userId);
     }
 
+    @Override
+    public List<ProposalBidDto> proposalBids() {
+        return mapper.findProposalBids();
+    }
+
+    @Override
+    public ProposalBidDto viewBid(Long pbancSn) {
+        ProposalBidDto bid = mapper.findBid(pbancSn);
+        if (bid == null) {
+            throw new BusinessException("사업건을 찾을 수 없습니다.");
+        }
+        return bid;
+    }
+
     /** 제안팀원인 사업건만 열 수 있다. 아니면 업무 예외로 안내한다. */
     @Override
     public ProposalBidDto openBid(Long pbancSn, String userId) {

@@ -203,6 +203,16 @@ public class TocServiceImpl implements TocService {
         return mapper.findCoNames(pbancSn);
     }
 
+    @Transactional
+    @Override
+    public int removeCoName(Long pbancSn, String coName) {
+        String nm = coName == null ? "" : coName.trim();
+        if (nm.isEmpty()) {
+            throw new BusinessException("지울 외부 회사를 골라 주세요.");
+        }
+        return mapper.clearCoName(pbancSn, nm);
+    }
+
     /* ---------- 목차 편집 ---------- */
 
     @Transactional

@@ -179,14 +179,17 @@
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
     <input type="hidden" name="tab" th:value="${k}">
     <input type="hidden" name="tocSn" th:value="${t.tocSn}">
-    <select name="picId" onchange="pickOwner(this)" style="max-width:150px">
+    <select name="picId" onchange="pickOwner(this)" style="max-width:210px">
       <option value="">미지정</option>
       <optgroup label="제안팀원">
-        <option th:each="m : ${members}" th:value="${m.userId}" th:text="${m.userNm}"
-                th:selected="${m.userId == t.picId}">담당자</option>
+        <!-- 비활성 직원은 고르는 목록에 내지 않는다. 이미 담당자로 남아 있는 사람만 "(비활성)"으로 보여 준다 -->
+        <th:block th:each="m : ${members}">
+          <option th:if="${!m.inactive or m.userId == t.picId}" th:value="${m.userId}" th:text="${m.label + m.stateMark}"
+                  th:selected="${m.userId == t.picId}">담당자</option>
+        </th:block>
         <!-- 제안팀에서 빠진 사람이 담당자로 남아 있으면 그대로 보여 준다 -->
         <option th:if="${t.picId != null and !#lists.contains(members.![userId], t.picId)}"
-                th:value="${t.picId}" th:text="${(t.picNm ?: t.picId) + ' (제안팀 아님)'}" selected>담당자</option>
+                th:value="${t.picId}" th:text="${t.picSttsCd == 'AS050' ? t.ownerLabel : (t.picNm ?: t.picId) + ' (제안팀 아님)'}" selected>담당자</option>
       </optgroup>
       <optgroup label="외부 회사">
         <option th:each="c : ${coNames}" th:value="'co:' + ${c}" th:text="'🏢 ' + ${c}"

@@ -420,4 +420,45 @@ class ScheduleServiceTest {
         assertTrue(event("2026-10-29", "x", "SC010", null).isAuto());
         assertFalse(event("2026-10-29", "x", "SC020", 1L).isAuto());
     }
+
+    @Test
+    void 일정_이름은_30자까지다() {
+        when(mapper.findMyTeamSn("L1")).thenReturn(1L);
+        when(mapper.findEditablePbancs(1L)).thenReturn(Arrays.asList(opt("10", "A사업")));
+        LoginUser l = user("L1", Role.LEADER);
+        String thirty = "가나다라마바사아자차카타파하가나다라마바사아자차카타파하가나";
+        assertEquals(30, thirty.length());
+
+        service.add(l, 10L, thirty, "2026-10-28", "");
+        assertThrows(BusinessException.class, () -> service.add(l, 10L, thirty + "다", "2026-10-28", ""));
+    }
+
+    @Test
+    void 끌어서_옮기면_날짜만_바뀌고_이름과_시간은_그대로다() {
+        when(mapper.findMyTeamSn("L1")).thenReturn(1L);
+        when(mapper.findEditablePbancs(1L)).thenReturn(Arrays.asList(opt("10", "A사업")));
+        ScheduleEvent e = mineOn("2026-10-25", 10L);
+        e.setTimeText("14:00");
+        when(mapper.findInternalOne(9L, 1L)).thenReturn(e);
+        when(mapper.update(9L, 1L, "중간 점검", "2026-10-28 14:00")).thenReturn(1);
+
+        service.move(user("L1", Role.LEADER), 9L, "2026-10-28");
+
+        verify(mapper).update(9L, 1L, "중간 점검", "2026-10-28 14:00");
+        verify(notificationService).sendToProposalTeam(eq(10L), eq(NotificationType.SCHEDULE_CHANGED), contains("변경"));
+    }
+
+    @Test
+    void 지난_날짜나_남의_팀_일정은_끌어서_옮길_수_없다() {
+        when(mapper.findMyTeamSn("L1")).thenReturn(1L);
+        when(mapper.findEditablePbancs(1L)).thenReturn(Arrays.asList(opt("10", "A사업")));
+        when(mapper.findInternalOne(9L, 1L)).thenReturn(mineOn("2026-10-25", 10L));
+        LoginUser l = user("L1", Role.LEADER);
+
+        assertThrows(BusinessException.class, () -> service.move(l, 9L, "2026-10-19")); // 지난 날짜
+        assertThrows(BusinessException.class, () -> service.move(l, 8L, "2026-10-28")); // 우리 팀 일정이 아님
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> service.move(user("M1", Role.MEMBER), 9L, "2026-10-28"));          // 팀원
+        verify(mapper, never()).update(any(), any(), anyString(), anyString());
+    }
 }

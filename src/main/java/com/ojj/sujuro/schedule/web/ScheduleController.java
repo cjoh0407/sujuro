@@ -66,6 +66,18 @@ public class ScheduleController {
                 () -> service.edit(user, id, title, date, time));
     }
 
+    /** 캘린더에서 끌어서 날짜만 옮긴다 (시간·이름은 그대로) */
+    @PostMapping("/schedule/move")
+    public String move(@AuthenticationPrincipal LoginUser user,
+                       @RequestParam("ym") String ym,
+                       @RequestParam(value = "team", required = false) Long team,
+                       @RequestParam(value = "pbanc", required = false) Long pbanc,
+                       @RequestParam("id") Long id,
+                       @RequestParam("date") String date,
+                       RedirectAttributes ra) {
+        return run(ym, team, pbanc, ra, "일정 날짜를 옮겼습니다. 제안팀원에게 알렸습니다.", () -> service.move(user, id, date));
+    }
+
     @PostMapping("/schedule/delete")
     public String delete(@AuthenticationPrincipal LoginUser user,
                          @RequestParam("ym") String ym,

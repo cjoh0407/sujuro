@@ -584,4 +584,46 @@
   <update id="clearTocOwners">
     UPDATE TB_TOC SET PIC_ID = NULL WHERE PBANC_SN = #{pbancSn} AND PIC_ID IS NOT NULL
   </update>
+
+  <!--
+    공고 삭제 (11/02). 영업부가 잘못 등록한 공고를 지운다. 팀에 한 번도 맡기지 않은 신규 공고만이다.
+    그런 공고를 가리키는 행은 알림·나라장터 첨부(FL010·FL080·FL090)·수집 로그·수집 이력·처리 이력뿐이라
+    아래 순서로 같은 트랜잭션에서 지우고 마지막에 공고를 지운다.
+    일정·제안팀·목차 같은 다른 표에 행이 남아 있으면 공고 DELETE 가 FK 로 막힌다(서비스가 안내 문구로 바꾼다).
+  -->
+  <select id="countAssignHistories" resultType="int">
+    SELECT COUNT(*)
+      FROM TB_PBANC_PRCS_HSTRY
+     WHERE PBANC_SN = #{pbancSn}
+       AND PRCS_SE_CD IN (#{assignCd}, #{reassignCd})
+  </select>
+
+  <delete id="deleteNoticeNotifications">
+    DELETE FROM TB_NOTI WHERE PBANC_SN = #{pbancSn}
+  </delete>
+
+  <delete id="deleteNoticeFiles">
+    DELETE FROM TB_ATCH_FILE WHERE PBANC_SN = #{pbancSn} AND FILE_SE_CD IN ('FL010', 'FL080', 'FL090')
+  </delete>
+
+  <delete id="deleteCollectLogs">
+    DELETE FROM TB_CLCT_LOG WHERE PBANC_SN = #{pbancSn}
+  </delete>
+
+  <delete id="deleteCollectHistories">
+    DELETE FROM TB_PBANC_CLCT_HSTRY WHERE PBANC_SN = #{pbancSn}
+  </delete>
+
+  <delete id="deleteProcessHistories">
+    DELETE FROM TB_PBANC_PRCS_HSTRY WHERE PBANC_SN = #{pbancSn}
+  </delete>
+
+  <!-- 그사이 배정·반환됐으면 0행이다. 서비스가 그때 위의 삭제까지 모두 되돌린다. -->
+  <delete id="deleteNotice">
+    DELETE FROM TB_BID_PBANC
+     WHERE PBANC_SN = #{pbancSn}
+       AND PBANC_STTS_CD = #{sttsCd}
+       AND SPRVSN_TEAM_SN IS NULL
+       AND RTRN_SE_CD IS NULL
+  </delete>
 </mapper>

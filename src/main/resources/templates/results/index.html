@@ -214,7 +214,6 @@
             <!-- 엑셀 자동 채우기 결과 (팀장). 저장에 실패해 돌아온 때는 입력하던 값을 보여 주므로 안내를 숨긴다 -->
             <th:block th:if="${view.canScore and evaluationError == null}">
               <div class="banner info" th:if="${view.excelNote}" th:text="${view.excelNote}">엑셀에서 읽어 채웠습니다.</div>
-              <div class="banner warn" th:if="${view.excelWarn}" th:text="${view.excelWarn}">파일 이름의 업체가 다릅니다.</div>
               <div class="banner warn" th:if="${view.excelError}" th:text="${view.excelError}">엑셀을 읽지 못했습니다.</div>
             </th:block>
 

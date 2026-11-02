@@ -125,7 +125,7 @@ public class ResultEntryServiceImpl implements ResultEntryService {
         EvaluationFileDTO file = resultMapper.findCompanyEvaluationFile(co.getCoEvlRsltSn());
         v.setCompanyFile(file);
         if (v.isCanScore() && file != null && (fromFile || saved.isEmpty())) {
-            fillFromExcel(v, file, co);
+            fillFromExcel(v, file);
         }
         v.setEvaluationCompare(EvaluationCompareDTO.of(v.getCompanies(), resultMapper.findCompanyArticleScores(pbancSn)));
     }
@@ -136,8 +136,11 @@ public class ResultEntryServiceImpl implements ResultEntryService {
                 .orElseGet(() -> companies.stream().filter(ResultCompanyDTO::isOurs).findFirst().orElse(null));
     }
 
-    /** 올린 평가표 엑셀을 읽어 입력 칸을 채운다. 읽지 못하면 이유만 보여 주고 직접 입력하게 둔다 */
-    private void fillFromExcel(ResultsViewDTO v, EvaluationFileDTO file, ResultCompanyDTO co) {
+    /**
+     * 올린 평가표 엑셀을 읽어 입력 칸을 채운다. 읽지 못하면 이유만 보여 주고 직접 입력하게 둔다.
+     * 고른 업체의 평가표가 맞는지는 팀장이 보고 확인한다 (파일 이름·양식이 제각각이라 검사하지 않는다, 11/02 사용자 결정).
+     */
+    private void fillFromExcel(ResultsViewDTO v, EvaluationFileDTO file) {
         try (InputStream in = storage.load(file.getFilePathNm(), file.getStrgFileNm()).getInputStream()) {
             EvaluationForm f = EvaluationExcelReader.read(in);
             v.setExcelForm(f);
@@ -148,13 +151,6 @@ public class ResultEntryServiceImpl implements ResultEntryService {
             return;
         } catch (IOException e) {
             v.setExcelError("엑셀 파일을 열지 못했습니다. 아래에 직접 입력하세요.");
-            return;
-        }
-        // 엑셀 안에는 업체명이 없다. 다른 업체 것을 올리면 그 점수가 고른 업체 점수로 들어가므로 파일 이름으로 확인한다
-        String fileCo = EvaluationExcelReader.companyOf(file.getOrgnlFileNm());
-        if (fileCo != null && co.getCoNm() != null && !EvaluationExcelReader.sameCompany(fileCo, co.getCoNm())) {
-            v.setExcelWarn("파일 이름의 업체(" + fileCo + ")가 고른 업체(" + co.getCoNm() + ")와 다릅니다. "
-                    + "업체를 맞게 골랐는지, 다른 업체의 평가표가 아닌지 확인하세요.");
         }
     }
 

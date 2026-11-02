@@ -109,6 +109,14 @@ public class NoticeDetailDTO extends BidNoticeDTO {
         return BidCode.is(getPbancSttsCd(), BidCode.STTS_NEW);
     }
 
+    /**
+     * 영업부가 공고를 지울 수 있는지. 잘못 등록한 공고를 치우는 용도라 팀에 맡긴 적 없는 신규 공고만이다.
+     * 팀에서 돌아온 공고는 배정·결정 기록이 있어 지우지 않고 불참으로 종결한다. 서비스는 처리 이력으로 한 번 더 본다.
+     */
+    public boolean isDeletable() {
+        return isClosable() && sprvsnTeamSn == null && !isReturned();
+    }
+
     /** 배정된 팀장의 결정을 기다리는 중인지 */
     public boolean isAwaitingDecision() {
         return BidCode.is(getPbancSttsCd(), BidCode.STTS_ASSIGNED);

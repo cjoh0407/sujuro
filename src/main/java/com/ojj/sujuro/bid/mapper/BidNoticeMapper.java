@@ -153,4 +153,24 @@ public interface BidNoticeMapper {
 
     /** 중도 철회: 이 사업건 목차의 담당자 지정을 푼다. 목차 내용은 그대로다 */
     int clearTocOwners(@Param("pbancSn") Long pbancSn);
+
+    /* ---------- 공고 삭제 (잘못 등록한 신규 공고). 아래 순서로 한 트랜잭션에서 부른다 ---------- */
+
+    /** 배정·재배정 이력 수. 한 번이라도 팀에 맡겼으면 지우지 않는다 */
+    int countAssignHistories(@Param("pbancSn") Long pbancSn, @Param("assignCd") String assignCd,
+                             @Param("reassignCd") String reassignCd);
+
+    int deleteNoticeNotifications(@Param("pbancSn") Long pbancSn);
+
+    /** 나라장터 첨부(FL010·FL080·FL090)만. 제안팀이 올린 파일은 지우지 않는다 */
+    int deleteNoticeFiles(@Param("pbancSn") Long pbancSn);
+
+    int deleteCollectLogs(@Param("pbancSn") Long pbancSn);
+
+    int deleteCollectHistories(@Param("pbancSn") Long pbancSn);
+
+    int deleteProcessHistories(@Param("pbancSn") Long pbancSn);
+
+    /** 공고. 지금 상태가 sttsCd 가 아니거나 팀·반환구분이 있으면 0 */
+    int deleteNotice(@Param("pbancSn") Long pbancSn, @Param("sttsCd") String sttsCd);
 }

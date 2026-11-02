@@ -1,8 +1,6 @@
 package com.ojj.sujuro.result.support;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -84,16 +82,6 @@ class EvaluationExcelReaderTest {
                 .contains("평가 항목이 없습니다"));
         assertTrue(message(() -> EvaluationExcelReader.read(new ByteArrayInputStream("not excel".getBytes(StandardCharsets.UTF_8))))
                 .contains("열지 못했습니다"));
-    }
-
-    @Test
-    void 파일_이름에서_업체명을_꺼내고_표기_차이는_무시한다() {
-        assertEquals("엑사아이엔티 주식회사",
-                EvaluationExcelReader.companyOf("20261029_1756_고용노동 데이터분석 서비스 개선 사업_[ 엑사아이엔티 주식회사 ].xlsx"));
-        assertNull(EvaluationExcelReader.companyOf("평가결과.xlsx"));
-        assertTrue(EvaluationExcelReader.sameCompany("엑사아이엔티 주식회사", "엑사아이엔티(주)"));
-        assertTrue(EvaluationExcelReader.sameCompany("㈜지엔소프트", "지엔소프트(주)"));
-        assertFalse(EvaluationExcelReader.sameCompany("엑사아이엔티 주식회사", "지엔소프트(주)"));
     }
 
     private static String message(org.junit.jupiter.api.function.Executable call) {

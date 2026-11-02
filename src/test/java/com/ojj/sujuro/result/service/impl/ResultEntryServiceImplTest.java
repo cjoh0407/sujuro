@@ -160,12 +160,7 @@ class ResultEntryServiceImplTest {
         assertEquals("전략 및 방법론(15)", f.getItems().get(0).getNm());
         assertEquals("14", f.getItems().get(0).scoreAt(1));
         assertTrue(v.getExcelNote().startsWith("올린 엑셀에서 평가 항목 1개와 평가위원 2명의 점수를 읽어 채웠습니다"));
-        assertNull(v.getExcelWarn()); // 파일 이름의 업체 = 고른 업체
         verify(resultMapper, never()).insertArticle(any());
-
-        // 우리 회사를 골랐는데 다른 업체 파일 이름이면 경고
-        when(resultMapper.findCompanyEvaluationFile(OURS)).thenReturn(file("고용노동 사업_[ 엑사아이엔티 주식회사 ].xlsx"));
-        assertTrue(service.build(leader, 8L, OURS, false).getExcelWarn().contains("고른 업체(지엔소프트(주))"));
 
         // 저장한 점수가 있으면 저장한 값을 보이고, [엑셀에서 다시 불러오기](fromFile)일 때만 다시 읽는다
         when(resultMapper.findCompanyScores(OTHER)).thenReturn(Collections.singletonList(score(1, "14.5")));

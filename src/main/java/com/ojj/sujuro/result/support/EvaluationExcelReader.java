@@ -25,7 +25,7 @@ import com.ojj.sujuro.result.dto.EvaluationForm;
  *   1행  평가항목 | 배점기준 | 평가위원1 | 평가위원2 | ... | 평가위원7
  *   2행~ 전략 및 방법론(15) | 15 | 14.5 | 14.0 | ...
  * 머리 줄은 앞쪽 몇 줄에서 찾는다(위에 제목 줄이 붙어도 읽는다). 항목 이름이 빈 줄이나 합계 줄에서 멈춘다.
- * 배점 칸이 비면 이름 끝의 "(15)"에서 꺼낸다. 엑셀 안에는 업체명이 없고 파일 이름 끝 "[ 업체명 ]"에만 있다.
+ * 배점 칸이 비면 이름 끝의 "(15)"에서 꺼낸다. 엑셀 안에는 업체명이 없어, 고른 업체의 평가표가 맞는지는 팀장이 확인한다.
  */
 public final class EvaluationExcelReader {
 
@@ -38,8 +38,6 @@ public final class EvaluationExcelReader {
     private static final Pattern CMSNR_HEAD = Pattern.compile("^평가위원\\d+$");
     private static final Pattern MAX_SUFFIX = Pattern.compile("\\(\\s*(\\d+(?:\\.\\d+)?)\\s*\\)\\s*$");
     private static final Pattern TOTAL_ROW = Pattern.compile("^(합계|계|총점|소계)$");
-    /** 파일 이름 끝의 "[ 엑사아이엔티 주식회사 ]" */
-    private static final Pattern FILE_COMPANY = Pattern.compile("\\[\\s*([^\\[\\]]+?)\\s*\\]\\s*(?:\\.[A-Za-z]+)?$");
 
     private EvaluationExcelReader() {
     }
@@ -118,24 +116,6 @@ public final class EvaluationExcelReader {
             throw new BusinessException("엑셀의 머리 줄 아래에 평가 항목이 없습니다. 아래에 직접 입력하세요.");
         }
         return f;
-    }
-
-    /** 파일 이름 끝 "[ 업체명 ]"의 업체명. 없으면 null */
-    public static String companyOf(String fileName) {
-        if (fileName == null) {
-            return null;
-        }
-        Matcher m = FILE_COMPANY.matcher(fileName.trim());
-        return m.find() ? m.group(1).trim() : null;
-    }
-
-    /** 업체명이 같은지. 띄어쓰기와 "주식회사·(주)·㈜" 표기 차이는 무시한다 */
-    public static boolean sameCompany(String a, String b) {
-        return companyKey(a).equals(companyKey(b));
-    }
-
-    private static String companyKey(String s) {
-        return s == null ? "" : s.replace("주식회사", "").replace("(주)", "").replace("㈜", "").replaceAll("\\s+", "");
     }
 
     /** 칸의 값을 화면에 넣을 글자로. 숫자는 "14.0" → "14" 처럼 끝의 0을 뗀다 */

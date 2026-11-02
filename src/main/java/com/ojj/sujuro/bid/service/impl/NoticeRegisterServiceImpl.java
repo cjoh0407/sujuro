@@ -2,6 +2,9 @@ package com.ojj.sujuro.bid.service.impl;
 
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -10,6 +13,7 @@ import com.ojj.sujuro.bid.code.BidCode;
 import com.ojj.sujuro.bid.api.G2bApiClient;
 import com.ojj.sujuro.bid.api.G2bResponse;
 import com.ojj.sujuro.bid.dto.CollectHistoryDTO;
+import com.ojj.sujuro.bid.dto.NoticeDetailDTO;
 import com.ojj.sujuro.bid.dto.NoticeRegisterDTO;
 import com.ojj.sujuro.bid.dto.NoticeRegisterResultDTO;
 import com.ojj.sujuro.bid.dto.ProcessHistoryDTO;
@@ -26,9 +30,13 @@ import com.ojj.sujuro.common.exception.BusinessException;
  *   TB_PBANC_CLCT_HSTRY   API 응답 스냅샷 (원문 포함)
  *   TB_PBANC_PRCS_HSTRY   사람이 한 일 (공고 등록)
  *   TB_ATCH_FILE          나라장터 첨부 (사전규격 규격서, 입찰공고 첨부). 발주계획은 첨부를 주지 않는다
+ *
+ * 잘못 등록한 공고의 삭제(delete)도 여기서 한다. 등록을 되돌리는 일이라 위 표들과 알림·수집 로그를 함께 지운다.
  */
 @Service
 public class NoticeRegisterServiceImpl implements NoticeRegisterService {
+
+    private static final Logger log = LoggerFactory.getLogger(NoticeRegisterServiceImpl.class);
 
     /** 사전규격등록번호 형식: R + 연도 2자리 + BD + 순번 8자리 (예: R26BD00283794) */
     private static final Pattern PRE_SPEC_NO = Pattern.compile("^R\\d{2}BD\\d{8}$");
@@ -199,6 +207,42 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
         Long pbancSn = saveNew(regist, "입찰공고번호", no, res);
         attachmentService.save(pbancSn, userId, attachmentService.readBidFiles(item));
         return new NoticeRegisterResultDTO(pbancSn, regist.getPbancNm(), "입찰공고", no, null);
+    }
+
+    /**
+     * 팀에 맡긴 적 없는 신규 공고에 붙는 행(알림·나라장터 첨부·수집 로그·수집 이력·처리 이력)을 지우고 공고를 지운다.
+     * 공고 DELETE 에도 같은 조건을 걸어, 그사이 배정됐으면 0행이 되고 앞의 삭제까지 모두 되돌린다.
+     * 지운 공고는 화면 어디에도 남지 않아 서버 로그에 번호·이름·지운 사람을 남긴다.
+     */
+    @Override
+    @Transactional
+    public String delete(Long pbancSn, String userId) {
+        NoticeDetailDTO notice = bidNoticeMapper.findDetail(pbancSn);
+        if (notice == null) {
+            throw new BusinessException("공고를 찾을 수 없습니다. 이미 삭제되었을 수 있습니다.");
+        }
+        if (!notice.isDeletable()
+                || bidNoticeMapper.countAssignHistories(pbancSn, BidCode.PRCS_ASSIGN, BidCode.PRCS_REASSIGN) > 0) {
+            throw new BusinessException("팀에 한 번도 맡기지 않은 신규 공고만 삭제할 수 있습니다.");
+        }
+        bidNoticeMapper.deleteNoticeNotifications(pbancSn);
+        bidNoticeMapper.deleteNoticeFiles(pbancSn);
+        bidNoticeMapper.deleteCollectLogs(pbancSn);
+        bidNoticeMapper.deleteCollectHistories(pbancSn);
+        bidNoticeMapper.deleteProcessHistories(pbancSn);
+        int deleted;
+        try {
+            deleted = bidNoticeMapper.deleteNotice(pbancSn, BidCode.STTS_NEW);
+        } catch (DataIntegrityViolationException e) {
+            // 위 다섯 표 말고도 이 공고를 가리키는 행(일정·제안팀 등)이 있다
+            throw new BusinessException("이 공고에 연결된 다른 자료가 있어 삭제할 수 없습니다. 불참으로 종결하세요.");
+        }
+        if (deleted == 0) {
+            throw new BusinessException("그사이 공고 상태가 바뀌었습니다. 새로고침한 뒤 다시 확인하세요.");
+        }
+        String name = notice.getPbancNm() != null ? notice.getPbancNm().trim() : notice.getPbancNo();
+        log.info("공고 삭제: {} '{}' (공고일련번호 {}) - {}", notice.getPbancNo(), name, pbancSn, userId);
+        return "'" + name + "' 공고를 삭제했습니다.";
     }
 
     /**

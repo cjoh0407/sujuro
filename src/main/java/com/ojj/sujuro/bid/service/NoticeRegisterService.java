@@ -46,4 +46,13 @@ public interface NoticeRegisterService {
      * @return 화면에 보여 줄 등록 결과
      */
     NoticeRegisterResultDTO registerByBidNo(String rawNo, String userId);
+
+    /**
+     * 잘못 등록한 공고를 지운다 (11/02). 영업부만, 팀에 한 번도 맡기지 않은 신규 공고만이다
+     * (NoticeDetailDTO.isDeletable + 배정 이력 없음). 수집 이력·나라장터 첨부 목록·관련 알림도 함께 지워져 되돌릴 수 없다.
+     * 팀에 맡긴 적 있는 공고는 기록을 남기도록 불참 종결(NoticeTeamService.close)로 끝낸다.
+     *
+     * @return 화면에 보여 줄 결과 문구
+     */
+    String delete(Long pbancSn, String userId);
 }

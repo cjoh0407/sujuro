@@ -39,7 +39,7 @@ import com.ojj.sujuro.history.service.HistoryService;
  * 이 규칙은 SecurityConfig 의 /notices/** URL 규칙에서 막으므로 여기서 다시 검사하지 않는다.
  *
  * 상세에서 영업부는 담당 팀을 배정하고, 배정된 팀의 팀장은 참여 여부를 결정하거나 중도 철회한다
- * (FR-037~042, NoticeTeamService).
+ * (FR-037~042, NoticeTeamService). 영업부는 팀에 맡긴 적 없는 신규 공고를 지울 수도 있다 (잘못 등록한 공고).
  */
 @Controller
 @RequestMapping("/notices")
@@ -178,6 +178,24 @@ public class NoticeController {
             redirect.addFlashAttribute("decideReason", reason);
         }
         return "redirect:/notices/" + pbancSn;
+    }
+
+    /**
+     * 잘못 등록한 공고 삭제 (11/02). 영업부만, 팀에 한 번도 맡기지 않은 신규 공고만이다.
+     * 지우면 목록으로 돌아가고, 지울 수 없으면 상세에 이유를 보여 준다.
+     */
+    @PostMapping("/{pbancSn}/delete")
+    @PreAuthorize("hasRole('SALES')")
+    public String delete(@PathVariable Long pbancSn,
+                         @AuthenticationPrincipal LoginUser user,
+                         RedirectAttributes redirect) {
+        try {
+            redirect.addFlashAttribute("registMessage", noticeRegisterService.delete(pbancSn, user.getEmpNo()));
+            return "redirect:/notices";
+        } catch (BusinessException e) {
+            redirect.addFlashAttribute("teamError", e.getMessage());
+            return "redirect:/notices/" + pbancSn;
+        }
     }
 
     /** 중도 철회 (FR-042). 참여 확정 뒤 배정된 팀의 팀장이 사유를 넣어 신청하면 공고가 영업부로 넘어간다. */

@@ -57,8 +57,6 @@ public class ResultsViewDTO {
     private EvaluationForm excelForm;
     /** 읽어 채웠다는 안내 */
     private String excelNote;
-    /** 파일 이름의 업체가 우리 회사와 다를 때 경고 */
-    private String excelWarn;
     /** 엑셀 모양이 달라 읽지 못한 이유. 이때는 직접 입력한다 */
     private String excelError;
 

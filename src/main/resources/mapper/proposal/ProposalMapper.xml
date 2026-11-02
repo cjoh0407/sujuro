@@ -53,7 +53,7 @@
      WHERE M.PBANC_SN = #{pbancSn}
        AND M.PTCP_SE_CD IN ('PT010', 'PT020')
        AND U.ACNT_STTS_CD &lt;&gt; 'AS050'
-     ORDER BY M.PTCP_SE_CD, U.USER_NM
+     ORDER BY T.TEAM_NM, M.PTCP_SE_CD, U.USER_NM
   </select>
 
   <!-- ===== 제안팀 구성 (FR-043~044) ===== -->
@@ -122,18 +122,11 @@
     SELECT COUNT(*) FROM TB_TOC WHERE PBANC_SN = #{pbancSn} AND PIC_ID = #{userId}
   </select>
 
-  <!-- 개발부(DP030) 사용 중인 팀 중 주관팀을 뺀 팀. 참여팀 여부(Y/N)와 그 팀 소속 참여팀원(PT020) 수 -->
-  <select id="findTeamOptions" resultType="com.ojj.sujuro.proposal.dto.ProposalTeamDto">
-    SELECT T.TEAM_SN AS teamSn, T.TEAM_NM AS teamNm,
-           CASE WHEN EXISTS (SELECT 1 FROM TB_PTCP_TEAM P WHERE P.PBANC_SN = #{pbancSn} AND P.TEAM_SN = T.TEAM_SN)
-                THEN 'Y' ELSE 'N' END AS ptcpYn,
-           (SELECT COUNT(*) FROM TB_PRP_TMMBR M JOIN TB_USER U ON U.USER_ID = M.USER_ID
-             WHERE M.PBANC_SN = #{pbancSn} AND M.PTCP_SE_CD = 'PT020' AND U.TEAM_SN = T.TEAM_SN) AS memberCnt
-      FROM TB_TEAM T
-     WHERE T.DEPT_CD = 'DP030'
-       AND T.USE_YN = 'Y'
-       AND T.TEAM_SN &lt;&gt; NVL((SELECT SPRVSN_TEAM_SN FROM TB_BID_PBANC WHERE PBANC_SN = #{pbancSn}), -1)
-     ORDER BY T.TEAM_NM
+  <select id="countTeamMembers" resultType="int">
+    SELECT COUNT(*)
+      FROM TB_PRP_TMMBR M
+      JOIN TB_USER U ON U.USER_ID = M.USER_ID
+     WHERE M.PBANC_SN = #{pbancSn} AND U.TEAM_SN = #{teamSn}
   </select>
 
   <select id="countPtcpTeam" resultType="int">

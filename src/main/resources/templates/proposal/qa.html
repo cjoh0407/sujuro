@@ -11,7 +11,8 @@
     이전 사업 Q&amp;A 보기: 내가 제안팀이었던 다른 사업건의 Q&amp;A를 읽기 전용으로 본다 (FR-076-1)
   제안팀 누구나 등록·수정하고, 삭제는 작성자 또는 주관팀 팀장만 한다.
   필요한 모델: bids, bid, tab, q, me, groups, itemCnt, foundCnt, expCnt, prsCnt, unansweredCnt, rqts, canDeleteAll,
-              pastBids, pastBid·pastGroups(이전 사업을 고른 때), editQna(수정 중일 때)
+              pastBids, pastBid·pastGroups(이전 사업을 고른 때)
+  추가·보기·수정은 모두 아래 팝업(qaPop) 하나에서 한다.
 */-->
 <head>
   <title>질의응답 기록</title>
@@ -81,21 +82,21 @@
       <div class="pad faint" style="font-size:11.5px;padding-bottom:0">읽기 전용입니다. 참고할 질문과 답변이 있으면 아래 등록 칸에 옮겨 적으세요.</div>
       <div class="ts">
         <table class="qa-grid">
-          <thead><tr><th style="width:60px">구분</th><th>질문</th><th>답변</th><th style="width:22%">관련 요구사항</th></tr></thead>
+          <colgroup><col style="width:64px"><col style="width:32%"><col><col style="width:22%"></colgroup>
+          <thead><tr><th>구분</th><th>질문</th><th>답변</th><th>관련 요구사항</th></tr></thead>
           <tbody th:each="g : ${pastGroups}">
             <tr class="qa-group"><td colspan="4" th:text="${g.title} + ' (' + ${#lists.size(g.items)} + ')'">Ⅰ. 사업의 이해 (2)</td></tr>
-            <tr class="hv" th:each="x : ${g.items}">
+            <tr class="hv qa-row" th:each="x : ${g.items}" title="눌러서 자세히 보기" onclick="openQa(this, event)"
+                th:data-q="${x.qstnCn}" th:data-a="${x.ansCn}"
+                th:data-r="${x.rqtMttrSn != null} ? ${x.rqtMttrNo + ' ' + x.rqtMttrNm} : ''">
               <td><span class="pill" th:classappend="${x.presented} ? 'accent' : 'neutral'" th:text="${x.presented} ? '발표' : '예상'">예상</span></td>
-              <td class="qa-txt" th:text="${x.qstnCn}">질문</td>
-              <td class="qa-txt">
-                <span th:unless="${x.unanswered}" th:text="${x.ansCn}">답변</span>
+              <td><div class="qa-clip" th:text="${x.qstnCn}">질문</div></td>
+              <td>
+                <div class="qa-clip" th:unless="${x.unanswered}" th:text="${x.ansCn}">답변</div>
                 <span class="faint" th:if="${x.unanswered}">답변 없음</span>
               </td>
               <td>
-                <th:block th:if="${x.rqtMttrSn != null}">
-                  <span class="mono" th:text="${x.rqtMttrNo}">SFR-001</span>
-                  <span th:text="${x.rqtMttrNm}">요구사항명</span>
-                </th:block>
+                <div class="qa-clip" th:if="${x.rqtMttrSn != null}"><span class="mono" th:text="${x.rqtMttrNo}">SFR-001</span> <span th:text="${x.rqtMttrNm}">요구사항명</span></div>
                 <span class="faint" th:if="${x.rqtMttrSn == null}">-</span>
               </td>
             </tr>
@@ -113,39 +114,31 @@
                 th:text="'· \'' + ${q} + '\' 검색 결과 ' + ${foundCnt} + ' / ' + ${itemCnt} + '건'">· 검색 결과</span>
           <span class="faint" style="font-weight:400" th:if="${unansweredCnt > 0}" th:text="'· 답변 미작성 ' + ${unansweredCnt} + '건'">· 답변 미작성 0건</span>
         </h3>
+        <button class="btn sm primary" type="button" onclick="addQa()" th:text="${prs} ? '+ 발표 Q&amp;A 기록' : '+ 예상 Q&amp;A 추가'">+ 예상 Q&amp;A 추가</button>
       </div>
 
       <div class="empty" th:if="${itemCnt == 0}"
-           th:text="${prs} ? '기록한 발표 Q&amp;A가 없습니다. 아래에서 발표 때 나온 질문을 기록하세요.' : '등록한 예상 Q&amp;A가 없습니다. 아래에서 예상 질문을 등록하세요.'">없습니다.</div>
+           th:text="${prs} ? '기록한 발표 Q&amp;A가 없습니다. 오른쪽 위 [+ 발표 Q&amp;A 기록]으로 발표 때 나온 질문을 기록하세요.' : '등록한 예상 Q&amp;A가 없습니다. 오른쪽 위 [+ 예상 Q&amp;A 추가]로 예상 질문을 등록하세요.'">없습니다.</div>
       <div class="empty" th:if="${itemCnt > 0 and foundCnt == 0}">검색어가 들어 있는 질문·답변이 없습니다.</div>
 
       <div class="ts" th:if="${foundCnt > 0}">
         <table class="qa-grid">
-          <thead><tr><th>질문</th><th>답변</th><th style="width:22%">관련 요구사항</th><th style="width:64px"></th></tr></thead>
+          <colgroup><col style="width:34%"><col><col style="width:24%"></colgroup>
+          <thead><tr><th>질문</th><th>답변</th><th>관련 요구사항</th></tr></thead>
           <tbody th:each="g : ${groups}">
-            <tr class="qa-group"><td colspan="4" th:text="${g.title} + ' (' + ${#lists.size(g.items)} + ')'">Ⅰ. 사업의 이해 (2)</td></tr>
-            <tr class="hv" th:each="x : ${g.items}" th:classappend="${editQna != null and editQna.qstnAnsSn == x.qstnAnsSn} ? 'qa-editing'">
-              <td class="qa-txt" th:text="${x.qstnCn}">질문</td>
-              <td class="qa-txt">
-                <span th:unless="${x.unanswered}" th:text="${x.ansCn}">답변</span>
+            <tr class="qa-group"><td colspan="3" th:text="${g.title} + ' (' + ${#lists.size(g.items)} + ')'">Ⅰ. 사업의 이해 (2)</td></tr>
+            <tr class="hv qa-row" th:each="x : ${g.items}" title="눌러서 자세히 보기" onclick="openQa(this, event)"
+                th:data-q="${x.qstnCn}" th:data-a="${x.ansCn}"
+                th:data-r="${x.rqtMttrSn != null} ? ${x.rqtMttrNo + ' ' + x.rqtMttrNm} : ''"
+                th:data-sn="${x.qstnAnsSn}" th:data-rsn="${x.rqtMttrSn}" th:data-del="${canDeleteAll or x.wrtrId == me}">
+              <td><div class="qa-clip" th:text="${x.qstnCn}">질문</div></td>
+              <td>
+                <div class="qa-clip" th:unless="${x.unanswered}" th:text="${x.ansCn}">답변</div>
                 <span class="faint" th:if="${x.unanswered}">답변을 아직 적지 않았습니다.</span>
               </td>
               <td>
-                <th:block th:if="${x.rqtMttrSn != null}">
-                  <span class="mono" th:text="${x.rqtMttrNo}">SFR-001</span>
-                  <span th:text="${x.rqtMttrNm}">요구사항명</span>
-                </th:block>
+                <div class="qa-clip" th:if="${x.rqtMttrSn != null}"><span class="mono" th:text="${x.rqtMttrNo}">SFR-001</span> <span th:text="${x.rqtMttrNm}">요구사항명</span></div>
                 <span class="faint" th:if="${x.rqtMttrSn == null}">-</span>
-              </td>
-              <td style="white-space:nowrap">
-                <a class="ico" title="수정" th:href="@{/qa(bid=${bid.pbancSn}, tab=${tab}, q=${q}, edit=${x.qstnAnsSn})} + '#qaform'">✎</a>
-                <form th:if="${canDeleteAll or x.wrtrId == me}" th:action="@{/qa/delete}" method="post" style="display:inline"
-                      onsubmit="return confirm('이 질의응답을 삭제할까요?')">
-                  <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-                  <input type="hidden" name="tab" th:value="${tab}">
-                  <input type="hidden" name="qstnAnsSn" th:value="${x.qstnAnsSn}">
-                  <button class="ico" type="submit" title="삭제">🗑</button>
-                </form>
               </td>
             </tr>
           </tbody>
@@ -153,42 +146,72 @@
       </div>
     </div>
 
-    <!-- 등록·수정: 질문 · 답변 · 관련 요구사항(선택) (FR-074) -->
-    <div class="card" id="qaform">
-      <div class="card-head">
-        <h3 th:text="${editQna != null} ? '질의응답 수정' : (${prs} ? '발표 Q&amp;A 기록' : '예상 Q&amp;A 등록')">예상 Q&amp;A 등록</h3>
+    <!-- 질의응답 팝업 하나로 세 가지를 한다 (proposal.js openQa·addQa·editQa)
+           보기: 줄을 누르면 전체 질문·답변·관련 요구사항. 현재 사업 Q&amp;A면 수정·삭제 버튼 (삭제는 작성자·주관팀 팀장만)
+           추가: 목록 위 [+ 추가] 버튼 → 빈 입력 칸
+           수정: 보기에서 [수정] → 같은 팝업에서 입력 칸으로 바뀐다. [취소]는 보기로 돌아간다
+         이전 사업 Q&amp;A는 보기만 한다. -->
+    <div class="modal" id="qaPop" hidden onclick="if (event.target === this) closeQa()"
+         th:data-add-title="${prs} ? '발표 Q&amp;A 기록' : '예상 Q&amp;A 추가'">
+      <div class="box" role="dialog" aria-modal="true" aria-labelledby="qaPopTitle">
+        <div class="card-head">
+          <h3 id="qaPopTitle">질의응답 상세</h3>
+          <button class="ico" type="button" title="닫기" aria-label="닫기" onclick="closeQa()"><span class="ic ic-close"></span></button>
+        </div>
+
+        <!-- 보기 -->
+        <div id="qaView">
+          <div class="pad qa-pop">
+            <div class="qa-box"><div class="qa-pop-l">질문</div><div class="qa-full" id="qaPopQ"></div></div>
+            <div class="qa-box"><div class="qa-pop-l">답변</div><div class="qa-full" id="qaPopA"></div></div>
+            <div class="qa-box"><div class="qa-pop-l">관련 요구사항</div><div id="qaPopR"></div></div>
+          </div>
+          <div class="pad row qa-pop-act" id="qaViewAct" hidden>
+            <form id="qaPopDel" th:action="@{/qa/delete}" method="post" onsubmit="return confirm('이 질의응답을 삭제할까요?')">
+              <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+              <input type="hidden" name="tab" th:value="${tab}">
+              <input type="hidden" name="qstnAnsSn" id="qaDelSn">
+              <button class="btn sm danger" type="submit">삭제</button>
+            </form>
+            <button class="btn sm primary" type="button" onclick="editQa()">수정</button>
+          </div>
+        </div>
+
+        <!-- 추가·수정 (FR-074: 질문 · 답변 · 관련 요구사항(선택)) -->
+        <form id="qaForm" hidden method="post" th:action="@{/qa/add}" th:data-add="@{/qa/add}" th:data-edit="@{/qa/edit}">
+          <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+          <input type="hidden" name="tab" th:value="${tab}">
+          <input type="hidden" name="qstnAnsSn" id="qaFormSn" disabled>
+          <div class="pad qa-pop">
+            <div class="qa-box">
+              <label class="qa-pop-l" for="qaFormQ">질문 <span class="qa-req">필수</span></label>
+              <textarea id="qaFormQ" name="qstnCn" rows="3" maxlength="4000" required></textarea>
+            </div>
+            <div class="qa-box">
+              <label class="qa-pop-l" for="qaFormA" th:text="${prs} ? '답변 (발표 때 한 답변)' : '준비한 답변 (나중에 채워도 됩니다)'">답변</label>
+              <textarea id="qaFormA" name="ansCn" rows="6" maxlength="4000"></textarea>
+            </div>
+            <div class="qa-box">
+              <label class="qa-pop-l" for="qaFormR">관련 요구사항 (선택)</label>
+              <select id="qaFormR" name="rqtMttrSn">
+                <option value="">선택 안 함</option>
+                <option th:each="r : ${rqts}" th:value="${r.rqtMttrSn}" th:text="${r.rqtMttrNo + ' ' + r.rqtMttrNm}">SFR-001 요구사항명</option>
+              </select>
+              <span class="faint" style="font-size:11.5px" th:if="${#lists.isEmpty(rqts)}">이 사업건에 등록한 요구사항이 없습니다. 제안서 목차 화면에서 요구사항을 먼저 추가하세요.</span>
+            </div>
+          </div>
+          <div class="pad row qa-pop-act">
+            <button class="btn sm" type="button" onclick="cancelQaForm()">취소</button>
+            <button class="btn sm primary" type="submit" id="qaFormSubmit">등록</button>
+          </div>
+        </form>
       </div>
-      <form th:action="${editQna != null} ? @{/qa/edit} : @{/qa/add}" method="post"
-            class="pad" style="display:flex;flex-direction:column;gap:10px">
-        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-        <input type="hidden" name="tab" th:value="${tab}">
-        <input type="hidden" name="qstnAnsSn" th:if="${editQna != null}" th:value="${editQna.qstnAnsSn}">
-        <div class="fld">
-          <label for="qstnCn">질문</label>
-          <textarea id="qstnCn" name="qstnCn" rows="2" maxlength="4000" required
-                    th:text="${editQna?.qstnCn}" th:autofocus="${editQna != null}"></textarea>
-        </div>
-        <div class="fld">
-          <label for="ansCn" th:text="${prs} ? '답변 (발표 때 한 답변)' : '준비한 답변 (나중에 채워도 됩니다)'">답변</label>
-          <textarea id="ansCn" name="ansCn" rows="3" maxlength="4000" th:text="${editQna?.ansCn}"></textarea>
-        </div>
-        <div class="fld" style="max-width:520px">
-          <label for="rqtMttrSn">관련 요구사항 (선택)</label>
-          <select id="rqtMttrSn" name="rqtMttrSn">
-            <option value="">선택 안 함</option>
-            <option th:each="r : ${rqts}" th:value="${r.rqtMttrSn}" th:text="${r.rqtMttrNo + ' ' + r.rqtMttrNm}"
-                    th:selected="${editQna != null and r.rqtMttrSn == editQna.rqtMttrSn}">SFR-001 요구사항명</option>
-          </select>
-          <span class="faint" style="font-size:11.5px" th:if="${#lists.isEmpty(rqts)}">이 사업건에 등록한 요구사항이 없습니다. 제안서 목차 화면에서 요구사항을 먼저 추가하세요.</span>
-        </div>
-        <div class="row">
-          <button class="btn primary" type="submit" th:text="${editQna != null} ? '수정 저장' : (${prs} ? '기록' : '등록')">등록</button>
-          <a class="btn" th:if="${editQna != null}" th:href="@{/qa(bid=${bid.pbancSn}, tab=${tab}, q=${q})}">취소</a>
-        </div>
-      </form>
     </div>
 
   </th:block>
+</th:block>
+<th:block layout:fragment="scripts">
+  <script th:src="@{/js/proposal.js}"></script>
 </th:block>
 </body>
 </html>

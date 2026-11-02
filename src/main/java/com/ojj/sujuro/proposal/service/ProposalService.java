@@ -35,9 +35,6 @@ public interface ProposalService {
     /** 인원 찾기 팝업의 직급 선택지 */
     List<String> rankNames();
 
-    /** 참여팀으로 고를 수 있는 팀 (주관팀 제외, 지금 참여팀 여부 포함) */
-    List<ProposalTeamDto> teamOptions(Long pbancSn);
-
     /**
      * 제안팀에 인원을 추가한다. 주관팀 소속이면 주관팀(PT010), 다른 팀이면 참여팀(PT020)으로 넣고,
      * 그 팀이 아직 참여팀이 아니면 참여팀으로 함께 지정한다. 추가한 사람 이름을 돌려준다.
@@ -52,14 +49,9 @@ public interface ProposalService {
 
     /**
      * 제안팀에서 인원을 뺀다. 주관팀 팀장은 뺄 수 없고, 담당 목차가 있으면 담당자를 먼저 바꿔야 한다.
-     * 뺀 사람 이름을 돌려준다.
+     * 참여팀 인원을 빼서 그 팀 인원이 0명이 되면 그 팀도 참여팀에서 뺀다. 뺀 사람 이름을 돌려준다.
      */
     String removeMember(Long pbancSn, String userId);
-
-    /**
-     * 참여팀을 고른 팀들로 맞춘다(체크한 팀만 남는다). 그 팀 소속 참여팀원이 남아 있는 팀은 뺄 수 없다.
-     */
-    void saveTeams(Long pbancSn, List<Long> teamSns);
 
     /** 제안서 전체 페이지 제한을 바꾼다. null이면 제한 없음 */
     void changePageLimit(Long pbancSn, Integer limit);

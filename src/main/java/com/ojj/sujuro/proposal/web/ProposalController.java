@@ -94,10 +94,9 @@ public class ProposalController {
         model.addAttribute("canAssign", canAssign);
         model.addAttribute("canReq", canReq);
         model.addAttribute("members", proposalService.members(pbancSn));
-        if (canAssign) { // 제안팀 구성 카드의 추가·참여팀 선택
-            model.addAttribute("memTeams", proposalService.devTeams());   // 인원 찾기 팝업 필터
+        if (canAssign) { // 제안팀 구성 카드의 인원 찾기 팝업 필터 (참여팀은 인원을 넣고 빼면 자동으로 정해진다)
+            model.addAttribute("memTeams", proposalService.devTeams());
             model.addAttribute("memRanks", proposalService.rankNames());
-            model.addAttribute("teamOptions", proposalService.teamOptions(pbancSn));
         }
         if (canLoad && TAB_PROPOSAL.equals(tk)) { // 주관팀 양식은 제안서 목차에만 (요약서는 기본 목차)
             model.addAttribute("forms", tocService.forms(current.getSprvsnTeamSn(), se));

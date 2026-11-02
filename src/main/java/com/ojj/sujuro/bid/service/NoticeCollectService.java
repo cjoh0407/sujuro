@@ -18,6 +18,9 @@ import com.ojj.sujuro.bid.dto.CollectResultDTO;
  *
  * 자동 수집은 평일 오후 5시 하루 한 번이다(g2b.collect.cron). 요구사항(FR-025)은 5시 전후로 촘촘하게지만
  * 하루 한 번으로 정했다(2026-10-28). 그 사이에는 영업부가 [지금 수집] 으로 돌린다.
+ *
+ * 알림: 단계 전환(NT150)·정정·취소(NT020)는 영업부 전원과 배정된 팀의 팀장에게,
+ * 자동 수집 결과 요약(NT170)은 영업부 전원에게 보낸다.
  */
 public interface NoticeCollectService {
 

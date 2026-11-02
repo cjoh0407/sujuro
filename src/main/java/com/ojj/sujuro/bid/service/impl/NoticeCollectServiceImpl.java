@@ -67,6 +67,12 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
     /** 목록 조회 기간 형식. 발주계획 서비스(8자리)와 달리 사전규격·입찰공고는 12자리다. */
     private static final DateTimeFormatter API_DT = DateTimeFormatter.ofPattern("yyyyMMddHHmm");
 
+    /** 정정·수집 결과 알림에 적는 일시 형식 */
+    private static final DateTimeFormatter NOTICE_DT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+    /** 수집 결과 알림 내용의 최대 길이. 확인 실패 메시지가 길어도 알림함에서 읽을 만큼만 남긴다 (TB_NOTI.NOTI_CN 4000자) */
+    private static final int MAX_NOTI_LEN = 1000;
+
     /** 목록을 한 번에 받는 건수 */
     private static final int PAGE_SIZE = 100;
 
@@ -108,14 +114,38 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
         this.manualCooldownMinutes = manualCooldownMinutes;
     }
 
-    /** 평일 오후 5시 자동 수집 (g2b.collect.cron) */
+    /**
+     * 평일 오후 5시 자동 수집 (g2b.collect.cron). 끝나면 결과 요약을 영업부에 알림으로 남긴다 (FR-025, NT170).
+     * [지금 수집] 은 누른 사람 화면에 결과가 바로 나오므로 알림을 남기지 않는다.
+     */
     @Scheduled(cron = "${g2b.collect.cron}")
     public void collectAuto() {
+        LocalDateTime startedAt = LocalDateTime.now();
+        CollectResultDTO result;
         try {
-            log.info("자동 수집 완료: {}", collect(BidCode.EXCN_AUTO, null).getSummary());
+            result = collect(BidCode.EXCN_AUTO, null);
         } catch (BusinessException e) {
             log.warn("자동 수집을 건너뜁니다: {}", e.getMessage());
+            return;
         }
+        log.info("자동 수집 완료: {}", result.getSummary());
+        try {
+            notificationService.sendToRole(Role.SALES, BidCode.NOTI_COLLECT_RESULT, null, autoCollectContent(startedAt, result));
+        } catch (RuntimeException e) {
+            log.warn("자동 수집 결과 알림을 남기지 못했습니다", e);
+        }
+    }
+
+    /**
+     * 자동 수집 결과 알림 내용. 바뀐 공고가 없어도 남겨서 수집이 돌았는지 나중에 알 수 있게 한다.
+     * 예: "[자동 수집] 2026-11-02 17:00 · 정정 1건 · 개찰 1건(유찰 1) / 확인 실패: 사전규격 전환: 나라장터에서 …"
+     */
+    static String autoCollectContent(LocalDateTime startedAt, CollectResultDTO result) {
+        String content = "[자동 수집] " + startedAt.format(NOTICE_DT) + " · " + result.getSummary();
+        if (!result.getFailures().isEmpty()) {
+            content += " / 확인 실패: " + String.join(" · ", result.getFailures());
+        }
+        return content.length() > MAX_NOTI_LEN ? content.substring(0, MAX_NOTI_LEN - 1) + "…" : content;
     }
 
     @Override
@@ -512,6 +542,7 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
                 attachmentService.save(target.getPbancSn(), null, files);
                 bidNoticeMapper.insertCollectLog(new CollectLogDTO(target.getPbancSn(), excnSeCd, exctrId, rsltCd,
                         "차수 " + stored + " → " + values.getBidPbancCycl()));
+                notifyCorrected(target, values);
                 return true;
             });
             if (Boolean.TRUE.equals(done)) {
@@ -708,11 +739,70 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
         return spec == null ? List.of() : attachmentService.readPreSpecFiles(spec);
     }
 
-    /** 단계가 넘어가면 영업부 전원에게 화면 알림을 보낸다. 메일은 알림 메일 발송기가 따로 보낸다. (FR-027, NT150) */
+    /**
+     * 단계가 넘어가면 영업부 전원과 배정된 팀의 팀장에게 화면 알림을 보낸다. 메일은 알림 메일 발송기가 따로 보낸다. (FR-027, NT150)
+     * 발주계획·사전규격 단계에서도 배정할 수 있어서, 배정받은 팀도 단계가 바뀐 것을 알게 한다.
+     */
     private void notifyStageChanged(TrackingNoticeDTO target, String from, String to) {
         String name = target.getPbancNm() == null ? "공고" : target.getPbancNm();
-        notificationService.sendToRole(Role.SALES, NotificationType.BID_STAGE_CHANGED, target.getPbancSn(),
+        notifySalesAndTeam(target.getPbancSn(), NotificationType.BID_STAGE_CHANGED,
                 "'" + name + "' 공고가 " + from + " 단계에서 " + to + " 단계로 바뀌었습니다.");
+    }
+
+    /**
+     * 정정·취소를 영업부 전원과 배정된 팀의 팀장에게 알린다 (FR-028, NT020 공고 변경).
+     * 화면 알림만 간다. 알림 메일 발송기(notification.service.DeadlineNoticeService)가 NT020 은 메일로 보내지 않는다.
+     */
+    private void notifyCorrected(TrackingNoticeDTO target, BidLinkDTO values) {
+        notifySalesAndTeam(target.getPbancSn(), NotificationType.BID_CHANGED, correctionContent(target, values));
+    }
+
+    /** 영업부 전원 + 배정된 팀의 팀장. 미배정이거나 팀에서 반환된 공고면 영업부만 받는다. 호출한 쪽의 트랜잭션에 묶인다. */
+    private void notifySalesAndTeam(Long pbancSn, String typeCd, String content) {
+        notificationService.sendToRole(Role.SALES, typeCd, pbancSn, content);
+        Long teamSn = bidNoticeMapper.findSprvsnTeamSn(pbancSn);
+        if (teamSn != null) {
+            notificationService.sendToTeamLeaders(teamSn, typeCd, pbancSn, content);
+        }
+    }
+
+    /**
+     * 정정·취소 알림 내용. 바뀐 값(제출 마감·개찰·예산·공고명)을 함께 적는다.
+     * 예: "'통합 보안관제 체계 구축' 입찰공고가 정정되었습니다 (차수 1 → 2). 제출 마감 2026-11-05 10:00 → 2026-11-07 10:00"
+     */
+    static String correctionContent(TrackingNoticeDTO before, BidLinkDTO after) {
+        String name = after.getPbancNm() != null ? after.getPbancNm()
+                : before.getPbancNm() != null ? before.getPbancNm() : "공고";
+        int fromCycl = before.getBidPbancCycl() == null ? 0 : before.getBidPbancCycl();
+        String cycl = after.getBidPbancCycl() != null && after.getBidPbancCycl() > fromCycl
+                ? " (차수 " + fromCycl + " → " + after.getBidPbancCycl() + ")" : "";
+        if (BidCode.is(after.getPbancTypeCd(), BidCode.TYPE_CANCELED)) {
+            return "'" + name + "' 입찰공고가 취소되었습니다" + cycl + ". 공고 상세에서 확인하세요.";
+        }
+        List<String> changes = new ArrayList<>();
+        if (differs(before.getBidDdlnDt(), after.getBidDdlnDt())) {
+            changes.add("제출 마감 " + noticeDt(before.getBidDdlnDt()) + " → " + noticeDt(after.getBidDdlnDt()));
+        }
+        if (differs(before.getOpengDt(), after.getOpengDt())) {
+            changes.add("개찰 " + noticeDt(before.getOpengDt()) + " → " + noticeDt(after.getOpengDt()));
+        }
+        if (after.getAltmntBgtAmt() != null && (before.getAltmntBgtAmt() == null
+                || after.getAltmntBgtAmt().compareTo(before.getAltmntBgtAmt()) != 0)) {
+            changes.add("예산 " + won(before.getAltmntBgtAmt()) + " → " + won(after.getAltmntBgtAmt()));
+        }
+        if (before.getPbancNm() != null && differs(before.getPbancNm(), after.getPbancNm())) {
+            changes.add("공고명 변경 (이전: " + before.getPbancNm().trim() + ")");
+        }
+        return "'" + name + "' 입찰공고가 정정되었습니다" + cycl + ". "
+                + (changes.isEmpty() ? "공고 상세에서 바뀐 내용을 확인하세요." : String.join(" · ", changes));
+    }
+
+    private static String noticeDt(LocalDateTime dt) {
+        return dt == null ? "-" : dt.format(NOTICE_DT);
+    }
+
+    private static String won(BigDecimal amount) {
+        return amount == null ? "-" : String.format("%,.0f원", amount);
     }
 
     /** 단계만 올리고 수집이력·수집로그를 남긴다 (개찰·계약). 한 공고씩 따로 커밋한다. */

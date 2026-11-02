@@ -48,6 +48,7 @@
            P.ORDER_INST_NM                           AS orderInstNm,
            P.ALTMNT_BGT_AMT                          AS altmntBgtAmt,
            P.BID_DDLN_DT                             AS bidDdlnDt,
+           P.OPNN_DDLN_DT                            AS opnnDdlnDt,
            TEAM.TEAM_NM                              AS sprvsnTeamNm,
            ( SELECT LISTAGG(JT.TEAM_NM, ', ') WITHIN GROUP (ORDER BY JT.TEAM_NM)
                FROM TB_PTCP_TEAM PT
@@ -119,7 +120,6 @@
            PTFM.CD_NM                                AS ptcpShpNm,
            P.SW_BIZ_YN                               AS swBizYn,
            P.BIZ_PRD_CN                              AS bizPrdCn,
-           P.OPNN_DDLN_DT                            AS opnnDdlnDt,
            P.OPENG_DT                                AS opengDt,
            P.PRSNTN_DT                               AS prsntnDt,
            P.EVL_MTHD_NM                             AS evlMthdNm,

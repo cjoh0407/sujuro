@@ -10,12 +10,21 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 평가·결과 입력 화면(results/index.html) 한 장 (FR-077~081). 경영지원실 전용.
+ * 평가·결과 입력 화면(results/index.html) 한 장 (FR-077~081). 경영지원실과 팀장(자기 팀 사업만)이 본다.
  * 고른 사업건 하나를 보여 준다. 결과가 등록된 사업이면 사업별 결과 분석과 같은 값(archive)과 개찰 업체 목록이 같이 온다.
  */
 @Getter
 @Setter
 public class ResultsViewDTO {
+
+    /** [나라장터에서 결과 가져오기]를 할 수 있는지 (경영지원실) */
+    private boolean canImport;
+
+    /** 평가표 엑셀을 올릴 수 있는지 (경영지원실, 이 사업을 맡은 팀의 팀장) */
+    private boolean canUpload;
+
+    /** 평가 항목·점수와 장단점을 입력할 수 있는지 (이 사업을 맡은 팀의 팀장. 회의 결정, 2026-11-02 반영) */
+    private boolean canScore;
 
     /** 선택 목록: 참여 확정 뒤의 사업건 (제출 완료 → 결과 등록 → 제안 작성 중 → 참여 확정 → 유찰 순) */
     private List<ResultBidDTO> bids = new ArrayList<>();

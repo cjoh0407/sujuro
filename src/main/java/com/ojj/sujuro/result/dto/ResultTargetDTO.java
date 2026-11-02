@@ -15,4 +15,6 @@ public class ResultTargetDTO {
     private String pbancNm;
     /** 기술 배점(비율). 비어 있으면 결과를 등록할 때 입찰공고 API 에서 채운다(10/29 전에 등록한 공고) */
     private BigDecimal techScorScr;
+    /** 주관 팀. 결과가 등록되면 이 팀의 팀장에게 평가 점수·장단점을 입력하라고 알린다 */
+    private Long sprvsnTeamSn;
 }

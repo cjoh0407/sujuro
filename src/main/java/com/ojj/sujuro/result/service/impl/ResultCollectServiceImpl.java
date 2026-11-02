@@ -140,12 +140,19 @@ public class ResultCollectServiceImpl implements ResultCollectService {
         }
     }
 
-    /** 경영지원실에 평가표 엑셀을 올려 달라고 알린다. 알림이 실패해도 결과 등록은 그대로 둔다 */
+    /**
+     * 경영지원실에는 평가표 엑셀을 올려 달라고, 주관 팀 팀장에게는 평가 점수·장단점을 입력하라고 알린다
+     * (점수·장단점 입력은 팀장, 회의 결정 2026-11-02 반영). 알림이 실패해도 결과 등록은 그대로 둔다
+     */
     private void requestEvaluationTable(ResultTargetDTO target, String text) {
+        String head = "[" + target.getPbancNm() + "] 결과가 등록되었습니다(" + text + "). ";
         try {
             notificationService.sendToRole(Role.MGMT, NotificationType.EVL_TABLE_REQUEST, target.getPbancSn(),
-                    "[" + target.getPbancNm() + "] 결과가 등록되었습니다(" + text + "). "
-                            + "나라장터 기술평가점수 조회에서 평가표 엑셀을 내려받아 올리고 항목별 점수를 입력하세요.");
+                    head + "나라장터 기술평가점수 조회에서 평가표 엑셀을 내려받아 올려 주세요.");
+            if (target.getSprvsnTeamSn() != null) {
+                notificationService.sendToTeamLeaders(target.getSprvsnTeamSn(), NotificationType.EVL_TABLE_REQUEST,
+                        target.getPbancSn(), head + "평가표 엑셀이 올라오면 평가·결과 입력에서 항목별 점수와 장단점을 입력하세요.");
+            }
         } catch (RuntimeException e) {
             log.warn("평가표 업로드 요청 알림 실패: 입찰공고 {}", target.getBidPbancNo(), e);
         }

@@ -1,6 +1,7 @@
 package com.ojj.sujuro.result.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -62,6 +63,10 @@ class ResultEntryServiceImplTest {
     private ResultEntryServiceImpl service;
 
     private final LoginUser mgmt = user("2022-0009", Role.MGMT);
+    /** 8번 사업을 맡은 개발1팀(3) 팀장 */
+    private final LoginUser leader = user("2024-0031", Role.LEADER);
+    /** 다른 개발팀(4) 팀장 */
+    private final LoginUser otherLeader = user("2024-0099", Role.LEADER);
 
     @BeforeEach
     void setUp() {
@@ -71,7 +76,9 @@ class ResultEntryServiceImplTest {
         collect = mock(ResultCollectService.class);
         storage = mock(FileStorage.class);
         service = new ResultEntryServiceImpl(resultMapper, statsMapper, statsService, collect, storage);
-        when(statsMapper.findArchive(8L)).thenReturn(new StatsArchiveDTO());
+        when(statsMapper.findArchive(8L)).thenReturn(archive(3L));
+        when(statsMapper.findDevTeamSnOf("2024-0031")).thenReturn(3L);
+        when(statsMapper.findDevTeamSnOf("2024-0099")).thenReturn(4L);
         when(resultMapper.findOurCoEvlRsltSn(8L)).thenReturn(31L);
         when(statsMapper.findEvaluationFile(8L)).thenReturn(new EvaluationFileDTO());
         when(collect.isReady()).thenReturn(true);
@@ -79,10 +86,10 @@ class ResultEntryServiceImplTest {
 
     @Test
     void 화면은_고른_사업건을_보이고_목록에_없으면_첫_사업건() {
-        when(resultMapper.findResultBids()).thenReturn(Arrays.asList(bid(5L, "PS050"), bid(8L, "PS060")));
+        when(resultMapper.findResultBids(null)).thenReturn(Arrays.asList(bid(5L, "PS050"), bid(8L, "PS060")));
         when(resultMapper.findResultBid(5L)).thenReturn(bid(5L, "PS050"));
         when(resultMapper.findResultBid(8L)).thenReturn(bid(8L, "PS060"));
-        StatsArchiveDTO archive = new StatsArchiveDTO();
+        StatsArchiveDTO archive = archive(3L);
         when(statsService.findArchive(mgmt, 8L)).thenReturn(archive);
 
         ResultsViewDTO v = service.build(mgmt, 8L);
@@ -95,7 +102,32 @@ class ResultEntryServiceImplTest {
         assertEquals(null, w.getArchive());
         verify(resultMapper, never()).findCompanies(5L);
 
-        assertThrows(AccessDeniedException.class, () -> service.build(user("2024-0031", Role.LEADER), 8L));
+        assertThrows(AccessDeniedException.class, () -> service.build(user("2025-0001", Role.MEMBER), 8L));
+    }
+
+    @Test
+    void 경영지원실은_가져오기와_엑셀만_팀장은_자기_팀_사업의_점수와_장단점을_입력한다() {
+        when(resultMapper.findResultBids(null)).thenReturn(Arrays.asList(bid(8L, "PS060")));
+        when(resultMapper.findResultBids(3L)).thenReturn(Arrays.asList(bid(8L, "PS060")));
+        when(resultMapper.findResultBid(8L)).thenReturn(bid(8L, "PS060"));
+        when(statsService.findArchive(mgmt, 8L)).thenReturn(archive(3L));
+        when(statsService.findArchive(leader, 8L)).thenReturn(archive(3L));
+
+        ResultsViewDTO m = service.build(mgmt, 8L);
+        assertTrue(m.isCanImport());
+        assertTrue(m.isCanUpload());
+        assertFalse(m.isCanScore());
+
+        ResultsViewDTO l = service.build(leader, 8L);
+        verify(resultMapper).findResultBids(3L); // 팀장은 자기 팀 사업만
+        assertFalse(l.isCanImport());
+        assertTrue(l.isCanUpload());
+        assertTrue(l.isCanScore());
+
+        // 개발팀이 아닌 팀장은 볼 사업이 없다
+        ResultsViewDTO none = service.build(user("2024-0500", Role.LEADER), null);
+        assertTrue(none.getBids().isEmpty());
+        assertEquals(null, none.getBid());
     }
 
     @Test
@@ -105,7 +137,9 @@ class ResultEntryServiceImplTest {
         when(resultMapper.findResultTarget(5L)).thenReturn(t);
 
         when(collect.register(t)).thenReturn(ResultOutcomeDTO.registered("결과 등록: 수주 · 1위"));
-        assertEquals("결과 등록: 수주 · 1위. 평가표 엑셀을 올리고 항목별 점수를 입력하세요.", service.importResult(mgmt, 5L));
+        assertEquals("결과 등록: 수주 · 1위. 평가표 엑셀을 올려 주세요. 항목별 점수와 장단점은 담당 팀 팀장이 입력합니다.",
+                service.importResult(mgmt, 5L));
+        assertThrows(AccessDeniedException.class, () -> service.importResult(leader, 5L));
 
         when(collect.register(t)).thenReturn(ResultOutcomeDTO.waiting());
         assertTrue(message(() -> service.importResult(mgmt, 5L)).startsWith("아직 나라장터에 최종 낙찰자가 올라오지 않았습니다"));
@@ -137,6 +171,12 @@ class ResultEntryServiceImplTest {
         assertEquals(2, v.getCompare().getOtherRank());
     }
 
+    private static StatsArchiveDTO archive(Long teamSn) {
+        StatsArchiveDTO a = new StatsArchiveDTO();
+        a.setTeamSn(teamSn);
+        return a;
+    }
+
     private static ResultBidDTO bid(Long sn, String stts) {
         ResultBidDTO b = new ResultBidDTO();
         b.setPbancSn(sn);
@@ -158,23 +198,34 @@ class ResultEntryServiceImplTest {
     }
 
     @Test
-    void 장단점은_경영지원실만_입력하고_빈_칸은_지운다() {
-        service.saveAnalysis(mgmt, 8L, analysis("  보안 아키텍처 \n", "", null));
-        verify(resultMapper).updateAnalysis(8L, "보안 아키텍처", null, null, "2022-0009");
+    void 장단점은_담당_팀_팀장만_입력하고_빈_칸은_지운다() {
+        service.saveAnalysis(leader, 8L, analysis("  보안 아키텍처 \n", "", null));
+        verify(resultMapper).updateAnalysis(8L, "보안 아키텍처", null, null, "2024-0031");
 
-        assertThrows(AccessDeniedException.class,
-                () -> service.saveAnalysis(user("2024-0031", Role.LEADER), 8L, analysis("a", "b", "c")));
-        assertEquals("결과가 등록된 사업을 찾을 수 없습니다.", message(() -> service.saveAnalysis(mgmt, 9L, analysis("a", null, null))));
+        assertThrows(AccessDeniedException.class, () -> service.saveAnalysis(mgmt, 8L, analysis("a", "b", "c")));
+        assertThrows(AccessDeniedException.class, () -> service.saveAnalysis(otherLeader, 8L, analysis("a", "b", "c")));
+        assertEquals("결과가 등록된 사업을 찾을 수 없습니다.", message(() -> service.saveAnalysis(leader, 9L, analysis("a", null, null))));
     }
 
     @Test
     void 장단점_한_칸은_4000바이트까지() {
         String ok = repeat("가", 1333); // 3999바이트
-        service.saveAnalysis(mgmt, 8L, analysis(ok, null, null));
-        verify(resultMapper).updateAnalysis(8L, ok, null, null, "2022-0009");
+        service.saveAnalysis(leader, 8L, analysis(ok, null, null));
+        verify(resultMapper).updateAnalysis(8L, ok, null, null, "2024-0031");
 
         assertEquals("탈락·감점 원인은 한글 기준 1,300자까지 입력할 수 있습니다.",
-                message(() -> service.saveAnalysis(mgmt, 8L, analysis(null, repeat("가", 1334), null))));
+                message(() -> service.saveAnalysis(leader, 8L, analysis(null, repeat("가", 1334), null))));
+    }
+
+    @Test
+    void 평가표_엑셀은_경영지원실과_담당_팀_팀장이_올린다() {
+        when(storage.save(any(), anyString(), anyString())).thenReturn("abc.xlsx");
+        service.uploadEvaluationFile(leader, 8L, excel("평가결과.xlsx"));
+        verify(resultMapper).insertUpload(eq(31L), any(), eq("2024-0031"));
+
+        assertThrows(AccessDeniedException.class, () -> service.uploadEvaluationFile(otherLeader, 8L, excel("평가결과.xlsx")));
+        assertThrows(AccessDeniedException.class,
+                () -> service.uploadEvaluationFile(user("2025-0001", Role.MEMBER), 8L, excel("평가결과.xlsx")));
     }
 
     @Test
@@ -220,7 +271,7 @@ class ResultEntryServiceImplTest {
                 row("전략 및 방법론(15)", "15", "14.5", "14", "15"),
                 row("기술 및 기능(30)", "30", "27.9", "28.4", "28.4"),
                 row("", "", "", "", ""));
-        service.saveEvaluation(mgmt, 8L, f);
+        service.saveEvaluation(leader, 8L, f);
 
         InOrder order = inOrder(resultMapper);
         order.verify(resultMapper).deleteScores(8L);
@@ -242,24 +293,25 @@ class ResultEntryServiceImplTest {
     @Test
     void 평가표_입력이_틀리면_아무것도_지우지_않고_안내한다() {
         assertEquals("평가위원 수는 1~20명으로 입력하세요.",
-                message(() -> service.saveEvaluation(mgmt, 8L, form("0", row("전략", "15", "14")))));
+                message(() -> service.saveEvaluation(leader, 8L, form("0", row("전략", "15", "14")))));
         assertEquals("평가 항목을 한 줄 이상 입력하세요.",
-                message(() -> service.saveEvaluation(mgmt, 8L, form("1", row("", "", "")))));
-        assertTrue(message(() -> service.saveEvaluation(mgmt, 8L, form("1", row("전략", "15", "16"))))
+                message(() -> service.saveEvaluation(leader, 8L, form("1", row("", "", "")))));
+        assertTrue(message(() -> service.saveEvaluation(leader, 8L, form("1", row("전략", "15", "16"))))
                 .endsWith("평가위원1 점수는 0~15(배점) 사이로 입력하세요."));
-        assertTrue(message(() -> service.saveEvaluation(mgmt, 8L, form("2", row("전략", "15", "14", " "))))
+        assertTrue(message(() -> service.saveEvaluation(leader, 8L, form("2", row("전략", "15", "14", " "))))
                 .endsWith("평가위원2 점수 칸이 비었습니다."));
         assertEquals("같은 평가 항목 이름이 두 번 있습니다: 전략",
-                message(() -> service.saveEvaluation(mgmt, 8L, form("1", row("전략(10)", "10", "9"), row("전략", "10", "9")))));
-        assertTrue(message(() -> service.saveEvaluation(mgmt, 8L, form("1", row("가", "60", "50"), row("나", "50", "40"))))
+                message(() -> service.saveEvaluation(leader, 8L, form("1", row("전략(10)", "10", "9"), row("전략", "10", "9")))));
+        assertTrue(message(() -> service.saveEvaluation(leader, 8L, form("1", row("가", "60", "50"), row("나", "50", "40"))))
                 .startsWith("배점 합계가 100점을 넘습니다(110점)"));
         verify(resultMapper, never()).deleteScores(anyLong());
 
         when(statsMapper.findEvaluationFile(8L)).thenReturn(null);
-        assertTrue(message(() -> service.saveEvaluation(mgmt, 8L, form("1", row("전략", "15", "14"))))
+        assertTrue(message(() -> service.saveEvaluation(leader, 8L, form("1", row("전략", "15", "14"))))
                 .startsWith("평가표 엑셀을 먼저 올려 주세요"));
-        assertThrows(AccessDeniedException.class,
-                () -> service.saveEvaluation(user("2024-0031", Role.LEADER), 8L, form("1", row("전략", "15", "14"))));
+        // 경영지원실과 다른 팀 팀장은 입력하지 않는다
+        assertThrows(AccessDeniedException.class, () -> service.saveEvaluation(mgmt, 8L, form("1", row("전략", "15", "14"))));
+        assertThrows(AccessDeniedException.class, () -> service.saveEvaluation(otherLeader, 8L, form("1", row("전략", "15", "14"))));
     }
 
     @Test

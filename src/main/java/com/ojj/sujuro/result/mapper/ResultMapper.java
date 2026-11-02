@@ -38,10 +38,10 @@ public interface ResultMapper {
     /** 제출 완료 → 결과 등록. 그사이 상태가 바뀌었으면 0 */
     int updateToResult(@Param("pbancSn") Long pbancSn);
 
-    /* ---- 평가·결과 입력 화면 (경영지원실) ---- */
+    /* ---- 평가·결과 입력 화면 (경영지원실·팀장) ---- */
 
-    /** 사업건 목록: 담당 팀이 있는 참여 확정·제안 작성 중·제출 완료·결과 등록·유찰 공고 */
-    List<ResultBidDTO> findResultBids();
+    /** 사업건 목록: 담당 팀이 있는 참여 확정·제안 작성 중·제출 완료·결과 등록·유찰 공고. teamSn 을 주면 그 팀 사업만 */
+    List<ResultBidDTO> findResultBids(@Param("teamSn") Long teamSn);
 
     /** 사업건 하나의 머리 줄 */
     ResultBidDTO findResultBid(@Param("pbancSn") Long pbancSn);

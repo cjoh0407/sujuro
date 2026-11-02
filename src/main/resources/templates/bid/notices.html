@@ -133,8 +133,16 @@
               </a>
             </td>
             <td class="muted" th:text="${row.orderInstNm}">발주기관</td>
-            <td class="mono"
-                th:text="${row.bidDdlnDt != null} ? ${#dates.format(row.bidDdlnDt, 'MM-dd')} : '-'">00-00</td>
+            <!-- 단계별로 강조할 마감을 굵게 보인다 (사전규격 → 의견등록 마감, 입찰공고 → 제출 마감).
+                 개찰·계약은 지난 제출 마감을 흐리게, 발주계획은 '-'. -->
+            <td class="mono">
+              <th:block th:if="${row.keyDdlnDt}">
+                <b th:text="${#dates.format(row.keyDdlnDt, 'MM-dd')}">00-00</b>
+                <span class="faint" style="font-size:11px" th:if="${row.preSpec}">의견</span>
+              </th:block>
+              <span class="faint" th:if="${row.keyDdlnDt == null}"
+                    th:text="${row.bidDdlnDt != null} ? ${#dates.format(row.bidDdlnDt, 'MM-dd')} : '-'">00-00</span>
+            </td>
             <td class="mono" th:text="${row.budgetText}">0억</td>
             <td>
               <span th:if="${row.teamText}" th:text="${row.teamText}">개발1팀</span>

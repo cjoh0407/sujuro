@@ -4,7 +4,9 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/default}">
 <!--/*
-  평가·결과 입력 (FR-077~081). 경영지원실 전용. UI 목업 v3.5 의 rResults() 화면과 같은 구성이다.
+  평가·결과 입력 (FR-077~081). UI 목업 v3.5 의 rResults() 화면과 같은 구성이다.
+  경영지원실: 모든 사업, 결과 가져오기(view.canImport)·평가표 올리기(view.canUpload). 점수·장단점은 읽기만.
+  팀장: 자기 팀 사업만, 평가표 올리기·평가 항목·점수·장단점 입력(view.canScore). 회의 결정, 2026-11-02 반영.
   사업건 선택 → 머리 줄 → 상태별 안내 →
     제출 완료 : 입찰 결과 카드 + [나라장터에서 결과 가져오기] (평일 오후 5시 수집도 같은 일을 한다)
     결과 등록 : 입찰 결과(순위·점수·원점수·비교) → 개찰 업체 점수 → 평가표(엑셀 올리기 → 항목·배점·위원별 점수 입력)
@@ -33,7 +35,7 @@
       <h2>평가·결과 입력</h2>
       <div class="sub" th:if="${b}">
         <span th:text="${b.pbancNm}">사업명</span> ·
-        <span class="pill" th:classappend="${b.sttsPill}" th:text="${b.pbancSttsNm}">결과 등록</span> · 경영지원실 전용
+        <span class="pill" th:classappend="${b.sttsPill}" th:text="${b.pbancSttsNm}">결과 등록</span>
       </div>
     </div>
     <form class="row" method="get" th:action="@{/results}" th:unless="${#lists.isEmpty(view.bids)}">
@@ -77,7 +79,7 @@
     <th:block th:if="${b.submitted or b.resulted}">
       <div class="banner info">
         <span><b>입찰 결과·순위·기술·가격·종합 점수</b>는 나라장터 API 에서 우리 회사 사업자번호로 가져옵니다.
-          <b>평가 항목·배점·항목별 점수</b>는 API 에 없어서 <b>평가표 엑셀을 올린 뒤</b> 그 엑셀을 보며 입력합니다.</span>
+          <b>평가 항목·배점·항목별 점수</b>는 API 에 없어서 <b>평가표 엑셀을 올린 뒤</b> 담당 팀 팀장이 그 엑셀을 보며 입력합니다.</span>
       </div>
       <div class="banner warn" th:unless="${view.ready}">
         우리 회사 사업자번호(company.biz-no)가 설정되지 않아 나라장터에서 결과를 가져올 수 없습니다.
@@ -88,7 +90,7 @@
     <div class="card" th:if="${b.submitted}">
       <div class="card-head">
         <h3>입찰 결과 · 기술·가격·종합 점수 (API)</h3>
-        <form method="post" th:action="@{/results/import}">
+        <form method="post" th:action="@{/results/import}" th:if="${view.canImport}">
           <input type="hidden" name="bid" th:value="${b.pbancSn}">
           <button class="btn sm primary" type="submit" th:disabled="${!view.ready}">나라장터에서 결과 가져오기</button>
         </form>
@@ -174,7 +176,8 @@
           </div>
 
           <th:block th:if="${a.ourCompanyListed}">
-            <form class="row" method="post" enctype="multipart/form-data" th:action="@{/results/evaluation-file}">
+            <form class="row" method="post" enctype="multipart/form-data" th:action="@{/results/evaluation-file}"
+                  th:if="${view.canUpload}">
               <input type="hidden" name="bid" th:value="${b.pbancSn}">
               <b style="font-size:12.5px">1. 평가표 엑셀</b>
               <input type="file" name="file" accept=".xls,.xlsx" required>
@@ -184,10 +187,13 @@
             <th:block th:replace="~{stats/fragments/result-parts :: evaluationFile(${a})}"></th:block>
 
             <div class="empty" th:unless="${a.evaluationFile}">
-              아직 평가표가 없습니다. 엑셀을 올리면 그 엑셀을 보며 평가 항목, 배점, 위원별 점수를 입력할 수 있습니다.
+              아직 평가표가 없습니다. 엑셀을 올리면 담당 팀 팀장이 그 엑셀을 보며 평가 항목, 배점, 위원별 점수를 입력합니다.
+            </div>
+            <div class="faint" style="font-size:12px" th:if="${a.evaluationFile != null and !view.canScore}">
+              평가 항목과 위원별 점수는 담당 팀 팀장이 입력합니다. 입력한 결과는 아래 평가 항목별 점수에 보입니다.
             </div>
 
-            <form id="evl-form" method="post" th:if="${a.evaluationFile}" th:action="@{/results/evaluation}"
+            <form id="evl-form" method="post" th:if="${a.evaluationFile != null and view.canScore}" th:action="@{/results/evaluation}"
                   th:with="n=${evaluationForm.cmsnrCount}" style="display:flex;flex-direction:column;gap:10px">
               <input type="hidden" name="bid" th:value="${b.pbancSn}">
               <div class="row">
@@ -275,24 +281,25 @@
           <div class="grid3">
             <div class="fld">
               <label for="an-strpt">강점</label>
-              <textarea id="an-strpt" name="strptCn" rows="5" maxlength="1300"
+              <textarea id="an-strpt" name="strptCn" rows="5" maxlength="1300" th:readonly="${!view.canScore}"
                         th:text="${analysisForm != null} ? ${analysisForm.strptCn} : ${a.strptCn}"></textarea>
             </div>
             <div class="fld">
               <label for="an-sbpt">탈락·감점 원인</label>
-              <textarea id="an-sbpt" name="sbptCsCn" rows="5" maxlength="1300"
+              <textarea id="an-sbpt" name="sbptCsCn" rows="5" maxlength="1300" th:readonly="${!view.canScore}"
                         th:text="${analysisForm != null} ? ${analysisForm.sbptCsCn} : ${a.sbptCsCn}"></textarea>
             </div>
             <div class="fld">
               <label for="an-splmnt">차기 보완점</label>
-              <textarea id="an-splmnt" name="splmntCn" rows="5" maxlength="1300"
+              <textarea id="an-splmnt" name="splmntCn" rows="5" maxlength="1300" th:readonly="${!view.canScore}"
                         th:text="${analysisForm != null} ? ${analysisForm.splmntCn} : ${a.splmntCn}"></textarea>
             </div>
           </div>
-          <div class="row">
+          <div class="row" th:if="${view.canScore}">
             <button class="btn primary sm" type="submit">장단점 저장</button>
-            <span class="faint" style="font-size:11.5px">빈 칸으로 저장하면 그 내용을 지웁니다. 팀장은 사업별 결과 분석에서 읽기만 합니다.</span>
+            <span class="faint" style="font-size:11.5px">빈 칸으로 저장하면 그 내용을 지웁니다.</span>
           </div>
+          <div class="faint" style="font-size:11.5px" th:unless="${view.canScore}">장단점은 담당 팀 팀장이 입력합니다.</div>
         </form>
       </div>
 

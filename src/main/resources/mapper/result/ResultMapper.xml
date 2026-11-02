@@ -11,7 +11,8 @@
 <mapper namespace="com.ojj.sujuro.result.mapper.ResultMapper">
 
   <sql id="targetCols">
-    P.PBANC_SN AS pbancSn, P.BID_PBANC_NO AS bidPbancNo, P.PBANC_NM AS pbancNm, P.TECH_SCOR_SCR AS techScorScr
+    P.PBANC_SN AS pbancSn, P.BID_PBANC_NO AS bidPbancNo, P.PBANC_NM AS pbancNm, P.TECH_SCOR_SCR AS techScorScr,
+    P.SPRVSN_TEAM_SN AS sprvsnTeamSn
   </sql>
 
   <select id="findResultTargets" resultType="com.ojj.sujuro.result.dto.ResultTargetDTO">
@@ -77,13 +78,16 @@
      WHERE PBANC_SN = #{pbancSn} AND PBANC_STTS_CD = 'PS050'
   </update>
 
-  <!-- 평가·결과 입력의 사업건 목록. 할 일이 있는 제출 완료를 맨 앞에, 그다음 결과 등록 -->
+  <!-- 평가·결과 입력의 사업건 목록. 할 일이 있는 제출 완료를 맨 앞에, 그다음 결과 등록. 팀장은 자기 팀 사업만(teamSn) -->
   <select id="findResultBids" resultType="com.ojj.sujuro.result.dto.ResultBidDTO">
     SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, P.PBANC_STTS_CD AS pbancSttsCd, S.CD_NM AS pbancSttsNm
       FROM TB_BID_PBANC P
       LEFT JOIN TB_COM_CD S ON S.GROUP_CD = 'PBSTS' AND S.CD = P.PBANC_STTS_CD
      WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040', 'PS050', 'PS060', 'PS070')
        AND P.SPRVSN_TEAM_SN IS NOT NULL
+    <if test="teamSn != null">
+       AND P.SPRVSN_TEAM_SN = #{teamSn}
+    </if>
      ORDER BY DECODE(P.PBANC_STTS_CD, 'PS050', 1, 'PS060', 2, 'PS040', 3, 'PS030', 4, 5),
               P.BID_DDLN_DT DESC NULLS LAST, P.PBANC_SN DESC
   </select>

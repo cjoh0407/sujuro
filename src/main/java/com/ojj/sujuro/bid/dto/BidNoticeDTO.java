@@ -2,6 +2,9 @@ package com.ojj.sujuro.bid.dto;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
 import com.ojj.sujuro.bid.code.BidCode;
@@ -49,6 +52,9 @@ public class BidNoticeDTO {
     /** 입찰마감일시. 사전규격 단계에서는 아직 없다. */
     private Date bidDdlnDt;
 
+    /** 사전규격 의견등록마감일시 */
+    private Date opnnDdlnDt;
+
     /** 주관 팀명. 미배정이면 비어 있다. */
     private String sprvsnTeamNm;
 
@@ -70,6 +76,46 @@ public class BidNoticeDTO {
     /** 사전규격 단계인지. 참여 결정을 막는 등 단계별 분기에 쓴다. */
     public boolean isPreSpec() {
         return BidCode.is(pbancStepCd, BidCode.STEP_PRE_SPEC);
+    }
+
+    /*
+     * 단계별로 눈에 띄게 보여 줄 마감 (회의 결정).
+     *   사전규격 → 의견등록 마감일시, 입찰공고 → 입찰진행정보의 입찰마감일시.
+     *   발주계획은 아직 정하지 않았고, 개찰·계약은 강조하지 않는다.
+     */
+
+    /** 이 단계에서 강조할 마감의 이름. 강조할 마감이 없는 단계면 null */
+    public String getKeyDdlnNm() {
+        if (isPreSpec()) {
+            return "의견등록 마감";
+        }
+        return BidCode.is(pbancStepCd, BidCode.STEP_BID_NOTICE) ? "제출 마감" : null;
+    }
+
+    /** 이 단계에서 강조할 마감일시. 강조할 단계가 아니거나 값이 없으면 null */
+    public Date getKeyDdlnDt() {
+        if (isPreSpec()) {
+            return opnnDdlnDt;
+        }
+        return BidCode.is(pbancStepCd, BidCode.STEP_BID_NOTICE) ? bidDdlnDt : null;
+    }
+
+    /** 강조할 마감까지 남은 날. 없으면 null */
+    public String getKeyDdlnDdayText() {
+        return ddayOf(getKeyDdlnDt());
+    }
+
+    /** 마감까지 남은 날. "D-3", "D-day", 지났으면 "마감". 날짜가 없으면 null */
+    public static String ddayOf(Date ddln) {
+        if (ddln == null) {
+            return null;
+        }
+        LocalDate day = ddln.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        long days = ChronoUnit.DAYS.between(LocalDate.now(), day);
+        if (days > 0) {
+            return "D-" + days;
+        }
+        return days == 0 ? "D-day" : "마감";
     }
 
     /** 팀에서 영업부로 돌아온 공고인지 */

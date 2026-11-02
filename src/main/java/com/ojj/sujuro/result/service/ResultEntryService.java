@@ -8,8 +8,10 @@ import com.ojj.sujuro.result.dto.ResultsViewDTO;
 import com.ojj.sujuro.result.dto.StatsAnalysisForm;
 
 /**
- * 평가·결과 입력 (FR-077~081, /results). 경영지원실 전용이다. 경영지원실이 아니면 AccessDeniedException(403),
- * 결과가 등록된 사업이 아니거나 값이 틀리면 BusinessException.
+ * 평가·결과 입력 (FR-077~081, /results). 경영지원실과 팀장이 쓴다 (회의 결정, 2026-11-02 반영).
+ *   경영지원실 : 모든 사업을 보고, 나라장터 결과 가져오기·평가표 엑셀 올리기. 점수·장단점은 읽기만
+ *   팀장       : 자기 팀이 맡은(주관) 사업만 보고, 평가표 엑셀 올리기·평가 항목·점수·장단점 입력
+ * 권한이 없으면 AccessDeniedException(403), 결과가 등록된 사업이 아니거나 값이 틀리면 BusinessException.
  * 순위·점수는 입력하지 않는다. 나라장터 개찰 결과에서 가져온다(ResultCollectService).
  */
 public interface ResultEntryService {

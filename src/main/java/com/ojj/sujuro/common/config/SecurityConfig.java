@@ -44,7 +44,7 @@ public class SecurityConfig {
                 .antMatchers("/notices/**").hasAnyRole("SALES", "LEADER", "MGMT")
                 .antMatchers("/proposal/**", "/files/**", "/qa/**").hasAnyRole("LEADER", "MEMBER")
                 .antMatchers("/docs/**").hasAnyRole("MGMT", "LEADER", "MEMBER")
-                .antMatchers("/results/**").hasRole("MGMT")
+                .antMatchers("/results/**").hasAnyRole("MGMT", "LEADER")
                 .antMatchers("/schedule/**").authenticated()
                 .antMatchers("/stats/**").hasAnyRole("MGMT", "LEADER")
                 .antMatchers("/users/**").hasRole("MGMT")

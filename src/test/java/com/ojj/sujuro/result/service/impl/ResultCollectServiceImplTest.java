@@ -123,6 +123,8 @@ class ResultCollectServiceImplTest {
         assertEquals(new BigDecimal("9.992"), co.getAllValues().get(1).getPrcEvlScr()); // 넷째 자리는 반올림
 
         verify(notifications).sendToRole(eq(Role.MGMT), eq(NotificationType.EVL_TABLE_REQUEST), eq(5L), contains("수주 · 1위"));
+        // 점수·장단점은 주관 팀 팀장이 입력한다
+        verify(notifications).sendToTeamLeaders(eq(3L), eq(NotificationType.EVL_TABLE_REQUEST), eq(5L), contains("장단점"));
     }
 
     @Test
@@ -201,6 +203,7 @@ class ResultCollectServiceImplTest {
         t.setPbancSn(5L);
         t.setBidPbancNo("R26BK01541118");
         t.setPbancNm("고용노동 데이터분석 서비스 개선 사업");
+        t.setSprvsnTeamSn(3L);
         return t;
     }
 

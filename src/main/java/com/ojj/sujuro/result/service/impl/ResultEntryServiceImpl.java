@@ -28,6 +28,7 @@ import com.ojj.sujuro.result.dto.ResultOutcomeDTO;
 import com.ojj.sujuro.result.dto.ResultTargetDTO;
 import com.ojj.sujuro.result.dto.ResultsViewDTO;
 import com.ojj.sujuro.result.dto.StatsAnalysisForm;
+import com.ojj.sujuro.result.dto.StatsArchiveDTO;
 import com.ojj.sujuro.result.mapper.ResultMapper;
 import com.ojj.sujuro.result.mapper.StatsMapper;
 import com.ojj.sujuro.result.service.ResultCollectService;
@@ -35,7 +36,7 @@ import com.ojj.sujuro.result.service.ResultEntryService;
 import com.ojj.sujuro.result.service.StatsService;
 import com.ojj.sujuro.result.support.StatsFormat;
 
-/** 평가·결과 입력 (경영지원실). 규칙은 인터페이스(ResultEntryService)에 있다. */
+/** 평가·결과 입력 (경영지원실·팀장). 규칙은 인터페이스(ResultEntryService)에 있다. */
 @Service
 @Transactional
 public class ResultEntryServiceImpl implements ResultEntryService {
@@ -74,10 +75,18 @@ public class ResultEntryServiceImpl implements ResultEntryService {
     @Override
     @Transactional(readOnly = true)
     public ResultsViewDTO build(LoginUser user, Long bid) {
-        requireMgmt(user);
         ResultsViewDTO v = new ResultsViewDTO();
         v.setReady(resultCollectService.isReady());
-        List<ResultBidDTO> bids = resultMapper.findResultBids();
+        v.setCanImport(user.getRole() == Role.MGMT);
+        List<ResultBidDTO> bids;
+        if (user.getRole() == Role.MGMT) {
+            bids = resultMapper.findResultBids(null);
+        } else if (user.getRole() == Role.LEADER) {
+            Long mine = statsMapper.findDevTeamSnOf(user.getEmpNo());
+            bids = mine == null ? new ArrayList<>() : resultMapper.findResultBids(mine); // 개발팀이 아닌 팀장은 볼 사업이 없다
+        } else {
+            throw new AccessDeniedException("평가·결과 입력은 경영지원실과 팀장만 볼 수 있습니다.");
+        }
         v.setBids(bids);
         if (bids.isEmpty()) {
             return v;
@@ -86,8 +95,11 @@ public class ResultEntryServiceImpl implements ResultEntryService {
         ResultBidDTO picked = resultMapper.findResultBid(sn);
         v.setBid(picked);
         if (picked.isResulted()) {
-            v.setArchive(statsService.findArchive(user, sn)); // 개발팀 사업이 아니거나 결과 행이 없으면 null
+            StatsArchiveDTO a = statsService.findArchive(user, sn); // 개발팀 사업이 아니거나 결과 행이 없으면 null
+            v.setArchive(a);
             v.setCompanies(resultMapper.findCompanies(sn));
+            v.setCanUpload(a != null && (user.getRole() == Role.MGMT || isTeamLeader(user, a)));
+            v.setCanScore(a != null && isTeamLeader(user, a));
         }
         return v;
     }
@@ -105,7 +117,7 @@ public class ResultEntryServiceImpl implements ResultEntryService {
         }
         ResultOutcomeDTO out = resultCollectService.register(target);
         if (out.getKind() == ResultOutcomeDTO.Kind.REGISTERED) {
-            return out.getMessage() + ". 평가표 엑셀을 올리고 항목별 점수를 입력하세요.";
+            return out.getMessage() + ". 평가표 엑셀을 올려 주세요. 항목별 점수와 장단점은 담당 팀 팀장이 입력합니다.";
         }
         if (out.getKind() == ResultOutcomeDTO.Kind.NOT_LISTED) {
             throw new BusinessException(out.getMessage());
@@ -116,8 +128,7 @@ public class ResultEntryServiceImpl implements ResultEntryService {
 
     @Override
     public void saveAnalysis(LoginUser user, Long pbancSn, StatsAnalysisForm form) {
-        requireMgmt(user);
-        requireArchive(pbancSn);
+        requireTeamLeader(user, pbancSn);
         resultMapper.updateAnalysis(pbancSn,
                 note(form.getStrptCn(), "강점"),
                 note(form.getSbptCsCn(), "탈락·감점 원인"),
@@ -127,8 +138,11 @@ public class ResultEntryServiceImpl implements ResultEntryService {
 
     @Override
     public void uploadEvaluationFile(LoginUser user, Long pbancSn, MultipartFile file) {
-        requireMgmt(user);
-        requireArchive(pbancSn);
+        if (user.getRole() != Role.MGMT) {
+            requireTeamLeader(user, pbancSn);
+        } else {
+            requireArchive(pbancSn);
+        }
         Long coSn = requireOurCompany(pbancSn);
         String name = FileStorage.checkUpload(file);
         String ext = FileStorage.extension(name);
@@ -157,8 +171,7 @@ public class ResultEntryServiceImpl implements ResultEntryService {
 
     @Override
     public void saveEvaluation(LoginUser user, Long pbancSn, EvaluationForm form) {
-        requireMgmt(user);
-        requireArchive(pbancSn);
+        requireTeamLeader(user, pbancSn);
         Long coSn = requireOurCompany(pbancSn);
         if (statsMapper.findEvaluationFile(pbancSn) == null) {
             throw new BusinessException("평가표 엑셀을 먼저 올려 주세요. 올린 엑셀을 보며 항목과 점수를 입력합니다.");
@@ -234,14 +247,32 @@ public class ResultEntryServiceImpl implements ResultEntryService {
 
     private static void requireMgmt(LoginUser user) {
         if (user.getRole() != Role.MGMT) {
-            throw new AccessDeniedException("사업별 결과 분석의 입력은 경영지원실이 합니다.");
+            throw new AccessDeniedException("나라장터 결과 가져오기는 경영지원실이 합니다.");
         }
     }
 
-    private void requireArchive(Long pbancSn) {
-        if (statsMapper.findArchive(pbancSn) == null) {
+    /** 평가 점수·장단점은 이 사업을 맡은 팀(주관 팀)의 팀장만 입력한다. 경영지원실은 읽기만 한다 */
+    private void requireTeamLeader(LoginUser user, Long pbancSn) {
+        if (user.getRole() != Role.LEADER) {
+            throw new AccessDeniedException("평가 점수와 장단점은 이 사업을 맡은 팀의 팀장이 입력합니다.");
+        }
+        if (!isTeamLeader(user, requireArchive(pbancSn))) {
+            throw new AccessDeniedException("자기 팀이 맡은 사업만 입력할 수 있습니다.");
+        }
+    }
+
+    /** 이 사업을 맡은 개발팀의 팀장인지 */
+    private boolean isTeamLeader(LoginUser user, StatsArchiveDTO a) {
+        return user.getRole() == Role.LEADER && a.getTeamSn() != null
+                && a.getTeamSn().equals(statsMapper.findDevTeamSnOf(user.getEmpNo()));
+    }
+
+    private StatsArchiveDTO requireArchive(Long pbancSn) {
+        StatsArchiveDTO a = statsMapper.findArchive(pbancSn);
+        if (a == null) {
             throw new BusinessException("결과가 등록된 사업을 찾을 수 없습니다.");
         }
+        return a;
     }
 
     private Long requireOurCompany(Long pbancSn) {

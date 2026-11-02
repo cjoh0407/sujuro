@@ -79,8 +79,8 @@ public class StatsController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "결과가 등록된 사업을 찾을 수 없습니다.");
         }
         model.addAttribute("archive", archive);
-        // 이 화면은 모두 읽기만 한다. 경영지원실에게는 평가·결과 입력으로 가는 버튼을 보여 준다
-        model.addAttribute("canEdit", user.getRole() == Role.MGMT);
+        // 이 화면은 모두 읽기만 한다. 평가·결과 입력으로 가는 버튼을 보여 준다 (팀장은 자기 팀 사업만 여기 온다)
+        model.addAttribute("canEdit", user.getRole() == Role.MGMT || user.getRole() == Role.LEADER);
         return "stats/archive";
     }
 

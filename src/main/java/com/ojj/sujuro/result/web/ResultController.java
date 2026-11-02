@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.ojj.sujuro.auth.code.Role;
 import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.common.exception.BusinessException;
 import com.ojj.sujuro.result.dto.EvaluationForm;
@@ -19,7 +20,7 @@ import com.ojj.sujuro.result.dto.StatsAnalysisForm;
 import com.ojj.sujuro.result.service.ResultEntryService;
 
 /**
- * 평가·결과 입력 (FR-077~081). 경영지원실 전용 (SecurityConfig 의 /results/** 규칙).
+ * 평가·결과 입력 (FR-077~081). 경영지원실·팀장 (SecurityConfig 의 /results/** 규칙). 누가 무엇을 하는지는 ResultEntryService.
  * UI 목업 v3.5 의 rResults() 화면과 같은 구성이다.
  *
  *   /results?bid=                  화면 (bid: 사업건. 없으면 제출 완료가 먼저)
@@ -32,7 +33,7 @@ import com.ojj.sujuro.result.service.ResultEntryService;
  */
 @Controller
 @RequestMapping("/results")
-@PreAuthorize("hasRole('MGMT')")
+@PreAuthorize("hasAnyRole('MGMT', 'LEADER')")
 public class ResultController {
 
     private static final String PATH = "/results";
@@ -69,7 +70,9 @@ public class ResultController {
                                        @RequestParam(required = false) MultipartFile file, RedirectAttributes ra) {
         try {
             resultEntryService.uploadEvaluationFile(user, bid, file);
-            ra.addFlashAttribute("evaluationMessage", "평가표 엑셀을 올렸습니다. 엑셀을 보며 아래에 항목과 점수를 입력하세요.");
+            ra.addFlashAttribute("evaluationMessage", user.getRole() == Role.LEADER
+                    ? "평가표 엑셀을 올렸습니다. 엑셀을 보며 아래에 항목과 점수를 입력하세요."
+                    : "평가표 엑셀을 올렸습니다. 항목과 점수는 담당 팀 팀장이 입력합니다.");
         } catch (BusinessException e) {
             ra.addFlashAttribute("evaluationError", e.getMessage());
         }

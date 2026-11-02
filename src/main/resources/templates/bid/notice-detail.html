@@ -38,6 +38,10 @@
             th:text="${notice.pbancTypeNm}">일반공고</span>
       <span class="pill" th:classappend="${notice.sttsPillClass}" th:text="${notice.pbancSttsNm}">신규</span>
       <span class="pill danger" th:if="${notice.returned}" th:text="|${notice.rtrnSeNm} 반환|">불참 반환</span>
+      <!-- 단계별로 강조할 마감 (사전규격 → 의견등록 마감, 입찰공고 → 제출 마감). 아래 공고 정보에서도 같은 칸을 칠한다. -->
+      <span class="pill" th:if="${notice.keyDdlnDt}"
+            th:classappend="${notice.keyDdlnDdayText == '마감'} ? 'neutral' : 'warning'"
+            th:text="${notice.keyDdlnDdayText == '마감'} ? |${notice.keyDdlnNm} 지남| : |${notice.keyDdlnNm} ${notice.keyDdlnDdayText}|">제출 마감 D-3</span>
       <a class="btn sm" th:if="${notice.pbancDtlUrl}" th:href="${notice.pbancDtlUrl}"
          target="_blank" rel="noopener noreferrer">나라장터 원문</a>
     </div>
@@ -86,7 +90,12 @@
             <div class="k">사업 예산</div>
             <div class="v mono" th:text="${notice.budgetWonText}">0원</div>
           </div>
-          <div>
+          <!-- 사전규격 단계에서는 의견등록 마감이 먼저 보이도록 제출 마감보다 앞에 둔다. 강조(.key)는 단계가 정한다. -->
+          <div th:if="${notice.opnnDdlnDt}" th:classappend="${notice.preSpec} ? 'key'">
+            <div class="k">의견등록 마감</div>
+            <div class="v mono" th:text="${#dates.format(notice.opnnDdlnDt, 'yyyy-MM-dd HH:mm')} + (${notice.preSpec} ? ' (' + ${notice.keyDdlnDdayText} + ')' : '')">2026-10-20 18:00 (D-3)</div>
+          </div>
+          <div th:classappend="${notice.keyDdlnDt != null and !notice.preSpec} ? 'key'">
             <div class="k">제출 마감</div>
             <div class="v mono" th:if="${notice.bidDdlnDt}"
                  th:text="|${#dates.format(notice.bidDdlnDt, 'yyyy-MM-dd HH:mm')} (${notice.ddlnDdayText})|">2026-11-05 10:00 (D-9)</div>
@@ -95,10 +104,6 @@
           <div th:if="${notice.opengDt}">
             <div class="k">개찰일시</div>
             <div class="v mono" th:text="${#dates.format(notice.opengDt, 'yyyy-MM-dd HH:mm')}">2026-11-05 11:00</div>
-          </div>
-          <div th:if="${notice.opnnDdlnDt}">
-            <div class="k">사전규격 의견 마감</div>
-            <div class="v mono" th:text="${#dates.format(notice.opnnDdlnDt, 'yyyy-MM-dd HH:mm')}">2026-10-20 18:00</div>
           </div>
           <!-- 평가 방식 = API 낙찰방법(sucsfbidMthdNm). 협상에 의한 계약이면 기술:가격 비율을 붙인다. -->
           <div>

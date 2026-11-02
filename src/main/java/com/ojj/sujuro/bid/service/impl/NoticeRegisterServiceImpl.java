@@ -99,7 +99,7 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
         // 사전규격은 공고명이 아니라 품명이 사업명 구실을 한다.
         regist.setPbancNm(G2bResponse.textOf(item, "prdctClsfcNoNm"));
         regist.setOrderInstNm(G2bResponse.textOf(item, "orderInsttNm"));
-        regist.setDmndInstNm(G2bResponse.textOf(item, "rlDminsttNm"));
+        regist.setDmndInstNm(dmndInstOr(G2bResponse.textOf(item, "rlDminsttNm"), regist.getOrderInstNm()));
         regist.setSwBizYn(yn(G2bResponse.textOf(item, "swBizObjYn")));
         regist.setAltmntBgtAmt(G2bResponse.amountOf(item, "asignBdgtAmt"));
         regist.setOpnnDdlnDt(NoticeRegisterDTO.parseDate(G2bResponse.textOf(item, "opninRgstClseDt")));
@@ -139,6 +139,7 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
         regist.setTrckSttsCd(BidCode.TRACK_WAITING);
         regist.setPbancNm(G2bResponse.textOf(item, "bizNm"));
         regist.setOrderInstNm(G2bResponse.textOf(item, "orderInsttNm"));
+        regist.setDmndInstNm(dmndInstOr(null, regist.getOrderInstNm()));
         // 발주금액 합계. 사전규격의 배정예산금액과 실측 92% 가 같았다.
         regist.setAltmntBgtAmt(G2bResponse.amountOf(item, "sumOrderAmt"));
         regist.setRgtrId(userId);
@@ -184,7 +185,7 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
         regist.setPbancTypeCd(BidCode.pbancTypeCdOf(G2bResponse.textOf(item, "ntceKindNm")));
         regist.setPbancNm(G2bResponse.textOf(item, "bidNtceNm"));
         regist.setOrderInstNm(G2bResponse.textOf(item, "ntceInsttNm"));
-        regist.setDmndInstNm(G2bResponse.textOf(item, "dminsttNm"));
+        regist.setDmndInstNm(dmndInstOr(G2bResponse.textOf(item, "dminsttNm"), regist.getOrderInstNm()));
         regist.setAltmntBgtAmt(G2bResponse.amountOf(item, "asignBdgtAmt"));
         // 마감일이 빈 값으로 오는 공고가 있다(실측). 그때는 비워 둔다.
         regist.setBidDdlnDt(NoticeRegisterDTO.parseDate(G2bResponse.textOf(item, "bidClseDt")));
@@ -278,6 +279,15 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
             throw new BusinessException("공고번호를 입력하세요.");
         }
         return no;
+    }
+
+    /**
+     * 수요기관이 비어 있으면 발주기관(입찰공고는 공고기관)으로 채운다 (회의 결정).
+     * 발주계획 API 에는 수요기관 항목이 아예 없다(실호출 확인 2026-10-30). 사전규격·입찰공고로 넘어가면
+     * updateToPreSpec·updateToBidNotice 가 실제 수요기관으로 덮는다 (NVL(새 값, 옛 값)).
+     */
+    private static String dmndInstOr(String dmndInstNm, String orderInstNm) {
+        return dmndInstNm != null ? dmndInstNm : orderInstNm;
     }
 
     /** Y/N 이 아닌 값이 오면 넣지 않는다. CHECK 제약에 걸리기 때문이다. */

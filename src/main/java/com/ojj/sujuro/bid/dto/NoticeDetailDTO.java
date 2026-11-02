@@ -2,9 +2,6 @@ package com.ojj.sujuro.bid.dto;
 
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -47,8 +44,6 @@ public class NoticeDetailDTO extends BidNoticeDTO {
     private String swBizYn;
     private String bizPrdCn;
 
-    /** 사전규격 의견등록마감 */
-    private Date opnnDdlnDt;
     private Date opengDt;
     private Date prsntnDt;
     private String evlMthdNm;
@@ -199,15 +194,7 @@ public class NoticeDetailDTO extends BidNoticeDTO {
 
     /** 입찰 마감까지 남은 날. "D-3", "D-day", 지났으면 "마감". 마감일이 없으면 null */
     public String getDdlnDdayText() {
-        if (getBidDdlnDt() == null) {
-            return null;
-        }
-        LocalDate ddln = getBidDdlnDt().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-        long days = ChronoUnit.DAYS.between(LocalDate.now(), ddln);
-        if (days > 0) {
-            return "D-" + days;
-        }
-        return days == 0 ? "D-day" : "마감";
+        return ddayOf(getBidDdlnDt());
     }
 
     /**

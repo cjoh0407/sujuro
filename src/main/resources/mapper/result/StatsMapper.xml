@@ -176,13 +176,16 @@
   </select>
 
   <!-- 평가표 엑셀 (FL070). 경영지원실이 올린 것 중 마지막 -->
+  <!-- 우리 회사의 마지막 평가표. 다른 업체 평가표도 같은 공고에 올라오므로 업로드 기록으로 우리 회사 것을 고른다 -->
   <select id="findEvaluationFile" resultType="com.ojj.sujuro.result.dto.EvaluationFileDTO">
     SELECT F.FILE_SN AS fileSn, F.ORGNL_FILE_NM AS orgnlFileNm, F.STRG_FILE_NM AS strgFileNm,
            F.FILE_PATH_NM AS filePathNm, U.USER_NM AS rgtrNm, F.REG_DT AS regDt
-      FROM TB_ATCH_FILE F
+      FROM TB_CO_EVL_RSLT C
+      JOIN TB_EVL_TBL_UPLD E ON E.CO_EVL_RSLT_SN = C.CO_EVL_RSLT_SN AND E.LAST_YN = 'Y'
+      JOIN TB_ATCH_FILE F ON F.FILE_SN = E.FILE_SN
       LEFT JOIN TB_USER U ON U.USER_ID = F.RGTR_ID
-     WHERE F.PBANC_SN = #{pbancSn} AND F.FILE_SE_CD = 'FL070' AND F.LAST_YN = 'Y' AND F.DEL_YN = 'N'
-     ORDER BY F.FILE_SN DESC
+     WHERE C.PBANC_SN = #{pbancSn} AND C.OUR_CO_YN = 'Y' AND F.DEL_YN = 'N'
+     ORDER BY E.EVL_TBL_UPLD_SN DESC
      FETCH FIRST 1 ROWS ONLY
   </select>
 

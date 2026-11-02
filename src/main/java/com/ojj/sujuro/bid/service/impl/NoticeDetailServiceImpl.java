@@ -88,11 +88,13 @@ public class NoticeDetailServiceImpl implements NoticeDetailService {
         String orderMnth = text(plan, "orderMnth");
         add(infos, "발주 시기", orderYear == null || orderMnth == null ? null : orderYear + "년 " + orderMnth + "월");
         add(infos, "조달 방식", text(plan, "prcrmntMethd"));                   // 자체조달 / 조달청 위탁
-        add(infos, "발주 부서", text(plan, "deptNm"));
-        add(infos, "담당자", firstNonNull(
+        // 발주계획을 올린 부서·담당자. 실제 사업 부서인 경우가 있다 (11/02 실호출: 서울시 공고에서 제안요청서 문의처의 사업부서와 일치)
+        add(infos, "발주 부서 담당", joinNonNull(" ", text(plan, "deptNm"), contactOf(text(plan, "ofclNm"), text(plan, "telNo"))));
+        // 입찰공고·사전규격의 담당자는 공고를 올린 계약 담당자다. 사업 담당자가 아니다 (11/02 실호출 100건:
+        // 조달청 위탁이면 조달청 직원, 자체 공고는 90건이 집행관과 같은 사람). 사업 담당자는 제안요청서 문의처에만 있어 읽지 않는다.
+        add(infos, "공고 담당(계약)", firstNonNull(
                 contactOf(text(bid, "ntceInsttOfclNm"), text(bid, "ntceInsttOfclTelNo")),
-                contactOf(text(spec, "ofclNm"), text(spec, "ofclTelNo")),
-                contactOf(text(plan, "ofclNm"), text(plan, "telNo"))));
+                contactOf(text(spec, "ofclNm"), text(spec, "ofclTelNo"))));
         return infos;
     }
 

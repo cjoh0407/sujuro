@@ -2,6 +2,7 @@ package com.ojj.sujuro.result.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -18,15 +19,22 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.access.AccessDeniedException;
 
@@ -34,9 +42,12 @@ import com.ojj.sujuro.auth.code.Role;
 import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.common.exception.BusinessException;
 import com.ojj.sujuro.common.file.FileStorage;
+import com.ojj.sujuro.result.dto.CompanyArticleScoreDTO;
 import com.ojj.sujuro.result.dto.EvaluationArticleDTO;
+import com.ojj.sujuro.result.dto.EvaluationCompareDTO;
 import com.ojj.sujuro.result.dto.EvaluationFileDTO;
 import com.ojj.sujuro.result.dto.EvaluationForm;
+import com.ojj.sujuro.result.dto.EvaluationScoreDTO;
 import com.ojj.sujuro.result.dto.ResultBidDTO;
 import com.ojj.sujuro.result.dto.ResultCompanyDTO;
 import com.ojj.sujuro.result.dto.ResultOutcomeDTO;
@@ -50,10 +61,14 @@ import com.ojj.sujuro.result.service.ResultCollectService;
 import com.ojj.sujuro.result.service.StatsService;
 
 /**
- * 평가·결과 입력 (경영지원실): 화면, 결과 가져오기, 장단점 분석, 평가표 엑셀 보관, 평가표 직접 입력.
+ * 평가·결과 입력 (경영지원실·팀장): 화면, 결과 가져오기, 장단점 분석, 업체별 평가표 엑셀 보관·읽기·저장, 업체별 비교.
  * 평가표 숫자는 나라장터 기술평가점수 조회 화면(R26BK01541118, 엑사아이엔티)에 보이는 위원 1~3 의 실제 값이다.
+ * 8번 사업의 개찰 업체: 31 = 우리 회사(지엔소프트, 2위), 32 = 엑사아이엔티(1위).
  */
 class ResultEntryServiceImplTest {
+
+    private static final long OURS = 31L;
+    private static final long OTHER = 32L;
 
     private ResultMapper resultMapper;
     private StatsMapper statsMapper;
@@ -79,8 +94,12 @@ class ResultEntryServiceImplTest {
         when(statsMapper.findArchive(8L)).thenReturn(archive(3L));
         when(statsMapper.findDevTeamSnOf("2024-0031")).thenReturn(3L);
         when(statsMapper.findDevTeamSnOf("2024-0099")).thenReturn(4L);
-        when(resultMapper.findOurCoEvlRsltSn(8L)).thenReturn(31L);
-        when(statsMapper.findEvaluationFile(8L)).thenReturn(new EvaluationFileDTO());
+        when(resultMapper.findCompanies(8L)).thenReturn(Arrays.asList(
+                company(OTHER, 1, "엑사아이엔티 주식회사", "N", 90.0, 85.284, 10.0, 100.0),
+                company(OURS, 2, "지엔소프트(주)", "Y", 87.0, 84.564, 9.992, 96.992)));
+        when(resultMapper.findCompanyEvaluationFile(OURS)).thenReturn(file("고용노동 사업_[ 지엔소프트(주) ].xlsx"));
+        when(resultMapper.findCompanyEvaluationFile(OTHER)).thenReturn(file("고용노동 사업_[ 엑사아이엔티 주식회사 ].xlsx"));
+        when(storage.load("evaluation/8", "abc.xlsx")).thenReturn(new ByteArrayResource(excelBytes()));
         when(collect.isReady()).thenReturn(true);
     }
 
@@ -92,17 +111,17 @@ class ResultEntryServiceImplTest {
         StatsArchiveDTO archive = archive(3L);
         when(statsService.findArchive(mgmt, 8L)).thenReturn(archive);
 
-        ResultsViewDTO v = service.build(mgmt, 8L);
+        ResultsViewDTO v = service.build(mgmt, 8L, null, false);
         assertEquals(8L, v.getBid().getPbancSn());
         assertEquals(archive, v.getArchive());
-        verify(resultMapper).findCompanies(8L);
+        assertEquals(OURS, v.getCompany().getCoEvlRsltSn()); // 업체를 고르지 않으면 우리 회사
 
-        ResultsViewDTO w = service.build(mgmt, 999L);
+        ResultsViewDTO w = service.build(mgmt, 999L, null, false);
         assertEquals(5L, w.getBid().getPbancSn()); // 제출 완료가 맨 앞
         assertEquals(null, w.getArchive());
         verify(resultMapper, never()).findCompanies(5L);
 
-        assertThrows(AccessDeniedException.class, () -> service.build(user("2025-0001", Role.MEMBER), 8L));
+        assertThrows(AccessDeniedException.class, () -> service.build(user("2025-0001", Role.MEMBER), 8L, null, false));
     }
 
     @Test
@@ -113,21 +132,96 @@ class ResultEntryServiceImplTest {
         when(statsService.findArchive(mgmt, 8L)).thenReturn(archive(3L));
         when(statsService.findArchive(leader, 8L)).thenReturn(archive(3L));
 
-        ResultsViewDTO m = service.build(mgmt, 8L);
+        ResultsViewDTO m = service.build(mgmt, 8L, null, false);
         assertTrue(m.isCanImport());
         assertTrue(m.isCanUpload());
         assertFalse(m.isCanScore());
 
-        ResultsViewDTO l = service.build(leader, 8L);
+        ResultsViewDTO l = service.build(leader, 8L, null, false);
         verify(resultMapper).findResultBids(3L); // 팀장은 자기 팀 사업만
         assertFalse(l.isCanImport());
         assertTrue(l.isCanUpload());
         assertTrue(l.isCanScore());
 
         // 개발팀이 아닌 팀장은 볼 사업이 없다
-        ResultsViewDTO none = service.build(user("2024-0500", Role.LEADER), null);
+        ResultsViewDTO none = service.build(user("2024-0500", Role.LEADER), null, null, false);
         assertTrue(none.getBids().isEmpty());
         assertEquals(null, none.getBid());
+    }
+
+    @Test
+    void 팀장_화면은_고른_업체의_엑셀을_읽어_입력_칸을_채우고_저장은_하지_않는다() {
+        leaderView();
+
+        ResultsViewDTO v = service.build(leader, 8L, OTHER, false);
+        assertEquals(OTHER, v.getCompany().getCoEvlRsltSn());
+        EvaluationForm f = v.getExcelForm();
+        assertEquals("2", f.getCmsnrCnt());
+        assertEquals("전략 및 방법론(15)", f.getItems().get(0).getNm());
+        assertEquals("14", f.getItems().get(0).scoreAt(1));
+        assertTrue(v.getExcelNote().startsWith("올린 엑셀에서 평가 항목 1개와 평가위원 2명의 점수를 읽어 채웠습니다"));
+        assertNull(v.getExcelWarn()); // 파일 이름의 업체 = 고른 업체
+        verify(resultMapper, never()).insertArticle(any());
+
+        // 우리 회사를 골랐는데 다른 업체 파일 이름이면 경고
+        when(resultMapper.findCompanyEvaluationFile(OURS)).thenReturn(file("고용노동 사업_[ 엑사아이엔티 주식회사 ].xlsx"));
+        assertTrue(service.build(leader, 8L, OURS, false).getExcelWarn().contains("고른 업체(지엔소프트(주))"));
+
+        // 저장한 점수가 있으면 저장한 값을 보이고, [엑셀에서 다시 불러오기](fromFile)일 때만 다시 읽는다
+        when(resultMapper.findCompanyScores(OTHER)).thenReturn(Collections.singletonList(score(1, "14.5")));
+        ResultsViewDTO saved = service.build(leader, 8L, OTHER, false);
+        assertNull(saved.getExcelForm());
+        assertEquals("14.5", saved.getCompanyForm().getItems().get(0).scoreAt(0));
+        assertEquals("2", service.build(leader, 8L, OTHER, true).getExcelForm().getCmsnrCnt());
+
+        // 모양이 다른 파일이면 이유만 알리고 직접 입력하게 둔다
+        when(storage.load("evaluation/8", "abc.xlsx")).thenReturn(new ByteArrayResource("x".getBytes(StandardCharsets.UTF_8)));
+        ResultsViewDTO bad = service.build(leader, 8L, OTHER, true);
+        assertNull(bad.getExcelForm());
+        assertTrue(bad.getExcelError().contains("열지 못했습니다"));
+    }
+
+    @Test
+    void 경영지원실_화면은_엑셀을_읽지_않는다() {
+        when(resultMapper.findResultBids(null)).thenReturn(Arrays.asList(bid(8L, "PS060")));
+        when(resultMapper.findResultBid(8L)).thenReturn(bid(8L, "PS060"));
+        when(statsService.findArchive(mgmt, 8L)).thenReturn(archive(3L));
+
+        assertNull(service.build(mgmt, 8L, OTHER, true).getExcelForm());
+        verify(storage, never()).load(anyString(), anyString());
+    }
+
+    @Test
+    void 업체별_비교는_점수를_저장한_업체만_우리_회사부터_보이고_차이는_우리_빼기_그_업체() {
+        leaderView();
+        when(resultMapper.findCompanyArticleScores(8L)).thenReturn(Arrays.asList(
+                articleScore(OTHER, 101L, "전략 및 방법론", "15", 14.6),
+                articleScore(OURS, 101L, "전략 및 방법론", "15", 14.0),
+                articleScore(OTHER, 102L, "기술 및 기능", "30", 28.0),
+                articleScore(OURS, 102L, "기술 및 기능", "30", 28.5)));
+
+        EvaluationCompareDTO c = service.build(leader, 8L, null, false).getEvaluationCompare();
+        assertTrue(c.isComparable());
+        assertEquals("지엔소프트(주)", c.getColumns().get(0).getCoNm()); // 우리 회사가 첫 열
+        assertEquals(2, c.getRows().size());
+        EvaluationCompareDTO.Cell strategy = c.getRows().get(0).getCells().get(1);
+        assertEquals("14.6", strategy.getText());
+        assertEquals("−0.6", strategy.getDiff());
+        assertTrue(strategy.isBehind());
+        assertEquals("+0.5", c.getRows().get(1).getCells().get(1).getDiff());
+        assertEquals("42.5", c.getColumns().get(0).getTotalText());
+        assertEquals("−0.1", c.getColumns().get(1).getTotalDiff());
+
+        // 한 업체만 저장했으면 비교하지 않는다
+        when(resultMapper.findCompanyArticleScores(8L)).thenReturn(Collections.singletonList(
+                articleScore(OURS, 101L, "전략 및 방법론", "15", 14.0)));
+        assertFalse(service.build(leader, 8L, null, false).getEvaluationCompare().isComparable());
+    }
+
+    private void leaderView() {
+        when(resultMapper.findResultBids(3L)).thenReturn(Arrays.asList(bid(8L, "PS060")));
+        when(resultMapper.findResultBid(8L)).thenReturn(bid(8L, "PS060"));
+        when(statsService.findArchive(leader, 8L)).thenReturn(archive(3L));
     }
 
     @Test
@@ -156,8 +250,8 @@ class ResultEntryServiceImplTest {
     void 비교는_우리가_1위면_2위와_아니면_1위와_한다() {
         ResultsViewDTO v = new ResultsViewDTO();
         // R26BK01541118 실제 개찰 점수. 지엔소프트(2위)를 우리로 가정
-        v.getCompanies().add(company(1, "엑사아이엔티 주식회사", "N", 90.0, 85.284, 10.0, 100.0));
-        v.getCompanies().add(company(2, "지엔소프트(주)", "Y", 87.0, 84.564, 9.992, 96.992));
+        v.getCompanies().add(company(OTHER, 1, "엑사아이엔티 주식회사", "N", 90.0, 85.284, 10.0, 100.0));
+        v.getCompanies().add(company(OURS, 2, "지엔소프트(주)", "Y", 87.0, 84.564, 9.992, 96.992));
         ResultsViewDTO.Compare c = v.getCompare();
         assertEquals(1, c.getOtherRank());
         assertEquals("−3.008", c.getTotalDiff());
@@ -169,32 +263,6 @@ class ResultEntryServiceImplTest {
         v.getCompanies().get(1).setOurCoYn("N");
         assertEquals("+3.008", v.getCompare().getTotalDiff());
         assertEquals(2, v.getCompare().getOtherRank());
-    }
-
-    private static StatsArchiveDTO archive(Long teamSn) {
-        StatsArchiveDTO a = new StatsArchiveDTO();
-        a.setTeamSn(teamSn);
-        return a;
-    }
-
-    private static ResultBidDTO bid(Long sn, String stts) {
-        ResultBidDTO b = new ResultBidDTO();
-        b.setPbancSn(sn);
-        b.setPbancNm("사업 " + sn);
-        b.setPbancSttsCd(stts);
-        return b;
-    }
-
-    private static ResultCompanyDTO company(int rank, String nm, String ours, Double tech, Double orgnl, Double prc, Double total) {
-        ResultCompanyDTO c = new ResultCompanyDTO();
-        c.setOpengRnk(rank);
-        c.setCoNm(nm);
-        c.setOurCoYn(ours);
-        c.setTechEvlScr(tech);
-        c.setTechEvlOrgnlScr(orgnl);
-        c.setPrcEvlScr(prc);
-        c.setSnthsEvlScr(total);
-        return c;
     }
 
     @Test
@@ -218,18 +286,21 @@ class ResultEntryServiceImplTest {
     }
 
     @Test
-    void 평가표_엑셀은_경영지원실과_담당_팀_팀장이_올린다() {
+    void 평가표_엑셀은_경영지원실과_담당_팀_팀장이_업체별로_올린다() {
         when(storage.save(any(), anyString(), anyString())).thenReturn("abc.xlsx");
-        service.uploadEvaluationFile(leader, 8L, excel("평가결과.xlsx"));
-        verify(resultMapper).insertUpload(eq(31L), any(), eq("2024-0031"));
+        service.uploadEvaluationFile(leader, 8L, OTHER, excel("평가결과.xlsx"));
+        verify(resultMapper).clearLastEvaluationFiles(OTHER);
+        verify(resultMapper).insertUpload(eq(OTHER), any(), eq("2024-0031"));
+        verify(resultMapper).markUploaded(OTHER);
 
-        assertThrows(AccessDeniedException.class, () -> service.uploadEvaluationFile(otherLeader, 8L, excel("평가결과.xlsx")));
+        assertThrows(AccessDeniedException.class, () -> service.uploadEvaluationFile(otherLeader, 8L, null, excel("평가결과.xlsx")));
         assertThrows(AccessDeniedException.class,
-                () -> service.uploadEvaluationFile(user("2025-0001", Role.MEMBER), 8L, excel("평가결과.xlsx")));
+                () -> service.uploadEvaluationFile(user("2025-0001", Role.MEMBER), 8L, null, excel("평가결과.xlsx")));
+        assertTrue(message(() -> service.uploadEvaluationFile(leader, 8L, 99L, excel("평가결과.xlsx"))).contains("개찰 업체가 아닙니다"));
     }
 
     @Test
-    void 평가표_엑셀은_보관만_하고_우리_회사_행에_잇는다() {
+    void 평가표_엑셀은_보관만_하고_고른_업체_행에_잇는다_고르지_않으면_우리_회사() {
         when(storage.save(any(), eq("evaluation/8"), eq("xlsx"))).thenReturn("abc.xlsx");
         when(resultMapper.nextEvaluationFileVer(8L)).thenReturn(2);
         doAnswer(inv -> {
@@ -237,33 +308,39 @@ class ResultEntryServiceImplTest {
             return 1;
         }).when(resultMapper).insertEvaluationFile(eq(8L), eq("2"), any(), anyLong(), eq("xlsx"), eq("2022-0009"));
 
-        service.uploadEvaluationFile(mgmt, 8L, excel("평가결과.xlsx"));
+        service.uploadEvaluationFile(mgmt, 8L, null, excel("평가결과.xlsx"));
 
-        verify(resultMapper).clearLastEvaluationFiles(8L);
-        verify(resultMapper).clearLastUploads(31L);
-        verify(resultMapper).insertUpload(31L, 77L, "2022-0009");
-        verify(resultMapper).markUploaded(31L);
+        InOrder order = inOrder(resultMapper);
+        order.verify(resultMapper).clearLastEvaluationFiles(OURS); // 업로드 기록의 '마지막'을 떼기 전에
+        order.verify(resultMapper).clearLastUploads(OURS);
+        verify(resultMapper).insertUpload(OURS, 77L, "2022-0009");
+        verify(resultMapper).markUploaded(OURS);
     }
 
     @Test
     void 평가표는_엑셀만_받고_DB_저장이_실패하면_파일을_지운다() {
-        assertTrue(message(() -> service.uploadEvaluationFile(mgmt, 8L, excel("평가결과.pdf"))).contains("xls, xlsx"));
+        assertTrue(message(() -> service.uploadEvaluationFile(mgmt, 8L, null, excel("평가결과.pdf"))).contains("xls, xlsx"));
         verify(storage, never()).save(any(), anyString(), anyString());
 
         when(storage.save(any(), anyString(), anyString())).thenReturn("abc.xlsx");
         doThrow(new IllegalStateException("DB 오류")).when(resultMapper).insertUpload(anyLong(), any(), anyString());
-        assertThrows(IllegalStateException.class, () -> service.uploadEvaluationFile(mgmt, 8L, excel("평가결과.xlsx")));
+        assertThrows(IllegalStateException.class, () -> service.uploadEvaluationFile(mgmt, 8L, null, excel("평가결과.xlsx")));
         verify(storage).deleteQuietly("evaluation/8", "abc.xlsx");
 
-        when(resultMapper.findOurCoEvlRsltSn(8L)).thenReturn(null);
-        assertTrue(message(() -> service.uploadEvaluationFile(mgmt, 8L, excel("평가결과.xlsx"))).contains("우리 회사 행이 없어"));
+        when(resultMapper.findCompanies(8L)).thenReturn(Collections.singletonList(
+                company(OTHER, 1, "엑사아이엔티 주식회사", "N", 90.0, 85.284, 10.0, 100.0)));
+        assertTrue(message(() -> service.uploadEvaluationFile(mgmt, 8L, OTHER, excel("평가결과.xlsx"))).contains("우리 회사 행이 없어"));
     }
 
     @Test
-    void 평가표_입력은_항목과_위원_점수를_통째로_바꾸고_이름의_배점_표시는_뗀다() {
-        long[] sn = {100};
+    void 평가표_저장은_그_업체_점수만_바꾸고_같은_이름_항목은_다시_쓴다() {
+        // 다른 업체가 먼저 저장해 둔 항목: 전략 및 방법론(101)
+        EvaluationArticleDTO existing = new EvaluationArticleDTO();
+        existing.setEvlArtclSn(101L);
+        existing.setEvlArtclNm("전략 및 방법론");
+        when(resultMapper.findArticles(8L)).thenReturn(Collections.singletonList(existing));
         doAnswer(inv -> {
-            ((EvaluationArticleDTO) inv.getArgument(0)).setEvlArtclSn(++sn[0]);
+            ((EvaluationArticleDTO) inv.getArgument(0)).setEvlArtclSn(102L);
             return 1;
         }).when(resultMapper).insertArticle(any());
 
@@ -271,47 +348,59 @@ class ResultEntryServiceImplTest {
                 row("전략 및 방법론(15)", "15", "14.5", "14", "15"),
                 row("기술 및 기능(30)", "30", "27.9", "28.4", "28.4"),
                 row("", "", "", "", ""));
-        service.saveEvaluation(leader, 8L, f);
+        service.saveEvaluation(leader, 8L, OTHER, f);
 
         InOrder order = inOrder(resultMapper);
-        order.verify(resultMapper).deleteScores(8L);
-        order.verify(resultMapper).deleteSubArticles(8L);
-        order.verify(resultMapper).deleteArticles(8L);
+        order.verify(resultMapper).deleteCompanyScores(OTHER); // 우리 회사 점수는 지우지 않는다
+        order.verify(resultMapper).deleteUnusedSubArticles(8L);
+        order.verify(resultMapper).deleteUnusedArticles(8L);
+        verify(resultMapper, never()).deleteCompanyScores(OURS);
 
-        ArgumentCaptor<EvaluationArticleDTO> a = ArgumentCaptor.forClass(EvaluationArticleDTO.class);
-        verify(resultMapper, times(2)).insertArticle(a.capture());
-        assertEquals("전략 및 방법론", a.getAllValues().get(0).getEvlArtclNm());
-        assertEquals(new BigDecimal("15.000"), a.getAllValues().get(0).getEvlScorScr());
-        assertEquals(2, a.getAllValues().get(1).getSortSeq());
+        ArgumentCaptor<EvaluationArticleDTO> updated = ArgumentCaptor.forClass(EvaluationArticleDTO.class);
+        verify(resultMapper).updateArticle(updated.capture());
+        assertEquals(101L, updated.getValue().getEvlArtclSn());
+        assertEquals(new BigDecimal("15.000"), updated.getValue().getEvlScorScr());
+        ArgumentCaptor<EvaluationArticleDTO> inserted = ArgumentCaptor.forClass(EvaluationArticleDTO.class);
+        verify(resultMapper).insertArticle(inserted.capture());
+        assertEquals("기술 및 기능", inserted.getValue().getEvlArtclNm());
+        assertEquals(2, inserted.getValue().getSortSeq());
 
-        verify(resultMapper, times(6)).insertScore(eq(31L), anyLong(), anyInt(), any());
-        verify(resultMapper).insertScore(31L, 101L, 1, new BigDecimal("14.500"));
-        verify(resultMapper).insertScore(31L, 102L, 3, new BigDecimal("28.400"));
-        verify(resultMapper).updateUploadCmsnrCnt(31L, 3);
+        verify(resultMapper, times(6)).insertScore(eq(OTHER), anyLong(), anyInt(), any());
+        verify(resultMapper).insertScore(OTHER, 101L, 1, new BigDecimal("14.500"));
+        verify(resultMapper).insertScore(OTHER, 102L, 3, new BigDecimal("28.400"));
+        verify(resultMapper).updateUploadCmsnrCnt(OTHER, 3);
     }
 
     @Test
     void 평가표_입력이_틀리면_아무것도_지우지_않고_안내한다() {
         assertEquals("평가위원 수는 1~20명으로 입력하세요.",
-                message(() -> service.saveEvaluation(leader, 8L, form("0", row("전략", "15", "14")))));
+                message(() -> service.saveEvaluation(leader, 8L, null, form("0", row("전략", "15", "14")))));
         assertEquals("평가 항목을 한 줄 이상 입력하세요.",
-                message(() -> service.saveEvaluation(leader, 8L, form("1", row("", "", "")))));
-        assertTrue(message(() -> service.saveEvaluation(leader, 8L, form("1", row("전략", "15", "16"))))
+                message(() -> service.saveEvaluation(leader, 8L, null, form("1", row("", "", "")))));
+        assertTrue(message(() -> service.saveEvaluation(leader, 8L, null, form("1", row("전략", "15", "16"))))
                 .endsWith("평가위원1 점수는 0~15(배점) 사이로 입력하세요."));
-        assertTrue(message(() -> service.saveEvaluation(leader, 8L, form("2", row("전략", "15", "14", " "))))
+        assertTrue(message(() -> service.saveEvaluation(leader, 8L, null, form("2", row("전략", "15", "14", " "))))
                 .endsWith("평가위원2 점수 칸이 비었습니다."));
         assertEquals("같은 평가 항목 이름이 두 번 있습니다: 전략",
-                message(() -> service.saveEvaluation(leader, 8L, form("1", row("전략(10)", "10", "9"), row("전략", "10", "9")))));
-        assertTrue(message(() -> service.saveEvaluation(leader, 8L, form("1", row("가", "60", "50"), row("나", "50", "40"))))
+                message(() -> service.saveEvaluation(leader, 8L, null, form("1", row("전략(10)", "10", "9"), row("전략", "10", "9")))));
+        assertTrue(message(() -> service.saveEvaluation(leader, 8L, null, form("1", row("가", "60", "50"), row("나", "50", "40"))))
                 .startsWith("배점 합계가 100점을 넘습니다(110점)"));
-        verify(resultMapper, never()).deleteScores(anyLong());
+        verify(resultMapper, never()).deleteCompanyScores(anyLong());
 
-        when(statsMapper.findEvaluationFile(8L)).thenReturn(null);
-        assertTrue(message(() -> service.saveEvaluation(leader, 8L, form("1", row("전략", "15", "14"))))
-                .startsWith("평가표 엑셀을 먼저 올려 주세요"));
+        when(resultMapper.findCompanyEvaluationFile(OTHER)).thenReturn(null);
+        assertTrue(message(() -> service.saveEvaluation(leader, 8L, OTHER, form("1", row("전략", "15", "14"))))
+                .startsWith("이 업체의 평가표 엑셀을 먼저 올려 주세요"));
         // 경영지원실과 다른 팀 팀장은 입력하지 않는다
-        assertThrows(AccessDeniedException.class, () -> service.saveEvaluation(mgmt, 8L, form("1", row("전략", "15", "14"))));
-        assertThrows(AccessDeniedException.class, () -> service.saveEvaluation(otherLeader, 8L, form("1", row("전략", "15", "14"))));
+        assertThrows(AccessDeniedException.class, () -> service.saveEvaluation(mgmt, 8L, null, form("1", row("전략", "15", "14"))));
+        assertThrows(AccessDeniedException.class, () -> service.saveEvaluation(otherLeader, 8L, null, form("1", row("전략", "15", "14"))));
+    }
+
+    @Test
+    void 업체_평가표_내려받기는_경영지원실과_담당_팀_팀장만() {
+        assertEquals("고용노동 사업_[ 엑사아이엔티 주식회사 ].xlsx",
+                service.findCompanyEvaluationFile(leader, 8L, OTHER).getOrgnlFileNm());
+        assertEquals("고용노동 사업_[ 지엔소프트(주) ].xlsx", service.findCompanyEvaluationFile(mgmt, 8L, null).getOrgnlFileNm());
+        assertThrows(AccessDeniedException.class, () -> service.findCompanyEvaluationFile(otherLeader, 8L, OTHER));
     }
 
     @Test
@@ -320,6 +409,82 @@ class ResultEntryServiceImplTest {
         assertEquals("프로젝트 관리", ResultEntryServiceImpl.articleName("프로젝트 관리 ( 16 )"));
         assertEquals("성능 및 품질", ResultEntryServiceImpl.articleName("성능 및 품질(25.5)"));
         assertEquals("1차(서면) 평가", ResultEntryServiceImpl.articleName("1차(서면) 평가"));
+    }
+
+    private static StatsArchiveDTO archive(Long teamSn) {
+        StatsArchiveDTO a = new StatsArchiveDTO();
+        a.setTeamSn(teamSn);
+        return a;
+    }
+
+    private static ResultBidDTO bid(Long sn, String stts) {
+        ResultBidDTO b = new ResultBidDTO();
+        b.setPbancSn(sn);
+        b.setPbancNm("사업 " + sn);
+        b.setPbancSttsCd(stts);
+        return b;
+    }
+
+    private static ResultCompanyDTO company(Long sn, int rank, String nm, String ours, Double tech, Double orgnl, Double prc, Double total) {
+        ResultCompanyDTO c = new ResultCompanyDTO();
+        c.setCoEvlRsltSn(sn);
+        c.setOpengRnk(rank);
+        c.setCoNm(nm);
+        c.setOurCoYn(ours);
+        c.setTechEvlScr(tech);
+        c.setTechEvlOrgnlScr(orgnl);
+        c.setPrcEvlScr(prc);
+        c.setSnthsEvlScr(total);
+        return c;
+    }
+
+    private static EvaluationFileDTO file(String orgnlFileNm) {
+        EvaluationFileDTO f = new EvaluationFileDTO();
+        f.setOrgnlFileNm(orgnlFileNm);
+        f.setFilePathNm("evaluation/8");
+        f.setStrgFileNm("abc.xlsx");
+        return f;
+    }
+
+    private static EvaluationScoreDTO score(int cmsnrNo, String scr) {
+        EvaluationScoreDTO s = new EvaluationScoreDTO();
+        s.setEvlArtclSn(101L);
+        s.setEvlArtclNm("전략 및 방법론");
+        s.setEvlScorScr(new BigDecimal("15"));
+        s.setCmsnrNo(cmsnrNo);
+        s.setEvlScr(new BigDecimal(scr));
+        return s;
+    }
+
+    private static CompanyArticleScoreDTO articleScore(Long co, Long artcl, String nm, String max, double avg) {
+        CompanyArticleScoreDTO s = new CompanyArticleScoreDTO();
+        s.setCoEvlRsltSn(co);
+        s.setEvlArtclSn(artcl);
+        s.setEvlArtclNm(nm);
+        s.setEvlScorScr(new BigDecimal(max));
+        s.setAvgScr(avg);
+        return s;
+    }
+
+    /** 나라장터 평가표 모양의 엑셀 한 줄짜리 */
+    private static byte[] excelBytes() {
+        try (XSSFWorkbook wb = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet s = wb.createSheet("평가결과");
+            Row head = s.createRow(0);
+            head.createCell(0).setCellValue("평가항목");
+            head.createCell(1).setCellValue("배점기준");
+            head.createCell(2).setCellValue("평가위원1");
+            head.createCell(3).setCellValue("평가위원2");
+            Row r = s.createRow(1);
+            r.createCell(0).setCellValue("전략 및 방법론(15)");
+            r.createCell(1).setCellValue("15");
+            r.createCell(2).setCellValue(14.5);
+            r.createCell(3).setCellValue(14.0);
+            wb.write(out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private static EvaluationForm form(String cmsnr, EvaluationForm.Row... rows) {

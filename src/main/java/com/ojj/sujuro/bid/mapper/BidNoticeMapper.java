@@ -50,6 +50,9 @@ public interface BidNoticeMapper {
     /** 같은 입찰공고번호가 이미 등록돼 있는지. 아직 부르는 곳이 없다 - 입찰공고번호 등록 경로에서 쓴다. */
     int countByBidPbancNo(String bidPbancNo);
 
+    /** 배정된 팀 (SPRVSN_TEAM_SN). 미배정·반환이면 null. 단계 전환·정정 알림을 그 팀 팀장에게도 보낼 때 쓴다. */
+    Long findSprvsnTeamSn(Long pbancSn);
+
     /** 공고를 새로 넣는다. 끝나면 param 의 pbancSn 에 새 번호가 담긴다. */
     int insertNotice(NoticeRegisterDTO param);
 

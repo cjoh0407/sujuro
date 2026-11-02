@@ -3,6 +3,7 @@ package com.ojj.sujuro.user.service;
 import com.ojj.sujuro.user.dto.CodeOption;
 import com.ojj.sujuro.user.dto.UserDto;
 import com.ojj.sujuro.user.dto.UserForm;
+import com.ojj.sujuro.user.dto.UserProjectDto;
 import com.ojj.sujuro.user.mapper.UserMapper;
 import com.ojj.sujuro.user.support.PasswordPolicy;
 
@@ -25,6 +26,10 @@ import lombok.RequiredArgsConstructor;
  *
  * 입력 검사는 문제 목록을 돌려주고(화면에 모두 보여 주려고), 그 밖의 업무 규칙 위반은 BusinessException을 던진다.
  * 권한은 입력받지 않고 소속 부서와 직급으로 자동으로 정한다. (FR-007)
+ *
+ * 팀을 옮기거나 비활성으로 바꿀 때: 진행 중 사업(참여 확정~제출 완료)의 제안팀원·목차 담당자 자리가 있으면
+ * 화면에서 [같이 빼기] / [그대로 두기]를 고르게 한다. 같이 빼면 명단에서 빼고 목차 담당자를 비운다.
+ * 그 팀이 주관하는 진행 중 사업의 하나뿐인 팀장은 팀 이동·직급 변경·비활성을 막는다(맡을 사람이 없어지므로).
  */
 @Service
 @RequiredArgsConstructor
@@ -45,8 +50,12 @@ public class UserService {
 
     // ---------------- 조회 (FR-003) ----------------
 
-    public List<UserDto> search(String keyword, String status) {
-        return userMapper.search(escapeLike(keyword), blankToNull(status));
+    public List<UserDto> search(String keyword, String status, Long teamSn) {
+        return userMapper.search(escapeLike(keyword), blankToNull(status), teamSn);
+    }
+
+    public int countAll() {
+        return userMapper.countAll();
     }
 
     public UserDto find(String userId) {
@@ -79,7 +88,7 @@ public class UserService {
         } else if (userMapper.countById(id) > 0) {
             errors.add("이미 등록된 사번입니다.");
         }
-        validateCommon(form, errors);
+        validateCommon(form, null, errors);
         return errors;
     }
 
@@ -108,27 +117,56 @@ public class UserService {
             errors.add("직원 정보를 찾을 수 없습니다.");
             return errors;
         }
-        validateCommon(form, errors);
+        validateCommon(form, userId, errors);
         // 경영지원실 담당자가 자기 권한을 스스로 없애면 이 화면에 다시 들어올 수 없다.
         if (errors.isEmpty() && userId.equals(adminId)
                 && !authorityCode(form.getTeamSn(), form.getJbgdCd()).equals(trim(before.getAuthrtCd()))) {
             errors.add("본인의 권한이 바뀌는 수정은 다른 경영지원실 담당자가 해야 합니다.");
         }
+        if (errors.isEmpty()) {
+            String block = leaderBlock(before, form.getTeamSn(), authorityCode(form.getTeamSn(), form.getJbgdCd()), false);
+            if (block != null) {
+                errors.add(block);
+            }
+        }
         return errors;
     }
 
-    /** 이름, 소속 팀, 직급, 연락처를 바꾸고 권한을 다시 정한다. */
+    /** 소속 팀이 바뀌는 수정인가 (바뀌면 진행 중 사업 정리를 물어본다) */
+    public boolean teamChanged(String userId, UserForm form) {
+        UserDto before = userMapper.findById(userId);
+        return before != null && form.getTeamSn() != null && !form.getTeamSn().equals(before.getTeamSn());
+    }
+
+    /** 이 직원이 제안팀원인 진행 중 사업 (팀 이동·비활성 전에 화면에 보여 준다) */
+    public List<UserProjectDto> activeProposals(String userId) {
+        return userMapper.findActiveProposals(userId);
+    }
+
+    /**
+     * 이름, 소속 팀, 직급, 연락처를 바꾸고 권한을 다시 정한다.
+     * removeFromProposals 가 true 이고 팀이 바뀌면 진행 중 사업의 제안팀원·목차 담당자 자리에서 뺀다. 빠진 사업 수를 돌려준다.
+     */
     @Transactional
-    public void update(String userId, UserForm form) {
+    public int update(String userId, UserForm form, boolean removeFromProposals) {
+        boolean moved = teamChanged(userId, form);
         userMapper.updateInfo(userId, form.getUserNm(), form.getTeamSn(), form.getJbgdCd(),
                 authorityCode(form.getTeamSn(), form.getJbgdCd()), form.getTelno(), form.getEmlAddr());
+        return moved && removeFromProposals ? detach(userId) : 0;
     }
 
     // ---------------- 비활성 (FR-006) ----------------
 
     /** 퇴사한 직원은 지우지 않고 비활성으로 바꾼다. 업무 이력이 그대로 남는다. */
     @Transactional
-    public void deactivate(String userId, String adminId) {
+    public int deactivate(String userId, String adminId, boolean removeFromProposals) {
+        UserDto user = checkDeactivatable(userId, adminId);
+        userMapper.updateStatus(userId, LoginUser.STATUS_INACTIVE);
+        return removeFromProposals ? detach(userId) : 0;
+    }
+
+    /** 비활성으로 바꿀 수 있는지 먼저 검사한다(확인 화면을 띄우기 전에도 쓴다). 안 되면 BusinessException */
+    public UserDto checkDeactivatable(String userId, String adminId) {
         UserDto user = requireUser(userId);
         if (userId.equals(adminId)) {
             throw new BusinessException("로그인 중인 본인 계정은 비활성으로 바꿀 수 없습니다.");
@@ -136,7 +174,11 @@ public class UserService {
         if (user.isInactive()) {
             throw new BusinessException("이미 비활성인 계정입니다.");
         }
-        userMapper.updateStatus(userId, LoginUser.STATUS_INACTIVE);
+        String block = leaderBlock(user, user.getTeamSn(), trim(user.getAuthrtCd()), true);
+        if (block != null) {
+            throw new BusinessException(block);
+        }
+        return user;
     }
 
     // ---------------- 비밀번호 초기화 (FR-008) ----------------
@@ -158,6 +200,40 @@ public class UserService {
 
     // ---------------- 내부 ----------------
 
+    /**
+     * 진행 중 사업의 제안팀원 명단에서 빼고, 맡던 목차의 담당자를 비운다. (비운 목차는 목차 화면에서 '미지정'으로 보인다)
+     * 올린 파일·Q&A·요구사항 같은 작업 기록은 그대로 둔다. 빠진 사업 수를 돌려준다.
+     */
+    private int detach(String userId) {
+        List<UserProjectDto> projects = userMapper.findActiveProposals(userId);
+        if (projects.isEmpty()) {
+            return 0;
+        }
+        userMapper.clearActiveTocOwner(userId);
+        userMapper.deleteActiveMemberships(userId);
+        return projects.size();
+    }
+
+    /**
+     * 그 팀이 주관하는 진행 중 사업이 있는데 이 직원이 그 팀의 하나뿐인 팀장이면, 팀장 자리가 비는 변경을 막는다.
+     * 팀 이동, 팀장 → 다른 직급, 비활성이 해당된다. 막을 이유를 돌려주고, 괜찮으면 null.
+     */
+    private String leaderBlock(UserDto before, Long newTeamSn, String newAuthrtCd, boolean deactivating) {
+        if (!Role.CD_LEADER.equals(trim(before.getAuthrtCd())) || before.getTeamSn() == null) {
+            return null;
+        }
+        boolean losesLeader = deactivating || !before.getTeamSn().equals(newTeamSn) || !Role.CD_LEADER.equals(newAuthrtCd);
+        if (!losesLeader) {
+            return null;
+        }
+        int led = userMapper.countActiveLedProjects(before.getTeamSn());
+        if (led == 0 || userMapper.countOtherLeaders(before.getTeamSn(), before.getUserId()) > 0) {
+            return null;
+        }
+        return before.getTeamNm() + "이(가) 주관하는 진행 중 사업 " + led + "건의 하나뿐인 팀장입니다. "
+                + "참여 결정·일정·통합본을 맡을 사람이 없어지므로, 먼저 다른 직원을 이 팀의 팀장으로 지정한 뒤 바꿔 주세요.";
+    }
+
     /** 권한 자동 부여 (FR-007): 경영지원실 → 경영지원실, 영업부 → 영업부, 그 밖의 팀은 팀장 직급이면 팀장, 아니면 팀원 */
     String authorityCode(Long teamSn, String jbgdCd) {
         String dept = trim(userMapper.findDeptCd(teamSn));
@@ -170,7 +246,7 @@ public class UserService {
         return RANK_LEADER.equals(trim(jbgdCd)) ? Role.CD_LEADER : Role.CD_MEMBER;
     }
 
-    private void validateCommon(UserForm form, List<String> errors) {
+    private void validateCommon(UserForm form, String exceptUserId, List<String> errors) {
         String name = form.getUserNm();
         if (name == null || name.isEmpty()) {
             errors.add("이름을 입력해 주세요.");
@@ -205,6 +281,9 @@ public class UserService {
             errors.add("이메일을 입력해 주세요.");
         } else if (form.getEmlAddr().length() > 320 || !EMAIL.matcher(form.getEmlAddr()).matches()) {
             errors.add("이메일 형식이 올바르지 않습니다.");
+        } else if (userMapper.countByEmail(form.getEmlAddr(), exceptUserId) > 0) {
+            // 알림 메일이 엉뚱한 사람에게 몰리지 않게 한 사람에 한 주소만 쓴다
+            errors.add("이미 다른 직원이 쓰는 이메일입니다.");
         }
     }
 

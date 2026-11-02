@@ -1,0 +1,22 @@
+/* 사용자 관리 화면 전용 (user/users.html).
+   모달 모양은 일정 관리(schedule.css)와 같게 맞춘다. 이 화면 안(.usr)에서만 적용된다. */
+
+/* 직원 목록: 페이지를 넘기지 않고 표 안에서 스크롤한다. 머리줄은 위에 고정 */
+.usr .usr-scroll{max-height:calc(100vh - 290px);min-height:240px;overflow-y:auto}
+.usr .usr-scroll thead th{position:sticky;top:0;z-index:1;background:var(--alt)}
+.usr .usr-filter{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.usr .usr-count{font-weight:400;color:var(--muted);font-size:12.5px}
+
+/* 모달 */
+.usr .modal{position:fixed;inset:0;background:rgba(15,19,24,.45);display:flex;align-items:center;justify-content:center;z-index:70;padding:16px}
+.usr .modal .box{width:520px;max-width:94vw;max-height:88vh;overflow:auto;background:var(--surface);border-radius:12px;border:1px solid var(--border);box-shadow:0 12px 32px rgba(0,0,0,.18)}
+.usr .modal .box.wide{width:600px}
+.usr .icon-x{border:0;background:none;font-size:20px;line-height:1;color:var(--muted);cursor:pointer;padding:2px 6px;border-radius:50%}
+.usr .icon-x:hover{background:var(--accent-soft);color:var(--accent)}
+.usr .usr-form{display:flex;flex-direction:column;gap:10px}
+.usr .usr-help{font-size:11.5px;line-height:1.55}
+.usr .usr-actions{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:6px;flex-wrap:wrap}
+.usr .usr-errors{margin:0;padding:8px 12px 8px 28px;border-radius:8px;background:var(--danger-soft);color:var(--danger);font-size:12px}
+
+/* hidden 속성이 다른 display 값에 덮이지 않게 한다 */
+.usr [hidden]{display:none !important}

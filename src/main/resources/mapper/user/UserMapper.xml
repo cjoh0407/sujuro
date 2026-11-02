@@ -56,6 +56,9 @@
       <if test="status != null and status != ''">
         AND U.ACNT_STTS_CD = #{status}
       </if>
+      <if test="teamSn != null">
+        AND U.TEAM_SN = #{teamSn}
+      </if>
     </where>
     ORDER BY CASE WHEN U.ACNT_STTS_CD = 'AS050' THEN 1 ELSE 0 END, T.TEAM_NM, U.USER_NM
   </select>
@@ -66,9 +69,59 @@
     WHERE U.USER_ID = #{userId}
   </select>
 
+  <!-- 전체 직원 수 (목록 제목에 '걸러진 수 / 전체' 로 보여 준다) -->
+  <select id="countAll" resultType="int">
+    SELECT COUNT(*) FROM TB_USER
+  </select>
+
   <select id="countById" resultType="int">
     SELECT COUNT(*) FROM TB_USER WHERE USER_ID = #{userId}
   </select>
+
+  <select id="countByEmail" resultType="int">
+    SELECT COUNT(*) FROM TB_USER
+     WHERE UPPER(EML_ADDR) = UPPER(#{emlAddr})
+    <if test="exceptUserId != null">
+       AND USER_ID &lt;&gt; #{exceptUserId}
+    </if>
+  </select>
+
+  <!-- ===== 팀 이동·비활성 때 진행 중 사업 정리 =====
+       진행 중 = 참여 확정(PS030) · 제안 작성 중(PS040) · 제출 완료(PS050). 끝난 사업의 기록은 건드리지 않는다. -->
+  <sql id="activeBids">SELECT PBANC_SN FROM TB_BID_PBANC WHERE PBANC_STTS_CD IN ('PS030', 'PS040', 'PS050')</sql>
+
+  <select id="findActiveProposals" resultType="com.ojj.sujuro.user.dto.UserProjectDto">
+    SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, P.SPRVSN_TEAM_SN AS sprvsnTeamSn, T.TEAM_NM AS sprvsnTeamNm,
+           (SELECT COUNT(*) FROM TB_TOC C WHERE C.PBANC_SN = P.PBANC_SN AND C.PIC_ID = #{userId}) AS tocCnt
+      FROM TB_PRP_TMMBR M
+      JOIN TB_BID_PBANC P ON P.PBANC_SN = M.PBANC_SN
+      LEFT JOIN TB_TEAM T ON T.TEAM_SN = P.SPRVSN_TEAM_SN
+     WHERE M.USER_ID = #{userId}
+       AND P.PBANC_STTS_CD IN ('PS030', 'PS040', 'PS050')
+     ORDER BY P.PBANC_SN DESC
+  </select>
+
+  <select id="countActiveLedProjects" resultType="int">
+    SELECT COUNT(*) FROM TB_BID_PBANC
+     WHERE SPRVSN_TEAM_SN = #{teamSn} AND PBANC_STTS_CD IN ('PS030', 'PS040', 'PS050')
+  </select>
+
+  <select id="countOtherLeaders" resultType="int">
+    SELECT COUNT(*) FROM TB_USER
+     WHERE TEAM_SN = #{teamSn} AND AUTHRT_CD = 'AU030' AND ACNT_STTS_CD &lt;&gt; 'AS050' AND USER_ID &lt;&gt; #{userId}
+  </select>
+
+  <delete id="deleteActiveMemberships">
+    DELETE FROM TB_PRP_TMMBR
+     WHERE USER_ID = #{userId}
+       AND PBANC_SN IN (<include refid="activeBids"/>)
+  </delete>
+
+  <update id="clearActiveTocOwner">
+    UPDATE TB_TOC SET PIC_ID = NULL
+     WHERE PIC_ID = #{userId}
+       AND PBANC_SN IN (<include refid="activeBids"/>)
+  </update>
 
   <!-- ===== 추가 · 수정 · 비활성 ===== -->
 

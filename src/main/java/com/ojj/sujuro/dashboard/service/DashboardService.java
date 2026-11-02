@@ -21,7 +21,7 @@ import lombok.RequiredArgsConstructor;
  *
  * - 사용자 소속 팀 기준으로 구성한다. 영업부·경영지원실은 전체 팀 현황을, 팀장·팀원은 자기 팀만 본다. (FR-089)
  * - 역할별 할 일을 맨 위에 둔다. (FR-090)
- *     영업부: 배정 대기 · 팀장 응답 대기 / 팀장: 참여 결정 대기 · 미매핑 요구사항
+ *     영업부: 배정 대기 · 팀장 응답 대기 / 팀장: 참여 결정 대기 · 미매핑 요구사항 (팀장 숫자·목록은 본인이 제안팀원인 사업 기준)
  *     팀원: 내 담당 목차 · 마감 / 경영지원실: 제출서류 준비 현황 · 나라장터 등록 대기
  * - 보는 범위는 화면에서 받은 값이 아니라 로그인한 사용자(역할·소속 팀)로만 정한다. (NFR-001)
  */
@@ -71,8 +71,8 @@ public class DashboardService {
         v.setSubtitle(user.getTeam() + " · 참여 결정과 제안 진행");
         LeaderCounts c = mapper.leaderCounts(user.getEmpNo());
         v.getStats().add(new Stat("참여 결정 대기", c.getDecisionWait(), "우리 팀 배정"));
-        v.getStats().add(new Stat("진행 중 사업", c.getInProgress(), "제안팀 구성 사업"));
-        v.getStats().add(new Stat("미매핑 요구사항", c.getUnmapped(), "목차 연결 필요"));
+        v.getStats().add(new Stat("진행 중 사업", c.getInProgress(), "내가 제안팀원 · 제출 완료까지"));
+        v.getStats().add(new Stat("미매핑 요구사항", c.getUnmapped(), "내 사업 · 목차 연결 필요"));
         v.getStats().add(new Stat("마감 7일 이내", c.getDueSoon(), "제출 마감 기준"));
         v.setTodoBids(mapper.leaderDecisionWait(user.getEmpNo()));
         v.setTeamBids(mapper.teamProposals(user.getEmpNo()));
@@ -100,7 +100,7 @@ public class DashboardService {
         }
         v.getStats().add(new Stat("나라장터 등록 대기", waitReg, "필수 서류 준비 완료"));
         v.getStats().add(new Stat("필수 서류 누락", missing, "준비 완료 전"));
-        v.getStats().add(new Stat("결과 입력 대기", mapper.resultWaitCount(), "제출 완료"));
+        v.getStats().add(new Stat("결과 가져오기 대기", mapper.resultWaitCount(), "제출 완료 · 나라장터 결과"));
         v.setDocRows(rows);
         v.setTeamStats(mapper.teamStats(null, false));
     }

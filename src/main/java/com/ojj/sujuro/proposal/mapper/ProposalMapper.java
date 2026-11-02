@@ -51,8 +51,8 @@ public interface ProposalMapper {
     /** 이 사람이 이 사업건에서 담당자로 지정된 목차 수 (제안서·제안요약서) */
     int countOwnedTocs(@Param("pbancSn") Long pbancSn, @Param("userId") String userId);
 
-    /** 참여팀으로 고를 수 있는 개발부 팀 (주관팀 제외). 참여팀 여부와 그 팀 소속 제안팀원 수를 함께 */
-    List<ProposalTeamDto> findTeamOptions(@Param("pbancSn") Long pbancSn);
+    /** 이 사업건 제안팀에 남아 있는 이 팀 소속 인원 수 (참여팀 자동 해제 확인용) */
+    int countTeamMembers(@Param("pbancSn") Long pbancSn, @Param("teamSn") Long teamSn);
 
     /** 이 팀이 이 사업건의 참여팀이면 1, 아니면 0 */
     int countPtcpTeam(@Param("pbancSn") Long pbancSn, @Param("teamSn") Long teamSn);

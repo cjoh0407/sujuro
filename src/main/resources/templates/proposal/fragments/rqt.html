@@ -3,8 +3,8 @@
 <!--/*
   요구사항 화면 조각 (제안서 탭). q는 요구사항(RqtDto), t는 최하위 목차(TocDto)
   필요한 모델: bid, canReq, unmappedList, mapTargets, editRqt
-    rqId(q, can)  : 요구사항 ID 칩 (can이면 ✕로 연결 해제)
-    rqInfo(q)     : 요구사항 명칭 + ✎ 수정 · 🗑 삭제 아이콘 (FR-051 v4.0: ID와 명칭만, 정의·세부내용은 수정 화면에서)
+    rqId(q, can)  : 요구사항 ID 칩 (can이면 닫기 아이콘으로 연결 해제)
+    rqInfo(q)     : 요구사항 명칭 + 수정 · 삭제 아이콘 (FR-051 v4.0: ID와 명칭만, 정의·세부내용은 수정 화면에서)
     rqAdd(t)      : 최하위 목차 줄의 "+ 요구사항 추가" (미매핑 요구사항 중 선택)
     rqPickToc(q)  : 미매핑 화면의 "연결할 세부 목차" (담당자가 있는 최하위 목차만, 연결 뒤 미매핑 화면으로 돌아온다)
     rqExtract     : 제안요청서 PDF에서 요구사항 ID·명칭 추출 (FR-050-1, AI 사용 안 함) → ?view=extract 미리보기
@@ -18,20 +18,20 @@
   <form th:if="${can}" th:action="@{/proposal/rqt/map}" method="post" style="display:inline">
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
     <input type="hidden" name="rqtMttrSn" th:value="${q.rqtMttrSn}">
-    <button type="submit" class="x-btn" title="연결 해제">✕</button>
+    <button type="submit" class="x-btn" title="연결 해제" aria-label="연결 해제"><span class="ic ic-close"></span></button>
   </form>
 </span>
 
 <div th:fragment="rqInfo(q)" class="rq-line">
   <span th:text="${q.rqtMttrNm}">요구사항명</span>
   <span th:if="${canReq}" style="display:inline-flex;gap:3px">
-    <a class="ico" title="수정" aria-label="수정" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped', edit=${q.rqtMttrSn})} + '#rqform'">✎</a>
+    <a class="ico" title="수정" aria-label="수정" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped', edit=${q.rqtMttrSn})} + '#rqform'"><span class="ic ic-edit"></span></a>
     <form th:action="@{/proposal/rqt/delete}" method="post" style="display:inline"
           th:data-no="${q.rqtMttrNo}" onsubmit="return confirm('요구사항 ' + this.dataset.no + '을(를) 삭제할까요?')">
       <input type="hidden" name="bid" th:value="${bid.pbancSn}">
       <input type="hidden" name="rqtMttrSn" th:value="${q.rqtMttrSn}">
       <input type="hidden" name="view" value="unmapped" th:if="${unmapView}">
-      <button class="ico" type="submit" title="삭제" aria-label="삭제">🗑</button>
+      <button class="ico danger" type="submit" title="삭제" aria-label="삭제"><span class="ic ic-trash"></span></button>
     </form>
   </span>
 </div>
@@ -73,9 +73,16 @@
       <div class="step"><b>③ 개수 검사</b><span>총괄표 개수·합계와 비교</span></div>
       <div class="step"><b>④ 확인 후 등록</b><span>고친 뒤 등록 → 미매핑에 표시</span></div>
     </div>
-    <form th:action="@{/proposal/rqt/extract}" method="post" enctype="multipart/form-data" class="row">
+    <form th:action="@{/proposal/rqt/extract}" method="post" enctype="multipart/form-data" class="drop-row">
       <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-      <input type="file" name="file" accept=".pdf,application/pdf" required>
+      <label class="drop">
+        <input type="file" name="file" accept=".pdf,application/pdf" required data-max-mb="50">
+        <span class="ic ic-upload"></span>
+        <span class="drop-body">
+          <span class="drop-text"><span><b>PDF 파일 선택</b> 또는 여기로 끌어 놓기</span></span>
+          <span class="drop-hint">요구사항 총괄표·목록표 쪽만 담은 PDF 1개 · 최대 50MB</span>
+        </span>
+      </label>
       <button class="btn sm primary" type="submit">추출해 보기</button>
     </form>
     <div class="faint" style="font-size:11.5px">제안요청서에서 요구사항 총괄표와 목록표 쪽만 골라 PDF로 올려 주세요. 스캔한 이미지 PDF나 번호가 없는 문서는 읽지 못하니 아래에서 수기로 등록하세요.</div>

@@ -11,9 +11,9 @@
                          목차를 고치면 현재 양식에도 바로 반영된다 (TocServiceImpl.syncForm)
     addTop(k)          : + 1단계 목차 추가
     labelCell(t, k)    : 번호 포함 이름 (Enter 또는 칸을 벗어나면 바로 저장)
-    tocTools(t)        : ↳ 하위 / ＋ 같은 단계 (아이콘)
+    tocTools(t)        : 하위 목차 추가 / 같은 단계 목차 추가 (아이콘, proposal.css .ic-child·.ic-sibling)
     addRow(t, k, cols) : 하위 / 같은 단계 입력 줄 (proposal.js가 열고 닫는다)
-    delBtn(t, k)       : 🗑 삭제 (묶음은 하위 포함)
+    delBtn(t, k)       : 삭제 아이콘 (묶음은 하위 포함)
     owner(t, k)        : 최하위 목차 담당자 - 제안팀원 또는 외부 회사 (주관팀 팀장만 지정, FR-049·FR-043-1)
     pages(t)           : 최하위 목차 예상 쪽수
 */-->
@@ -141,9 +141,9 @@
 
 <span th:fragment="tocTools(t)" th:if="${canEdit}" class="toc-tools">
   <button type="button" class="ico" data-m="d" onclick="openAdd(this)" title="하위 목차 추가" aria-label="하위 목차 추가"
-          th:data-t="${t.tocSn}" th:data-label="${t.label}" th:data-depth="${t.depth}">↳</button>
+          th:data-t="${t.tocSn}" th:data-label="${t.label}" th:data-depth="${t.depth}"><span class="ic ic-child"></span></button>
   <button type="button" class="ico" data-m="s" onclick="openAdd(this)" title="같은 단계 목차 추가" aria-label="같은 단계 목차 추가"
-          th:data-t="${t.tocSn}" th:data-label="${t.label}" th:data-depth="${t.depth}">＋</button>
+          th:data-t="${t.tocSn}" th:data-label="${t.label}" th:data-depth="${t.depth}"><span class="ic ic-sibling"></span></button>
 </span>
 
 <tr th:fragment="addRow(t, k, cols)" th:if="${canEdit}" class="addrow" th:id="'add-' + ${t.tocSn}" hidden>
@@ -168,8 +168,8 @@
   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
   <input type="hidden" name="tab" th:value="${k}">
   <input type="hidden" name="tocSn" th:value="${t.tocSn}">
-  <button class="ico" type="submit" th:title="${t.group} ? '삭제 (하위 목차 포함)' : '삭제'"
-          th:aria-label="${t.group} ? '삭제 (하위 목차 포함)' : '삭제'">🗑</button>
+  <button class="ico danger" type="submit" th:title="${t.group} ? '삭제 (하위 목차 포함)' : '삭제'"
+          th:aria-label="${t.group} ? '삭제 (하위 목차 포함)' : '삭제'"><span class="ic ic-trash"></span></button>
 </form>
 
 <!--/* 담당자: 제안팀원을 고르거나, 외부 회사를 고르거나 직접 적는다 (외부 회사는 계정 없이 회사명만, FR-043-1)

@@ -5,17 +5,21 @@
       layout:decorate="~{layout/default}">
 <head>
   <title>일정 관리</title>
+  <th:block layout:fragment="head">
+    <link rel="stylesheet" th:href="@{/css/schedule.css}">
+  </th:block>
 </head>
 <body>
 
 <h1 layout:fragment="pageTitle">일정 관리</h1>
 
 <th:block layout:fragment="content">
+<div class="sch">
   <div class="banner ok" th:if="${done != null}" th:text="${done}" style="margin-bottom:12px">처리했습니다.</div>
   <div class="banner err" th:if="${error != null}" th:text="${error}" style="margin-bottom:12px">오류 안내</div>
 
   <div class="faint" style="margin-bottom:12px">
-    <span th:text="${view.scopeText}">내가 참여하는 사업 일정</span> · 공고의 제출 마감·발표일·서류 마감은 주관팀 일정에 자동으로 들어옵니다.
+    <span th:text="${view.scopeText}">내가 참여하는 사업 일정</span> · 참여가 확정된 사업의 제출 마감은 자동으로 들어옵니다.
   </div>
 
   <!-- 월 이동 + 팀 탭(영업부·경영지원실) -->
@@ -24,6 +28,11 @@
       <a class="btn sm" th:href="@{/schedule(ym=${view.prevYm}, team=${view.selectedTeamSn}, pbanc=${view.selectedPbancSn})}">‹</a>
       <b style="font-size:16px" th:text="${view.label}">2026년 10월</b>
       <a class="btn sm" th:href="@{/schedule(ym=${view.nextYm}, team=${view.selectedTeamSn}, pbanc=${view.selectedPbancSn})}">›</a>
+      <!-- 일정 등록 (주관팀 팀장). 주관하는 진행 중 사업이 없으면(참여팀 팀장 포함) 눌러지지 않고 이유를 보여 준다 -->
+      <button class="btn sm primary" type="button" th:if="${view.canEdit}" onclick="schOpen('schAdd')"
+              th:disabled="${#lists.isEmpty(view.editProjects)}"
+              th:title="${#lists.isEmpty(view.editProjects)} ? '우리 팀이 주관하는 진행 중인 사업이 없어 등록할 수 없습니다. 참여팀은 일정을 볼 수만 있습니다' : '일정 등록'">
+        <svg class="ic"><use href="#i-plus"/></svg>일정 등록</button>
     </div>
     <div class="tabs" th:if="${!#lists.isEmpty(view.teams)}">
       <a class="tab" th:classappend="${view.selectedTeamSn == null} ? 'on'" th:href="@{/schedule(ym=${view.ym})}">전체</a>
@@ -40,18 +49,12 @@
     </div>
   </div>
 
-  <!-- 범례 (FR-094) -->
-  <div class="row" style="margin-bottom:12px">
-    <span style="font-size:12px" th:each="k, st : ${view.kinds}">
-      <span class="dot" th:style="|background:var(--${st.index == 0 ? 'danger' : st.index == 1 ? 'warning' : st.index == 2 ? 'accent' : st.index == 3 ? 'info' : 'success'})|"></span><span th:text="${k.name}">제출 마감</span>
-    </span>
-  </div>
-
-  <!-- 팀 색 범례: 영업부·경영지원실이 팀을 구분해서 본다 -->
-  <div class="row" style="margin-bottom:12px" th:if="${!#lists.isEmpty(view.teams)}">
-    <span style="font-size:12px" th:each="t : ${view.teams}">
+  <!-- 범례 (FR-094): 색은 팀, 글자는 종류 -->
+  <div class="row" style="margin-bottom:12px;gap:14px;flex-wrap:wrap">
+    <span style="font-size:12px" th:each="t : ${view.legendTeams}">
       <span class="dot" th:classappend="|tm${view.teamNoOf(t.code)}|"></span><span th:text="${t.name}">팀</span>
     </span>
+    <span class="faint" style="font-size:12px"><b>[마감]</b> 공고 제출 마감(자동) · 그 밖의 일정은 팀장이 직접 등록한 일정</span>
   </div>
 
   <!-- 월 캘린더 (FR-091) -->
@@ -60,54 +63,112 @@
     <div class="cell" th:each="c : ${view.cells}" th:classappend="${c.blank} ? 'dim' : (${c.today} ? 'today' : '')">
       <div class="d" th:if="${!c.blank}" th:text="${c.day}">1</div>
       <th:block th:each="e : ${c.events}">
-        <!-- 내부 일정은 만든 팀의 팀장이 누르면 수정 화면으로. 그 밖의 일정은 보기만 한다 -->
-        <a th:if="${e.editable}" class="ev" th:classappend="|k${e.kindNo} tm${e.teamNo}|"
-           th:href="@{/schedule(ym=${view.ym}, team=${view.selectedTeamSn}, pbanc=${view.selectedPbancSn}, edit=${e.id})}"
-           th:title="|${e.title}${e.timeText != null ? ' · ' + e.timeText : ''}${e.pbancNm != null ? ' · ' + e.pbancNm : ''}|"
-           th:text="${e.timeText != null ? e.timeText + ' ' : ''} + ${e.title}">내부 일정</a>
-        <div th:unless="${e.editable}" class="ev" th:classappend="|k${e.kindNo} tm${e.teamNo}|"
-             th:title="|${e.title}${e.timeText != null ? ' · ' + e.timeText : ''}${e.pbancNm != null ? ' · ' + e.pbancNm : ''}${e.teamNm != null ? ' · ' + e.teamNm : ''}|"
-             th:text="${(view.teams.isEmpty() ? '' : e.teamNm + ' · ') + (e.timeText != null and !e.auto ? e.timeText + ' ' : '') + e.title}">제출 마감</div>
+        <!-- 자기 팀이 등록한 일정은 팀장이 누르면 수정·삭제 모달이 열린다. 그 밖의 일정은 보기만 한다 -->
+        <button th:if="${e.editable}" type="button" class="ev sch-ev" th:classappend="|tm${e.teamNo}|"
+                th:attr="data-id=${e.id},data-title=${e.title},data-date=${e.eventDate},data-time=${e.timeText},data-pbanc=${e.pbancNm},data-changeable=${e.changeable},data-reason=${e.lockReason}"
+                onclick="schOpenEdit(this)"
+                th:title="|${e.label}${e.pbancNm != null ? ' · ' + e.pbancNm : ''} · 눌러서 수정·삭제|"
+                th:text="${(view.teams.isEmpty() ? '' : e.teamNm + ' · ') + e.label}">14:00 내부 점검</button>
+        <div th:unless="${e.editable}" class="ev" th:classappend="|tm${e.teamNo}|"
+             th:title="|${e.label}${e.pbancNm != null ? ' · ' + e.pbancNm : ''}${e.teamNm != null ? ' · ' + e.teamNm : ''}|"
+             th:text="${(view.teams.isEmpty() ? '' : e.teamNm + ' · ') + e.label}">[마감] 10:00 사업명</div>
       </th:block>
     </div>
   </div>
 
-  <!-- 일정 추가·수정 (주관팀 팀장, FR-093) -->
-  <div class="card" th:if="${view.canEdit}" style="margin-top:16px">
-    <div class="card-head"><h3 th:text="${view.editing != null} ? '일정 수정' : '일정 등록'">일정 등록</h3></div>
-    <div class="pad">
-      <div class="faint" th:if="${#lists.isEmpty(view.editProjects)}">
-        우리 팀이 주관하는 진행 중인 사업이 없어 일정을 등록할 수 없습니다.
+  <!-- 아이콘 원본 (세종 아이콘 시안과 같은 모양). 색은 버튼 색을 따라간다 -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-edit" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12.8 3.9a1.8 1.8 0 0 1 2.5 0l.8.8a1.8 1.8 0 0 1 0 2.5L7.6 15.7 3.8 16.6l.9-3.8z"/><path d="M11.3 5.4l3.3 3.3"/>
+      </symbol>
+      <symbol id="i-trash" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3.5 5.5h13"/><path d="M8 5.5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5"/>
+        <path d="M5.2 5.5l.8 10.1a1.5 1.5 0 0 0 1.5 1.4h5a1.5 1.5 0 0 0 1.5-1.4l.8-10.1"/><path d="M8.5 9v4.5"/><path d="M11.5 9v4.5"/>
+      </symbol>
+      <symbol id="i-plus" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <path d="M10 4v12"/><path d="M4 10h12"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <!-- 일정 등록 모달 (팀장, FR-093) -->
+  <div class="modal" id="schAdd" hidden th:if="${view.canEdit and !#lists.isEmpty(view.editProjects)}"
+       onclick="if (event.target === this) schClose('schAdd')">
+    <div class="box" role="dialog" aria-modal="true" aria-labelledby="schAddTitle">
+      <div class="card-head">
+        <h3 id="schAddTitle">일정 등록</h3>
+        <button class="icon-x" type="button" title="닫기" onclick="schClose('schAdd')">&times;</button>
       </div>
-      <form class="row" method="post" th:unless="${#lists.isEmpty(view.editProjects)}"
-            th:action="${view.editing != null} ? @{/schedule/edit} : @{/schedule/add}">
+      <form class="pad sch-form" method="post" th:action="@{/schedule/add}">
         <input type="hidden" name="ym" th:value="${view.ym}">
-        <input type="hidden" name="id" th:if="${view.editing != null}" th:value="${view.editing.id}">
-        <!-- 사업이 하나면 자동으로 골라져 있다 -->
-        <select name="pbancSn" required>
-          <option th:each="p : ${view.editProjects}" th:value="${p.code}" th:text="${p.name}"
-                  th:selected="${view.editing != null and view.editing.pbancSn != null and view.editing.pbancSn.toString() == p.code}">사업명</option>
-        </select>
-        <input type="text" name="title" maxlength="256" placeholder="일정 이름 (직접 입력)" style="width:240px" required
-               th:value="${view.editing != null} ? ${view.editing.title} : ''">
-        <input type="date" name="date" required
-               th:value="${view.editing != null} ? ${view.editing.eventDate} : ''">
-        <input type="time" name="time" title="비워 두면 시간 없이 날짜만 표시됩니다"
-               th:value="${view.editing != null and view.editing.timeText != null} ? ${view.editing.timeText} : ''">
-        <button class="btn primary sm" type="submit" th:text="${view.editing != null} ? '수정 저장' : '추가'">추가</button>
-        <a class="btn sm" th:if="${view.editing != null}" th:href="@{/schedule(ym=${view.ym})}">취소</a>
-      </form>
-      <div class="faint" style="font-size:11.5px;margin-top:8px" th:unless="${#lists.isEmpty(view.editProjects)}">
-        일정 이름은 직접 쓰고, 날짜와 시간(비워 두면 날짜만)을 고릅니다. 캘린더에서 일정을 누르면 수정·삭제할 수 있고,
-        등록·수정·삭제하면 그 사업의 제안팀원 전원에게 알림과 메일이 갑니다.
-      </div>
-      <form method="post" th:action="@{/schedule/delete}" th:if="${view.editing != null}" style="margin-top:10px">
-        <input type="hidden" name="ym" th:value="${view.ym}">
-        <input type="hidden" name="id" th:value="${view.editing.id}">
-        <button class="btn sm danger" type="submit">이 일정 삭제</button>
+        <input type="hidden" name="team" th:if="${view.selectedTeamSn != null}" th:value="${view.selectedTeamSn}">
+        <input type="hidden" name="pbanc" th:if="${view.selectedPbancSn != null}" th:value="${view.selectedPbancSn}">
+        <label>사업
+          <select name="pbancSn" required>
+            <option th:each="p : ${view.editProjects}" th:value="${p.code}" th:text="${p.name}"
+                    th:selected="${view.selectedPbancSn != null and view.selectedPbancSn.toString() == p.code}">사업명</option>
+          </select>
+        </label>
+        <label>일정 이름
+          <input type="text" name="title" maxlength="256" placeholder="예: 내부 검토 회의" required>
+        </label>
+        <div class="sch-two">
+          <label><span class="lbl">날짜</span><input type="date" name="date" required th:min="${view.today}"></label>
+          <label><span class="lbl">시간 <span class="faint">(선택)</span></span><input type="time" name="time"></label>
+        </div>
+        <div class="faint sch-help">오늘 이전 날짜는 등록할 수 없습니다. 등록하면 그 사업의 제안팀원 전원에게 화면 알림이 갑니다(메일 없음).</div>
+        <div class="sch-actions">
+          <button class="btn sm" type="button" onclick="schClose('schAdd')">취소</button>
+          <button class="btn sm primary" type="submit">등록</button>
+        </div>
       </form>
     </div>
   </div>
+
+  <!-- 일정 수정·삭제 모달: 우리 팀이 등록한 일정을 누르면 열린다. 붙은 사업은 바꾸지 않는다 -->
+  <div class="modal" id="schEdit" hidden th:if="${view.canEdit}" onclick="if (event.target === this) schClose('schEdit')">
+    <div class="box sm" role="dialog" aria-modal="true" aria-labelledby="schEditTitle">
+      <div class="card-head">
+        <h3 id="schEditTitle">일정</h3>
+        <button class="icon-x" type="button" title="닫기" onclick="schClose('schEdit')">&times;</button>
+      </div>
+      <div class="pad">
+        <div class="sch-pbanc">사업: <b id="se-pbanc">사업명</b></div>
+        <div class="banner warn" id="se-lock" hidden>지난 일정은 수정할 수 없습니다.</div>
+        <form class="sch-form" id="se-form" method="post" th:action="@{/schedule/edit}">
+          <input type="hidden" name="ym" th:value="${view.ym}">
+          <input type="hidden" name="team" th:if="${view.selectedTeamSn != null}" th:value="${view.selectedTeamSn}">
+          <input type="hidden" name="pbanc" th:if="${view.selectedPbancSn != null}" th:value="${view.selectedPbancSn}">
+          <input type="hidden" name="id" id="se-id">
+          <label>일정 이름<input type="text" name="title" id="se-title" maxlength="256" required></label>
+          <div class="sch-two">
+            <label><span class="lbl">날짜</span><input type="date" name="date" id="se-date" required th:min="${view.today}"></label>
+            <label><span class="lbl">시간 <span class="faint">(선택)</span></span><input type="time" name="time" id="se-time"></label>
+          </div>
+        </form>
+        <form id="se-del" method="post" th:action="@{/schedule/delete}">
+          <input type="hidden" name="ym" th:value="${view.ym}">
+          <input type="hidden" name="team" th:if="${view.selectedTeamSn != null}" th:value="${view.selectedTeamSn}">
+          <input type="hidden" name="pbanc" th:if="${view.selectedPbancSn != null}" th:value="${view.selectedPbancSn}">
+          <input type="hidden" name="id" id="se-del-id">
+        </form>
+        <div class="sch-actions">
+          <button class="btn sm sch-del" type="button" onclick="schDelete()">
+            <svg class="ic"><use href="#i-trash"/></svg>삭제</button>
+          <span class="sch-gap"></span>
+          <button class="btn sm" type="button" onclick="schClose('schEdit')">닫기</button>
+          <button class="btn sm primary" type="submit" form="se-form" id="se-save">
+            <svg class="ic"><use href="#i-edit"/></svg>수정 저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</th:block>
+
+<th:block layout:fragment="scripts">
+  <script th:src="@{/js/schedule.js}"></script>
 </th:block>
 
 </body>

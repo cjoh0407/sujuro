@@ -4,8 +4,12 @@ import com.ojj.sujuro.schedule.dto.ScheduleEvent;
 import com.ojj.sujuro.schedule.dto.ScheduleView;
 import com.ojj.sujuro.schedule.mapper.ScheduleMapper;
 
+import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -30,10 +34,12 @@ import lombok.RequiredArgsConstructor;
 /**
  * 일정 (FR-091 ~ FR-094)
  *
- * - 팀마다 다른 일정을 월 캘린더로 보여 준다. 영업부·경영지원실은 팀 탭(전체, 팀별)을 고르고, 팀장·팀원은 자기 팀만 본다. (FR-091)
- * - 공고의 제출 마감·발표일·서류 마감은 담당 팀 일정에 자동으로 나타난다. (FR-092)
- * - 내부 일정(내부 1차·2차 마감, 서류 마감)은 팀장이 자기 팀 것만 추가·수정·삭제한다. (FR-093)
- * - 일정 구분은 색으로 구분한다. (FR-094)
+ * - 일정은 사업건 단위다. 영업부·경영지원실은 모든 사업을 팀 탭(전체, 팀별)으로, 팀장·팀원은 제안팀원인 사업만 본다. (FR-091)
+ * - 참여가 확정된 사업건의 제출 마감이 자동으로 나타난다. 발표일·서류 마감은 넣지 않는다. (FR-092)
+ * - 주관팀 팀장만 우리 팀이 주관하는 진행 중 사업에 일정을 등록·수정·삭제한다. 참여팀 팀장·팀원은 보기만 한다. (FR-093)
+ *   오늘 이전 날짜(오늘이면 지난 시각)는 등록·수정할 수 없다. 지난 일정과 끝난 사업의 일정은 삭제만 된다.
+ *   수정할 때 붙은 사업건은 바꾸지 않는다.
+ * - 일정은 팀 색으로 구분하고, 제출 마감(자동)과 직접 등록한 일정은 글자로 구분한다. (FR-094)
  *
  * 보는 팀과 고칠 수 있는 팀은 화면에서 받은 값이 아니라 로그인한 사용자의 역할과 소속 팀으로 정한다. (NFR-001)
  */
@@ -49,6 +55,13 @@ public class ScheduleService {
     private final ScheduleMapper mapper;
     private final NotificationService notificationService;
 
+    /** 지금 시각. 서버 시간대와 상관없이 한국 시간으로 본다. 테스트에서는 고정 시각으로 바꾼다 */
+    private Clock clock = Clock.system(ZoneId.of("Asia/Seoul"));
+
+    void setClock(Clock clock) {
+        this.clock = clock;
+    }
+
     // ===== 조회 =====
 
     public ScheduleView month(LoginUser user, String ym, Long teamParam, Long pbancParam, Long editId) {
@@ -61,6 +74,7 @@ public class ScheduleService {
         v.setPrevYm(month.minusMonths(1).toString());
         v.setNextYm(month.plusMonths(1).toString());
         v.setKinds(mapper.findKinds());
+        v.setToday(LocalDate.now(clock).toString());
 
         // 볼 범위: 영업부·경영지원실은 모든 사업(고른 팀 탭), 팀장·팀원은 내가 제안팀원인 사업건만
         Long scopeTeamSn = null;
@@ -93,17 +107,26 @@ public class ScheduleService {
             events.addAll(mapper.findAutoEvents(scopeTeamSn, memberId, pbancSn, from, to));
             events.addAll(mapper.findInternalEvents(scopeTeamSn, memberId, pbancSn, from, to));
         }
+        List<CodeOption> editable = leader ? mapper.findEditablePbancs(leaderTeamSn) : new ArrayList<CodeOption>();
         for (ScheduleEvent e : events) {
-            // 참여팀 팀장은 주관팀이 만든 일정을 볼 수만 있다. 자기 팀이 만든 내부 일정만 고칠 수 있다.
+            // 주관팀 팀장이 자기 팀이 만든 일정만 눌러서 관리한다. 참여팀 팀장에게는 고칠 일정이 없다(보기만).
             e.setEditable(leader && !e.isAuto() && leaderTeamSn.equals(e.getTeamSn()));
+            if (e.isEditable()) {
+                markChangeable(e, editable);
+            }
         }
         buildCells(v, month, events);
 
         v.setCanEdit(leader);
         if (leader) {
-            v.setEditProjects(mapper.findEditablePbancs(leaderTeamSn));
+            v.setEditProjects(editable);
             if (editId != null) {
-                v.setEditing(mapper.findInternalOne(editId, leaderTeamSn));
+                ScheduleEvent one = mapper.findInternalOne(editId, leaderTeamSn);
+                if (one != null) {
+                    one.setEditable(true);
+                    markChangeable(one, editable);
+                }
+                v.setEditing(one);
             }
         }
         return v;
@@ -116,22 +139,30 @@ public class ScheduleService {
         Long teamSn = requireLeaderTeam(user);
         String pbancNm = requireEditablePbanc(teamSn, pbancSn);
         String checkedTitle = checkTitle(title);
-        String dateTime = checkDate(date) + " " + checkTime(time);
+        String dateTime = checkNotPast(checkDate(date), time);
         mapper.insert(teamSn, pbancSn, KIND_INTERNAL, checkedTitle, dateTime, user.getEmpNo());
         notifyProposalTeam(pbancSn, pbancNm, "일정이 등록되었습니다", checkedTitle, dateTime);
     }
 
+    /** 이름·날짜·시간만 고친다. 붙은 사업건은 그대로 둔다(화면에서 다른 값을 보내도 무시). */
     @Transactional
-    public void edit(LoginUser user, Long schdlSn, Long pbancSn, String title, String date, String time) {
+    public void edit(LoginUser user, Long schdlSn, String title, String date, String time) {
         Long teamSn = requireLeaderTeam(user);
-        String pbancNm = requireEditablePbanc(teamSn, pbancSn);
+        ScheduleEvent before = mapper.findInternalOne(schdlSn, teamSn);
+        if (before == null) {
+            throw new BusinessException("수정할 일정을 찾을 수 없습니다. 자기 팀의 내부 일정만 수정할 수 있습니다.");
+        }
+        String reason = lockReason(before, mapper.findEditablePbancs(teamSn));
+        if (reason != null) {
+            throw new BusinessException(reason);
+        }
         String checkedTitle = checkTitle(title);
-        String dateTime = checkDate(date) + " " + checkTime(time);
-        int n = mapper.update(schdlSn, teamSn, pbancSn, checkedTitle, dateTime);
+        String dateTime = checkNotPast(checkDate(date), time);
+        int n = mapper.update(schdlSn, teamSn, checkedTitle, dateTime);
         if (n == 0) {
             throw new BusinessException("수정할 일정을 찾을 수 없습니다. 자기 팀의 내부 일정만 수정할 수 있습니다.");
         }
-        notifyProposalTeam(pbancSn, pbancNm, "일정이 변경되었습니다", checkedTitle, dateTime);
+        notifyProposalTeam(before.getPbancSn(), before.getPbancNm(), "일정이 변경되었습니다", checkedTitle, dateTime);
     }
 
     @Transactional
@@ -148,6 +179,71 @@ public class ScheduleService {
     }
 
     // ===== 내부 =====
+
+    /** 눌러서 관리할 수 있는 일정에, 내용까지 고칠 수 있는지와 그 이유를 적는다 */
+    private void markChangeable(ScheduleEvent e, List<CodeOption> editable) {
+        String reason = lockReason(e, editable);
+        e.setChangeable(reason == null);
+        e.setLockReason(reason);
+    }
+
+    /** 고칠 수 없는 이유. 고칠 수 있으면 null. 지난 일정과 끝난 사업의 일정은 삭제만 된다 */
+    private String lockReason(ScheduleEvent e, List<CodeOption> editable) {
+        if (isPast(e)) {
+            return "지난 일정은 수정할 수 없습니다. 잘못 넣은 일정이면 삭제할 수 있습니다.";
+        }
+        if (e.getPbancSn() == null || !contains(editable, e.getPbancSn())) {
+            return "진행 중이 아닌 사업의 일정은 수정할 수 없습니다. 삭제만 할 수 있습니다.";
+        }
+        return null;
+    }
+
+    /** 일정 시각이 지났는가. 시간이 없는 일정(하루 종일)은 그날이 지나야 지난 일정이다 */
+    private boolean isPast(ScheduleEvent e) {
+        LocalDate d;
+        try {
+            d = LocalDate.parse(e.getEventDate());
+        } catch (RuntimeException ex) {
+            return false;
+        }
+        LocalDate today = LocalDate.now(clock);
+        if (e.getTimeText() == null) {
+            return d.isBefore(today);
+        }
+        try {
+            return LocalDateTime.of(d, LocalTime.parse(e.getTimeText())).isBefore(LocalDateTime.now(clock));
+        } catch (RuntimeException ex) {
+            return d.isBefore(today);
+        }
+    }
+
+    /**
+     * 오늘 이전 날짜는 받지 않는다. 오늘이면서 시간을 넣었다면 지금 이후만 받는다. (시간을 비우면 하루 종일이라 오늘도 된다)
+     * 검사한 날짜와 시간을 "yyyy-MM-dd HH:mm" 으로 돌려준다.
+     */
+    String checkNotPast(String date, String time) {
+        String hm = checkTime(time);
+        LocalDate d = LocalDate.parse(date);
+        LocalDate today = LocalDate.now(clock);
+        if (d.isBefore(today)) {
+            throw new BusinessException("오늘 이전 날짜에는 일정을 등록할 수 없습니다.");
+        }
+        boolean hasTime = time != null && !time.trim().isEmpty();
+        if (hasTime && d.equals(today)
+                && LocalTime.parse(hm).isBefore(LocalTime.now(clock).withSecond(0).withNano(0))) {
+            throw new BusinessException("이미 지난 시각입니다. 지금 이후 시각을 입력해 주세요.");
+        }
+        return d + " " + hm;
+    }
+
+    private static boolean contains(List<CodeOption> options, Long sn) {
+        for (CodeOption o : options) {
+            if (o.getCode().equals(String.valueOf(sn))) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /** 그 사업건의 제안팀원 전원(등록한 본인 포함, 주관팀 팀장도 포함)에게 일정 등록·변경·삭제를 알린다. (FR-034, NT160) */
     private void notifyProposalTeam(Long pbancSn, String pbancNm, String what, String title, String when) {
@@ -166,7 +262,7 @@ public class ScheduleService {
                 return o.getName();
             }
         }
-        throw new BusinessException("일정을 등록할 수 없는 사업입니다. 우리 팀이 주관하는 진행 중인 사업만 고를 수 있습니다.");
+        throw new BusinessException("일정을 등록할 수 없는 사업입니다. 우리 팀이 주관하는 진행 중인 사업만 고를 수 있습니다. (참여팀은 일정을 볼 수만 있습니다)");
     }
 
     /** 팀장이 아니면 403, 소속 팀이 없으면 업무 안내 */
@@ -253,9 +349,20 @@ public class ScheduleService {
         events.sort(Comparator.comparing(ScheduleEvent::getEventDate)
                 .thenComparing(e -> e.getTimeText() == null ? "" : e.getTimeText())
                 .thenComparing(e -> e.getTitle() == null ? "" : e.getTitle()));
+        Map<Long, String> teams = new LinkedHashMap<>();
         for (ScheduleEvent e : events) {
             byDate.computeIfAbsent(e.getEventDate(), k -> new ArrayList<>()).add(e);
+            if (e.getTeamSn() != null) {
+                teams.putIfAbsent(e.getTeamSn(), e.getTeamNm());
+            }
         }
+        // 팀 색 범례: 이번 달에 나온 팀만, 팀 번호 순
+        teams.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(t -> {
+            CodeOption o = new CodeOption();
+            o.setCode(String.valueOf(t.getKey()));
+            o.setName(t.getValue());
+            v.getLegendTeams().add(o);
+        });
         int lead = month.atDay(1).getDayOfWeek() == DayOfWeek.SUNDAY ? 0 : month.atDay(1).getDayOfWeek().getValue();
         for (int i = 0; i < lead; i++) {
             v.getCells().add(new Cell(0, false, new ArrayList<ScheduleEvent>()));

@@ -5,10 +5,12 @@ import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import com.ojj.sujuro.result.dto.CompanyCategoryScoreDTO;
 import com.ojj.sujuro.result.dto.EvaluationFileDTO;
 import com.ojj.sujuro.result.dto.EvaluationScoreDTO;
 import com.ojj.sujuro.result.dto.StatsArchiveDTO;
 import com.ojj.sujuro.result.dto.StatsArticleDTO;
+import com.ojj.sujuro.result.dto.StatsCompetitorDTO;
 import com.ojj.sujuro.result.dto.StatsFileDTO;
 import com.ojj.sujuro.result.dto.StatsHistoryDTO;
 import com.ojj.sujuro.result.dto.StatsRateDTO;
@@ -37,9 +39,16 @@ public interface StatsMapper {
     /**
      * 평가 항목(대분류)별 득점률. 팀·연도로 묶거나(통계), 공고 하나만 본다(사업별 결과 분석).
      * 비운 조건은 걸지 않는다. 공고 하나를 볼 때는 평가표 순서, 아니면 득점률이 낮은 순이다.
+     * 우리 회사 평가표 엑셀이 올라온 공고만 센다 (11/03). 올라오기 전에는 빈 목록이다.
      */
     List<StatsArticleDTO> articleRates(@Param("teamSn") Long teamSn, @Param("year") String year,
                                        @Param("pbancSn") Long pbancSn);
+
+    /** 사업별 결과 분석의 업체 × 평가 항목(대분류) 점수 (11/03). 평가표 엑셀을 올린 업체만, 우리 회사 먼저 */
+    List<CompanyCategoryScoreDTO> companyArticleScores(@Param("pbancSn") Long pbancSn);
+
+    /** 통계(전체 종합)의 자주 만난 경쟁 업체 다섯 곳 (11/03). 많이 만난 순 */
+    List<StatsCompetitorDTO> competitors(@Param("teamSn") Long teamSn, @Param("year") String year);
 
     /** 결과가 등록된 이 팀의 사업 (연도 상관없이 마감일 최근 순) */
     List<StatsHistoryDTO> history(@Param("teamSn") Long teamSn);

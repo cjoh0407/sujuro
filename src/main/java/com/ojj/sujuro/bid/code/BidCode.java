@@ -102,10 +102,37 @@ public final class BidCode {
     public static final String FILE_BID_ATCH = "FL090";  // 입찰공고 첨부 (제안요청서 말고 나머지)
 
     /**
-     * 공고상태에 맞는 pill 색 이름. common.css 의 {@code .pill.<색>} 에 쓴다.
-     * UI 목업 v3.2 의 ST_PILL 과 같은 값이라, 목업과 화면 색이 어긋나지 않는다.
+     * 화면의 진행상태 (11/03 수정사항). 공고상태 코드를 일곱 가지 이름으로 보여 준다. DB 의 공고상태 코드는 그대로다.
+     *
+     *   신규 → 배정 전 / 배정 완료 / 참여 확정·제안 작성 중 → 제안 작성 / 제출 완료 → 제안 제출 / 결과 등록 / 유찰 / 불참
+     *
+     * '신규'와 '반환'이라는 말은 화면에서 쓰지 않는다. 팀에서 돌아온 공고(반환구분 값이 있음)도 배정 전이다.
      */
-    public static String sttsPillClass(String sttsCd) {
+    public static String progressNm(String sttsCd) {
+        String cd = trim(sttsCd);
+        if (STTS_ASSIGNED.equals(cd)) {
+            return "배정 완료";
+        }
+        if (STTS_JOINED.equals(cd) || STTS_WRITING.equals(cd)) {
+            return "제안 작성";
+        }
+        if (STTS_SUBMITTED.equals(cd)) {
+            return "제안 제출";
+        }
+        if (STTS_RESULT.equals(cd)) {
+            return "결과 등록";
+        }
+        if (STTS_FAILED_BID.equals(cd)) {
+            return "유찰";
+        }
+        if (STTS_DECLINED.equals(cd)) {
+            return "불참";
+        }
+        return "배정 전"; // 신규
+    }
+
+    /** 진행상태 pill 색 이름. common.css 의 {@code .pill.<색>} 에 쓴다. 결과 등록·불참처럼 끝난 공고는 회색이다. */
+    public static String progressPillClass(String sttsCd) {
         String cd = trim(sttsCd);
         if (STTS_NEW.equals(cd)) {
             return "info";
@@ -113,17 +140,17 @@ public final class BidCode {
         if (STTS_ASSIGNED.equals(cd)) {
             return "warning";
         }
-        if (STTS_JOINED.equals(cd) || STTS_SUBMITTED.equals(cd)) {
+        if (STTS_JOINED.equals(cd) || STTS_WRITING.equals(cd)) {
+            return "accent";
+        }
+        if (STTS_SUBMITTED.equals(cd)) {
             return "success";
         }
         if (STTS_FAILED_BID.equals(cd)) {
             // 유찰은 입찰이 없어진 것이라 눈에 걸려야 한다. 재공고를 기다릴지 판단해야 하기 때문이다.
             return "danger";
         }
-        if (STTS_WRITING.equals(cd)) {
-            return "accent";
-        }
-        return "neutral"; // 결과 등록, 불참, 그 밖의 값
+        return "neutral"; // 결과 등록, 불참
     }
 
     /**

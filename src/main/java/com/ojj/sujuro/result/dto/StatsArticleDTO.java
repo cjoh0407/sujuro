@@ -6,8 +6,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 평가 항목(대분류) 한 줄의 득점률 (FR-080, 086). 평가표가 올라온 공고만 대상이다.
+ * 평가 항목(대분류) 한 줄의 득점률 (FR-080, 086). 우리 회사 평가표 엑셀이 올라온 공고만 대상이다 (11/03).
  * 득점률 = 우리 회사 득점 합 ÷ 배점 합. 세부 항목의 득점은 평가위원 점수의 평균이다.
+ * 평가·결과 입력의 분석 기록과 점수 계산(StatsArchiveDTO)이 쓴다. 사업별 결과 분석의 업체 비교 표는 ArticleScoreTableDTO 다.
  */
 @Getter
 @Setter

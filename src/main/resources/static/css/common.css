@@ -12,6 +12,8 @@
 :root[data-theme="dark"]{--bg:#0F1318;--surface:#171C23;--alt:#1C222A;--border:#2A323C;--text:#E7EAEF;--muted:#9AA4B2;--faint:#6D7786;--accent:#6E95F0;--accent-s:#8FADF4;--accent-soft:#1E2A47;--success:#4FBE8C;--success-soft:#143426;--warning:#E2B259;--warning-soft:#3B2D13;--danger:#E2797C;--danger-soft:#3A1E20;--neutral:#8B96A6;--neutral-soft:#212A34;--info:#9A90E8;--info-soft:#262149;color-scheme:dark;}
 *{box-sizing:border-box}
 html,body{margin:0}
+/* 스크롤바 자리를 늘 비워 둔다. 긴 화면(스크롤바 있음)과 짧은 화면(없음)을 오갈 때 본문 폭이 15px 남짓 바뀌어 레이아웃이 흔들리지 않게 한다 (11/03) */
+html{scrollbar-gutter:stable}
 body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif;font-size:14px;line-height:1.55}
 h1,h2,h3{margin:0}
 button{font-family:inherit}

@@ -95,7 +95,7 @@ class NoticeRegisterServiceImplTest {
         when(mapper.findDetail(PBANC_SN)).thenReturn(notice);
         when(mapper.countAssignHistories(eq(PBANC_SN), anyString(), anyString())).thenReturn(assignHistories);
 
-        assertTrue(message(() -> service.delete(PBANC_SN, SALES)).contains("신규 공고만 삭제할 수 있습니다"));
+        assertTrue(message(() -> service.delete(PBANC_SN, SALES)).contains("배정 전 공고만 삭제할 수 있습니다"));
         verify(mapper, never()).deleteNoticeNotifications(anyLong());
         verify(mapper, never()).deleteNotice(anyLong(), anyString());
     }

@@ -10,11 +10,12 @@
     목록·건수가 같이 쓰는 검색 조건.
     - 공고번호 검색은 입찰공고번호와 사전규격번호를 둘 다 본다. (UI 목업 v3.2 의 공고번호 검색과 같다)
     - 공고명은 사전규격을 등록한 직후 비어 있을 수 있어 NVL 로 감싼다. 그래야 NULL 때문에 행이 빠지지 않는다.
+    - 기관 검색은 목록의 수요기관 칸과 같은 값(수요기관, 없으면 발주기관)을 본다.
   -->
   <sql id="searchWhere">
     <where>
-      <if test="sttsCd != null">
-        AND P.PBANC_STTS_CD = #{sttsCd}
+      <if test="stepCd != null">
+        AND P.PBANC_STEP_CD = #{stepCd}
       </if>
       <if test="keyword != null">
         <choose>
@@ -24,7 +25,7 @@
                OR UPPER(NVL(P.ORDER_PLAN_NO, ' '))        LIKE '%' || UPPER(#{keyword}) || '%' )
           </when>
           <when test="searchBy == 'org'">
-            AND UPPER(NVL(P.ORDER_INST_NM, ' ')) LIKE '%' || UPPER(#{keyword}) || '%'
+            AND UPPER(COALESCE(P.DMND_INST_NM, P.ORDER_INST_NM, ' ')) LIKE '%' || UPPER(#{keyword}) || '%'
           </when>
           <otherwise>
             AND UPPER(NVL(P.PBANC_NM, ' ')) LIKE '%' || UPPER(#{keyword}) || '%'
@@ -46,6 +47,7 @@
            PTYP.CD_NM                                AS pbancTypeNm,
            P.PBANC_NM                                AS pbancNm,
            P.ORDER_INST_NM                           AS orderInstNm,
+           NVL(P.DMND_INST_NM, P.ORDER_INST_NM)      AS instNm,
            P.ALTMNT_BGT_AMT                          AS altmntBgtAmt,
            P.BID_DDLN_DT                             AS bidDdlnDt,
            P.OPNN_DDLN_DT                            AS opnnDdlnDt,
@@ -92,16 +94,17 @@
     <include refid="searchWhere"/>
   </select>
 
-  <select id="findStatusCounts" resultType="com.ojj.sujuro.bid.dto.StatusCountDTO">
-    SELECT C.CD        AS sttsCd,
-           C.CD_NM     AS sttsNm,
+  <!-- 목록 탭: 공고단계별 건수 (11/03 진행상태 탭에서 바꿨다) -->
+  <select id="findStepCounts" resultType="com.ojj.sujuro.bid.dto.StepCountDTO">
+    SELECT C.CD        AS stepCd,
+           C.CD_NM     AS stepNm,
            NVL(N.CNT, 0) AS cnt
       FROM TB_COM_CD C
-      LEFT JOIN ( SELECT PBANC_STTS_CD, COUNT(*) AS CNT
+      LEFT JOIN ( SELECT PBANC_STEP_CD, COUNT(*) AS CNT
                     FROM TB_BID_PBANC
-                   GROUP BY PBANC_STTS_CD ) N
-        ON N.PBANC_STTS_CD = C.CD
-     WHERE C.GROUP_CD = 'PBSTS'
+                   GROUP BY PBANC_STEP_CD ) N
+        ON N.PBANC_STEP_CD = C.CD
+     WHERE C.GROUP_CD = 'PBSTP'
        AND C.USE_YN = 'Y'
      ORDER BY C.SORT_SEQ
   </select>
@@ -129,7 +132,15 @@
            RGTR.USER_NM                              AS rgtrNm,
            P.REG_DT                                  AS regDt,
            P.CLCT_DT                                 AS clctDt,
-           P.LAST_CFMTN_DT                           AS lastCfmtnDt
+           P.LAST_CFMTN_DT                           AS lastCfmtnDt,
+           <!-- 제안팀원 (11/03). 제안 업무의 제안팀 구성에서 정한 인원. 주관팀 인원 먼저, 비활성(AS050) 계정은 뺀다 -->
+           ( SELECT LISTAGG(MU.USER_NM || NVL2(MT.TEAM_NM, ' · ' || MT.TEAM_NM, NULL), ', ')
+                      WITHIN GROUP (ORDER BY M.PTCP_SE_CD, MT.TEAM_NM, MU.USER_NM)
+               FROM TB_PRP_TMMBR M
+               JOIN TB_USER MU ON MU.USER_ID = M.USER_ID
+               LEFT JOIN TB_TEAM MT ON MT.TEAM_SN = MU.TEAM_SN
+              WHERE M.PBANC_SN = P.PBANC_SN
+                AND MU.ACNT_STTS_CD &lt;&gt; 'AS050' )  AS prpTmmbrNms
       FROM TB_BID_PBANC P
     <include refid="noticeJoins"/>
       LEFT JOIN TB_COM_CD TRCK ON TRCK.GROUP_CD = 'TRSTS' AND TRCK.CD = P.TRCK_STTS_CD

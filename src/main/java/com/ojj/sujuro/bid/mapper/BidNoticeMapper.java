@@ -17,7 +17,7 @@ import com.ojj.sujuro.bid.dto.NoticeDetailDTO;
 import com.ojj.sujuro.bid.dto.NoticeRegisterDTO;
 import com.ojj.sujuro.bid.dto.PreSpecLinkDTO;
 import com.ojj.sujuro.bid.dto.ProcessHistoryDTO;
-import com.ojj.sujuro.bid.dto.StatusCountDTO;
+import com.ojj.sujuro.bid.dto.StepCountDTO;
 import com.ojj.sujuro.bid.dto.TeamOptionDTO;
 import com.ojj.sujuro.bid.dto.TrackingNoticeDTO;
 
@@ -32,11 +32,11 @@ public interface BidNoticeMapper {
     int countNotices(BidNoticeSearchDTO search);
 
     /**
-     * 상태별 건수. 탭에 붙일 숫자다.
-     * 건수가 0인 상태도 탭으로 보여 줘야 해서 TB_COM_CD(PBSTS)를 기준으로 왼쪽 조인한다.
+     * 공고단계별 건수. 탭에 붙일 숫자다 (11/03 상태별에서 단계별로 바꿨다).
+     * 건수가 0인 단계도 탭으로 보여 줘야 해서 TB_COM_CD(PBSTP)를 기준으로 왼쪽 조인한다.
      * UI 목업 v3.2 와 같게 검색어와 무관하게 전체를 센다.
      */
-    List<StatusCountDTO> findStatusCounts();
+    List<StepCountDTO> findStepCounts();
 
     /** 공고 상세 한 건 (FR-035). 없으면 null */
     NoticeDetailDTO findDetail(Long pbancSn);

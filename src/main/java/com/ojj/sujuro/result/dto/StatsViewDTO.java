@@ -8,7 +8,8 @@ import lombok.Setter;
 
 /**
  * 통계 화면(stats/index.html) 한 장에 필요한 값 (FR-083~088).
- * 고른 연도·팀 하나를 보여 준다. 연도별 차트와 과거 사업 이력은 연도와 상관없이 그 팀 전체다.
+ * 고른 연도·팀 하나를 보여 준다. 연도별 차트와 과거 사업(왼쪽 드롭다운)은 연도와 상관없이 그 팀 전체다.
+ * 11/03 평가 항목별 분석은 사업별 결과 분석으로만 옮기고, 그 자리에 자주 만난 경쟁 업체를 넣었다.
  */
 @Getter
 @Setter
@@ -32,15 +33,11 @@ public class StatsViewDTO {
     private StatsTallyDTO summary;
     private StatsChartDTO chart;
     private List<StatsRateDTO> ptcpShpRates = new ArrayList<>();
-    private List<StatsArticleDTO> articles = new ArrayList<>();
+    /** 고른 연도·팀의 자주 만난 경쟁 업체 (많이 만난 순 다섯 곳) */
+    private List<StatsCompetitorDTO> competitors = new ArrayList<>();
     private List<StatsHistoryDTO> history = new ArrayList<>();
 
     public boolean isLocked() {
         return lockMessage != null;
-    }
-
-    /** 평가 항목 분석에 들어간 공고 수 */
-    public int getArticleBidCnt() {
-        return articles.stream().mapToInt(a -> a.getBidCnt()).max().orElse(0);
     }
 }

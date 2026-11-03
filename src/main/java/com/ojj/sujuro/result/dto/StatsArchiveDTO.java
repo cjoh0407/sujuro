@@ -54,6 +54,9 @@ public class StatsArchiveDTO {
     /** 평가 항목(대분류)별 득점률. 평가표가 없으면 빈 목록 */
     private List<StatsArticleDTO> articles = new ArrayList<>();
 
+    /** 평가 항목별 점수 표 (11/03). 평가표 엑셀을 올린 업체가 열, 항목별 등수·종합 점수 1등(수주 업체) */
+    private ArticleScoreTableDTO articleTable = ArticleScoreTableDTO.of(new ArrayList<>());
+
     /** 최종 제안서. 없으면 null */
     private StatsFileDTO finalFile;
 

@@ -75,7 +75,7 @@ public class ProposalController {
         if (bids.isEmpty()) {
             return "proposal/proposal";
         }
-        Long pbancSn = bid != null ? bid : bids.get(0).getPbancSn();
+        Long pbancSn = bid != null ? bid : ProposalBidDto.defaultPbancSn(bids);
         accessChecker.requireProposalMember(pbancSn, user);
         ProposalBidDto current = proposalService.openBid(pbancSn, me);
         String tk = TAB_SUMMARY.equals(tab) ? TAB_SUMMARY : TAB_PROPOSAL;

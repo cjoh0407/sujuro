@@ -11,8 +11,8 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface NotificationInboxMapper {
 
-    /** 내 알림 최신순. unreadOnly=true면 안 읽은 것만 */
-    List<NotificationDto> findMine(@Param("userId") String userId, @Param("unreadOnly") boolean unreadOnly);
+    /** 내 알림 최신순으로 offset 건을 건너뛰고 size 건 (알림 팝업의 스크롤 불러오기, 대시보드 최근 알림) */
+    List<NotificationDto> findPage(@Param("userId") String userId, @Param("offset") int offset, @Param("size") int size);
 
     int countUnread(@Param("userId") String userId);
 

@@ -22,7 +22,7 @@ import com.ojj.sujuro.bid.dto.BidNoticeSearchDTO;
 import com.ojj.sujuro.bid.dto.CollectResultDTO;
 import com.ojj.sujuro.bid.dto.NoticeDetailDTO;
 import com.ojj.sujuro.bid.dto.NoticeRegisterResultDTO;
-import com.ojj.sujuro.bid.dto.StatusCountDTO;
+import com.ojj.sujuro.bid.dto.StepCountDTO;
 import com.ojj.sujuro.bid.service.BidNoticeService;
 import com.ojj.sujuro.bid.service.NoticeCollectService;
 import com.ojj.sujuro.bid.service.NoticeDetailService;
@@ -68,12 +68,12 @@ public class NoticeController {
 
     @GetMapping
     public String list(@ModelAttribute("search") BidNoticeSearchDTO search, Model model) {
-        List<StatusCountDTO> tabs = bidNoticeService.findStatusCounts();
+        List<StepCountDTO> tabs = bidNoticeService.findStepCounts();
 
         model.addAttribute("result", bidNoticeService.findPage(search));
         model.addAttribute("lastRun", bidNoticeService.findLastRun());
         model.addAttribute("tabs", tabs);
-        // 전체 탭의 숫자. 상태별 건수를 더한 값이라 따로 세지 않는다.
+        // 전체 탭의 숫자. 단계별 건수를 더한 값이라 따로 세지 않는다.
         model.addAttribute("totalAll", tabs.stream().mapToInt(tab -> tab.getCnt()).sum());
         return "bid/notices";
     }

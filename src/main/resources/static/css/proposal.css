@@ -1,4 +1,4 @@
-/* 제안팀 · 목차·요구사항 화면 전용 스타일. 색은 common.css의 변수만 쓴다. */
+/* 스토리보드 관리 화면 전용 스타일. 색은 common.css의 변수만 쓴다. */
 
 /* 사업명 줄 (fragments/bid-header :: bizHead) */
 .biz{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 16px;border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:10px;background:var(--alt);font-size:13px}

@@ -1,40 +1,18 @@
 <!DOCTYPE html>
-<html lang="ko"
-      xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorate="~{layout/default}">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <!--/*
   사업별 결과 분석 (FR-080, 081, 087). UI 목업 v3.5 의 rArchive() 화면과 같은 구성이다.
-  통계의 과거 사업 이력에서 사업명을 누르면 온다. 경영지원실은 모든 개발팀, 팀장은 자기 팀 사업만 본다.
+  11/03 통계 화면 오른쪽 칸으로 옮겼다. 왼쪽 드롭다운에서 사업을 고르면 통계(stats/index)가 이 조각을 넣는다.
+  경영지원실은 모든 개발팀, 팀장은 자기 팀 사업만 본다.
   모두 읽기 화면이다. 결과·평가표는 경영지원실이, 평가 점수·장단점은 담당 팀 팀장이 평가·결과 입력(/results)에서 넣는다.
 
-  모델: archive (result.dto.StatsArchiveDTO), canEdit (경영지원실이면 평가·결과 입력으로 가는 버튼)
+  모델: archive (result.dto.StatsArchiveDTO), canEdit (평가·결과 입력으로 가는 버튼)
 */-->
-<head>
-  <title>사업별 결과 분석</title>
-  <th:block layout:fragment="head">
-    <link rel="stylesheet" th:href="@{/css/stats.css}">
-  </th:block>
-</head>
 <body>
 
-<h1 layout:fragment="pageTitle">사업별 결과 분석</h1>
+<th:block th:fragment="body">
 
-<th:block layout:fragment="content">
-
-  <div class="crumb"><a class="link" th:href="@{/stats(team=${archive.teamSn})}">통계</a> / 사업별 결과 분석</div>
-
-  <!-- 사업 타이틀 (NFR-023) -->
-  <div class="page-head">
-    <div>
-      <h2 th:text="${archive.pbancNm}">사업명</h2>
-      <div class="sub" th:text="|${archive.orderInstNm ?: '-'} · ${archive.teamNm}|">발주기관 · 개발1팀</div>
-    </div>
-    <div class="row">
-      <span class="pill" th:classappend="${archive.won} ? 'success' : 'neutral'" th:text="${archive.rsltNm}">수주</span>
-      <a class="btn sm" th:if="${canEdit}" th:href="@{/results(bid=${archive.pbancSn})}">평가·결과 입력</a>
-    </div>
-  </div>
+  <!-- 사업 타이틀(사업명 · 발주기관 · 담당 팀 · 결과 · 평가·결과 입력 버튼)은 11/03 통계 화면 맨 위 머리로 옮겼다 (stats/index) -->
 
   <div class="two even">
     <div class="card">
@@ -67,21 +45,17 @@
   </div>
 
   <div class="two even">
-    <!-- 사업 전체의 최종 성적. 나라장터 개찰 결과에서 가져온다. 만점은 공고의 기술·가격 배점(비율) -->
+    <!-- 사업 전체의 최종 성적. 나라장터 개찰 결과에서 가져온다. 만점은 공고의 기술·가격 배점(비율).
+         카드 높이는 옆 평가 항목별 점수에 맞추고, 점수 줄을 그 높이에 고르게 벌려 아래 빈 공간이 없게 한다 (11/03, .score-card) -->
     <th:block th:replace="~{stats/fragments/result-parts :: scoreCard(${archive})}"></th:block>
 
-    <!-- 평가 항목(대분류)별 득점률. 평가표 순서. 득점률 = 위원 점수 평균 ÷ 배점 -->
+    <!-- 평가 항목(대분류)별 점수 (11/03). 평가표 엑셀을 올린 업체마다 위원 평균 점수와 항목별 등수,
+         종합 점수 1등 업체를 수주 업체로 보인다. 평가표 엑셀이 올라오기 전에는 비어 있다. 평가표 내려받기는 뺐다 -->
+
     <div class="card">
-      <div class="card-head"><h3>평가 항목별 득점률</h3></div>
-      <div class="pad">
-        <div class="lossrow" th:each="a : ${archive.articles}">
-          <span th:text="${a.catNm}">기술 이해도</span>
-          <div class="bar" th:classappend="${a.low} ? 'red' : 'ok'"><i th:style="|width:${a.rate}%|"></i></div>
-          <span class="mono" th:text="|득점률 ${a.rateText}|">득점률 0%</span>
-        </div>
-        <div class="empty" th:if="${#lists.isEmpty(archive.articles)}">평가표가 입력되지 않아 항목별 점수가 없습니다.</div>
-        <th:block th:replace="~{stats/fragments/result-parts :: evaluationFile(${archive})}"></th:block>
-      </div>
+      <div class="card-head"><h3>평가 항목별 점수</h3></div>
+      <th:block th:replace="~{stats/fragments/result-parts :: articleTable(${archive.articleTable},
+                '평가표 엑셀이 올라오지 않아 항목별 점수가 없습니다. 평가·결과 입력에서 올리면 다른 업체와 비교한 결과가 나옵니다.')}"></th:block>
     </div>
   </div>
 

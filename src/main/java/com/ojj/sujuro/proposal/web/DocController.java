@@ -70,7 +70,7 @@ public class DocController {
         if (bids.isEmpty()) {
             return "proposal/docs";
         }
-        Long pbancSn = bid != null ? bid : bids.get(0).getPbancSn();
+        Long pbancSn = bid != null ? bid : ProposalBidDto.defaultPbancSn(bids);
         requireViewer(pbancSn, user);
 
         SubmissionDto sub = docService.submission(pbancSn);

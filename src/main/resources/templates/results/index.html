@@ -35,7 +35,7 @@
       <h2>평가·결과 입력</h2>
       <div class="sub" th:if="${b}">
         <span th:text="${b.pbancNm}">사업명</span> ·
-        <span class="pill" th:classappend="${b.sttsPill}" th:text="${b.pbancSttsNm}">결과 등록</span>
+        <span class="pill" th:classappend="${b.sttsPill}" th:text="${b.progressNm}">결과 등록</span>
       </div>
     </div>
     <form class="row" method="get" th:action="@{/results}" th:unless="${#lists.isEmpty(view.bids)}">
@@ -59,7 +59,7 @@
       <span class="faint" th:text="|${b.orderInstNm ?: '-'} · ${b.bidPbancNo ?: '-'} · ${b.teamNm ?: '-'}|">기관 · 공고번호 · 팀</span>
       <span class="faint" th:if="${b.opengDt}" th:text="|개찰 ${#dates.format(b.opengDt, 'yyyy-MM-dd')}|">개찰</span>
       <span class="pill neutral" th:if="${b.scoringText}" th:text="${b.scoringText}">기술 90 : 가격 10</span>
-      <span class="pill" th:classappend="${b.sttsPill}" th:text="${b.pbancSttsNm}">결과 등록</span>
+      <span class="pill" th:classappend="${b.sttsPill}" th:text="${b.progressNm}">결과 등록</span>
     </div>
 
     <div class="banner ok" th:if="${resultMessage}" th:text="${resultMessage}">결과를 등록했습니다.</div>
@@ -111,7 +111,7 @@
       <div class="card">
         <div class="card-head">
           <h3>입찰 결과 · 기술·가격·종합 점수 (API)</h3>
-          <a class="btn sm" th:href="@{/stats/bids/{sn}(sn=${b.pbancSn})}">사업별 결과 분석</a>
+          <a class="btn sm" th:href="@{/stats(bid=${b.pbancSn})}">사업별 결과 분석</a>
         </div>
         <div class="pad" style="display:flex;flex-direction:column;gap:8px">
           <div class="result-row">

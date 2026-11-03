@@ -9,11 +9,44 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--chart-join:#5B84E8;--chart-won:#3BA676}}
 :root[data-theme="dark"]{--chart-join:#5B84E8;--chart-won:#3BA676}
 
-/* 요약 카드 5칸 */
-.stats.five{grid-template-columns:repeat(5,1fr)}
+/* 통계 왼쪽 2 : 오른쪽 8 (11/03). 왼쪽은 볼 것 고르는 드롭다운, 오른쪽은 전체 종합 또는 사업별 결과 분석 */
+.stats-split{display:grid;grid-template-columns:2fr 8fr;gap:16px;align-items:start}
+.stats-main{min-width:0;display:flex;flex-direction:column;gap:16px}
+.stats-nav{position:sticky;top:16px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.pick summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:2px;padding:12px 34px 12px 14px;position:relative;font-size:12.5px}
+.pick summary::-webkit-details-marker{display:none}
+.pick summary::after{content:"▾";position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--faint)}
+.pick[open] summary::after{content:"▴"}
+.pick summary .faint{font-size:11px}
+.pick summary b{overflow-wrap:anywhere}
+/* 펼친 목록은 아래 [연도 · 팀] 카드를 밀어내지 않고 그 위에 겹쳐 뜬다 (11/03) */
+.pick{position:relative}
+.pick nav{position:absolute;left:-1px;right:-1px;top:calc(100% + 4px);z-index:30;display:flex;flex-direction:column;padding:6px;
+  max-height:60vh;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.18)}
+.pick nav a{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;border-radius:7px;font-size:12.5px;color:var(--text);text-decoration:none}
+.pick nav a:hover{background:var(--alt)}
+.pick nav a.on{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.pick nav > .faint{padding:8px;font-size:11.5px}
+
+/* 연도·팀 고르기 버튼(드롭다운 아래)과 팝업 (11/03). 버튼은 드롭다운 머리와 같은 모양,
+   팝업은 일정·사용자 관리의 .modal 과 같은 모양이다 */
+.scope-btn{width:100%;display:flex;flex-direction:column;gap:2px;padding:12px 34px 12px 14px;position:relative;
+  font:inherit;font-size:12.5px;text-align:left;color:var(--text);background:none;border:0;border-radius:inherit;cursor:pointer}
+.scope-btn::after{content:"›";position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:15px}
+.scope-btn:hover{background:var(--alt)}
+.scope-btn .faint{font-size:11px}
+.stats-modal{position:fixed;inset:0;background:rgba(15,19,24,.45);display:flex;align-items:center;justify-content:center;z-index:70;padding:16px}
+.stats-modal[hidden]{display:none}
+.stats-modal .box{width:380px;max-width:94vw;background:var(--surface);border-radius:12px;border:1px solid var(--border);box-shadow:0 12px 32px rgba(0,0,0,.18)}
+.stats-modal form{display:flex;flex-direction:column;gap:12px}
 
 /* 두 카드를 같은 너비·같은 높이로 */
 .two.even{grid-template-columns:1fr 1fr;align-items:stretch}
+
+/* 사업별 결과 분석의 점수 카드 (11/03). 옆 평가 항목별 점수 카드 높이에 맞춰 늘어나므로,
+   점수 줄을 카드 높이에 고르게 벌려 아래에 빈 공간이 남지 않게 한다 */
+.score-card{display:flex;flex-direction:column}
+.score-card>.pad{flex:1;display:flex;flex-direction:column;justify-content:space-evenly}
 
 /* 연도별 참여·수주 막대 차트 (StatsChartDTO 가 좌표를 계산한다) */
 .chart{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
@@ -30,6 +63,25 @@
 .legend .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-left:6px}
 .legend .sw.s-join{background:var(--chart-join)}
 .legend .sw.s-won{background:var(--chart-won)}
+
+/* 평가 항목별 점수 표 (11/03, result-parts :: articleTable). 점수 옆 등수는 흐린 작은 글자. 굵은 글씨는 종합 점수 줄만 */
+.article-table .rank{margin-left:4px;font-size:11px;color:var(--faint)}
+/* 표 아래 수주 업체 한 줄 (평가표 내려받기가 있던 자리). 줄 전체를 연한 초록으로 칠한다 */
+.evl-win{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--border);font-size:12.5px;background:var(--success-soft)}
+.evl-win .faint{color:var(--muted)}
+.cmp-note{font-size:11.5px;padding:10px 14px;border-top:1px solid var(--border)}
+
+/* 전체 종합의 참여 형태별 수주율은 줄여서, 아래에 자주 만난 경쟁 업체를 둔다 (11/03) */
+.rate-card .pad{padding-top:8px;padding-bottom:8px}
+.rate-card .lossrow{padding:4px 0}
+
+/* 전체 종합: 왼쪽 연도별 참여·수주 카드와 오른쪽 두 카드의 위·아래 끝을 맞춘다 (11/03).
+   오른쪽이 짧으면 참여 형태별 수주율 카드가 늘어나 줄을 고르게 벌리고(경쟁 업체 카드는 내용 높이),
+   왼쪽이 짧으면 차트 카드가 늘어나 차트를 세로 가운데에 둔다 */
+.stats-row>.col>.rate-card{flex:1;display:flex;flex-direction:column}
+.stats-row>.col>.rate-card>.pad{flex:1;display:flex;flex-direction:column;justify-content:space-evenly}
+.stats-row>.chart-card{display:flex;flex-direction:column}
+.stats-row>.chart-card>.pad{flex:1;display:flex;flex-direction:column;justify-content:center}
 
 /* 참여 형태별 수주율, 점수 막대: 이름 칸을 좁게 */
 .lossrow.rate{grid-template-columns:110px 1fr 120px}
@@ -53,5 +105,4 @@ tr.ours td{background:var(--accent-soft)}
 /* 장단점 분석은 입력한 줄바꿈을 그대로 보여 준다 */
 .note{font-size:12.5px;margin-top:4px;white-space:pre-line}
 
-@media (max-width:1100px){.stats.five{grid-template-columns:repeat(2,1fr)}.two.even{grid-template-columns:1fr}}
-@media (max-width:860px){.stats.five{grid-template-columns:1fr}}
+@media (max-width:1100px){.two.even{grid-template-columns:1fr}.stats-split{grid-template-columns:1fr}.stats-nav{position:static}}

@@ -70,7 +70,7 @@ public class PrpFileController {
         if (bids.isEmpty()) {
             return "proposal/files";
         }
-        Long pbancSn = bid != null ? bid : bids.get(0).getPbancSn();
+        Long pbancSn = bid != null ? bid : ProposalBidDto.defaultPbancSn(bids);
         accessChecker.requireProposalMember(pbancSn, user);
         String tk = TAB_FULL.equals(tab) || TAB_SUMMARY.equals(tab) ? tab : TAB_PART;
 

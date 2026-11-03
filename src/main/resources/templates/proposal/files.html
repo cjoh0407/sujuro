@@ -4,19 +4,19 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/default}">
 <!--/*
-  제안서 파일 관리 (FR-057~066, 화면 설계 v3.2). 사업건 단위, 그 사업건 제안팀만 연다.
+  제안서 관리 (FR-057~066, 화면 설계 v3.2). 사업건 단위, 그 사업건 제안팀만 연다.
   탭 full: 전체 제안서(통합본) / part: 제안서 파트별 파일 / sum: 제안요약서(목차별)
   사업건 선택·사업명 줄은 fragments/bid-header, 파일 한 줄·올리기 칸은 아래 조각(fileRow, upCard)
 */-->
 <head>
-  <title>제안서 파일 관리</title>
+  <title>제안서 관리</title>
   <th:block layout:fragment="head">
     <link rel="stylesheet" th:href="@{/css/proposal.css}">
   </th:block>
 </head>
 <body>
 
-<h1 layout:fragment="pageTitle">제안서 파일 관리</h1>
+<h1 layout:fragment="pageTitle">제안서 관리</h1>
 
 <th:block layout:fragment="content">
 
@@ -90,7 +90,7 @@
       <div class="banner info" th:if="${tab == 'sum'}">제안요약서(발표본)도 제안서 파트별 파일처럼 목차마다 담당자가 파일을 올리고 버전과 진행 상태를 관리합니다. 필수 제출서류에 명시되지 않아도 대부분 요구되므로 기본으로 제공합니다.</div>
 
       <div class="card" th:if="${#lists.isEmpty(leaves)}">
-        <div class="empty" th:text="${tab == 'sum'} ? '제안요약서 목차가 아직 없습니다. 제안팀 · 목차·요구사항 화면의 &quot;제안요약서 목차&quot; 탭에서 목차를 만드세요.' : '목차가 아직 없습니다. 먼저 제안팀 · 목차·요구사항 화면에서 목차를 만드세요.'">목차가 아직 없습니다.</div>
+        <div class="empty" th:text="${tab == 'sum'} ? '제안요약서 목차가 아직 없습니다. 스토리보드 관리 화면의 &quot;제안요약서 목차&quot; 탭에서 목차를 만드세요.' : '목차가 아직 없습니다. 먼저 스토리보드 관리 화면에서 목차를 만드세요.'">목차가 아직 없습니다.</div>
       </div>
 
       <div class="card" th:each="t : ${leaves}"

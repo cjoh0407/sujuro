@@ -62,7 +62,7 @@ public class QnaController {
         if (bids.isEmpty()) {
             return "proposal/qa";
         }
-        Long pbancSn = bid != null ? bid : bids.get(0).getPbancSn();
+        Long pbancSn = bid != null ? bid : ProposalBidDto.defaultPbancSn(bids);
         accessChecker.requireQnaReader(pbancSn, user);
         ProposalBidDto current = reader ? proposalService.viewBid(pbancSn) : proposalService.openBid(pbancSn, me);
         String tk = TAB_PRESENTED.equals(tab) ? TAB_PRESENTED : TAB_EXPECTED;

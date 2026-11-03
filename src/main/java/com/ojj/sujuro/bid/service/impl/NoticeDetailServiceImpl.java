@@ -204,7 +204,7 @@ public class NoticeDetailServiceImpl implements NoticeDetailService {
         items.add(new StageChangeDTO.Item("공고종류", before.getPbancTypeNm(), after.getPbancTypeNm()));
         items.add(new StageChangeDTO.Item("예산",
                 NoticeDetailDTO.wonOf(before.getAltmntBgtAmt()), NoticeDetailDTO.wonOf(after.getAltmntBgtAmt())));
-        items.add(new StageChangeDTO.Item("입찰 마감", dateTimeOf(before.getBidDdlnDt()), dateTimeOf(after.getBidDdlnDt())));
+        items.add(new StageChangeDTO.Item("제출 마감", dateTimeOf(before.getBidDdlnDt()), dateTimeOf(after.getBidDdlnDt()))); // 11/03 입찰 마감에서 이름만 바꿨다
         items.add(new StageChangeDTO.Item("개찰일시", dateTimeOf(before.getOpengDt()), dateTimeOf(after.getOpengDt())));
         // 양쪽 다 값이 없는 항목은 비교할 것이 없다. (예: 발주계획 → 사전규격은 마감일이 둘 다 없다)
         items.removeIf(item -> item.getBefore() == null && item.getAfter() == null);

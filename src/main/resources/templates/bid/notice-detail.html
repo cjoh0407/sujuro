@@ -36,8 +36,8 @@
       <span class="pill" th:classappend="${notice.stepPillClass}" th:text="${notice.pbancStepNm}">입찰공고</span>
       <span class="pill" th:if="${notice.pbancTypeNm}" th:classappend="${notice.pbancTypePillClass}"
             th:text="${notice.pbancTypeNm}">일반공고</span>
-      <span class="pill" th:classappend="${notice.sttsPillClass}" th:text="${notice.pbancSttsNm}">신규</span>
-      <span class="pill danger" th:if="${notice.returned}" th:text="|${notice.rtrnSeNm} 반환|">불참 반환</span>
+      <!-- 진행상태 (11/03): 배정 전 / 배정 완료 / 제안 작성 / 제안 제출 / 결과 등록 / 유찰 / 불참 중 하나 (BidCode.progressNm) -->
+      <span class="pill" th:classappend="${notice.progressPillClass}" th:text="${notice.progressNm}">배정 전</span>
       <!-- 단계별로 강조할 마감 (사전규격 → 의견등록 마감, 입찰공고 → 제출 마감). 아래 공고 정보에서도 같은 칸을 칠한다. -->
       <span class="pill" th:if="${notice.keyDdlnDt}"
             th:classappend="${notice.keyDdlnDdayText == '마감'} ? 'neutral' : 'warning'"
@@ -72,7 +72,7 @@
           </div>
           <div>
             <div class="k">진행 상태</div>
-            <div class="v" th:text="${notice.pbancSttsNm}">신규</div>
+            <div class="v" th:text="${notice.progressNm}">배정 전</div>
           </div>
           <div>
             <div class="k">발주기관</div>
@@ -267,7 +267,8 @@
 
     <div class="col">
 
-      <!-- 담당 팀 (FR-037, FR-024). 영업부는 이 카드에서 주관 팀과 참여 형태를 정한다. 배정하는 곳은 공고 상세 한 곳뿐이다. -->
+      <!-- 담당 팀 (FR-037, FR-024). 영업부는 이 카드에서 주관 팀과 참여 형태를 정한다. 배정하는 곳은 공고 상세 한 곳뿐이다.
+           참여 팀은 제안팀 구성에서 정하므로 이 카드에서 뺐다 (11/03). 정해지면 아래 제안팀 카드에 나온다. -->
       <div class="card">
         <div class="card-head"><h3>담당 팀</h3></div>
         <div class="info-grid">
@@ -276,14 +277,10 @@
             <div class="v" th:if="${notice.sprvsnTeamNm}" th:text="${notice.sprvsnTeamNm}">개발1팀</div>
             <div class="v faint" th:unless="${notice.sprvsnTeamNm}">미배정</div>
           </div>
-          <div>
-            <div class="k">참여 팀</div>
-            <div class="v" th:if="${notice.joinTeamNms}" th:text="${notice.joinTeamNms}">개발2팀</div>
-            <div class="v faint" th:unless="${notice.joinTeamNms}">없음</div>
-          </div>
         </div>
         <div class="pad" style="padding-top:0" th:if="${notice.returned}">
-          <div class="banner warn" th:text="|${notice.rtrnSeNm}(으)로 영업부에 반환된 공고입니다. 다른 팀에 재배정하거나 불참으로 종결합니다.|">반환</div>
+          <!-- 팀이 불참하거나 중도 철회해 영업부로 돌아온 공고. 진행상태는 배정 전이고, 왜 돌아왔는지만 알려 준다 (11/03 '반환' 표현은 뺐다) -->
+          <div class="banner warn" th:text="|담당 팀이 ${notice.rtrnSeNm}해 영업부로 돌아온 공고입니다. 다른 팀에 재배정하거나 불참으로 종결합니다.|">담당 팀이 불참해 영업부로 돌아온 공고입니다.</div>
         </div>
 
         <!-- 영업부: 배정·재배정 (신규·배정 완료일 때만). 팀장이 결정한 뒤에는 바꿀 수 없다. -->
@@ -337,13 +334,31 @@
             </form>
           </div>
           <div class="pad faint" style="padding-top:0;font-size:11.5px" th:unless="${notice.assignable}"
-               th:text="|${notice.pbancSttsNm} 상태에서는 배정을 바꿀 수 없습니다. 팀에서 철회하면 영업부로 돌아옵니다.|">참여 확정 상태에서는 배정을 바꿀 수 없습니다.</div>
+               th:text="|${notice.progressNm} 상태에서는 배정을 바꿀 수 없습니다. 팀에서 철회하면 영업부로 돌아옵니다.|">제안 작성 상태에서는 배정을 바꿀 수 없습니다.</div>
         </th:block>
+      </div>
+
+      <!-- 제안팀 (11/03). 참여 팀·제안팀원은 제안 업무의 제안팀 구성에서 정한다. 하나라도 정해진 뒤에만 보인다. 읽기 전용. -->
+      <div class="card" th:if="${notice.proposalTeamFormed}">
+        <div class="card-head">
+          <h3>제안팀</h3>
+          <span class="faint" style="font-size:11.5px">제안팀 구성에서 정합니다</span>
+        </div>
+        <div class="info-grid">
+          <div th:if="${notice.joinTeamNms}" style="grid-column:1 / -1">
+            <div class="k">참여 팀</div>
+            <div class="v" th:text="${notice.joinTeamNms}">개발2팀</div>
+          </div>
+          <div th:if="${notice.prpTmmbrNms}" style="grid-column:1 / -1">
+            <div class="k">제안팀원</div>
+            <div class="v" th:text="${notice.prpTmmbrNms}">김가희 · 개발1팀, 이도윤 · 개발2팀</div>
+          </div>
+        </div>
       </div>
 
       <!-- 참여 결정 (FR-038~040). 팀 단위 화면이라 배정된 팀의 팀장에게만 보인다 (FR-039).
            영업부·경영지원실·다른 팀 팀장에게는 카드가 없고, 머리의 상태 표시와 담당 팀 카드로 진행을 본다.
-           팀이 배정되지 않은 공고(신규·반환)는 배정된 팀이 없으니 아무에게도 보이지 않는다. -->
+           팀이 배정되지 않은 공고(배정 전)는 배정된 팀이 없으니 아무에게도 보이지 않는다. -->
       <div class="card" th:if="${assignedLeader}">
         <div class="card-head"><h3>참여 결정 (팀장)</h3></div>
         <div class="pad" style="display:flex;flex-direction:column;gap:10px">

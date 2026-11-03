@@ -18,7 +18,7 @@ import lombok.Setter;
  *
  * MyBatis 가 기본 생성자와 setter 로 값을 채우므로 @Setter 가 필요하다.
  * 필드 이름은 컬럼명을 그대로 따른다. SQL 의 alias 와 맞아야 매핑되기 때문이다.
- * 화면에 바로 쓰려고 계산해서 내보내는 값(예산 표기, 담당 팀 표기)은 아래에 직접 적어 둔다.
+ * 화면에 바로 쓰려고 계산해서 내보내는 값(예산 표기, 진행상태)은 아래에 직접 적어 둔다.
  */
 @Getter
 @Setter
@@ -45,6 +45,9 @@ public class BidNoticeDTO {
     private String pbancNm;
 
     private String orderInstNm;
+
+    /** 목록의 수요기관 칸. 실수요기관이 없으면(발주계획·입찰공고 단계) 발주기관이 들어온다 (11/03 수정사항) */
+    private String instNm;
 
     /** 배정예산금액 (원) */
     private BigDecimal altmntBgtAmt;
@@ -123,9 +126,14 @@ public class BidNoticeDTO {
         return rtrnSeNm != null && !rtrnSeNm.isEmpty();
     }
 
-    /** 공고상태 pill 색 이름 */
-    public String getSttsPillClass() {
-        return BidCode.sttsPillClass(pbancSttsCd);
+    /** 화면의 진행상태: 배정 전 / 배정 완료 / 제안 작성 / 제안 제출 / 결과 등록 / 유찰 / 불참 (BidCode.progressNm) */
+    public String getProgressNm() {
+        return BidCode.progressNm(pbancSttsCd);
+    }
+
+    /** 진행상태 pill 색 이름 */
+    public String getProgressPillClass() {
+        return BidCode.progressPillClass(pbancSttsCd);
     }
 
     /** 공고유형 pill 색 이름 */
@@ -139,16 +147,5 @@ public class BidNoticeDTO {
             return "-";
         }
         return altmntBgtAmt.divide(HUNDRED_MILLION, 1, RoundingMode.HALF_UP).toPlainString() + "억";
-    }
-
-    /** 담당 팀. 주관 팀에 참여 팀을 더해 보여 준다. 예: "개발1팀 + 개발2팀". 미배정이면 null */
-    public String getTeamText() {
-        if (sprvsnTeamNm == null || sprvsnTeamNm.isEmpty()) {
-            return null;
-        }
-        if (joinTeamNms == null || joinTeamNms.isEmpty()) {
-            return sprvsnTeamNm;
-        }
-        return sprvsnTeamNm + " + " + joinTeamNms;
     }
 }

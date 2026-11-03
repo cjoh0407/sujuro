@@ -62,7 +62,7 @@ public class NoticeTeamServiceImpl implements NoticeTeamService {
     public String assign(Long pbancSn, Long teamSn, String ptcpShpCd, String userId) {
         NoticeDetailDTO notice = load(pbancSn);
         if (!notice.isAssignable()) {
-            throw new BusinessException("'" + notice.getPbancSttsNm() + "' 상태에서는 배정을 바꿀 수 없습니다. 팀에서 철회하면 영업부로 돌아옵니다.");
+            throw new BusinessException("'" + notice.getProgressNm() + "' 상태에서는 배정을 바꿀 수 없습니다. 팀에서 철회하면 영업부로 돌아옵니다.");
         }
         if (notice.getAssignBlockReason() != null) {
             throw new BusinessException(notice.getAssignBlockReason());
@@ -107,11 +107,11 @@ public class NoticeTeamServiceImpl implements NoticeTeamService {
                 : done + team.getTeamNm() + " 팀장(" + team.getLeaderNm() + ")에게 알렸습니다.";
     }
 
-    /** 이력 사유. 예: "불참 반환 뒤 재배정 · 참여 형태 주관", "이전 개발2팀 · 참여 형태 하도급" */
+    /** 이력 사유. 예: "불참 뒤 재배정 · 참여 형태 주관", "이전 개발2팀 · 참여 형태 하도급" */
     private static String assignNote(NoticeDetailDTO notice, boolean sameTeam, String shpNm) {
         List<String> parts = new ArrayList<>();
         if (notice.isReturned()) {
-            parts.add(notice.getRtrnSeNm() + " 반환 뒤 재배정");
+            parts.add(notice.getRtrnSeNm() + " 뒤 재배정");
         } else if (notice.getSprvsnTeamNm() != null && !sameTeam) {
             parts.add("이전 " + notice.getSprvsnTeamNm());
         }
@@ -127,7 +127,7 @@ public class NoticeTeamServiceImpl implements NoticeTeamService {
         NoticeDetailDTO notice = load(pbancSn);
         String why = requireReason(reason, "불참 처리 사유를 입력하세요.");
         if (!notice.isClosable()) {
-            throw new BusinessException("신규 상태인 공고만 불참으로 종결할 수 있습니다. 지금은 '" + notice.getPbancSttsNm() + "'입니다.");
+            throw new BusinessException("배정 전 공고만 불참으로 종결할 수 있습니다. 지금은 '" + notice.getProgressNm() + "'입니다.");
         }
         if (bidNoticeMapper.updateClosed(pbancSn, BidCode.STTS_NEW, BidCode.STTS_DECLINED) == 0) {
             throw new BusinessException(CHANGED_MEANWHILE);
@@ -152,7 +152,7 @@ public class NoticeTeamServiceImpl implements NoticeTeamService {
         NoticeDetailDTO notice = load(pbancSn);
         String why = join ? optionalReason(reason) : requireReason(reason, "불참 사유를 입력하세요.");
         if (!notice.isAwaitingDecision()) {
-            throw new BusinessException("배정 완료 상태인 공고만 결정할 수 있습니다. 지금은 '" + notice.getPbancSttsNm() + "'입니다.");
+            throw new BusinessException("배정 완료 상태인 공고만 결정할 수 있습니다. 지금은 '" + notice.getProgressNm() + "'입니다.");
         }
         if (notice.getDecideBlockReason() != null) {
             throw new BusinessException(notice.getDecideBlockReason());
@@ -180,7 +180,7 @@ public class NoticeTeamServiceImpl implements NoticeTeamService {
                 BidCode.RTRN_DECLINE) == 0) {
             throw new BusinessException(CHANGED_MEANWHILE);
         }
-        historyService.record(pbancSn, BidCode.PRCS_DECIDE, user.getEmpNo(), teamSn, "불참 · " + why + " (영업부로 반환)");
+        historyService.record(pbancSn, BidCode.PRCS_DECIDE, user.getEmpNo(), teamSn, "불참 · " + why + " (영업부로 돌아감)");
         notificationService.sendToRole(Role.SALES, NotificationType.PARTICIPATION_DECIDED, pbancSn,
                 who + "불참을 결정했습니다. 다른 팀에 재배정하거나 불참으로 종결하세요.");
         return "불참을 결정했습니다. 공고가 영업부로 돌아갑니다.";
@@ -195,7 +195,7 @@ public class NoticeTeamServiceImpl implements NoticeTeamService {
         NoticeDetailDTO notice = load(pbancSn);
         String why = requireReason(reason, "철회 사유를 입력하세요.");
         if (!notice.isWithdrawable()) {
-            throw new BusinessException("참여 확정·제안 작성 중인 공고만 중도 철회할 수 있습니다. 지금은 '" + notice.getPbancSttsNm() + "'입니다.");
+            throw new BusinessException("제안 작성 상태인 공고만 중도 철회할 수 있습니다. 지금은 '" + notice.getProgressNm() + "'입니다.");
         }
         Long teamSn = notice.getSprvsnTeamSn();
         // WHERE 에 지금 상태를 걸어, 그사이 제출 완료로 넘어갔으면 철회하지 않는다

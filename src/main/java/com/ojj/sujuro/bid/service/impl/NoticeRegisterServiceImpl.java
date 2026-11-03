@@ -223,7 +223,7 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
         }
         if (!notice.isDeletable()
                 || bidNoticeMapper.countAssignHistories(pbancSn, BidCode.PRCS_ASSIGN, BidCode.PRCS_REASSIGN) > 0) {
-            throw new BusinessException("팀에 한 번도 맡기지 않은 신규 공고만 삭제할 수 있습니다.");
+            throw new BusinessException("팀에 한 번도 맡기지 않은 배정 전 공고만 삭제할 수 있습니다.");
         }
         bidNoticeMapper.deleteNoticeNotifications(pbancSn);
         bidNoticeMapper.deleteNoticeFiles(pbancSn);

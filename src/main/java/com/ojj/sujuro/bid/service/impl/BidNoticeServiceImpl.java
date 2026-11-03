@@ -9,7 +9,7 @@ import com.ojj.sujuro.bid.dto.BidNoticeDTO;
 import com.ojj.sujuro.bid.dto.BidNoticePageDTO;
 import com.ojj.sujuro.bid.dto.CollectRunDTO;
 import com.ojj.sujuro.bid.dto.BidNoticeSearchDTO;
-import com.ojj.sujuro.bid.dto.StatusCountDTO;
+import com.ojj.sujuro.bid.dto.StepCountDTO;
 import com.ojj.sujuro.bid.mapper.BidNoticeMapper;
 import com.ojj.sujuro.bid.service.BidNoticeService;
 
@@ -42,8 +42,8 @@ public class BidNoticeServiceImpl implements BidNoticeService {
     }
 
     @Override
-    public List<StatusCountDTO> findStatusCounts() {
-        return bidNoticeMapper.findStatusCounts();
+    public List<StepCountDTO> findStepCounts() {
+        return bidNoticeMapper.findStepCounts();
     }
 
     @Override

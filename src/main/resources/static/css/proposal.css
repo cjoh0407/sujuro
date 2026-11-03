@@ -217,7 +217,7 @@ tr.addrow .cap{font-size:11.5px}
 #qaCard{display:flex;flex-direction:column;height:520px;box-sizing:border-box}
 #qaCard .mp-form{flex:1;min-height:0}
 .qa-side-l{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:var(--muted)}
-.qa-side-l textarea,.qa-side-l select{width:100%;min-width:0;box-sizing:border-box;font:inherit;font-weight:400;color:var(--text)}
+.qa-side-l textarea,.qa-side-l select,.qa-side-l input[type=text]{width:100%;min-width:0;box-sizing:border-box;font:inherit;font-weight:400;color:var(--text)}
 .qa-side-l textarea{resize:none}
 .qa-grow{flex:1;min-height:0}
 .qa-grow textarea{flex:1;min-height:80px}

@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <!--
-  대시보드 SQL (FR-089, 090). 테이블: TB_BID_PBANC, TB_TEAM, TB_USER, TB_PTCP_TEAM, TB_TOC, TB_RQT_MTTR, TB_ATCH_FILE,
-  TB_SBMSN_DCMNT, TB_COM_CD (db/01_schema.sql)
-  공고 상태 PS010 신규, PS020 배정 완료, PS030 참여 확정, PS040 제안 작성 중, PS050 제출 완료, PS060 결과 등록, PS090 불참
+  대시보드 SQL (FR-089, 090). 테이블: TB_BID_PBANC, TB_TEAM, TB_USER, TB_PTCP_TEAM, TB_PRP_TMMBR, TB_TOC, TB_RQT_MTTR,
+  TB_ATCH_FILE, TB_SBMSN_DCMNT, TB_BID_RSLT, TB_CO_EVL_RSLT, TB_COM_CD (db/01_schema.sql)
+  공고 상태 PS010 신규, PS020 배정 완료, PS030 참여 확정, PS040 제안 작성 중, PS050 제출 완료, PS060 결과 등록, PS070 유찰, PS090 불참
+  목록 쿼리는 칸 안에서 스크롤하므로 전부 가져오되 FETCH FIRST 30 ROWS ONLY 로 끊는다.
+  Oracle 예약어와 겹치기 쉬운 이름(rank, lead, year)은 별칭으로 쓰지 않는다.
 -->
 <mapper namespace="com.ojj.sujuro.dashboard.mapper.DashboardMapper">
 
@@ -19,7 +21,7 @@
   <sql id="keyDdln">CASE WHEN P.PBANC_STEP_CD = 'PP020' AND P.OPNN_DDLN_DT IS NOT NULL THEN P.OPNN_DDLN_DT ELSE P.BID_DDLN_DT END</sql>
 
   <sql id="bidCols">
-    P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, P.PBANC_STTS_CD AS statusCd, S.CD_NM AS statusNm,
+    P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, TRIM(P.PBANC_STTS_CD) AS statusCd, S.CD_NM AS statusNm,
     ST.CD_NM AS stepNm,
     R.CD_NM AS returnNm, TM.TEAM_NM AS teamNm,
     CASE WHEN P.PBANC_STEP_CD = 'PP020' AND P.OPNN_DDLN_DT IS NOT NULL THEN '의견등록 마감'
@@ -34,6 +36,11 @@
     LEFT JOIN TB_COM_CD ST ON ST.GROUP_CD = 'PBSTP' AND ST.CD = P.PBANC_STEP_CD
     LEFT JOIN TB_COM_CD R ON R.GROUP_CD = 'RTRSE' AND R.CD = P.RTRN_SE_CD
     LEFT JOIN TB_TEAM TM ON TM.TEAM_SN = P.SPRVSN_TEAM_SN
+  </sql>
+
+  <!-- 하위 목차가 없는 목차(실제로 내용을 쓰는 칸)만 센다. 1단계 묶음 제목은 빼야 진행률이 맞다 -->
+  <sql id="leafToc">
+    NOT EXISTS (SELECT 1 FROM TB_TOC C WHERE C.UP_TOC_SN = T.TOC_SN)
   </sql>
 
   <!-- ===== 영업부 ===== -->
@@ -51,6 +58,8 @@
   <select id="salesCounts" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$SalesCounts">
     SELECT NVL(SUM(CASE WHEN <include refid="assignWait"/> THEN 1 ELSE 0 END), 0) AS assignWait,
            NVL(SUM(CASE WHEN P.PBANC_STTS_CD = 'PS020' THEN 1 ELSE 0 END), 0) AS awaitingTeam,
+           NVL(SUM(CASE WHEN <include refid="assignWait"/>
+                         AND TRUNC(<include refid="keyDdln"/>) - TRUNC(SYSDATE) BETWEEN 0 AND 3 THEN 1 ELSE 0 END), 0) AS dueSoon,
            NVL(SUM(CASE WHEN P.PBANC_STTS_CD = 'PS010' AND P.RTRN_SE_CD IS NOT NULL THEN 1 ELSE 0 END), 0) AS returned,
            NVL(SUM(CASE WHEN P.TRCK_STTS_CD = 'TR010' THEN 1 ELSE 0 END), 0) AS tracking
       FROM TB_BID_PBANC P
@@ -60,7 +69,135 @@
     SELECT <include refid="bidCols"/>
     <include refid="bidJoins"/>
      WHERE <include refid="assignWait"/> OR P.PBANC_STTS_CD = 'PS020'
+     ORDER BY <include refid="keyDdln"/>, P.PBANC_SN
+     FETCH FIRST 30 ROWS ONLY
+  </select>
+
+  <!-- 팀별 현황: 팀이 주관하는 사업 기준 (참여팀으로 들어간 사업은 주관팀 쪽에 잡힌다). 화면 제목에 "참여 중인 사업 수"로 적는다. -->
+  <select id="teamStats" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$TeamStat">
+    SELECT TM.TEAM_SN AS teamSn, TM.TEAM_NM AS teamNm,
+           NVL(SUM(CASE WHEN P.PBANC_STTS_CD = 'PS020' THEN 1 ELSE 0 END), 0) AS assigned,
+           NVL(SUM(CASE WHEN P.PBANC_STTS_CD IN ('PS030', 'PS040') THEN 1 ELSE 0 END), 0) AS inProgress,
+           NVL(SUM(CASE WHEN P.PBANC_STTS_CD = 'PS050' THEN 1 ELSE 0 END), 0) AS submitted,
+           NVL(SUM(CASE WHEN P.PBANC_STTS_CD = 'PS060' THEN 1 ELSE 0 END), 0) AS resulted
+      FROM TB_TEAM TM
+      LEFT JOIN TB_BID_PBANC P ON P.SPRVSN_TEAM_SN = TM.TEAM_SN
+     WHERE TM.USE_YN = 'Y'
+    <if test="onlyMine">
+       AND TM.TEAM_SN = (SELECT U.TEAM_SN FROM TB_USER U WHERE U.USER_ID = #{userId})
+    </if>
+    <if test="!onlyMine">
+       AND TM.DEPT_CD = 'DP030'
+    </if>
+     GROUP BY TM.TEAM_SN, TM.TEAM_NM
+     ORDER BY TM.TEAM_SN
+  </select>
+
+  <!-- ===== 경영지원실 ===== -->
+  <select id="docRows" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$DocRow">
+    SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, TM.TEAM_NM AS teamNm,
+           TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE) AS dday,
+           (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D WHERE D.PBANC_SN = P.PBANC_SN) AS docTotal,
+           (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D WHERE D.PBANC_SN = P.PBANC_SN AND D.PRGRS_STTS_CD = 'DS030') AS docReady,
+           (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D
+             WHERE D.PBANC_SN = P.PBANC_SN AND D.ESNTL_YN = 'Y' AND D.PRGRS_STTS_CD &lt;&gt; 'DS030') AS missingRequired,
+           CASE WHEN P.SBMSN_DT IS NOT NULL THEN 1 ELSE 0 END AS registered
+      FROM TB_BID_PBANC P
+      LEFT JOIN TB_TEAM TM ON TM.TEAM_SN = P.SPRVSN_TEAM_SN
+     WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040')
      ORDER BY P.BID_DDLN_DT, P.PBANC_SN
+     FETCH FIRST 30 ROWS ONLY
+  </select>
+
+  <!-- 결과 가져오기 대기: 제출 완료(PS050). 가장 오래된 건이 개찰 후 며칠 지났는지도 같이 -->
+  <select id="resultWait" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$ResultWait">
+    SELECT COUNT(*) AS cnt,
+           MAX(CASE WHEN P.OPENG_DT IS NOT NULL AND TRUNC(P.OPENG_DT) &lt;= TRUNC(SYSDATE)
+                    THEN TRUNC(SYSDATE) - TRUNC(P.OPENG_DT) END) AS maxDays
+      FROM TB_BID_PBANC P
+     WHERE P.PBANC_STTS_CD = 'PS050'
+  </select>
+
+  <!--
+    연도별 성과: 올해를 포함한 최근 3년. 연도는 제출 마감(없으면 개찰) 기준.
+    제출 = 제출 완료 이후(PS050·PS060·PS070), 수주·탈락은 입찰결과(BR010·BR020), 유찰은 공고 상태(PS070).
+    수주율은 화면에서 수주 ÷ (수주+탈락)로 계산한다. 유찰·불참은 뺀다.
+  -->
+  <select id="yearStats" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$YearStat">
+    SELECT Y.YR AS yearNo,
+           (SELECT COUNT(*) FROM TB_BID_PBANC P
+             WHERE P.PBANC_STTS_CD IN ('PS050', 'PS060', 'PS070')
+               AND EXTRACT(YEAR FROM NVL(P.BID_DDLN_DT, P.OPENG_DT)) = Y.YR) AS submitted,
+           (SELECT COUNT(*) FROM TB_BID_RSLT R JOIN TB_BID_PBANC P ON P.PBANC_SN = R.PBANC_SN
+             WHERE R.BID_RSLT_CD = 'BR010'
+               AND EXTRACT(YEAR FROM NVL(P.BID_DDLN_DT, P.OPENG_DT)) = Y.YR) AS won,
+           (SELECT COUNT(*) FROM TB_BID_RSLT R JOIN TB_BID_PBANC P ON P.PBANC_SN = R.PBANC_SN
+             WHERE R.BID_RSLT_CD = 'BR020'
+               AND EXTRACT(YEAR FROM NVL(P.BID_DDLN_DT, P.OPENG_DT)) = Y.YR) AS lost,
+           (SELECT COUNT(*) FROM TB_BID_PBANC P
+             WHERE P.PBANC_STTS_CD = 'PS070'
+               AND EXTRACT(YEAR FROM NVL(P.BID_DDLN_DT, P.OPENG_DT)) = Y.YR) AS failed,
+           (SELECT NVL(SUM(R.SCSBD_AMT), 0) FROM TB_BID_RSLT R JOIN TB_BID_PBANC P ON P.PBANC_SN = R.PBANC_SN
+             WHERE R.BID_RSLT_CD = 'BR010'
+               AND EXTRACT(YEAR FROM NVL(P.BID_DDLN_DT, P.OPENG_DT)) = Y.YR) AS wonAmt
+      FROM (SELECT EXTRACT(YEAR FROM SYSDATE) - LEVEL + 1 AS YR FROM DUAL CONNECT BY LEVEL &lt;= 3) Y
+     ORDER BY Y.YR
+  </select>
+
+  <!--
+    주의가 필요한 항목 (급한 순, sortKey 가 작을수록 급함)
+      DOC_MISSING  제출 마감 전인데 필수 서류가 빠진 사업
+      PAST_DUE     제출 마감이 지났는데 필수 서류가 빠진 채 나라장터에 등록하지 못한 사업
+      RESULT_WAIT  개찰이 지났는데 결과를 아직 가져오지 못한 사업 (제출 완료 상태)
+  -->
+  <sql id="missingDocs">
+    (SELECT D.PBANC_SN, COUNT(*) AS MISSING FROM TB_SBMSN_DCMNT D
+      WHERE D.ESNTL_YN = 'Y' AND D.PRGRS_STTS_CD &lt;&gt; 'DS030' GROUP BY D.PBANC_SN)
+  </sql>
+  <select id="mgmtAlerts" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$MgmtAlert">
+    SELECT A.* FROM (
+      SELECT 'DOC_MISSING' AS kind, P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, TM.TEAM_NM AS teamNm,
+             MD.MISSING AS missing, TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE) AS dday, CAST(NULL AS NUMBER) AS passedDays,
+             TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE) AS sortKey
+        FROM TB_BID_PBANC P
+        JOIN <include refid="missingDocs"/> MD ON MD.PBANC_SN = P.PBANC_SN
+        LEFT JOIN TB_TEAM TM ON TM.TEAM_SN = P.SPRVSN_TEAM_SN
+       WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040') AND P.SBMSN_DT IS NULL
+         AND (P.BID_DDLN_DT IS NULL OR TRUNC(P.BID_DDLN_DT) &gt;= TRUNC(SYSDATE))
+      UNION ALL
+      SELECT 'PAST_DUE' AS kind, P.PBANC_SN, P.PBANC_NM, TM.TEAM_NM,
+             MD.MISSING, TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE), CAST(NULL AS NUMBER),
+             TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE)
+        FROM TB_BID_PBANC P
+        JOIN <include refid="missingDocs"/> MD ON MD.PBANC_SN = P.PBANC_SN
+        LEFT JOIN TB_TEAM TM ON TM.TEAM_SN = P.SPRVSN_TEAM_SN
+       WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040') AND P.SBMSN_DT IS NULL
+         AND P.BID_DDLN_DT IS NOT NULL AND TRUNC(P.BID_DDLN_DT) &lt; TRUNC(SYSDATE)
+      UNION ALL
+      SELECT 'RESULT_WAIT' AS kind, P.PBANC_SN, P.PBANC_NM, TM.TEAM_NM,
+             0, CAST(NULL AS NUMBER), TRUNC(SYSDATE) - TRUNC(P.OPENG_DT),
+             TRUNC(P.OPENG_DT) - TRUNC(SYSDATE)
+        FROM TB_BID_PBANC P
+        LEFT JOIN TB_TEAM TM ON TM.TEAM_SN = P.SPRVSN_TEAM_SN
+       WHERE P.PBANC_STTS_CD = 'PS050' AND P.OPENG_DT IS NOT NULL AND TRUNC(P.OPENG_DT) &lt; TRUNC(SYSDATE)
+    ) A
+     ORDER BY A.sortKey, A.pbancSn
+     FETCH FIRST 30 ROWS ONLY
+  </select>
+
+  <!-- 올해 수주한 사업. 경쟁(참여 업체 수·순위)은 개찰 결과를 가져온 건만 값이 있다 -->
+  <select id="yearWins" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$Win">
+    SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, P.ORDER_INST_NM AS orderInstNm, P.DMND_INST_NM AS dmndInstNm, TM.TEAM_NM AS teamNm,
+           BT.CD_NM AS bizTypeNm, NVL(R.SCSBD_AMT, 0) AS scsbdAmt, NVL(P.ALTMNT_BGT_AMT, 0) AS budgetAmt,
+           (SELECT COUNT(*) FROM TB_CO_EVL_RSLT C WHERE C.PBANC_SN = P.PBANC_SN) AS rivalCnt,
+           R.EVL_RNK AS evlRank
+      FROM TB_BID_RSLT R
+      JOIN TB_BID_PBANC P ON P.PBANC_SN = R.PBANC_SN
+      LEFT JOIN TB_TEAM TM ON TM.TEAM_SN = P.SPRVSN_TEAM_SN
+      LEFT JOIN TB_COM_CD BT ON BT.GROUP_CD = 'BZTYP' AND BT.CD = P.BIZ_TYPE_CD
+     WHERE R.BID_RSLT_CD = 'BR010'
+       AND EXTRACT(YEAR FROM NVL(P.BID_DDLN_DT, P.OPENG_DT)) = EXTRACT(YEAR FROM SYSDATE)
+     ORDER BY NVL(R.MDFCN_DT, R.CLCT_DT) DESC NULLS LAST, P.PBANC_SN DESC
      FETCH FIRST 30 ROWS ONLY
   </select>
 
@@ -78,27 +215,97 @@
       FROM DUAL
   </select>
 
-  <select id="leaderDecisionWait" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$Bid">
-    SELECT <include refid="bidCols"/>
-    <include refid="bidJoins"/>
-     WHERE P.PBANC_STTS_CD = 'PS020' AND P.SPRVSN_TEAM_SN = <include refid="myTeam"/>
+  <!-- 내가 제안팀원인 사업의 진행: 목차 작성(검토 완료 수 / 전체), 요구사항 연결, 제출서류 준비, 최종본 확정 -->
+  <select id="leaderProjects" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$LeaderProject">
+    SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, TRIM(P.PBANC_STTS_CD) AS statusCd, S.CD_NM AS statusNm,
+           CASE WHEN MB.PTCP_SE_CD = 'PT010' THEN 1 ELSE 0 END AS leadYn,
+           TO_CHAR(P.BID_DDLN_DT, 'YYYY-MM-DD HH24:MI') AS ddlnText,
+           TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE) AS dday,
+           (SELECT COUNT(*) FROM TB_TOC T WHERE T.PBANC_SN = P.PBANC_SN AND <include refid="leafToc"/>) AS tocTotal,
+           (SELECT COUNT(*) FROM TB_TOC T WHERE T.PBANC_SN = P.PBANC_SN AND <include refid="leafToc"/>
+               AND T.PRGRS_STTS_CD = 'TS030') AS tocDone,
+           (SELECT COUNT(*) FROM TB_RQT_MTTR Q WHERE Q.PBANC_SN = P.PBANC_SN) AS rqtTotal,
+           (SELECT COUNT(*) FROM TB_RQT_MTTR Q WHERE Q.PBANC_SN = P.PBANC_SN AND Q.TOC_SN IS NOT NULL) AS rqtMapped,
+           (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D WHERE D.PBANC_SN = P.PBANC_SN) AS docTotal,
+           (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D WHERE D.PBANC_SN = P.PBANC_SN AND D.PRGRS_STTS_CD = 'DS030') AS docReady,
+           CASE WHEN EXISTS (SELECT 1 FROM TB_ATCH_FILE F WHERE F.PBANC_SN = P.PBANC_SN AND F.FILE_SE_CD = 'FL030'
+                               AND F.LAST_YN = 'Y' AND F.DEL_YN = 'N') THEN 1 ELSE 0 END AS finalConfirmed
+      FROM TB_BID_PBANC P
+      JOIN TB_PRP_TMMBR MB ON MB.PBANC_SN = P.PBANC_SN AND MB.USER_ID = #{userId}
+      LEFT JOIN TB_COM_CD S ON S.GROUP_CD = 'PBSTS' AND S.CD = P.PBANC_STTS_CD
+     WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040', 'PS050')
      ORDER BY P.BID_DDLN_DT, P.PBANC_SN
      FETCH FIRST 30 ROWS ONLY
   </select>
 
-  <select id="teamProposals" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$Bid">
-    SELECT <include refid="bidCols"/>
-    <include refid="bidJoins"/>
-     WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040', 'PS050') AND <include refid="myProposalBid"/>
-     ORDER BY P.BID_DDLN_DT, P.PBANC_SN
+  <!--
+    팀장이 처리할 일 (마감 빠른 순, 마감이 없는 결과 입력은 맨 뒤)
+      DECISION 참여 결정  우리 팀에 배정됐고 결정 전인 공고 (결정은 공고 상세에서 한다)
+      FINAL    최종본 확정  내가 주관팀 제안팀원이고 통합본은 올라왔는데 확정(최종여부 Y)된 것이 없는 사업
+      DOCS     제출서류  제안팀이 맡은 필수 서류가 아직 준비 완료가 아닌 사업
+      RQT      요구사항 연결  목차에 연결되지 않은 요구사항이 있는 사업
+      RESULT   결과 입력  내가 주관팀 제안팀원이고 결과가 등록됐는데 기술점수나 강점 분석이 비어 있는 사업
+  -->
+  <select id="leaderTodos" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$TodoItem">
+    SELECT A.kind, A.pbancSn, A.pbancNm, A.sub, A.ddlnText, A.dday FROM (
+      SELECT 'DECISION' AS kind, 1 AS ord, P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm,
+             TM.TEAM_NM || ' 배정' AS sub,
+             TO_CHAR(P.BID_DDLN_DT, 'YYYY-MM-DD HH24:MI') AS ddlnText,
+             TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE) AS dday
+        FROM TB_BID_PBANC P
+        LEFT JOIN TB_TEAM TM ON TM.TEAM_SN = P.SPRVSN_TEAM_SN
+       WHERE P.PBANC_STTS_CD = 'PS020' AND P.SPRVSN_TEAM_SN = <include refid="myTeam"/>
+      UNION ALL
+      SELECT 'FINAL', 2, P.PBANC_SN, P.PBANC_NM,
+             '통합본 ' || NVL(TO_CHAR((SELECT MAX(F.INTG_CYCL) FROM TB_ATCH_FILE F
+                                        WHERE F.PBANC_SN = P.PBANC_SN AND F.FILE_SE_CD = 'FL030' AND F.DEL_YN = 'N')), '1')
+                       || '차 · 확정 전',
+             TO_CHAR(P.BID_DDLN_DT, 'YYYY-MM-DD HH24:MI'),
+             TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE)
+        FROM TB_BID_PBANC P
+       WHERE P.PBANC_STTS_CD = 'PS040'
+         AND EXISTS (SELECT 1 FROM TB_PRP_TMMBR M WHERE M.PBANC_SN = P.PBANC_SN AND M.USER_ID = #{userId} AND M.PTCP_SE_CD = 'PT010')
+         AND EXISTS (SELECT 1 FROM TB_ATCH_FILE F WHERE F.PBANC_SN = P.PBANC_SN AND F.FILE_SE_CD = 'FL030' AND F.DEL_YN = 'N')
+         AND NOT EXISTS (SELECT 1 FROM TB_ATCH_FILE F WHERE F.PBANC_SN = P.PBANC_SN AND F.FILE_SE_CD = 'FL030'
+                            AND F.DEL_YN = 'N' AND F.LAST_YN = 'Y')
+      UNION ALL
+      SELECT 'DOCS', 3, P.PBANC_SN, P.PBANC_NM,
+             '필수 서류 ' || X.CNT || '건 미비',
+             TO_CHAR(P.BID_DDLN_DT, 'YYYY-MM-DD HH24:MI'),
+             TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE)
+        FROM TB_BID_PBANC P
+        JOIN (SELECT D.PBANC_SN, COUNT(*) AS CNT FROM TB_SBMSN_DCMNT D
+               WHERE D.ESNTL_YN = 'Y' AND D.PRGRS_STTS_CD &lt;&gt; 'DS030' AND NVL(D.TKCG_SE_CD, 'TK020') = 'TK020'
+               GROUP BY D.PBANC_SN) X ON X.PBANC_SN = P.PBANC_SN
+       WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040') AND <include refid="myProposalBid"/>
+      UNION ALL
+      SELECT 'RQT', 4, P.PBANC_SN, P.PBANC_NM,
+             '미매핑 요구사항 ' || X.CNT || '건',
+             TO_CHAR(P.BID_DDLN_DT, 'YYYY-MM-DD HH24:MI'),
+             TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE)
+        FROM TB_BID_PBANC P
+        JOIN (SELECT Q.PBANC_SN, COUNT(*) AS CNT FROM TB_RQT_MTTR Q WHERE Q.TOC_SN IS NULL GROUP BY Q.PBANC_SN) X
+          ON X.PBANC_SN = P.PBANC_SN
+       WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040') AND <include refid="myProposalBid"/>
+      UNION ALL
+      SELECT 'RESULT', 5, P.PBANC_SN, P.PBANC_NM,
+             CASE WHEN R.TECH_EVL_SCR IS NULL THEN '점수와 장단점이 아직 없어요' ELSE '장단점 분석이 아직 없어요' END,
+             CAST(NULL AS VARCHAR2(16)),
+             CAST(NULL AS NUMBER)
+        FROM TB_BID_PBANC P
+        JOIN TB_BID_RSLT R ON R.PBANC_SN = P.PBANC_SN
+       WHERE P.PBANC_STTS_CD = 'PS060' AND (R.TECH_EVL_SCR IS NULL OR R.STRPT_CN IS NULL)
+         AND EXISTS (SELECT 1 FROM TB_PRP_TMMBR M WHERE M.PBANC_SN = P.PBANC_SN AND M.USER_ID = #{userId} AND M.PTCP_SE_CD = 'PT010')
+    ) A
+     ORDER BY A.dday, A.ord, A.pbancSn
      FETCH FIRST 30 ROWS ONLY
   </select>
 
   <!-- ===== 팀원 ===== -->
   <select id="myTocs" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$MyToc">
     SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, T.TOC_NO AS tocNo, T.TOC_NM AS tocNm,
-           T.EXPC_PAGE_CNT AS expcPageCnt, C.CD_NM AS tocStatusNm,
-           (SELECT COUNT(*) FROM TB_ATCH_FILE F WHERE F.TOC_SN = T.TOC_SN) AS fileCnt,
+           T.EXPC_PAGE_CNT AS expcPageCnt, TRIM(T.PRGRS_STTS_CD) AS tocStatusCd, C.CD_NM AS tocStatusNm,
+           (SELECT COUNT(*) FROM TB_ATCH_FILE F WHERE F.TOC_SN = T.TOC_SN AND F.DEL_YN = 'N') AS fileCnt,
            CASE WHEN P.BID_DDLN_DT IS NOT NULL THEN '제출 마감' END AS ddlnNm,
            TO_CHAR(P.BID_DDLN_DT, 'YYYY-MM-DD HH24:MI') AS ddlnText,
            TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE) AS dday
@@ -111,44 +318,24 @@
      FETCH FIRST 50 ROWS ONLY
   </select>
 
-  <!-- ===== 경영지원실 ===== -->
-  <select id="docRows" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$DocRow">
-    SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, TM.TEAM_NM AS teamNm,
-           (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D WHERE D.PBANC_SN = P.PBANC_SN) AS docTotal,
-           (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D WHERE D.PBANC_SN = P.PBANC_SN AND D.PRGRS_STTS_CD = 'DS030') AS docReady,
-           (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D
-             WHERE D.PBANC_SN = P.PBANC_SN AND D.ESNTL_YN = 'Y' AND D.PRGRS_STTS_CD &lt;&gt; 'DS030') AS missingRequired,
-           CASE WHEN P.SBMSN_DT IS NOT NULL THEN 1 ELSE 0 END AS registered
+  <!-- 내 사업별 진행: 내 목차 완료, 내 목차 중 파일을 올린 수, 사업 전체 목차 완료 -->
+  <select id="memberProjects" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$MemberProject">
+    SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, TRIM(P.PBANC_STTS_CD) AS statusCd, S.CD_NM AS statusNm,
+           TO_CHAR(P.BID_DDLN_DT, 'YYYY-MM-DD HH24:MI') AS ddlnText,
+           TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE) AS dday,
+           (SELECT COUNT(*) FROM TB_TOC T WHERE T.PBANC_SN = P.PBANC_SN AND T.PIC_ID = #{userId}) AS myTocTotal,
+           (SELECT COUNT(*) FROM TB_TOC T WHERE T.PBANC_SN = P.PBANC_SN AND T.PIC_ID = #{userId}
+               AND T.PRGRS_STTS_CD = 'TS030') AS myTocDone,
+           (SELECT COUNT(*) FROM TB_TOC T WHERE T.PBANC_SN = P.PBANC_SN AND T.PIC_ID = #{userId}
+               AND EXISTS (SELECT 1 FROM TB_ATCH_FILE F WHERE F.TOC_SN = T.TOC_SN AND F.DEL_YN = 'N')) AS myFileTocs,
+           (SELECT COUNT(*) FROM TB_TOC T WHERE T.PBANC_SN = P.PBANC_SN AND <include refid="leafToc"/>) AS allTocTotal,
+           (SELECT COUNT(*) FROM TB_TOC T WHERE T.PBANC_SN = P.PBANC_SN AND <include refid="leafToc"/>
+               AND T.PRGRS_STTS_CD = 'TS030') AS allTocDone
       FROM TB_BID_PBANC P
-      LEFT JOIN TB_TEAM TM ON TM.TEAM_SN = P.SPRVSN_TEAM_SN
-     WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040')
+      LEFT JOIN TB_COM_CD S ON S.GROUP_CD = 'PBSTS' AND S.CD = P.PBANC_STTS_CD
+     WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040') AND <include refid="myProposalBid"/>
      ORDER BY P.BID_DDLN_DT, P.PBANC_SN
-     FETCH FIRST 100 ROWS ONLY
-  </select>
-
-  <select id="resultWaitCount" resultType="int">
-    SELECT COUNT(*) FROM TB_BID_PBANC WHERE PBANC_STTS_CD = 'PS050'
-  </select>
-
-  <!-- ===== 팀별 현황 =====
-       팀이 주관하는 사업 기준으로 센다 (참여팀으로 들어간 사업은 주관팀 쪽에 잡힌다). 화면 제목에 "주관 사업 기준"으로 적는다. -->
-  <select id="teamStats" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$TeamStat">
-    SELECT TM.TEAM_NM AS teamNm,
-           NVL(SUM(CASE WHEN P.PBANC_STTS_CD = 'PS020' THEN 1 ELSE 0 END), 0) AS assigned,
-           NVL(SUM(CASE WHEN P.PBANC_STTS_CD IN ('PS030', 'PS040') THEN 1 ELSE 0 END), 0) AS inProgress,
-           NVL(SUM(CASE WHEN P.PBANC_STTS_CD = 'PS050' THEN 1 ELSE 0 END), 0) AS submitted,
-           NVL(SUM(CASE WHEN P.PBANC_STTS_CD = 'PS060' THEN 1 ELSE 0 END), 0) AS resulted
-      FROM TB_TEAM TM
-      LEFT JOIN TB_BID_PBANC P ON P.SPRVSN_TEAM_SN = TM.TEAM_SN
-     WHERE TM.USE_YN = 'Y'
-    <if test="onlyMine">
-       AND TM.TEAM_SN = (SELECT U.TEAM_SN FROM TB_USER U WHERE U.USER_ID = #{userId})
-    </if>
-    <if test="!onlyMine">
-       AND TM.DEPT_CD = 'DP030'
-    </if>
-     GROUP BY TM.TEAM_SN, TM.TEAM_NM
-     ORDER BY TM.TEAM_SN
+     FETCH FIRST 30 ROWS ONLY
   </select>
 
 </mapper>

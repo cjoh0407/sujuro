@@ -268,7 +268,7 @@ public class ScheduleService {
         return false;
     }
 
-    /** 그 사업건의 제안팀원 전원(등록한 본인 포함, 주관팀 팀장도 포함)에게 일정 등록·변경·삭제를 알린다. (FR-034, NT160) */
+    /** 그 사업건의 제안팀원 전원에게 일정 등록·변경·삭제를 알린다. 행동한 본인(팀장)은 알림 서비스가 뺀다. (FR-034, NT160) */
     private void notifyProposalTeam(Long pbancSn, String pbancNm, String what, String title, String when) {
         String name = pbancNm == null ? "" : "[" + pbancNm + "] ";
         notificationService.sendToProposalTeam(pbancSn, NotificationType.SCHEDULE_CHANGED,

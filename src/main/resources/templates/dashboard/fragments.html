@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  대시보드 조각 (dashboard/index.html 이 불러 쓴다)
+  statCard(s)    : 맨 위 아이콘 카드 (이름 + 숫자, 링크 없음). 색은 s.tone (accent, warning, danger, info, success)
+  radarChart(r)  : 영업부 '팀별 진행 현황' 레이더. 좌표는 서버(DashboardCharts)가 계산해 둔다
+  lineChart(c)   : 경영지원실 '연도별 성과' 위쪽 요약 + 꺾은선(수주율·수주 금액)
+  ring(r, soft)  : 작은 원 하나. r.text(2/9) 가운데 글자, r.percent 채움. soft 가 true 면 밝은 파랑
+  miniCal(m)     : 미니 캘린더. 일정이 있는 날은 팀 색 점(영업부·경영지원실은 건수 숫자), 오늘은 동그라미. 아래에 다가오는 일정 3건.
+-->
+
+<!-- 아이콘 카드: 이름과 숫자만. 눌러서 이동하지 않는다 -->
+<div class="dash-stat" th:fragment="statCard(s)" th:classappend="|t-${s.tone}|">
+  <th:block th:replace="~{dashboard/fragments :: statBody(${s})}"></th:block>
+</div>
+
+<th:block th:fragment="statBody(s)">
+  <div class="tx">
+    <div class="l" th:text="${s.label}">배정 대기</div>
+    <div class="v" th:classappend="${s.numTone}">
+      <span th:text="${s.value}">8</span><small th:text="${s.unit}">건</small>
+    </div>
+  </div>
+  <div class="ico" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8"
+         stroke-linecap="round" stroke-linejoin="round" th:switch="${s.icon}">
+      <th:block th:case="'inbox'"><path d="M4 13l2-7a1 1 0 0 1 1-.7h10a1 1 0 0 1 1 .7l2 7"/><path d="M4 13v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/><path d="M4 13h4l1 2h6l1-2h4"/></th:block>
+      <th:block th:case="'hour'"><path d="M7 4h10M7 20h10"/><path d="M8 4c0 4 4 5 4 8s-4 4-4 8"/><path d="M16 4c0 4-4 5-4 8s4 4 4 8"/></th:block>
+      <th:block th:case="'alarm'"><circle cx="12" cy="13" r="7"/><path d="M12 9.5V13l2.5 1.5"/><path d="M5 5 3 7M19 5l2 2"/></th:block>
+      <th:block th:case="'doc'"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11.5v3.5"/><path d="M12 18h.01"/></th:block>
+      <th:block th:case="'up'"><path d="M12 16V5"/><path d="M7.5 9.5 12 5l4.5 4.5"/><path d="M5 17v2a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2"/></th:block>
+      <th:block th:case="'down'"><path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M5 18v1a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1"/></th:block>
+      <th:block th:case="'clip'"><rect x="6" y="5" width="12" height="16" rx="2"/><path d="M9 5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M9.5 13l2 2 3.5-4"/></th:block>
+      <th:block th:case="'brief'"><rect x="3.5" y="7" width="17" height="12" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"/><path d="M3.5 12.5h17"/></th:block>
+      <th:block th:case="'link'"><path d="M10 14a4 4 0 0 0 5.7 0l2.6-2.6a4 4 0 0 0-5.7-5.7L11.5 6.8"/><path d="M14 10a4 4 0 0 0-5.7 0l-2.6 2.6a4 4 0 0 0 5.7 5.7l1.1-1.1"/></th:block>
+      <th:block th:case="'list'"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></th:block>
+      <th:block th:case="'pen'"><path d="M4 20l1-4L16.5 4.5a2 2 0 0 1 3 3L8 19z"/><path d="M14.5 6.5l3 3"/></th:block>
+      <th:block th:case="'ok'"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.4 2.4 4.6-5"/></th:block>
+      <th:block th:case="*"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/><path d="M12 13v3l2 1"/></th:block>
+    </svg>
+  </div>
+</th:block>
+
+<!-- 레이더: 꼭짓점 = 팀, 값 = 참여 중인 사업 수. 4겹 눈금, 점선 축, 연한 그라데이션 면 -->
+<div class="dash-radar" th:fragment="radarChart(r)">
+  <svg viewBox="0 0 420 300" role="img" th:attr="aria-label=${r.aria}">
+    <defs>
+      <linearGradient id="rdFill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" style="stop-color:var(--accent);stop-opacity:.34"></stop>
+        <stop offset="1" style="stop-color:var(--accent);stop-opacity:.10"></stop>
+      </linearGradient>
+    </defs>
+    <polygon th:each="p, st : ${r.rings}" class="rd-ring" th:classappend="${st.last} ? 'out'" th:attr="points=${p}"></polygon>
+    <line th:each="sp : ${r.spokes}" class="rd-spoke" x1="210" y1="150" th:attr="x2=${sp[0]},y2=${sp[1]}"></line>
+    <text th:each="g : ${r.ringLabels}" class="rd-tick" x="214" th:attr="y=${g.y}" dy="-2" th:text="${g.label}">2</text>
+    <polygon class="rd-shape" th:attr="points=${r.shape}"></polygon>
+    <th:block th:each="pt : ${r.points}">
+      <circle class="rd-dot" th:classappend="${pt.top} ? 'top'" th:attr="cx=${pt.cx},cy=${pt.cy},r=${pt.top ? 5.5 : 4}"></circle>
+      <text class="rd-name" th:attr="x=${pt.lx},y=${pt.nameY},text-anchor=${pt.anchor}" th:text="${pt.name}">공공사업1Div</text>
+      <text class="rd-val" th:attr="x=${pt.lx},y=${pt.valueY},text-anchor=${pt.anchor}" th:text="${pt.valueText}">5건</text>
+    </th:block>
+  </svg>
+</div>
+
+<!-- 연도별 성과: 위쪽 올해 요약 + 3년 버블 (높이 = 수주율, 크기 = 수주 금액) -->
+<th:block th:fragment="lineChart(c)">
+  <div class="dash-kpis">
+    <div class="dash-kpi" th:each="k : ${c.kpis}">
+      <div class="l" th:text="${k.label}">수주</div>
+      <div class="v"><span th:text="${k.value}">4</span><small th:if="${!#strings.isEmpty(k.unit)}" th:text="${k.unit}">건</small></div>
+      <span class="kpi-chip" th:if="${k.chip != null}" th:classappend="${k.chipUp} ? '' : 'down'" th:text="${k.chip}">▲ 7%p</span>
+    </div>
+  </div>
+  <div class="dash-line">
+    <div class="ln-legend"><span class="a">수주율(%)</span><span class="b">수주 금액(억)</span></div>
+    <svg viewBox="0 0 480 270" role="img" th:attr="aria-label=${c.aria}">
+      <line class="ln-guide" th:each="p : ${c.points}" th:attr="x1=${p.x},x2=${p.x}" y1="24" y2="234"></line>
+      <polyline class="ln-amt" th:if="${!#strings.isEmpty(c.amtPoints)}" th:attr="points=${c.amtPoints}"></polyline>
+      <polyline class="ln-rate" th:if="${!#strings.isEmpty(c.ratePoints)}" th:attr="points=${c.ratePoints}"></polyline>
+      <g th:each="p : ${c.points}" th:classappend="${p.current} ? 'cur'">
+        <th:block th:if="${p.hasAmt}">
+          <circle class="ln-dot amt" th:attr="cx=${p.x},cy=${p.amtY}" r="5"></circle>
+          <text class="ln-val amt" th:attr="x=${p.x},y=${p.amtLabelY}" th:text="${p.amtText}">49.3억</text>
+        </th:block>
+        <th:block th:if="${p.hasRate}">
+          <circle class="ln-dot rate" th:attr="cx=${p.x},cy=${p.rateY}" r="6"></circle>
+          <text class="ln-val rate" th:attr="x=${p.x},y=${p.rateLabelY}" th:text="${p.rateText}">50%</text>
+        </th:block>
+        <text class="ln-year" th:attr="x=${p.x},y=${p.yearY}" th:text="${p.year}">2026</text>
+      </g>
+    </svg>
+  </div>
+</th:block>
+
+<!-- 작은 원 -->
+<div class="dash-ring" th:fragment="ring(r, soft)" th:classappend="${soft} ? 'soft'">
+  <svg viewBox="0 0 50 50" role="img" th:attr="aria-label=${r.text}">
+    <circle class="trk" cx="25" cy="25" r="19"></circle>
+    <circle class="arc" th:if="${r.percent > 0}" cx="25" cy="25" r="19" pathLength="100" transform="rotate(-90 25 25)"
+            th:attr="stroke-dasharray=|${r.percent} 100|"></circle>
+    <text x="25" y="29" text-anchor="middle" th:classappend="${r.empty or r.percent == 0} ? 'dim'" th:text="${r.text}">2/9</text>
+  </svg>
+</div>
+
+<div class="card dash-cal" th:fragment="miniCal(m)">
+  <div class="card-head"><h3 th:text="${m.title}">11월 일정</h3><a class="btn sm" th:href="@{/schedule}">일정 관리</a></div>
+  <div class="dash-cal-body">
+    <div class="dash-cal-dow"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+    <div class="dash-cal-grid">
+      <span th:each="c : ${m.cells}" class="dash-cal-cell" th:classappend="${c.today} ? 'today'">
+        <th:block th:unless="${c.blank}">
+          <b th:text="${c.day}">1</b>
+          <span class="dots" th:if="${!m.countMode and !#lists.isEmpty(c.events)}">
+            <i th:each="e, st : ${c.events}" th:if="${st.index < 3}" th:class="|dot tm${e.teamNo}|" th:title="${e.label}"></i>
+          </span>
+          <span class="cnt" th:if="${m.countMode and !#lists.isEmpty(c.events)}" th:text="${#lists.size(c.events)}"
+                th:title="|일정 ${#lists.size(c.events)}건|">2</span>
+        </th:block>
+      </span>
+    </div>
+  </div>
+  <div class="dash-upcoming">
+    <span class="h">다가오는 일정</span>
+    <span class="faint" th:if="${#lists.isEmpty(m.upcoming)}">이번 달과 다음 달에 남은 일정이 없습니다.</span>
+    <span class="u" th:each="u : ${m.upcoming}"><b th:text="${u.date}">11/12</b><i th:class="|dot tm${u.teamNo}|"></i><span class="t" th:text="${u.label}" th:title="${u.label}">[마감] 10:00 사업명</span></span>
+  </div>
+</div>
+
+</body>
+</html>

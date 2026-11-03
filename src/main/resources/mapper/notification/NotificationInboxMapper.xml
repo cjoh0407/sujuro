@@ -8,16 +8,14 @@
     N.NOTI_CN AS content, N.PRSL_YN AS prslYn, N.CRT_DT AS crtDt
   </sql>
 
-  <select id="findMine" resultType="com.ojj.sujuro.notification.dto.NotificationDto">
+  <!-- 알림 팝업은 20건씩 스크롤로 더 불러온다. 같은 시각이면 번호가 큰(나중에 만든) 것이 위 -->
+  <select id="findPage" resultType="com.ojj.sujuro.notification.dto.NotificationDto">
     SELECT <include refid="cols"/>
       FROM TB_NOTI N
       LEFT JOIN TB_COM_CD C ON C.GROUP_CD = 'NOTIT' AND C.CD = N.NOTI_TYPE_CD
      WHERE N.RCVR_ID = #{userId}
-    <if test="unreadOnly">
-       AND N.PRSL_YN = 'N'
-    </if>
      ORDER BY N.CRT_DT DESC, N.NOTI_SN DESC
-     FETCH FIRST 200 ROWS ONLY
+     OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
   </select>
 
   <select id="countUnread" resultType="int">

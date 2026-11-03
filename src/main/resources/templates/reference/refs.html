@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<!--/*
+  참고자료. 제안서를 쓸 때 쓰는 폰트·이미지·공유 자료를 같은 팀끼리 나누는 화면. 팀장·팀원만, 내 소속 팀의 자료만 보인다.
+  모델: teamNm, files(이 페이지 자료), shown(조건에 맞는 전체 건수), page, totalPages, counts(구분별 건수), total, se(고른 구분), q(검색어), me, leader
+*/-->
+<head>
+  <title>참고자료</title>
+  <th:block layout:fragment="head">
+    <link rel="stylesheet" th:href="@{/css/refs.css}">
+  </th:block>
+</head>
+<body>
+
+<h1 layout:fragment="pageTitle">참고자료</h1>
+
+<th:block layout:fragment="content">
+
+  <div class="banner ok" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
+  <div class="banner err" th:if="${error != null}" th:text="${error}">오류 안내</div>
+  <div class="card">
+    <div class="card-head"><h3>자료 올리기</h3></div>
+    <form class="ref-up" th:action="@{/refs/upload}" method="post" enctype="multipart/form-data">
+      <input type="hidden" name="se" th:value="${se}">
+      <div class="fld grow">
+        <label for="refFile">파일</label>
+        <input id="refFile" type="file" name="file" required data-max-mb="50">
+      </div>
+      <div class="fld grow">
+        <label for="refMemo">설명 (선택)</label>
+        <input id="refMemo" type="text" name="memo" maxlength="500" placeholder="예: 제안서 본문용 고딕체">
+      </div>
+      <button class="btn primary" type="submit">올리기</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="card-head ref-head">
+      <div class="tabs">
+        <a class="tab" th:classappend="${se == ''} ? 'on'" th:href="@{/refs(q=${q})}" th:text="|전체 ${total}|">전체</a>
+        <a class="tab" th:classappend="${se == 'RF010'} ? 'on'" th:href="@{/refs(se='RF010', q=${q})}" th:text="|폰트 ${counts['RF010']}|">폰트</a>
+        <a class="tab" th:classappend="${se == 'RF020'} ? 'on'" th:href="@{/refs(se='RF020', q=${q})}" th:text="|이미지 ${counts['RF020']}|">이미지</a>
+        <a class="tab" th:classappend="${se == 'RF030'} ? 'on'" th:href="@{/refs(se='RF030', q=${q})}" th:text="|문서 ${counts['RF030']}|">문서</a>
+        <a class="tab" th:classappend="${se == 'RF040'} ? 'on'" th:href="@{/refs(se='RF040', q=${q})}" th:text="|기타 ${counts['RF040']}|">기타</a>
+      </div>
+      <form class="ref-search" th:action="@{/refs}" method="get">
+        <input type="hidden" name="se" th:value="${se}">
+        <input type="search" name="q" th:value="${q}" placeholder="파일 이름·설명 검색" aria-label="파일 이름·설명 검색">
+        <button class="btn sm" type="submit">검색</button>
+      </form>
+    </div>
+
+    <div class="empty" th:if="${#lists.isEmpty(files)}"
+         th:text="${total == 0} ? '아직 올린 자료가 없습니다. 위에서 첫 자료를 올려 보세요.' : '조건에 맞는 자료가 없습니다.'">자료가 없습니다.</div>
+
+    <div class="ts" th:unless="${#lists.isEmpty(files)}">
+      <table class="ref-table">
+        <thead><tr><th class="c-pv"></th><th>파일</th><th class="c-se">구분</th><th class="c-sz">크기</th><th class="c-who">올린 사람</th><th class="c-dt">올린 날</th><th class="c-act"></th></tr></thead>
+        <tbody>
+          <tr class="hv" th:each="f : ${files}">
+            <td class="c-pv">
+              <img th:if="${f.previewable}" class="ref-thumb" th:src="@{/refs/view(refFileSn=${f.refFileSn})}" th:alt="${f.orgnlFileNm}" loading="lazy">
+            </td>
+            <td>
+              <div class="ref-nm" th:text="${f.orgnlFileNm}" th:title="${f.orgnlFileNm}">파일명.ttf</div>
+              <div class="ref-memo" th:if="${f.memoCn != null}" th:text="${f.memoCn}">설명</div>
+            </td>
+            <td class="c-se"><span class="pill" th:text="${f.seNm}">폰트</span></td>
+            <td class="c-sz" th:text="${f.sizeText}">120KB</td>
+            <td class="c-who" th:text="${f.rgtrNm != null ? f.rgtrNm : f.rgtrId}">홍길동</td>
+            <td class="c-dt" th:text="${#dates.format(f.regDt, 'yyyy-MM-dd')}">2026-11-03</td>
+            <td class="c-act">
+              <a class="btn sm" th:href="@{/refs/download(refFileSn=${f.refFileSn})}">내려받기</a>
+              <form class="inl" th:if="${leader or f.rgtrId == me}" th:action="@{/refs/delete}" method="post"
+                    onsubmit="return confirm('이 자료를 삭제할까요?');">
+                <input type="hidden" name="refFileSn" th:value="${f.refFileSn}">
+                <input type="hidden" name="se" th:value="${se}">
+                <button class="btn sm danger" type="submit">삭제</button>
+              </form>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pager" th:if="${totalPages > 1}">
+      <a th:if="${page > 1}" aria-label="이전 페이지" th:href="@{/refs(se=${se}, q=${q}, page=${page - 1})}">&laquo;</a>
+      <span class="off" th:unless="${page > 1}">&laquo;</span>
+      <th:block th:each="p : ${#numbers.sequence(1, totalPages)}">
+        <a th:classappend="${p == page} ? 'on' : ''" th:text="${p}" th:href="@{/refs(se=${se}, q=${q}, page=${p})}">1</a>
+      </th:block>
+      <a th:if="${page < totalPages}" aria-label="다음 페이지" th:href="@{/refs(se=${se}, q=${q}, page=${page + 1})}">&raquo;</a>
+      <span class="off" th:unless="${page < totalPages}">&raquo;</span>
+    </div>
+  </div>
+
+</th:block>
+
+<th:block layout:fragment="scripts">
+  <script>
+    // 올리기 전에 용량을 먼저 확인한다 (서버도 같은 기준으로 다시 확인한다)
+    document.querySelectorAll('input[type=file][data-max-mb]').forEach(function (inp) {
+      inp.addEventListener('change', function () {
+        var max = Number(inp.getAttribute('data-max-mb')) * 1048576;
+        if (inp.files[0] && inp.files[0].size > max) {
+          alert('파일당 최대 ' + inp.getAttribute('data-max-mb') + 'MB까지 올릴 수 있습니다.');
+          inp.value = '';
+        }
+      });
+    });
+  </script>
+</th:block>
+
+</body>
+</html>

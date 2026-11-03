@@ -1,0 +1,259 @@
+/* 대시보드 화면 전용 (dashboard/index.html, dashboard/fragments.html).
+   배치: 왼쪽 본문(배너 → 아이콘 카드 → 역할별 블록 → 목록 칸 + 미니 캘린더) + 오른쪽 최근 알림 열.
+   색: 오티아이 로고·사이트 색(파랑 #16419E, 로고 남색 #1D4B7E, 밝은 파랑 #3A8AFD, 로고 빨강 #A4292F)에
+       주의·대기 갈색 #AD6F0A, 완료 초록 #13804F. 빨강은 위험·마감 임박에만 쓴다.
+   간격: 블록 사이 간격은 전부 --dash-gap 하나로 통일한다.
+   목록은 칸 안에서 스크롤한다(.dash-scroll). 칸이 길게 늘어나지 않는다. */
+.dash{
+  --dash-gap:16px;
+  --d-ink:color-mix(in srgb,var(--text) 84%,var(--surface));--d-sub:color-mix(in srgb,var(--muted) 88%,var(--text));--d-faint:color-mix(in srgb,var(--muted) 70%,var(--faint));
+  --d-done:#13804F;--d-doing:#3A8AFD;--d-todo:#E3E6EC;--d-track:#ECEEF2;--d-sun:#A4292F;--d-sat:#1D4B7E;
+  --danger:#A4292F;--danger-soft:#F9E6E7;--info:#1D4B7E;--info-soft:#E4ECF4;
+  --ln2:#2F7DF0;
+  display:flex;flex-wrap:wrap;gap:var(--dash-gap);align-items:stretch}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dash{
+  --d-done:#4FBE8C;--d-doing:#5B9DFF;--d-todo:#38414D;--d-track:#262D36;--d-sun:#E07A7F;--d-sat:#8FB3DE;
+  --danger:#E2797C;--danger-soft:#3A1E20;--info:#8FB3DE;--info-soft:#1F2C3F;
+  --ln2:#5EA2FF}}
+:root[data-theme="dark"] .dash{
+  --d-done:#4FBE8C;--d-doing:#5B9DFF;--d-todo:#38414D;--d-track:#262D36;--d-sun:#E07A7F;--d-sat:#8FB3DE;
+  --danger:#E2797C;--danger-soft:#3A1E20;--info:#8FB3DE;--info-soft:#1F2C3F;
+  --ln2:#5EA2FF}
+
+/* 색 이름 → 글자색(--tc)과 연한 바탕(--ts). 카드 아이콘, D-day 동그라미·칩이 같이 쓴다 */
+.t-accent{--tc:var(--accent);--ts:var(--accent-soft)}
+.t-warning{--tc:var(--warning);--ts:var(--warning-soft)}
+.t-danger{--tc:var(--danger);--ts:var(--danger-soft)}
+.t-info{--tc:var(--info);--ts:var(--info-soft)}
+.t-success{--tc:var(--success);--ts:var(--success-soft)}
+.t-neutral{--tc:var(--neutral);--ts:var(--neutral-soft)}
+
+.dash-main{flex:999 1 640px;min-width:0;display:flex;flex-direction:column;gap:var(--dash-gap)}
+.dash-side{flex:1 1 300px;min-width:0;max-width:380px;display:flex;flex-direction:column;align-self:stretch}
+@media (max-width:1100px){.dash-side{max-width:none}}
+
+/* 배너: 이미지 + 왼쪽 아래 날짜·요약. 이미지가 없으면 연한 파란 판만 보인다 */
+.dash-banner{position:relative;height:180px;border-radius:12px;overflow:hidden;border:1px solid var(--border);
+  background:var(--accent-soft) url("../images/dashboard-banner.svg") right center / cover no-repeat}
+.dash-banner.banner-sales{background-image:url("../images/banner-sales.svg")}
+.dash-banner.banner-mgmt{background-image:url("../images/banner-mgmt.svg")}
+.dash-banner.banner-leader{background-image:url("../images/banner-leader.svg")}
+.dash-banner.banner-member{background-image:url("../images/banner-member.svg")}
+.dash-banner-chip{position:absolute;left:20px;bottom:18px;max-width:calc(100% - 40px);box-sizing:border-box;background:var(--surface);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:2px;box-shadow:0 2px 8px rgba(23,32,46,.10)}
+.dash-banner-chip b{font-size:14px}
+.dash-banner-chip span{font-size:12px;color:var(--d-sub)}
+
+/* 아이콘 카드: 왼쪽에 이름·숫자·설명, 오른쪽에 동그란 아이콘. 링크가 있으면 눌린다 */
+.dash-cards{display:grid;gap:var(--dash-gap);grid-template-columns:repeat(4,minmax(0,1fr))}
+.dash-cards.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.dash-stat{display:flex;align-items:center;justify-content:space-between;gap:12px;box-sizing:border-box;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:16px 18px;color:inherit;text-decoration:none}
+.dash-stat .tx{min-width:0}
+.dash-stat .l{font-size:12px;color:var(--d-sub);line-height:1.35}
+.dash-stat .v{font-size:26px;font-weight:600;line-height:1.15;margin-top:2px;white-space:nowrap}
+.dash-stat .v.accent{color:var(--accent)}
+.dash-stat .v.danger{color:var(--danger)}
+.dash-stat .v.success{color:var(--success)}
+.dash-stat .v small{font-size:14px;font-weight:500;color:var(--d-sub);margin-left:3px}
+.dash-cards:not(.c3) .dash-stat{padding:16px 14px}
+.dash-cards:not(.c3) .dash-stat .ico{width:46px;height:46px}
+.dash-stat .ico{flex:none;width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--ts);color:var(--tc)}
+
+/* 나란히 놓는 두 블록 */
+.dash-pair{display:grid;gap:var(--dash-gap);grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:stretch}
+.dash-pair.wide-left{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}
+.dash-chart{display:flex;flex-direction:column;min-height:200px;min-width:0}
+.dash-full{display:flex;flex-direction:column;min-width:0}
+.dash-empty{flex:1;display:flex;align-items:center;justify-content:center;padding:26px;text-align:center;color:var(--d-sub);font-size:12.5px}
+
+/* 칸 안에서 스크롤: 높이는 --scroll-h 까지만 */
+.dash-scroll{flex:1;min-height:0;max-height:var(--scroll-h,340px);overflow:auto}
+
+ .dash-radar{padding:0 10px 10px;flex:1;display:flex;align-items:center}
+
+/* 곧 마감되는 공고: 왼쪽 동그란 D-day, 오른쪽에 사업명·상태·마감 */
+.dash-tiles{display:flex;flex-direction:column;gap:10px;padding:16px;flex:1;justify-content:flex-start}
+.dash-tile{display:flex;gap:12px;align-items:center;border:1px solid var(--border);border-radius:12px;padding:10px 16px;background:var(--surface);color:inherit;text-decoration:none}
+.dash-tile:hover{border-color:var(--accent)}
+.dash-tile:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dday-circle{flex:none;width:46px;height:46px;box-sizing:border-box;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;white-space:nowrap;background:var(--ts);color:var(--tc)}
+.dash-tile .nm{flex:1;min-width:0;font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-tile .due{flex:none;font-size:12px;font-weight:500;color:var(--tc);white-space:nowrap}
+
+/* D-day 칩 (이름 옆 작은 표시) */
+.dd-chip{display:inline-block;font-size:11.5px;font-weight:600;color:var(--tc);background:var(--ts);border-radius:7px;padding:2px 8px;margin-left:10px;vertical-align:2px;white-space:nowrap}
+
+/* 연도별 성과 (경영지원실): 위쪽 요약 + 버블 */
+.dash-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));padding:14px 12px 4px}
+.dash-kpi{min-width:0;padding:0 6px;border-left:1px solid var(--border);white-space:nowrap;text-align:center}
+.dash-kpi:first-child{border-left:0}
+.dash-kpi .l{font-size:11.5px;color:var(--d-sub)}
+.dash-kpi .v{font-size:20px;font-weight:600;line-height:1.2}
+.dash-kpi .v small{font-size:12px;font-weight:500;color:var(--d-sub);margin-left:2px}
+.kpi-chip{display:inline-block;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:10px;padding:1px 8px;white-space:nowrap}
+.kpi-chip.down{color:var(--danger);background:var(--danger-soft)}
+.dash-line{padding:4px 16px 10px;flex:1;display:flex;flex-direction:column;gap:4px}
+.dash-line svg{width:100%;max-width:520px;max-height:300px;margin:0 auto}
+.ln-legend{display:flex;gap:16px;font-size:12px;color:var(--d-sub)}
+.ln-legend span::before{content:"";display:inline-block;width:18px;border-top:2px solid;vertical-align:middle;margin-right:6px}
+.ln-legend .a::before{border-color:var(--accent)}
+.ln-legend .b::before{border-color:var(--ln2)}
+.ln-guide{stroke:var(--border);stroke-dasharray:2 5}
+.ln-rate{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+.ln-amt{fill:none;stroke:var(--ln2);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.ln-dot{fill:var(--surface);stroke-width:2.5}
+.ln-dot.rate{stroke:var(--accent)}
+.ln-dot.amt{stroke:var(--ln2);stroke-width:2}
+.ln-val{font-size:13px;font-weight:500;text-anchor:middle}
+.ln-val.rate{font-size:15px;fill:var(--accent)}
+.ln-val.amt{fill:var(--ln2)}
+.ln-year{font-size:13px;fill:var(--d-sub);text-anchor:middle;font-weight:500}
+.cur .ln-year{fill:var(--accent)}
+
+/* 주의가 필요한 항목 */
+
+/* 올해 수주한 사업 표 */
+
+/* 사업별 제안서 진행 현황 (팀장·팀원): 사업 이름 + 작은 원 3개 */
+.prog-head{display:flex;align-items:center;gap:14px;padding:10px 24px;background:var(--alt);font-size:11.5px;color:var(--d-sub);font-weight:500}
+.prog-head .nm{flex:2.8 1 0;min-width:0}
+.prog-row{display:flex;align-items:center;gap:14px;padding:16px 24px;border-bottom:1px solid var(--border);color:inherit;text-decoration:none}
+.prog-row:hover{background:var(--alt)}
+.prog-main{flex:2.8 1 0;min-width:0}
+.prog-name{display:flex;align-items:center;gap:8px;min-width:0;font-weight:500;font-size:15px}
+.prog-name .t,.todo-nm .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prog-name .dd-chip,.todo-nm .dd-chip{flex:none;margin:0}
+.prog-name .role{flex:none;font-size:11.5px;font-weight:400;color:var(--d-faint)}
+.prog-st,.prog-head .st{flex:1 1 0;min-width:84px;text-align:center}
+.prog-du,.prog-head .du{flex:1.1 1 0;min-width:104px;text-align:center;font-size:12.5px;color:var(--d-ink)}
+
+.prog-rings{flex:3 1 0;min-width:200px;display:flex;justify-content:space-around}
+.prog-head .cols > span{flex:1 1 0;text-align:center}
+.prog-head .cols{flex:3 1 0;min-width:200px;display:flex}
+.prog-final,.prog-head .fin{flex:1 1 0;min-width:72px;text-align:center}
+.prog-head .du{font-size:11.5px;color:var(--d-sub)}
+.prog-final .faint{font-size:11.5px;color:var(--d-faint)}
+.dash-ring{display:flex;justify-content:center}
+.dash-ring svg{width:52px;height:52px}
+.dash-ring .trk{fill:none;stroke:var(--d-track);stroke-width:5}
+.dash-ring .arc{fill:none;stroke:var(--accent);stroke-width:5;stroke-linecap:round}
+.dash-ring.soft .arc{stroke:var(--d-doing)}
+.dash-ring text{font-size:11.5px;font-weight:600;fill:var(--d-ink)}
+.dash-ring text.dim{fill:var(--d-faint)}
+
+/* 처리할 일 (팀장) · 내 할 일 (팀원): 상태 칩 + 이름·D-day 칩 + 설명 + 오른쪽 버튼 */
+.todo-row{display:grid;grid-template-columns:96px minmax(0,1.5fr) minmax(130px,1fr) 120px;column-gap:16px;align-items:center;padding:12px 20px;border-bottom:1px solid var(--border)}
+.todo-type{white-space:nowrap}
+.todo-main{display:contents}
+.todo-nm{display:flex;align-items:center;gap:8px;min-width:0;font-weight:500;font-size:14px}
+.todo-sub{text-align:left;font-size:12px;color:var(--d-sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.todo-btn{justify-self:stretch;text-align:center;white-space:nowrap;padding:7px 12px 7px 14px;border-radius:8px;background:var(--accent-soft);color:var(--accent);font-weight:500;font-size:12.5px;text-decoration:none}
+.todo-btn:hover{background:var(--accent);color:#fff}
+.todo-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.todo-btn i{font-style:normal;margin-left:2px}
+
+/* 목록 칸 + 미니 캘린더: 3칸, 넓은 목록은 2칸. 블록 사이 간격은 다른 곳과 같다 */
+.dash-blocks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--dash-gap);align-items:stretch}
+.dash-blocks > .card{min-height:300px;display:flex;flex-direction:column;min-width:0}
+.dash-blocks > .wide{grid-column:span 2}
+.dash-more-link{margin-top:auto;padding:10px 18px;font-size:12px;font-weight:500;text-align:center;border-top:1px solid var(--border);text-decoration:none;color:var(--accent)}
+.dash-more-link:hover{background:var(--alt);text-decoration:underline}
+
+/* 미니 캘린더 */
+.dash-cal-body{padding:10px 14px 6px}
+.dash-cal-dow,.dash-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));text-align:center}
+.dash-cal-dow{font-size:11px;font-weight:600;color:var(--d-sub);padding-bottom:4px}
+.dash-cal-dow span:first-child{color:var(--d-sun)}
+.dash-cal-dow span:last-child{color:var(--d-sat)}
+.dash-cal-grid{row-gap:2px}
+.dash-cal-cell{min-height:30px;display:flex;flex-direction:column;align-items:center;gap:2px;padding-top:3px;font-size:11.5px}
+.dash-cal-cell b{font-weight:400;width:20px;height:20px;line-height:20px;border-radius:50%}
+.dash-cal-grid > .dash-cal-cell:nth-child(7n+1) b{color:var(--d-sun)}
+.dash-cal-grid > .dash-cal-cell:nth-child(7n) b{color:var(--d-sat)}
+.dash-cal-cell.today b{background:var(--accent);color:#fff !important;font-weight:600}
+.dash-cal-cell .dots{display:flex;gap:2px}
+.dash-cal-cell .cnt{min-width:16px;height:14px;line-height:14px;padding:0 3px;box-sizing:border-box;border-radius:7px;background:var(--accent-soft);color:var(--accent-s);font-size:10px;font-weight:600}
+.dash-cal .dot,.dash-upcoming .dot{width:6px;height:6px;margin:0;flex:none}
+.dash-upcoming{border-top:1px solid var(--border);padding:8px 14px 12px;display:flex;flex-direction:column;gap:6px;font-size:11.5px;margin-top:auto}
+.dash-upcoming .h{font-weight:600;color:var(--d-sub)}
+.dash-upcoming .u{display:flex;align-items:center;gap:6px;min-width:0}
+.dash-upcoming .u b{flex:none;width:34px}
+.dash-upcoming .u .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* 최근 알림 열: 한 줄 전체를 누를 수 있다. 안 읽음은 진하게 + 점, 읽음은 흐리게 */
+.dash-side .dash-empty{min-height:200px}
+.dash-alert{margin:0}
+.dash-alert-btn{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;width:100%;padding:11px 18px 11px 30px;border-bottom:1px solid var(--border);cursor:pointer;position:relative}
+.dash-alert-btn:hover{background:var(--alt)}
+.dash-alert-btn:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.dash-alert-btn .c{font-size:12.5px;line-height:1.45;color:var(--d-faint);word-break:break-all}
+.dash-alert-btn .m{font-size:11px;color:var(--d-faint)}
+.dash-alert.unread .dash-alert-btn .c{color:var(--d-ink);font-weight:600}
+.dash-alert.unread .dash-alert-btn::before{content:'';position:absolute;left:14px;top:17px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+
+@media (max-width:1100px){
+  .prog-head{display:none}
+  .prog-row{flex-wrap:wrap}
+  .prog-main{flex:1 1 100%}
+  .prog-st,.prog-du{width:auto}
+  .prog-rings,.prog-final{width:auto}
+  .prog-rings{width:100%}
+}
+@media (max-width:1000px){
+  .dash-cards,.dash-cards.c3{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dash-pair,.dash-pair.wide-left{grid-template-columns:1fr}
+  .dash-blocks{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dash-kpis{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:10px}
+  .dash-kpi{border-left:0}
+}
+@media (max-width:640px){
+  .dash-cards,.dash-cards.c3{grid-template-columns:1fr}
+  .dash-blocks{grid-template-columns:1fr}
+  .dash-blocks > .wide{grid-column:auto}
+  .dash-banner{height:150px}
+  .todo-row{grid-template-columns:minmax(0,1fr) auto;row-gap:4px}
+  .todo-type{grid-column:1/-1}
+}
+
+/* 글씨 톤: 대시보드 안에서만 굵기·색을 낮춘다 */
+.dash h3{font-weight:600}
+.dash b,.dash strong{font-weight:600}
+.dash .dd-chip,.dash .kpi-chip{font-weight:500}
+.dash-stat .l{color:var(--d-sub)}
+
+/* 한 줄 목록(표): 열마다 자기 폭을 가진다. 칸이 모자라면 사업명(.f)이 줄어든다 */
+.lt-head,.lt-row{display:flex;align-items:center;gap:12px;padding-left:18px;padding-right:18px}
+.lt-head{padding-top:8px;padding-bottom:8px;background:var(--alt);border-bottom:1px solid var(--border);font-size:11.5px;font-weight:500;color:var(--d-sub);position:sticky;top:0;z-index:1}
+.lt-row{padding-top:11px;padding-bottom:11px;border-bottom:1px solid var(--border);color:var(--d-ink);text-decoration:none;font-size:13px}
+.lt-row:hover{background:var(--alt)}
+.lt-head > span,.lt-row > span,.lt-row > b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lt-row .f{font-weight:500}
+.lt-row .s{font-size:12px;font-weight:400;color:var(--d-sub)}
+.lt-row .k{font-size:12px;font-weight:500;color:var(--d-sub)}
+.lt-row.danger .k,.lt-row.danger .r{color:var(--danger)}
+.lt-row .r{font-size:12.5px;font-weight:500;color:var(--accent)}
+.lt-row .dd{font-size:12.5px;font-weight:500;color:var(--tc)}
+.lt-row .amt{font-weight:600;color:var(--accent)}
+.lt-row .miss{color:var(--danger);font-weight:500}
+.f{flex:1;min-width:0}
+.w44{flex:none;width:44px}.w52{flex:none;width:52px}.w64{flex:none;width:64px}.w72{flex:none;width:72px}.w76{flex:none;width:76px}.w84{flex:none;width:84px}.w88{flex:none;width:88px}.w96{flex:none;width:96px}.w120{flex:none;width:120px}.w128{flex:none;width:136px}
+.w80{flex:none;width:80px}.w110{flex:none;width:110px}
+.f2{flex:1.5 1 0;min-width:0}.g{flex:1 1 0;min-width:0}
+.tr{text-align:right}.tc{text-align:center}
+.win-sum{display:flex;justify-content:flex-end;padding:10px 18px;font-size:12.5px;background:var(--alt);border-top:1px solid var(--border)}
+@media (max-width:760px){.lt-head .w96,.lt-row .w96,.lt-head .w120,.lt-row .w120,.lt-head .w110,.lt-row .w110{display:none}}
+
+/* 레이더 (영업부 팀별 진행 현황) */
+.dash-radar{padding:6px 12px 12px;flex:1;display:flex;align-items:center;justify-content:center}
+.dash-radar svg{width:100%;max-width:520px;max-height:340px}
+.rd-ring{fill:none;stroke:var(--border);stroke-width:1}
+.rd-ring.out{stroke:var(--d-faint);stroke-opacity:.55}
+.rd-spoke{stroke:var(--border);stroke-width:1;stroke-dasharray:2 4}
+.rd-tick{font-size:11px;fill:var(--d-faint)}
+.rd-shape{fill:url(#rdFill);stroke:var(--accent);stroke-width:2;stroke-linejoin:round}
+.rd-dot{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.rd-dot.top{fill:var(--warning)}
+.rd-name{font-size:13.5px;font-weight:500;fill:var(--d-ink)}
+.rd-val{font-size:13.5px;font-weight:600;fill:var(--accent)}
+/* 나란히 놓인 블록의 머리 높이를 같게 (버튼이 있는 블록과 없는 블록의 내용 시작선이 같아진다) */
+.dash .card{overflow:hidden}
+.dash .card-head{min-height:56px;box-sizing:border-box}

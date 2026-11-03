@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  참고자료 SQL. 사용 테이블: TB_REF_FILE, TB_USER
+  팀 단위로 나눈다. 목록·한 건 조회는 삭제하지 않은 것(DEL_YN='N')만, 팀 확인은 서비스에서 한다.
+  자료구분 RF010 폰트 / RF020 이미지 / RF030 문서 / RF040 기타 (공통코드 REFSE)
+-->
+<mapper namespace="com.ojj.sujuro.reference.mapper.RefFileMapper">
+
+  <sql id="cols">
+    F.REF_FILE_SN AS refFileSn, F.TEAM_SN AS teamSn, F.REF_SE_CD AS refSeCd,
+    F.ORGNL_FILE_NM AS orgnlFileNm, F.STRG_FILE_NM AS strgFileNm, F.FILE_PATH_NM AS filePathNm,
+    F.FILE_SZ AS fileSz, F.FILE_EXTN_NM AS fileExtnNm, F.MEMO_CN AS memoCn,
+    F.RGTR_ID AS rgtrId, U.USER_NM AS rgtrNm, F.REG_DT AS regDt
+  </sql>
+
+  <select id="findTeamSn" resultType="java.lang.Long">
+    SELECT TEAM_SN FROM TB_USER WHERE USER_ID = #{userId}
+  </select>
+
+  <select id="findByTeam" resultType="com.ojj.sujuro.reference.dto.RefFileDto">
+    SELECT <include refid="cols"/>
+      FROM TB_REF_FILE F
+      LEFT JOIN TB_USER U ON U.USER_ID = F.RGTR_ID
+     WHERE F.TEAM_SN = #{teamSn}
+       AND F.DEL_YN = 'N'
+     ORDER BY F.REF_FILE_SN DESC
+  </select>
+
+  <select id="findOne" resultType="com.ojj.sujuro.reference.dto.RefFileDto">
+    SELECT <include refid="cols"/>
+      FROM TB_REF_FILE F
+      LEFT JOIN TB_USER U ON U.USER_ID = F.RGTR_ID
+     WHERE F.REF_FILE_SN = #{refFileSn}
+       AND F.DEL_YN = 'N'
+  </select>
+
+  <insert id="insert" parameterType="com.ojj.sujuro.reference.dto.RefFileDto"
+          useGeneratedKeys="true" keyProperty="refFileSn" keyColumn="REF_FILE_SN">
+    INSERT INTO TB_REF_FILE (TEAM_SN, REF_SE_CD, ORGNL_FILE_NM, STRG_FILE_NM, FILE_PATH_NM, FILE_SZ, FILE_EXTN_NM, MEMO_CN, RGTR_ID)
+    VALUES (#{teamSn}, #{refSeCd}, #{orgnlFileNm}, #{strgFileNm}, #{filePathNm}, #{fileSz}, #{fileExtnNm}, #{memoCn}, #{rgtrId})
+  </insert>
+
+  <update id="markDeleted">
+    UPDATE TB_REF_FILE
+       SET DEL_YN = 'Y', DLTR_ID = #{userId}, DEL_DT = SYSDATE
+     WHERE REF_FILE_SN = #{refFileSn}
+       AND DEL_YN = 'N'
+  </update>
+
+</mapper>

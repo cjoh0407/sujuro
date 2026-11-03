@@ -111,17 +111,18 @@ class DashboardServiceTest {
     }
 
     @Test
-    void 최근_알림은_다섯_건까지만_보인다() {
-        when(inbox.findMine("M1", false)).thenReturn(Arrays.asList(
+    void 최근_알림은_다섯_건만_불러온다() {
+        // 몇 건을 가져올지는 쿼리(findPage 의 size)가 정한다
+        when(inbox.findPage("M1", 0, 5)).thenReturn(Arrays.asList(
                 new NotificationDto(), new NotificationDto(), new NotificationDto(),
-                new NotificationDto(), new NotificationDto(), new NotificationDto(), new NotificationDto()));
+                new NotificationDto(), new NotificationDto()));
 
         assertEquals(5, service.build(user("M1", Role.MEMBER)).getAlerts().size());
     }
 
     @Test
     void 알림이_없어도_오류가_없다() {
-        when(inbox.findMine("M1", false)).thenReturn(Collections.<NotificationDto>emptyList());
+        when(inbox.findPage("M1", 0, 5)).thenReturn(Collections.<NotificationDto>emptyList());
 
         assertTrue(service.build(user("M1", Role.MEMBER)).getAlerts().isEmpty());
     }

@@ -44,9 +44,19 @@
     <header class="topbar">
       <h1 layout:fragment="pageTitle">수주로</h1>
       <div class="right">
-        <!-- 알림 종 아이콘: 안 읽은 알림 건수(unreadCount)는 NotificationBadgeAdvice 가 모든 화면에 넣어 준다. (FR-032) -->
-        <a class="bellbtn" th:href="@{/alerts}" title="알림">🔔<span class="badge" th:if="${unreadCount != null and unreadCount > 0}"
-              th:text="${unreadCount > 99} ? '99+' : ${unreadCount}">3</span></a>
+        <!-- 알림 종 아이콘: 누르면 알림 팝업이 열린다 (js/notification-panel.js). 따로 알림 화면은 없다.
+             안 읽은 알림 건수(unreadCount)는 NotificationBadgeAdvice 가 모든 화면에 넣어 준다. (FR-032, FR-033) -->
+        <button type="button" class="bellbtn" id="bellBtn" title="알림" aria-haspopup="dialog" aria-expanded="false"
+                aria-controls="bellPanel" th:data-base="@{/alerts}">🔔<span class="badge" th:if="${unreadCount != null and unreadCount > 0}"
+              th:text="${unreadCount > 99} ? '99+' : ${unreadCount}">3</span></button>
+        <div class="bellpanel" id="bellPanel" role="dialog" aria-label="알림">
+          <div class="bp-head">
+            <b>알림</b><span class="faint" id="bpUnread"></span>
+            <button type="button" class="link" id="bpReadAll">모두 읽음</button>
+          </div>
+          <ul class="bp-list" id="bpList"></ul>
+          <div class="bp-foot faint" id="bpFoot">불러오는 중…</div>
+        </div>
         <div class="who">
           <div class="avatar" th:text="${#strings.substring(#authentication.principal.name, 0, 1)}">나</div>
           <div>
@@ -70,6 +80,7 @@
 <div id="toast"></div>
 <script th:src="@{/js/common.js}"></script>
 <script th:src="@{/js/notification-socket.js}"></script>
+<script th:src="@{/js/notification-panel.js}"></script>
 <th:block layout:fragment="scripts"></th:block>
 </body>
 </html>

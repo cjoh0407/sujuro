@@ -14,6 +14,8 @@
       .dash-alert-btn .t{margin-left:auto}
       .dash-alert-btn:hover span:not(.pill){text-decoration:underline}
       .dash-alert-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+      .dash-alert:not(.unread) .dash-alert-btn span:not(.pill):not(.t){color:var(--faint)}
+      .dash-alert:not(.unread) .pill{opacity:.6}
     </style>
   </th:block>
 </head>
@@ -146,11 +148,12 @@
 
   <!-- 최근 알림 -->
   <div class="card">
-    <div class="card-head"><h3>최근 알림</h3><a class="btn sm" th:href="@{/alerts}">전체 보기</a></div>
+    <div class="card-head"><h3>최근 알림</h3><button class="btn sm" type="button" data-bell-open onclick="sujuroBell(true)">전체 보기</button></div>
     <div class="empty pad faint" th:if="${#lists.isEmpty(view.alerts)}">알림이 없습니다.</div>
-    <!-- 알림을 누르면 읽음 처리하고 관련 화면으로 간다 (알림 화면과 같은 /alerts/{id}/open). 갈 곳이 없으면 알림 화면으로 -->
+    <!-- 알림을 누르면 알림 팝업과 같이 읽음 처리하고 그 알림의 화면으로 간다 (js/notification-panel.js).
+         읽은 알림은 흐리게. 스크립트가 없으면 폼이 /alerts/{id}/open 으로 간다 -->
     <form class="item dash-alert" th:each="n : ${view.alerts}" th:classappend="${n.read} ? '' : 'unread'"
-          th:action="@{/alerts/{id}/open(id=${n.notiSn})}" method="post">
+          th:action="@{/alerts/{id}/open(id=${n.notiSn})}" th:attr="data-noti-id=${n.notiSn}" method="post">
       <button type="submit" class="dash-alert-btn" title="눌러서 열기 (읽음 처리 후 관련 화면으로 이동)">
         <span class="pill neutral" th:text="${n.typeNm != null} ? ${n.typeNm} : ${n.typeCd}">유형</span>
         <span th:text="${n.content}">내용</span>

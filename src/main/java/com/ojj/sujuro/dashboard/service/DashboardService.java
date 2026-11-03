@@ -106,7 +106,6 @@ public class DashboardService {
     }
 
     private List<NotificationDto> recentAlerts(String userId) {
-        List<NotificationDto> all = inboxMapper.findMine(userId, false);
-        return all.size() > ALERT_LIMIT ? all.subList(0, ALERT_LIMIT) : all;
+        return inboxMapper.findPage(userId, 0, ALERT_LIMIT);
     }
 }

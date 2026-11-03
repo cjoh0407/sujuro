@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>로그인 - 수주로</title>
   <link rel="stylesheet" th:href="@{/css/common.css}">
+  <link rel="icon" type="image/svg+xml" th:href="@{/images/favicon.svg}">
 </head>
 <body>
 <div class="login">
@@ -12,8 +13,8 @@
     <div class="card">
       <div class="pad" style="display:flex;flex-direction:column;gap:14px">
         <div class="brand">
-          <div class="brand-mark">수</div>
-          <div><b style="font-size:17px">수주로</b><span>나라장터 입찰 관리 서비스</span></div>
+          <svg class="brand-logo" viewBox="0 0 64 64" width="40" height="40" aria-hidden="true"><path d="M46 14C22 8 18 29 32 32C46 35 42 56 18 50" fill="none" stroke="var(--logo-n)" stroke-width="8" stroke-linecap="round"/><circle cx="46" cy="14" r="6.5" fill="var(--logo-r)"/><circle cx="18" cy="50" r="6.5" fill="var(--logo-g)"/></svg>
+          <div><b style="font-size:17px">수주로</b></div>
         </div>
 
         <div class="banner err" th:if="${param.error != null}">사번 또는 비밀번호가 올바르지 않습니다.</div>
@@ -36,7 +37,6 @@
           <button class="btn primary" type="submit" style="justify-content:center">로그인</button>
         </form>
 
-        <div class="faint" style="font-size:11.5px">회원가입 없이 경영지원실이 발급한 계정으로 로그인합니다.</div>
       </div>
     </div>
   </div>

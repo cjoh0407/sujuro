@@ -43,6 +43,7 @@ public class SecurityConfig {
                 // 메뉴별 접근 규칙 (HTML 목업 v3.5의 메뉴 노출 기준과 같다)
                 .antMatchers("/notices/**").hasAnyRole("SALES", "LEADER", "MGMT")
                 .antMatchers("/proposal/**", "/files/**").hasAnyRole("LEADER", "MEMBER")
+                .antMatchers("/refs/**").hasAnyRole("LEADER", "MEMBER") // 참고자료: 제안팀만, 같은 팀 자료만 (서비스에서 팀 확인)
                 .antMatchers("/qa/**").hasAnyRole("SALES", "MGMT", "LEADER", "MEMBER") // 영업부·경영지원실은 읽기만 (쓰기는 컨트롤러에서 제안팀만)
                 .antMatchers("/docs/**").hasAnyRole("MGMT", "LEADER", "MEMBER")
                 .antMatchers("/results/**").hasAnyRole("MGMT", "LEADER")

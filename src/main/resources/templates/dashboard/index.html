@@ -24,8 +24,8 @@
 <div class="dash">
   <div class="dash-main">
 
-    <!-- 배너: 이미지는 static/images/dashboard-banner.svg (바꾸려면 같은 이름으로 덮어쓰거나 dashboard.css 의 주소를 바꾼다) -->
-    <section class="dash-banner" aria-label="오늘 요약">
+    <!-- 배너: 역할마다 다른 그림. static/images/banner-sales·mgmt·leader·member.svg (dashboard.css 의 .banner-역할 에서 연결). 없는 역할은 dashboard-banner.svg -->
+    <section class="dash-banner" th:classappend="|banner-${#strings.toLowerCase(view.roleKey)}|" aria-label="오늘 요약">
       <div class="dash-banner-chip">
         <b th:text="${view.todayText}">2026년 11월 3일 화요일</b>
       </div>

@@ -35,6 +35,10 @@
 /* 배너: 이미지 + 왼쪽 아래 날짜·요약. 이미지가 없으면 연한 파란 판만 보인다 */
 .dash-banner{position:relative;height:180px;border-radius:12px;overflow:hidden;border:1px solid var(--border);
   background:var(--accent-soft) url("../images/dashboard-banner.svg") right center / cover no-repeat}
+.dash-banner.banner-sales{background-image:url("../images/banner-sales.svg")}
+.dash-banner.banner-mgmt{background-image:url("../images/banner-mgmt.svg")}
+.dash-banner.banner-leader{background-image:url("../images/banner-leader.svg")}
+.dash-banner.banner-member{background-image:url("../images/banner-member.svg")}
 .dash-banner-chip{position:absolute;left:20px;bottom:18px;max-width:calc(100% - 40px);box-sizing:border-box;background:var(--surface);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:2px;box-shadow:0 2px 8px rgba(23,32,46,.10)}
 .dash-banner-chip b{font-size:14px}
 .dash-banner-chip span{font-size:12px;color:var(--d-sub)}

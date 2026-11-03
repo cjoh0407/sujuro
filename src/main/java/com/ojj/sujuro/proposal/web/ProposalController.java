@@ -82,15 +82,18 @@ public class ProposalController {
         String se = se(tk);
 
         // 화면 버튼 노출 (서버에서도 같은 기준으로 다시 막는다)
-        boolean canLoad = accessChecker.isLeadTeamMember(pbancSn, user);
-        boolean canAssign = accessChecker.isLeadTeamLeader(pbancSn, user);
-        boolean canReq = rqtService.canEdit(pbancSn, me, canAssign);
+        // 끝난 사업(제출 완료·결과 등록·유찰)은 누구도 고치지 않고 내용만 본다
+        boolean ended = current.isEnded();
+        boolean canLoad = !ended && accessChecker.isLeadTeamMember(pbancSn, user);
+        boolean canAssign = !ended && accessChecker.isLeadTeamLeader(pbancSn, user);
+        boolean canReq = !ended && rqtService.canEdit(pbancSn, me, accessChecker.isLeadTeamLeader(pbancSn, user));
 
         model.addAttribute("me", me);
         model.addAttribute("bid", current);
         model.addAttribute("tab", tk);
         model.addAttribute("canLoad", canLoad);
-        model.addAttribute("canEdit", true); // requireProposalMember를 통과했으니 제안팀원
+        model.addAttribute("ended", ended);
+        model.addAttribute("canEdit", !ended); // requireProposalMember를 통과했으니 제안팀원 (끝난 사업은 보기만)
         model.addAttribute("canAssign", canAssign);
         model.addAttribute("canReq", canReq);
         model.addAttribute("members", proposalService.members(pbancSn));
@@ -167,8 +170,13 @@ public class ProposalController {
     @PostMapping("/proposal/toc/import")
     public String importToc(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
                             @RequestParam(value = "tab", defaultValue = TAB_PROPOSAL) String tab,
-                            @RequestParam(value = "tocFormSn", required = false) Long tocFormSn, RedirectAttributes ra) {
+                            @RequestParam(value = "tocFormSn", required = false) Long tocFormSn,
+                            @RequestParam(value = "tocFormNm", required = false) String tocFormNm, RedirectAttributes ra) {
         return run(user, bid, tab, ra, accessChecker::requireLeadTeamMember, b -> () -> {
+            if (tocFormNm != null && !tocFormNm.trim().isEmpty()) { // 새 이름을 줬으면 고른 양식을 그 이름으로 복사해서 가져온다
+                tocService.importFormAs(bid, se(tab), tocFormSn, tocFormNm, b.getSprvsnTeamSn(), user.getEmpNo());
+                return "'" + tocFormNm.trim().replaceAll("\\s+", " ") + "' 양식으로 복사해서 불러왔습니다. 이번 사업에 맞게 달라진 부분만 수정하세요.";
+            }
             tocService.importForm(bid, se(tab), tocFormSn, b.getSprvsnTeamSn());
             return "목차 양식을 불러왔습니다. 이번 사업에 맞게 달라진 부분만 수정하세요. (목차 단계 제한 없음)";
         });

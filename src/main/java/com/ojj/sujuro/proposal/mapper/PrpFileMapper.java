@@ -38,5 +38,5 @@ public interface PrpFileMapper {
     int clearFinal(@Param("pbancSn") Long pbancSn);
 
     /** 이 통합본을 최종본으로 표시한다. (FR-064) */
-    int markFinal(@Param("fileSn") Long fileSn, @Param("userId") String userId);
+    int markFinal(@Param("pbancSn") Long pbancSn, @Param("fileSn") Long fileSn, @Param("userId") String userId);
 }

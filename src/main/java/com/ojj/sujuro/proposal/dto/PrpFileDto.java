@@ -2,6 +2,8 @@ package com.ojj.sujuro.proposal.dto;
 
 import java.util.Date;
 
+import com.ojj.sujuro.proposal.service.PrpFileService;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -64,6 +66,16 @@ public class PrpFileDto {
     /** 팀장이 확정한 최종본인지 (FR-064) */
     public boolean isLast() {
         return "Y".equals(lastYn);
+    }
+
+    /** 파일 형식: PDF / PPT(ppt·pptx) / 그 밖은 빈 문자열 */
+    public String getFmt() {
+        return PrpFileService.formatOf(orgnlFileNm);
+    }
+
+    /** 확장자를 뺀 이름 (같은 문서의 PDF·PPT를 짝짓는 데 쓴다) */
+    public String getBaseNm() {
+        return PrpFileService.baseName(orgnlFileNm);
     }
 
     /** 화면에 보여 줄 크기 (KB / MB) */

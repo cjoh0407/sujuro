@@ -26,6 +26,13 @@ public class ProposalBidDto {
 
     public void setPbancSttsCd(String pbancSttsCd) { this.pbancSttsCd = pbancSttsCd == null ? null : pbancSttsCd.trim(); }
 
+    /**
+     * 끝난 사업인지: 제출 완료(PS050)·결과 등록(PS060)·유찰(PS070). 끝난 사업은 목차·요구사항을 보기만 하고 고치지 않는다.
+     */
+    public boolean isEnded() {
+        return "PS050".equals(pbancSttsCd) || "PS060".equals(pbancSttsCd) || "PS070".equals(pbancSttsCd);
+    }
+
     /** 선택 목록에 보여 줄 이름. 공고명이 아직 없으면 공고번호를 쓴다. */
     public String getLabel() {
         return pbancNm != null && !pbancNm.isEmpty() ? pbancNm : bidPbancNo;

@@ -39,6 +39,7 @@
           <option value="" disabled selected>목차 양식 고르기</option>
           <option th:each="f : ${forms}" th:value="${f.tocFormSn}" th:text="${f.labelFor(me)}">양식</option>
         </select>
+        <input type="text" name="tocFormNm" placeholder="새 이름 (비우면 그대로 불러오기)" maxlength="100" style="width:220px" autocomplete="off">
         <button class="btn primary" type="submit">팀 양식 불러오기</button>
       </form>
       <form th:action="@{/proposal/toc/form/new}" method="post" class="row">
@@ -100,6 +101,7 @@
         <button class="btn sm" type="submit"
                 th:data-msg="${k == 'sum'} ? '현재 목차와 담당자 지정이 사라집니다. 선택한 양식으로 바꿀까요?' : '현재 목차와 담당자 지정이 사라지고, 연결된 요구사항은 모두 미매핑이 됩니다. 선택한 양식으로 바꿀까요?'"
                 onclick="return !this.form.elements.tocFormSn.value || confirm(this.dataset.msg)">다른 양식으로 바꾸기</button>
+        <button class="btn sm" type="submit" onclick="return askFormCopy(this)">새 이름으로 복사해서 바꾸기</button>
         <button class="btn sm" type="submit" th:formaction="@{/proposal/toc/form/rename}"
                 onclick="return askFormRename(this)">이름 바꾸기</button>
         <button class="btn sm danger" type="submit" th:formaction="@{/proposal/toc/form/delete}"
@@ -108,7 +110,8 @@
       <span class="faint" th:if="${#lists.isEmpty(forms)}">저장된 양식 없음</span>
     </form>
     <!-- 지금 목차를 양식으로 저장: 같은 이름이면 그 양식을 덮어쓰고, 다른 이름이면 새 양식이 생긴다 -->
-    <form th:action="@{/proposal/toc/form}" method="post" class="row form-save" onsubmit="return confirmFormSave(this)">
+    <!-- 현재 양식이 있으면 목차를 고칠 때마다 그 양식에 저장되고 이름은 [이름 바꾸기]로 바꾸므로 저장 칸은 숨긴다. 양식 없이 만든 목차(제안서)와 제안요약서에서만 보인다 -->
+    <form th:if="${k == 'sum' or curForm == null or !curForm.inUse}" th:action="@{/proposal/toc/form}" method="post" class="row form-save" onsubmit="return confirmFormSave(this)">
       <input type="hidden" name="bid" th:value="${bid.pbancSn}">
       <input type="hidden" name="tab" th:value="${k}">
       <input type="text" name="tocFormNm" placeholder="새 양식 이름" maxlength="100" required style="width:190px" autocomplete="off">
@@ -173,9 +176,9 @@
 </form>
 
 <!--/* 담당자: 제안팀원을 고르거나, 외부 회사를 고르거나 직접 적는다 (외부 회사는 계정 없이 회사명만, FR-043-1)
-       선택칸 값: "" 미지정 / 사번 / "co:회사명"(이미 쓴 회사) / "co-new"(직접 입력 칸을 연다) */-->
+       선택칸 값: "" 미지정 / 사번 / "co:회사명"(이미 쓴 회사) / "co-new"(왼쪽 아래 "외부 회사 입력" 칸을 연다) */-->
 <th:block th:fragment="owner(t, k)">
-  <form th:if="${canAssign}" th:action="@{/proposal/toc/assign}" method="post" class="owner-form">
+  <form th:if="${canAssign}" th:action="@{/proposal/toc/assign}" method="post" class="owner-form" th:data-label="${t.label}">
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
     <input type="hidden" name="tab" th:value="${k}">
     <input type="hidden" name="tocSn" th:value="${t.tocSn}">
@@ -197,15 +200,6 @@
         <option value="co-new">+ 외부 회사 직접 입력</option>
       </optgroup>
     </select>
-    <span class="co-new" hidden>
-      <input type="text" name="picCoNm" placeholder="외부 회사명" maxlength="200" autocomplete="off" disabled data-track required
-             th:list="'co-names-' + ${t.tocSn}" style="width:140px">
-      <datalist th:id="'co-names-' + ${t.tocSn}">
-        <option th:each="c : ${coNames}" th:value="${c}"></option>
-      </datalist>
-      <button class="btn sm primary" type="submit">지정</button>
-      <button class="btn sm" type="button" onclick="cancelOwner(this)">취소</button>
-    </span>
   </form>
   <th:block th:unless="${canAssign}">
     <span th:if="${t.assigned}" th:text="${t.ownerLabel}">담당자</span>

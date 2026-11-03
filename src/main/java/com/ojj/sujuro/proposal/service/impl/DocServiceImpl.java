@@ -118,10 +118,15 @@ public class DocServiceImpl implements DocService {
     public void deleteDoc(Long pbancSn, Long dcmntSn) {
         requireOpen(pbancSn);
         DocDto d = own(pbancSn, dcmntSn);
-        if (d.getFileTotal() > 0) {
-            throw new BusinessException("'" + d.getDcmntNm() + "'에 올린 파일(삭제한 파일 기록 포함)이 있어 지울 수 없습니다. (파일 이력은 보관합니다)");
-        }
+        // 서류를 지우면 그 서류에 올린 파일도 기록과 함께 모두 지운다 (삭제한 파일 기록 포함)
+        List<PrpFileDto> files = d.getFileTotal() > 0 ? mapper.findFilesOfDoc(dcmntSn) : new ArrayList<>();
+        mapper.deleteFilesOfDoc(dcmntSn);
         mapper.deleteDoc(dcmntSn);
+        for (PrpFileDto f : files) { // DB를 먼저 지운 뒤 서버의 파일을 지운다
+            if (f.getStrgFileNm() != null && f.getFilePathNm() != null) {
+                storage.deleteQuietly(f.getFilePathNm(), f.getStrgFileNm());
+            }
+        }
     }
 
     @Transactional
@@ -377,11 +382,16 @@ public class DocServiceImpl implements DocService {
         if (s == null || s.trim().isEmpty()) {
             return null;
         }
+        LocalDate day;
         try {
-            return Date.valueOf(LocalDate.parse(s.trim()));
+            day = LocalDate.parse(s.trim());
         } catch (DateTimeParseException e) {
             throw new BusinessException("제출 기한 날짜 형식이 올바르지 않습니다.");
         }
+        if (day.isBefore(LocalDate.now())) {
+            throw new BusinessException("제출 기한은 오늘 이후 날짜로 정해 주세요.");
+        }
+        return Date.valueOf(day);
     }
 
 }

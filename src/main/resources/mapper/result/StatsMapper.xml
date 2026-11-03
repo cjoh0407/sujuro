@@ -12,7 +12,8 @@
   - 결과   : 결과 등록(PS060)이고 입찰 결과가 수주(BR010)·탈락(BR020)인 공고. 유찰(PS070)은 결과가 아니다.
   - 수주율 : 수주 ÷ 결과. 유찰은 빠진다.
   - 수주 금액 : 수주한 사업의 낙찰금액(TB_BID_RSLT.SCSBD_AMT) 합
-  - 평가 항목 득점 : 우리 회사(OUR_CO_YN = Y) 행의 평가위원 점수 평균. 세부 항목이 있는 항목은 세부 항목만 센다.
+  - 평가 항목 득점 : 업체별 평가위원 점수 평균. 세부 항목이 있는 항목은 세부 항목만 센다.
+                     평가표 엑셀을 올린 업체(EVL_TBL_UPLD_YN = Y)만 센다 (11/03).
 -->
 <mapper namespace="com.ojj.sujuro.result.mapper.StatsMapper">
 
@@ -98,7 +99,10 @@
      ORDER BY ord
   </select>
 
-  <!-- 공고·세부 항목마다 위원 점수를 평균한 뒤, 대분류(상위 항목, 없으면 자기 자신)로 득점과 배점을 더한다 -->
+  <!--
+    공고·세부 항목마다 위원 점수를 평균한 뒤, 대분류(상위 항목, 없으면 자기 자신)로 득점과 배점을 더한다.
+    우리 회사 평가표 엑셀이 올라온 공고만 센다(11/03). 올라오기 전에는 행이 없다.
+  -->
   <select id="articleRates" resultType="com.ojj.sujuro.result.dto.StatsArticleDTO">
     SELECT X.CAT_NM AS catNm,
            SUM(X.SCR) AS scoreSum,
@@ -112,7 +116,7 @@
                AVG(S.EVL_SCR) AS SCR
           FROM TB_BID_PBANC P
           <include refid="resultJoin"/>
-          JOIN TB_CO_EVL_RSLT C ON C.PBANC_SN = P.PBANC_SN AND C.OUR_CO_YN = 'Y'
+          JOIN TB_CO_EVL_RSLT C ON C.PBANC_SN = P.PBANC_SN AND C.OUR_CO_YN = 'Y' AND C.EVL_TBL_UPLD_YN = 'Y'
           JOIN TB_EVL_CMSNR_SCR S ON S.CO_EVL_RSLT_SN = C.CO_EVL_RSLT_SN
           JOIN TB_EVL_ARTCL A ON A.EVL_ARTCL_SN = S.EVL_ARTCL_SN
           LEFT JOIN TB_EVL_ARTCL UP ON UP.EVL_ARTCL_SN = A.UP_EVL_ARTCL_SN
@@ -129,6 +133,62 @@
       <when test="pbancSn != null"> ORDER BY MIN(X.ORD), X.CAT_NM</when>
       <otherwise> ORDER BY SUM(X.SCR) / SUM(X.MX), X.CAT_NM</otherwise>
     </choose>
+  </select>
+
+  <!--
+    사업별 결과 분석의 평가 항목별 점수 표 (11/03). 업체 × 대분류 한 행.
+    평가표 엑셀을 올린 업체(EVL_TBL_UPLD_YN = Y)만, 세부 항목은 위원 점수 평균을 대분류로 더한다. 우리 회사가 먼저, 나머지는 개찰 순위 순.
+    순위·종합 점수(대분류 점수 합)·1등 업체는 ArticleScoreTableDTO 가 계산한다.
+  -->
+  <select id="companyArticleScores" resultType="com.ojj.sujuro.result.dto.CompanyCategoryScoreDTO">
+    SELECT X.CO_EVL_RSLT_SN AS coEvlRsltSn,
+           X.CO_NM AS coNm,
+           X.OUR_CO_YN AS ourCoYn,
+           X.OPENG_RNK AS opengRnk,
+           X.CAT_NM AS catNm,
+           MIN(X.ORD) AS ord,
+           SUM(X.MX) AS maxSum,
+           SUM(X.SCR) AS scoreSum
+      FROM (
+        SELECT C.CO_EVL_RSLT_SN, C.CO_NM, C.OUR_CO_YN, C.OPENG_RNK,
+               NVL(UP.EVL_ARTCL_NM, A.EVL_ARTCL_NM) AS CAT_NM,
+               MIN(NVL(UP.SORT_SEQ, A.SORT_SEQ)) AS ORD,
+               A.EVL_SCOR_SCR AS MX,
+               AVG(S.EVL_SCR) AS SCR
+          FROM TB_CO_EVL_RSLT C
+          JOIN TB_EVL_CMSNR_SCR S ON S.CO_EVL_RSLT_SN = C.CO_EVL_RSLT_SN
+          JOIN TB_EVL_ARTCL A ON A.EVL_ARTCL_SN = S.EVL_ARTCL_SN
+          LEFT JOIN TB_EVL_ARTCL UP ON UP.EVL_ARTCL_SN = A.UP_EVL_ARTCL_SN
+         WHERE C.PBANC_SN = #{pbancSn}
+           AND C.EVL_TBL_UPLD_YN = 'Y'
+           AND NOT EXISTS (SELECT 1 FROM TB_EVL_ARTCL K WHERE K.UP_EVL_ARTCL_SN = A.EVL_ARTCL_SN)
+         GROUP BY C.CO_EVL_RSLT_SN, C.CO_NM, C.OUR_CO_YN, C.OPENG_RNK, A.EVL_ARTCL_SN,
+                  NVL(UP.EVL_ARTCL_NM, A.EVL_ARTCL_NM), A.EVL_SCOR_SCR
+      ) X
+     WHERE X.MX > 0
+     GROUP BY X.CO_EVL_RSLT_SN, X.CO_NM, X.OUR_CO_YN, X.OPENG_RNK, X.CAT_NM
+     ORDER BY CASE WHEN X.OUR_CO_YN = 'Y' THEN 0 ELSE 1 END, X.OPENG_RNK NULLS LAST, X.CO_EVL_RSLT_SN, MIN(X.ORD), X.CAT_NM
+  </select>
+
+  <!--
+    통계(전체 종합)의 자주 만난 경쟁 업체 (11/03). 그 팀·연도에 결과가 등록된 공고의 개찰 업체 중 우리 회사가 아닌 곳.
+    만남 = 같은 공고에 들어간 수, 우리가 앞섬 = 개찰 순위가 우리보다 뒤인 수, 상대 낙찰 = 그 업체가 낙찰자인 수. 많이 만난 순 다섯 곳.
+  -->
+  <select id="competitors" resultType="com.ojj.sujuro.result.dto.StatsCompetitorDTO">
+    SELECT MAX(C.CO_NM) AS coNm,
+           COUNT(DISTINCT P.PBANC_SN) AS metCnt,
+           COUNT(DISTINCT CASE WHEN O.OPENG_RNK &lt; C.OPENG_RNK THEN P.PBANC_SN END) AS aheadCnt,
+           COUNT(DISTINCT CASE WHEN C.SCSBD_YN = 'Y' THEN P.PBANC_SN END) AS wonCnt
+      FROM TB_BID_PBANC P
+      <include refid="resultJoin"/>
+      JOIN TB_CO_EVL_RSLT O ON O.PBANC_SN = P.PBANC_SN AND O.OUR_CO_YN = 'Y'
+      JOIN TB_CO_EVL_RSLT C ON C.PBANC_SN = P.PBANC_SN AND C.OUR_CO_YN = 'N'
+     WHERE <include refid="resultCond"/>
+       AND P.SPRVSN_TEAM_SN = #{teamSn}
+       AND TO_CHAR(P.BID_DDLN_DT, 'YYYY') = #{year}
+     GROUP BY C.BIZ_NO
+     ORDER BY COUNT(DISTINCT P.PBANC_SN) DESC, COUNT(DISTINCT CASE WHEN C.SCSBD_YN = 'Y' THEN P.PBANC_SN END) DESC, MAX(C.CO_NM)
+     FETCH FIRST 5 ROWS ONLY
   </select>
 
   <select id="history" resultType="com.ojj.sujuro.result.dto.StatsHistoryDTO">

@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.auth.code.Role;
 import com.ojj.sujuro.result.support.StatsFormat;
+import com.ojj.sujuro.result.dto.ArticleScoreTableDTO;
 import com.ojj.sujuro.result.dto.EvaluationFileDTO;
 import com.ojj.sujuro.result.dto.EvaluationForm;
 import com.ojj.sujuro.result.dto.StatsArchiveDTO;
@@ -74,7 +75,7 @@ public class StatsServiceImpl implements StatsService {
         v.setChart(StatsChartDTO.of(years.subList(Math.max(0, years.size() - CHART_YEARS), years.size()), byYear, picked));
 
         v.setPtcpShpRates(statsMapper.ptcpShpRates(team.getTeamSn(), picked));
-        v.setArticles(statsMapper.articleRates(team.getTeamSn(), picked, null));
+        v.setCompetitors(statsMapper.competitors(team.getTeamSn(), picked));
         v.setHistory(statsMapper.history(team.getTeamSn()));
         return v;
     }
@@ -113,6 +114,7 @@ public class StatsServiceImpl implements StatsService {
             return null;
         }
         a.setArticles(statsMapper.articleRates(null, null, pbancSn));
+        a.setArticleTable(ArticleScoreTableDTO.of(statsMapper.companyArticleScores(pbancSn)));
         a.setFinalFile(statsMapper.findFinalFile(pbancSn));
         a.setEvaluationFile(statsMapper.findEvaluationFile(pbancSn));
         a.setOurCompanyListed(statsMapper.countOurCompany(pbancSn) > 0);

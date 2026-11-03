@@ -1,0 +1,19 @@
+/*
+  공고 관리 화면 전용 (templates/bid). 공통 모양은 common.css 를 쓴다.
+*/
+
+/* 공고 목록 (11/03 열 간격 일반화). 칸 너비를 고정한다(table-layout:fixed).
+   내용에 맞춰 늘고 줄면 미배정·마감일 없음처럼 값이 빈 칸이 있을 때, 또 탭·페이지가 바뀔 때마다 열 위치가 흔들렸다.
+   공고명 칸만 남는 너비를 갖고 줄을 바꾼다. 수요기관·주관팀이 칸보다 길면 말줄임(…)하고, 마우스를 올리면 전체가 보인다.
+   화면이 좁으면 표가 옆으로 넘어간다(.ts). */
+.notice-table{table-layout:fixed;min-width:1100px}
+.notice-table col.w-no{width:130px}
+.notice-table col.w-step{width:96px}
+.notice-table col.w-type{width:96px}
+.notice-table col.w-inst{width:170px}
+.notice-table col.w-ddln{width:108px}
+.notice-table col.w-bgt{width:80px}
+.notice-table col.w-team{width:124px}
+.notice-table col.w-prog{width:108px}
+.notice-table th,.notice-table td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.notice-table td.c-name{white-space:normal;overflow-wrap:anywhere}

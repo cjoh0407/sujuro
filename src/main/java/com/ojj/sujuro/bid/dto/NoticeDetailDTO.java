@@ -62,6 +62,9 @@ public class NoticeDetailDTO extends BidNoticeDTO {
     private Date clctDt;
     private Date lastCfmtnDt;
 
+    /** 제안팀원 이름을 쉼표로 이어 붙인 값. 예: "김가희 · 개발1팀, 이도윤 · 개발2팀". 아직 없으면 null (11/03) */
+    private String prpTmmbrNms;
+
     /** 단계 이력. 공고수집이력 오래된 순 (FR-035) */
     private List<CollectHistoryDTO> stageHistories = List.of();
 
@@ -228,5 +231,17 @@ public class NoticeDetailDTO extends BidNoticeDTO {
     /** 실수요기관이 발주기관과 다른지. 같으면 화면에서 한 번만 보여 준다. */
     public boolean isDmndInstDifferent() {
         return dmndInstNm != null && !dmndInstNm.equals(getOrderInstNm());
+    }
+
+    /**
+     * 참여 팀이나 제안팀원이 정해졌는지 (11/03). 둘 다 제안 업무의 제안팀 구성에서 정한다.
+     * 정해진 뒤에만 상세에 제안팀 카드를 보여 준다. 담당 팀 카드에는 주관 팀만 둔다.
+     */
+    public boolean isProposalTeamFormed() {
+        return hasText(getJoinTeamNms()) || hasText(prpTmmbrNms);
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isEmpty();
     }
 }

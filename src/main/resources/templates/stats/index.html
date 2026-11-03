@@ -5,10 +5,16 @@
       layout:decorate="~{layout/default}">
 <!--/*
   통계 (FR-016, 083~088). UI 목업 v3.5 의 rStats() 화면과 같은 구성이다.
-  연도·팀 탭 → 요약 카드 5개 → 연도별 참여·수주 차트, 참여 형태별 수주율 → 평가 항목별 분석 → 과거 사업 이력.
+  11/03 왼쪽 2 : 오른쪽 8 로 나눴다.
+    왼쪽  : 드롭다운. 펼치면 '전체 종합'과 과거 사업(결과가 등록된 사업, view.history)의 사업명이 나온다.
+            그 아래 [연도 · 팀] 버튼을 누르면 팝업에서 연도·팀을 고른다(11/03, 위쪽 탭을 옮겼다).
+    오른쪽: 전체 종합이면 통계(요약 카드 4개 → 차트 | 참여 형태별 수주율 + 자주 만난 경쟁 업체),
+            사업을 고르면 그 사업의 사업별 결과 분석(stats/fragments/archive).
+  11/03 오른쪽의 과거 사업 이력 표는 뺐다. 사업은 왼쪽 드롭다운에서 고른다.
+  11/03 평가 항목별 분석은 사업별 결과 분석(평가 항목별 점수)으로만 옮기고, 그 자리에 자주 만난 경쟁 업체를 넣었다.
   경영지원실은 개발팀을 골라 보고(전체 합계 없음), 팀장은 자기 팀만 본다.
 
-  모델: view (result.dto.StatsViewDTO)
+  모델: view (result.dto.StatsViewDTO), archive·canEdit (사업을 골랐을 때만)
 */-->
 <head>
   <title>통계</title>
@@ -22,37 +28,99 @@
 
 <th:block layout:fragment="content">
 
-  <div class="page-head">
-    <div>
-      <h2>통계</h2>
-      <div class="sub" th:text="|${view.scopeText} · 모든 수치는 저장된 데이터에서 계산합니다|">각 팀별 통계와 사업별 결과 분석</div>
+  <!-- 머리 (11/03). '통계'와 범위 설명 대신, 왼쪽에서 고른 것을 보인다.
+       사업을 골랐으면 사업명과 발주기관 · 담당 팀(NFR-023, 원래 사업별 결과 분석 머리), 전체 종합이면 팀 · 연도 -->
+  <div class="page-head" th:unless="${view.locked}">
+    <div th:if="${archive}">
+      <h2 th:text="${archive.pbancNm}">사업명</h2>
+      <div class="sub" th:text="|${archive.orderInstNm ?: '-'} · ${archive.teamNm}|">발주기관 · 개발1팀</div>
     </div>
-    <div class="row" th:unless="${view.locked}">
-      <a class="btn" th:href="@{/stats/export}">엑셀 다운로드 (CSV)</a>
+    <div th:unless="${archive}">
+      <h2>전체 종합</h2>
+      <div class="sub" th:text="|${view.teamNm} · ${view.year}년|">개발1팀 · 2026년</div>
+    </div>
+    <!-- 엑셀 다운로드(CSV) 버튼은 11/03 뺐다 -->
+    <div class="row" th:if="${archive}">
+      <span class="pill" th:classappend="${archive.won} ? 'success' : 'neutral'" th:text="${archive.rsltNm}">수주</span>
+      <a class="btn sm" th:if="${canEdit}" th:href="@{/results(bid=${archive.pbancSn})}">평가·결과 입력</a>
     </div>
   </div>
+  <div class="page-head" th:if="${view.locked}"><div><h2>통계</h2></div></div>
 
   <!-- 개발팀이 아닌 팀장 등 볼 팀이 없을 때 -->
   <div class="card" th:if="${view.locked}">
     <div class="lock"><div style="font-size:26px">🔒</div><b th:text="${view.lockMessage}">통계는 개발팀 단위로 제공됩니다.</b></div>
   </div>
 
-  <th:block th:unless="${view.locked}">
+  <div class="stats-split" th:unless="${view.locked}">
 
-    <!-- 연도(입찰 마감일 기준) · 팀. 팀장은 자기 팀 하나만 보인다 -->
-    <div class="row" style="justify-content:space-between">
-      <div class="tabs">
-        <a class="tab" th:each="y : ${view.years}" th:classappend="${y == view.year} ? 'on'"
-           th:href="@{/stats(team=${view.teamSn}, year=${y})}" th:text="|${y}년|">2026년</a>
-      </div>
-      <div class="tabs">
-        <a class="tab" th:each="t : ${view.teams}" th:classappend="${t.teamSn == view.teamSn} ? 'on'"
-           th:href="@{/stats(team=${t.teamSn}, year=${view.year})}" th:text="${t.teamNm}">개발1팀</a>
-      </div>
+  <!-- 왼쪽 2: 볼 것 고르기. 펼치면 전체 종합 + 과거 사업(결과가 등록된 사업)의 사업명 -->
+  <aside class="stats-nav">
+    <details class="card pick">
+      <summary>
+        <span class="faint">보기</span>
+        <b th:text="${archive != null} ? ${archive.pbancNm} : '전체 종합'">전체 종합</b>
+      </summary>
+      <nav>
+        <a th:href="@{/stats(team=${view.teamSn}, year=${view.year})}" th:classappend="${archive == null} ? 'on'">전체 종합</a>
+        <a th:each="h : ${view.history}" th:href="@{/stats(team=${view.teamSn}, year=${view.year}, bid=${h.pbancSn})}"
+           th:classappend="${archive != null and archive.pbancSn == h.pbancSn} ? 'on'">
+          <span th:text="${h.pbancNm}">사업명</span>
+          <span class="pill" th:classappend="${h.won} ? 'success' : 'neutral'" th:text="${h.rsltNm}">수주</span>
+        </a>
+        <span class="faint" th:if="${#lists.isEmpty(view.history)}">결과가 등록된 사업이 없습니다.</span>
+      </nav>
+    </details>
+
+    <!-- 연도·팀 고르기 (11/03). 위쪽 탭 대신 이 버튼을 누르면 팝업에서 고른다. 연도는 입찰 마감일 기준.
+         팀장은 자기 팀 하나뿐이라 팀은 바꿀 수 없다 -->
+    <div class="card">
+      <button type="button" class="scope-btn" data-scope-open>
+        <span class="faint">연도 · 팀</span>
+        <b th:text="|${view.year}년 · ${view.teamNm}|">2026년 · 개발1팀</b>
+      </button>
     </div>
+  </aside>
 
-    <!-- 연 단위 요약 (FR-083, 084) -->
-    <div class="stats five" th:with="s=${view.summary}">
+  <!-- 연도·팀 팝업. 바깥이나 [취소]를 누르거나 Esc 로 닫는다. 고르고 [보기]를 누르면 그 연도·팀의 전체 종합으로 간다 -->
+  <div class="stats-modal" id="statsScope" hidden>
+    <div class="box" role="dialog" aria-modal="true" aria-labelledby="statsScopeTitle">
+      <div class="card-head"><h3 id="statsScopeTitle">연도 · 팀 선택</h3></div>
+      <form class="pad" method="get" th:action="@{/stats}">
+        <div class="fld">
+          <label for="sc-year">연도 (입찰 마감일 기준)</label>
+          <select id="sc-year" name="year">
+            <option th:each="y : ${view.years}" th:value="${y}" th:text="|${y}년|" th:selected="${y == view.year}">2026년</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label for="sc-team">팀</label>
+          <select id="sc-team" name="team" th:disabled="${#lists.size(view.teams) < 2}">
+            <option th:each="t : ${view.teams}" th:value="${t.teamSn}" th:text="${t.teamNm}"
+                    th:selected="${t.teamSn == view.teamSn}">개발1팀</option>
+          </select>
+          <span class="faint" style="font-size:11.5px" th:if="${#lists.size(view.teams) < 2}">팀장은 자기 팀 통계만 봅니다</span>
+        </div>
+        <div class="row" style="justify-content:flex-end">
+          <button type="button" class="btn" data-scope-close>취소</button>
+          <button type="submit" class="btn primary">보기</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 오른쪽 8: 사업을 골랐으면 사업별 결과 분석 -->
+  <div class="stats-main" th:if="${archive}">
+    <th:block th:replace="~{stats/fragments/archive :: body}"></th:block>
+  </div>
+
+  <!-- 오른쪽 8: 전체 종합. 원래 통계 화면 그대로 -->
+  <div class="stats-main" th:unless="${archive}">
+
+    <!-- 연도·팀 탭은 11/03 왼쪽 드롭다운 아래의 [연도 · 팀] 팝업으로 옮겼다 -->
+
+    <!-- 연 단위 요약 (FR-083, 084). 11/03 평균 기술점수 카드를 빼서 네 칸이다 (공통 .stats 가 네 칸) -->
+    <div class="stats" th:with="s=${view.summary}">
       <div class="stat">
         <div class="l" th:text="|${view.year}년 참여|">2026년 참여</div>
         <div class="v" th:text="|${s.joined}건|">0건</div>
@@ -73,17 +141,14 @@
         <div class="v" th:text="${s.wonAmtText}">0.0억</div>
         <div class="h">수주 사업 낙찰금액 합계</div>
       </div>
-      <div class="stat">
-        <div class="l">평균 기술점수</div>
-        <div class="v" th:text="${s.avgTechText}">-</div>
-        <div class="h" th:text="|결과 등록 ${s.resultCnt}건 평균|">결과 등록 기준</div>
-      </div>
     </div>
 
-    <div class="two even">
+    <!-- stats-row: 왼쪽 연도별 참여·수주와 오른쪽 두 카드(참여 형태별 수주율 + 자주 만난 경쟁 업체)의 위·아래 끝을 맞춘다 (11/03).
+         남는 높이는 참여 형태별 수주율이 줄 간격을 벌려 채우고, 차트는 카드 높이 가운데에 둔다 -->
+    <div class="two even stats-row">
 
       <!-- 연도별 참여·수주 (FR-083). 좌표는 StatsChartDTO 가 계산한다 -->
-      <div class="card">
+      <div class="card chart-card">
         <div class="card-head">
           <h3 th:text="|연도별 참여·수주 (${view.teamNm})|">연도별 참여·수주</h3>
           <span class="legend"><span class="sw s-join"></span>참여<span class="sw s-won"></span>수주</span>
@@ -108,63 +173,102 @@
         </div>
       </div>
 
-      <!-- 참여 형태별 수주율 (FR-085) -->
-      <div class="card">
-        <div class="card-head"><h3 th:text="|참여 형태별 수주율 (${view.year}년)|">참여 형태별 수주율</h3></div>
-        <div class="pad">
-          <div class="lossrow rate" th:each="r : ${view.ptcpShpRates}">
-            <b th:text="${r.label}">주관</b>
-            <div class="bar"><i th:style="|width:${r.barWidth}%|"></i></div>
-            <span class="mono" th:text="${r.rateText}">결과 없음</span>
+      <!-- 오른쪽: 참여 형태별 수주율(줄여서) 아래에 자주 만난 경쟁 업체 (11/03).
+           평가 항목별 분석은 사업별 결과 분석으로만 옮겼다 -->
+      <div class="col">
+
+        <!-- 참여 형태별 수주율 (FR-085) -->
+        <div class="card rate-card">
+          <div class="card-head"><h3 th:text="|참여 형태별 수주율 (${view.year}년)|">참여 형태별 수주율</h3></div>
+          <div class="pad">
+            <div class="lossrow rate" th:each="r : ${view.ptcpShpRates}">
+              <b th:text="${r.label}">주관</b>
+              <div class="bar"><i th:style="|width:${r.barWidth}%|"></i></div>
+              <span class="mono" th:text="${r.rateText}">결과 없음</span>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- 평가 항목별 분석 (FR-086). 득점률이 낮은 순, 맨 위가 약한 항목 -->
-    <div class="card">
-      <div class="card-head">
-        <h3 th:text="|평가 항목별 분석 (${view.year}년 · ${view.teamNm})|">평가 항목별 분석</h3>
-        <span class="faint" style="font-size:11.5px" th:text="|평가표가 올라온 공고만 대상 · ${view.articleBidCnt}건|">평가표가 올라온 공고만 대상</span>
-      </div>
-      <div class="pad">
-        <div class="lossrow" th:each="a, st : ${view.articles}">
-          <span><span th:text="${a.catNm}">기술 이해도</span>
-            <span class="pill danger" th:if="${st.first and st.size > 1}">약한 항목</span></span>
-          <div class="bar" th:classappend="${a.low} ? 'red' : 'ok'"><i th:style="|width:${a.rate}%|"></i></div>
-          <span class="mono" th:text="|평균 득점률 ${a.rateText}|">평균 득점률 0%</span>
+        <!-- 자주 만난 경쟁 업체 (11/03). 개찰 결과(나라장터) 기준, 많이 만난 순 다섯 곳 -->
+        <div class="card">
+          <div class="card-head">
+            <h3 th:text="|자주 만난 경쟁 업체 (${view.year}년)|">자주 만난 경쟁 업체</h3>
+            <span class="faint" style="font-size:11.5px">개찰 결과 기준 · 상위 5곳</span>
+          </div>
+          <div class="ts">
+            <table>
+              <thead><tr><th>업체</th><th>만남</th><th>우리가 앞섬</th><th>상대 낙찰</th></tr></thead>
+              <tbody>
+                <tr class="hv" th:each="c : ${view.competitors}">
+                  <td th:text="${c.coNm}">경쟁사</td>
+                  <td class="mono" th:text="|${c.metCnt}회|">0회</td>
+                  <td class="mono" th:text="|${c.aheadCnt}회|">0회</td>
+                  <td class="mono" th:text="|${c.wonCnt}회|">0회</td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(view.competitors)}">
+                  <td colspan="4" class="empty" th:text="|${view.year}년 결과가 등록된 사업에 다른 개찰 업체가 없습니다.|">다른 개찰 업체가 없습니다.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div class="empty" th:if="${#lists.isEmpty(view.articles)}"
-             th:text="|${view.year}년 ${view.teamNm}의 점수가 입력된 사업이 없습니다.|">점수가 입력된 사업이 없습니다.</div>
+
       </div>
     </div>
 
-    <!-- 과거 사업 이력 (FR-087). 결과가 등록된 사업, 연도 상관없이 -->
-    <div class="card">
-      <div class="card-head">
-        <h3 th:text="|과거 사업 이력 (${view.teamNm})|">과거 사업 이력</h3>
-        <span class="faint" style="font-size:11.5px">사업명을 누르면 사업별 결과 분석으로 이동합니다</span>
-      </div>
-      <div class="ts">
-        <table>
-          <thead><tr><th>사업명</th><th>발주기관</th><th>담당 팀</th><th>예산</th><th>결과</th><th>제안서 보관</th></tr></thead>
-          <tbody>
-            <tr class="hv" th:each="h : ${view.history}">
-              <td><a class="sl" th:href="@{/stats/bids/{sn}(sn=${h.pbancSn})}" th:text="${h.pbancNm}">사업명</a></td>
-              <td class="muted" th:text="${h.orderInstNm ?: '-'}">발주기관</td>
-              <td th:text="${h.teamNm}">개발1팀</td>
-              <td class="mono" th:text="${h.budgetText}">0.0억</td>
-              <td><span class="pill" th:classappend="${h.won} ? 'success' : 'neutral'" th:text="${h.rsltNm}">수주</span></td>
-              <td th:text="${h.finalFileKept} ? '📎 있음' : '—'">—</td>
-            </tr>
-            <tr th:if="${#lists.isEmpty(view.history)}"><td colspan="6" class="empty">결과가 등록된 사업이 없습니다.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+  </div>
+  </div>
 
-  </th:block>
+</th:block>
 
+<th:block layout:fragment="scripts">
+<script>
+  // [보기] 드롭다운 (11/03). 목록이 아래 카드 위에 겹쳐 뜨므로, 바깥을 누르거나 Esc 를 누르면 접는다
+  (function () {
+    var pick = document.querySelector('details.pick');
+    if (!pick) {
+      return;
+    }
+    document.addEventListener('click', function (e) {
+      if (pick.open && !pick.contains(e.target)) {
+        pick.open = false;
+      }
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && pick.open) {
+        pick.open = false;
+        pick.querySelector('summary').focus();
+      }
+    });
+  })();
+
+  // 연도·팀 팝업 열고 닫기 (11/03). 바깥(어두운 바탕)·[취소]·Esc 로 닫는다
+  (function () {
+    var modal = document.getElementById('statsScope');
+    var opener = document.querySelector('[data-scope-open]');
+    if (!modal || !opener) {
+      return;
+    }
+    function close() {
+      modal.hidden = true;
+      opener.focus();
+    }
+    opener.addEventListener('click', function () {
+      modal.hidden = false;
+      document.getElementById('sc-year').focus();
+    });
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal || e.target.hasAttribute('data-scope-close')) {
+        close();
+      }
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !modal.hidden) {
+        close();
+      }
+    });
+  })();
+</script>
 </th:block>
 
 </body>

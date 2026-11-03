@@ -2,6 +2,7 @@ package com.ojj.sujuro.result.dto;
 
 import java.util.Date;
 
+import com.ojj.sujuro.bid.code.BidCode;
 import com.ojj.sujuro.result.support.StatsFormat;
 
 import lombok.Getter;
@@ -33,7 +34,12 @@ public class ResultBidDTO {
 
     /** 선택 목록에 보일 이름. 예: "통합 보안관제 체계 구축 · 결과 등록" */
     public String getLabel() {
-        return pbancNm + " · " + (pbancSttsNm == null ? "-" : pbancSttsNm);
+        return pbancNm + " · " + (pbancSttsCd == null ? "-" : getProgressNm());
+    }
+
+    /** 진행상태 이름. 공고 화면과 같은 일곱 가지(배정 전 … 유찰·불참)로 보여 준다 (11/03, BidCode.progressNm) */
+    public String getProgressNm() {
+        return BidCode.progressNm(pbancSttsCd);
     }
 
     /** 아직 나라장터에 제출하지 않았다(참여 확정·제안 작성 중) */
@@ -53,15 +59,9 @@ public class ResultBidDTO {
         return ST_FAILED.equals(pbancSttsCd);
     }
 
-    /** 상태 알약 색 */
+    /** 상태 알약 색. 공고 화면의 진행상태와 같은 색이다 */
     public String getSttsPill() {
-        if (isResulted()) {
-            return "success";
-        }
-        if (isSubmitted()) {
-            return "accent";
-        }
-        return isFailed() ? "danger" : "neutral";
+        return BidCode.progressPillClass(pbancSttsCd);
     }
 
     /** 예: "기술 90 : 가격 10". 공고에 배점이 없으면 null */

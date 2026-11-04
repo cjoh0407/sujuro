@@ -11,6 +11,7 @@
 <head>
   <title>제출서류 · 조견표</title>
   <th:block layout:fragment="head">
+    <meta name="async-forms" content="on"><!-- 이 화면의 폼은 새로고침 없이 저장한다 (js/async-form.js) -->
     <link rel="stylesheet" th:href="@{/css/proposal.css}">
   </th:block>
 </head>
@@ -26,8 +27,8 @@
 
   <th:block th:unless="${#lists.isEmpty(bids)}">
 
-    <div class="banner ok" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
-    <div class="banner err" th:if="${error != null}" th:text="${error}">오류 안내</div>
+    <div class="banner ok" data-flash="done" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
+    <div class="banner err" data-flash="error" th:if="${error != null}" th:text="${error}">오류 안내</div>
 
     <!-- 3:7 화면: 왼쪽에 사업건 목록, 오른쪽에 업무 화면 -->
     <div class="split">
@@ -41,7 +42,7 @@
         </div>
         <form th:action="@{/docs/upload}" method="post" enctype="multipart/form-data" class="pad mp-form">
           <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-          <select name="dcmntSn" required th:disabled="${#lists.isEmpty(docs)}">
+          <select name="dcmntSn" required>
             <option value="" disabled selected th:text="${#lists.isEmpty(docs)} ? '체크리스트가 비어 있습니다' : '서류 고르기'">서류 고르기</option>
             <option th:each="d : ${docs}" th:value="${d.dcmntSn}"
                     th:text="${d.dcmntNm + (d.essential ? ' (필수)' : '') + (d.fileSn != null ? ' · 올림' : '')}">최종 제안서 (필수)</option>
@@ -111,7 +112,7 @@
                 <form th:if="${canSt}" th:action="@{/docs/status}" method="post">
                   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                   <input type="hidden" name="dcmntSn" th:value="${d.dcmntSn}">
-                  <select name="prgrsSttsCd" onchange="this.form.submit()">
+                  <select name="prgrsSttsCd" onchange="this.form.requestSubmit()">
                     <option value="DS010" th:selected="${d.prgrsSttsCd == 'DS010'}">미준비</option>
                     <option value="DS020" th:selected="${d.prgrsSttsCd == 'DS020'}">준비 중</option>
                     <option value="DS030" th:selected="${d.prgrsSttsCd == 'DS030'}">준비 완료</option>
@@ -124,7 +125,7 @@
                   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                   <input type="hidden" name="dcmntSn" th:value="${d.dcmntSn}">
                   <input type="date" name="due" th:min="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}" th:value="${d.sbmsnDdlnDt != null} ? ${#dates.format(d.sbmsnDdlnDt, 'yyyy-MM-dd')} : ''"
-                         onchange="this.form.submit()">
+                         onchange="this.form.requestSubmit()">
                 </form>
                 <span th:unless="${admin and open}" th:text="${d.sbmsnDdlnDt != null} ? ${#dates.format(d.sbmsnDdlnDt, 'yyyy-MM-dd')} : '-'">-</span>
               </td>

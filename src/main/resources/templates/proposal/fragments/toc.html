@@ -212,7 +212,7 @@
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
     <input type="hidden" name="tocSn" th:value="${t.tocSn}">
     <input type="number" name="pages" min="0" max="9999" th:value="${t.pages}" style="width:64px"
-           onchange="this.form.submit()">
+           onchange="this.form.requestSubmit()">
   </form>
   <span th:unless="${canEdit}" th:text="${t.pages}">0</span>
 </th:block>

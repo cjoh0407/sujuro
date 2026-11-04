@@ -42,7 +42,7 @@
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
         <span class="lbl">제한</span>
         <input type="number" name="limit" min="1" max="9999" th:value="${bid.lmtPageCnt}" style="width:80px"
-               onchange="this.form.submit()">
+               onchange="this.form.requestSubmit()">
       </form>
     </div>
     <div class="bar" th:classappend="${overPages > 0} ? 'red'" style="margin-top:8px" th:if="${bid.lmtPageCnt != null}">

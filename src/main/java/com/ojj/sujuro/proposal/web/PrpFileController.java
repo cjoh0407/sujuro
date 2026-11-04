@@ -140,9 +140,9 @@ public class PrpFileController {
                 return cycl + "차 통합본을 올렸습니다.";
             }
             String se = TAB_SUMMARY.equals(tab) ? PrpFileDto.SE_SUMMARY : PrpFileDto.SE_PART;
-            String ver = fileService.uploadToc(bid, se, tocSn, file, user.getEmpNo(),
+            fileService.uploadToc(bid, se, tocSn, file, user.getEmpNo(),
                     accessChecker.isLeadTeamLeader(bid, user));
-            return "파일을 올렸습니다. (v" + ver + ")";
+            return null; // 목록에 바로 나타나므로 완료 문구는 띄우지 않는다
         });
     }
 

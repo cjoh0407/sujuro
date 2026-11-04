@@ -47,7 +47,7 @@ function schOpenView(btn) {
 function schDelete() {
   var title = document.getElementById('se-title').value;
   if (window.confirm('\'' + title + '\' 일정을 삭제하시겠습니까?\n삭제하면 되돌릴 수 없고, 제안팀원에게 삭제 알림이 갑니다.')) {
-    document.getElementById('se-del').submit();
+    document.getElementById('se-del').requestSubmit(); // 비동기 저장(async-form.js)이 가로챌 수 있게
   }
 }
 
@@ -59,8 +59,9 @@ document.addEventListener('keydown', function (e) {
 
 /* 드래그로 일정 옮기기 (주관팀 팀장, 우리 팀이 등록한 일정).
    다른 날짜 칸에 놓으면 날짜만 바꿔 저장한다(시간은 그대로). 오늘 이전 칸에는 놓을 수 없다.
-   권한·지난 일정·끝난 사업은 서버에서 다시 막고, 막히면 화면 위에 이유가 나온다. */
-(function () {
+   권한·지난 일정·끝난 사업은 서버에서 다시 막고, 막히면 이유가 토스트로 나온다.
+   비동기 저장으로 달력이 바뀌면 새 칸에 다시 붙여야 하므로 onPageReady 로 등록한다. */
+onPageReady(function () {
   var form = document.getElementById('sch-move');
   if (!form) return;
   var today = form.getAttribute('data-today');
@@ -106,7 +107,7 @@ document.addEventListener('keydown', function (e) {
       if (cell.dataset.date === dragging.dataset.date) return; // 같은 날짜면 그대로
       document.getElementById('sm-id').value = dragging.dataset.id;
       document.getElementById('sm-date').value = cell.dataset.date;
-      form.submit();
+      form.requestSubmit();
     });
   });
-})();
+});

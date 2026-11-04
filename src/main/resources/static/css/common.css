@@ -100,7 +100,7 @@ tbody td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:12.5p
 tbody tr:last-child td{border-bottom:none}
 tbody tr.hv:hover{background:var(--alt)}
 .ts{overflow-x:auto}
-.mono{font-family:ui-monospace,Menlo,monospace}
+.mono{font-family:inherit}
 .muted{color:var(--muted)}
 .faint{color:var(--faint)}
 .sl{font-weight:700;cursor:pointer}
@@ -171,6 +171,10 @@ a.tab{text-decoration:none}
 .qa .m{font-size:11px;color:var(--faint);padding-left:14px;margin-top:2px}
 #toast{position:fixed;right:22px;bottom:22px;background:var(--text);color:var(--bg);padding:10px 16px;border-radius:9px;font-size:12.5px;opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none;z-index:80;max-width:420px}
 #toast.on{opacity:1;transform:none}
+#toast.err{background:var(--danger);color:#fff}
+/* 비동기 저장 중 (async-form.js): 보내는 폼은 흐리게 하고 다시 누를 수 없다 */
+main.async-busy{cursor:progress}
+form[aria-busy="true"]{opacity:.55;pointer-events:none;transition:opacity .15s}
 .lossrow{display:grid;grid-template-columns:130px 1fr 150px;gap:10px;align-items:center;padding:8px 0;font-size:12.5px}
 .login{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:60}
 .login.hide{display:none}
@@ -187,7 +191,7 @@ a.tab{text-decoration:none}
 .cal .dow{background:var(--alt);padding:7px;text-align:center;font-size:11.5px;font-weight:700;color:var(--muted)}
 .cal .cell{background:var(--surface);min-height:92px;min-width:0;padding:6px;display:flex;flex-direction:column;gap:3px}
 .cal .cell.dim{background:var(--alt);color:var(--faint)}
-.cal .d{font-size:11.5px;font-family:ui-monospace,monospace;color:var(--muted)}
+.cal .d{font-size:11.5px;color:var(--muted)}
 .cal .cell.today .d{background:var(--accent);color:#fff;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center}
 .ev{font-size:10.5px;font-weight:700;border-radius:5px;padding:2px 6px;cursor:pointer;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ev.k1{background:var(--danger-soft);color:var(--danger)}
@@ -232,3 +236,18 @@ a.bellbtn{display:flex;align-items:center;justify-content:center;text-decoration
 /* 오류 화면처럼 화면 가운데에 카드 하나만 보여 줄 때 */
 .center-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:60}
 .center-screen .box{width:420px;max-width:94vw;display:flex;flex-direction:column;gap:14px}
+
+/* 확인·입력·알림 창 (common.js): 화면 가운데에 뜬다. 지우기·되돌리기 어려운 확인은 .danger(빨간 강조) */
+.dlg-ov{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(15,19,24,.5);backdrop-filter:blur(2px);animation:dlgFade .14s ease-out}
+.dlg{width:400px;max-width:100%;box-sizing:border-box;padding:28px 26px 22px;text-align:center;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:16px;box-shadow:0 20px 56px rgba(15,19,24,.32);animation:dlgPop .18s cubic-bezier(.2,.9,.3,1.2)}
+.dlg-ic{width:44px;height:44px;margin:0 auto 14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;line-height:1;background:var(--accent-soft);color:var(--accent)}
+.dlg.danger .dlg-ic{background:var(--danger-soft);color:var(--danger)}
+.dlg-title{font-size:16px;font-weight:800;margin-bottom:8px}
+.dlg-msg{font-size:13.5px;line-height:1.65;color:var(--muted);white-space:pre-line;word-break:keep-all;overflow-wrap:anywhere}
+.dlg-in{width:100%;box-sizing:border-box;margin-top:14px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);font:inherit;font-size:13.5px;text-align:left}
+.dlg-in:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.dlg-bar{display:flex;gap:10px;margin-top:22px}
+.dlg-bar .btn{flex:1;justify-content:center;padding:10px 0;font-size:13.5px;font-weight:700;border-radius:10px}
+.dlg.danger .dlg-ok{background:var(--danger);border-color:var(--danger);color:#fff}
+@keyframes dlgFade{from{opacity:0}to{opacity:1}}
+@keyframes dlgPop{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:none}}

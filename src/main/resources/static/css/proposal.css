@@ -72,6 +72,7 @@
 .mp-list{height:320px;overflow-y:auto}
 .mp-state{text-align:center;padding:10px;font-size:12px}
 .mp-list thead th{position:sticky;top:0;background:var(--surface);z-index:1}
+.mp-list th,.mp-list td{text-align:center}
 .mp-row{cursor:pointer}
 .mp-row:hover{background:var(--alt)}
 /* 요구사항 이름 옆 수정 · 삭제 아이콘 */
@@ -187,7 +188,7 @@ tr.addrow .cap{font-size:11.5px}
 #memPop,#upCard,#qaCard{display:flex;flex-direction:column;height:520px;box-sizing:border-box}
 #memPop .mp-form{flex:1;min-height:0}
 #upCard .mp-form{flex:1;min-height:0}
-#upCard .drop{flex:1;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:10px;padding:24px 16px}
+#upCard .drop{flex:1;min-height:0;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:10px;padding:24px 16px}
 #upCard .drop>.ic{width:44px;height:44px}
 #upCard .drop-body{align-items:center}
 #upCard .drop-text{flex-wrap:wrap;justify-content:center}
@@ -196,7 +197,12 @@ tr.addrow .cap{font-size:11.5px}
 .fmt{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:6px;background:var(--alt);color:var(--muted);flex:none}
 .fmt.pdf{background:#FDECEA;color:#B42318}
 .fmt.ppt{background:#FFF1E0;color:#B54708}
-#upCard .up-note{font-size:11.5px;color:var(--faint);line-height:1.5}
+#upCard .up-note{flex:1;font-size:11.5px;color:var(--faint);line-height:1.45}
+/* 올리기 카드 공통 규격: 위쪽 선택칸 36px, 칸 사이 12px, 아래쪽 줄(안내문+버튼) 36px 고정 → 끌어놓기 칸은 남은 공간을 채워 어느 화면이든 같은 크기 */
+#upCard .mp-form{gap:12px}
+#upCard .mp-form>select,#upCard .mp-form>.up-top{height:36px;box-sizing:border-box}
+#upCard .up-top{display:flex;align-items:center;font-size:11.5px;color:var(--faint);line-height:1.45}
+#upCard .mp-form>.row:last-child{flex:none;min-height:36px;justify-content:space-between;align-items:center;gap:12px;margin-top:0}
 /* 검토 완료 토글: 아직이면 테두리만, 완료면 초록 채움. 누르면 반대로 바뀐다 */
 .rv-btn{display:inline-flex;align-items:center;gap:5px;padding:4px 11px 4px 9px;border-radius:999px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);font:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s}
 .rv-btn:hover{border-color:var(--success);color:var(--success);background:var(--success-soft)}

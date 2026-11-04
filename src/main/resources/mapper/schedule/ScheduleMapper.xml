@@ -64,6 +64,14 @@
       FROM TB_BID_PBANC P
      WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040', 'PS050')
        AND P.SPRVSN_TEAM_SN = #{teamSn}
+       /* 캘린더(findMyPbancs)와 같은 기준: 이 팀 팀장이 제안팀원으로 들어간 사업만.
+          제안팀원이 아니면 등록해도 팀장 캘린더에 보이지 않으므로 목록에서 뺀다 (11/04) */
+       AND EXISTS (SELECT 1
+                     FROM TB_PRP_TMMBR M
+                     JOIN TB_USER U ON U.USER_ID = M.USER_ID
+                    WHERE M.PBANC_SN = P.PBANC_SN
+                      AND U.TEAM_SN = #{teamSn}
+                      AND U.AUTHRT_CD = 'AU030')
      ORDER BY P.PBANC_SN DESC
   </select>
 

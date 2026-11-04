@@ -83,15 +83,27 @@ public class ResultCollectServiceImpl implements ResultCollectService {
         String no = target.getBidPbancNo();
         JsonNode award = latest(g2bApiClient.findAward(no).all());
         String winner = digits(G2bResponse.textOf(award, "bidwinnrBizno"));
+
+        // 개찰 업체는 낙찰자가 나오기 전에도, 우리 회사가 목록에 없어도 전부 저장한다 (11/04). 사업자번호는 그중 우리 행을 가릴 때만 쓴다
+        List<JsonNode> rows = latestRound(g2bApiClient.findOpeningCompanies(no).all());
+        List<CoEvlRsltDTO> companies = rows.stream()
+                .map(r -> companyOf(target.getPbancSn(), r, winner))
+                .filter(c -> c != null)
+                .collect(Collectors.toList());
+        if (companies.size() < rows.size()) {
+            log.warn("입찰공고 {} 개찰 업체 {}곳 중 {}곳은 사업자번호가 10자리가 아니라 저장하지 않았습니다",
+                    no, rows.size(), rows.size() - companies.size());
+        }
         if (winner == null) {
+            saveCompanies(companies);
             return ResultOutcomeDTO.waiting();
         }
 
-        List<JsonNode> rows = latestRound(g2bApiClient.findOpeningCompanies(no).all());
         JsonNode ours = rows.stream()
                 .filter(r -> ourBizNo.equals(digits(G2bResponse.textOf(r, "prcbdrBizno"))))
                 .findFirst().orElse(null);
         if (ours == null) {
+            saveCompanies(companies);
             return ResultOutcomeDTO.notListed("입찰공고 " + no + " 개찰 목록에 우리 회사(사업자번호 " + ourBizNo
                     + ")가 없어 결과를 등록하지 않았습니다. 사업자번호나 제출 여부를 확인하세요.");
         }
@@ -99,10 +111,6 @@ public class ResultCollectServiceImpl implements ResultCollectService {
         boolean won = ourBizNo.equals(winner);
         BidRsltDTO result = resultOf(target.getPbancSn(), ours, won,
                 won ? longOf(G2bResponse.amountOf(award, "sucsfbidAmt")) : null);
-        List<CoEvlRsltDTO> companies = rows.stream()
-                .map(r -> companyOf(target.getPbancSn(), r, winner))
-                .filter(c -> c != null)
-                .collect(Collectors.toList());
         JsonNode bid = target.getTechScorScr() == null ? bidNoticeOf(no) : null;
 
         Boolean done = tx.execute(status -> {
@@ -125,6 +133,13 @@ public class ResultCollectServiceImpl implements ResultCollectService {
         String text = (won ? "수주" : "탈락") + (result.getEvlRnk() == null ? "" : " · " + result.getEvlRnk() + "위");
         requestEvaluationTable(target, text);
         return ResultOutcomeDTO.registered("결과 등록: " + text);
+    }
+
+    /** 결과는 아직 등록하지 않고 개찰 업체만 저장한다. 평가·결과 입력의 개찰 업체 점수에 바로 보인다 */
+    private void saveCompanies(List<CoEvlRsltDTO> companies) {
+        if (!companies.isEmpty()) {
+            tx.executeWithoutResult(status -> companies.forEach(resultMapper::mergeCoEvlRslt));
+        }
     }
 
     /**

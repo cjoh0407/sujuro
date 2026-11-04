@@ -9,27 +9,9 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--chart-join:#5B84E8;--chart-won:#3BA676}}
 :root[data-theme="dark"]{--chart-join:#5B84E8;--chart-won:#3BA676}
 
-/* 통계 왼쪽 2 : 오른쪽 8 (11/03). 왼쪽은 볼 것 고르는 드롭다운, 오른쪽은 전체 종합 또는 사업별 결과 분석 */
-.stats-split{display:grid;grid-template-columns:2fr 8fr;gap:16px;align-items:start}
-.stats-main{min-width:0;display:flex;flex-direction:column;gap:16px}
-.stats-nav{position:sticky;top:16px;min-width:0;display:flex;flex-direction:column;gap:12px}
-.pick summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:2px;padding:12px 34px 12px 14px;position:relative;font-size:12.5px}
-.pick summary::-webkit-details-marker{display:none}
-.pick summary::after{content:"▾";position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--faint)}
-.pick[open] summary::after{content:"▴"}
-.pick summary .faint{font-size:11px}
-.pick summary b{overflow-wrap:anywhere}
-/* 펼친 목록은 아래 [연도 · 팀] 카드를 밀어내지 않고 그 위에 겹쳐 뜬다 (11/03) */
-.pick{position:relative}
-.pick nav{position:absolute;left:-1px;right:-1px;top:calc(100% + 4px);z-index:30;display:flex;flex-direction:column;padding:6px;
-  max-height:60vh;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.18)}
-.pick nav a{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;border-radius:7px;font-size:12.5px;color:var(--text);text-decoration:none}
-.pick nav a:hover{background:var(--alt)}
-.pick nav a.on{background:var(--accent-soft);color:var(--accent);font-weight:700}
-.pick nav > .faint{padding:8px;font-size:11.5px}
+/* 통계의 3:7 배치와 왼쪽 사업 목록은 제안 화면과 같은 proposal.css 의 .split, .bid-item 을 쓴다 (11/04) */
 
-/* 연도·팀 고르기 버튼(드롭다운 아래)과 팝업 (11/03). 버튼은 드롭다운 머리와 같은 모양,
-   팝업은 일정·사용자 관리의 .modal 과 같은 모양이다 */
+/* 연도·팀 고르기 버튼(사업 목록 아래)과 팝업 (11/03). 팝업은 일정·사용자 관리의 .modal 과 같은 모양이다 */
 .scope-btn{width:100%;display:flex;flex-direction:column;gap:2px;padding:12px 34px 12px 14px;position:relative;
   font:inherit;font-size:12.5px;text-align:left;color:var(--text);background:none;border:0;border-radius:inherit;cursor:pointer}
 .scope-btn::after{content:"›";position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:15px}
@@ -105,4 +87,4 @@ tr.ours td{background:var(--accent-soft)}
 /* 장단점 분석은 입력한 줄바꿈을 그대로 보여 준다 */
 .note{font-size:12.5px;margin-top:4px;white-space:pre-line}
 
-@media (max-width:1100px){.two.even{grid-template-columns:1fr}.stats-split{grid-template-columns:1fr}.stats-nav{position:static}}
+@media (max-width:1100px){.two.even{grid-template-columns:1fr}}

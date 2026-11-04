@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
+import com.ojj.sujuro.bid.code.BidCode;
 import com.ojj.sujuro.result.code.ResultCode;
 import com.ojj.sujuro.result.support.StatsFormat;
 
@@ -29,6 +30,7 @@ public class StatsArchiveDTO {
     private String orderInstNm;
     private Long teamSn;
     private String teamNm;
+    private String ptcpShpCd;
     private String ptcpShpNm;
     private Long budget;
     private Date bidDdlnDt;
@@ -45,8 +47,10 @@ public class StatsArchiveDTO {
     private Double techEvlOrgnlScr;
     private Double prcEvlScr;
     private Double snthsEvlScr;
+    /** 수주 금액(원). 수주한 사업만 값이 있다 */
+    private Long scsbdAmt;
 
-    /** 장단점 분석 (FR-081): 강점 · 탈락·감점 원인 · 차기 보완점 */
+    /**장단점 분석 (FR-081): 강점 · 탈락·감점 원인 · 차기 보완점 */
     private String strptCn;
     private String sbptCsCn;
     private String splmntCn;
@@ -80,6 +84,16 @@ public class StatsArchiveDTO {
 
     public String getBudgetText() {
         return StatsFormat.eok(budget);
+    }
+
+    /** 컨소시엄 참여·하도급이라 결과를 직접 입력한 사업인지. 순위·점수·평가표가 없다 (11/04) */
+    public boolean isManualResult() {
+        return BidCode.isManualResult(ptcpShpCd);
+    }
+
+    /** 수주 금액. 예: "15.9억". 탈락이면 null */
+    public String getScsbdAmtText() {
+        return scsbdAmt == null ? null : StatsFormat.eok(scsbdAmt);
     }
 
     /**

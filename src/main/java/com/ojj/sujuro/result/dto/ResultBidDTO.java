@@ -31,6 +31,16 @@ public class ResultBidDTO {
     private String evlMthdNm;
     private Double techScorScr;
     private Double prcScorScr;
+    /** 주관 팀 (이 사업 하나를 읽을 때만 값이 있다, findResultBid) */
+    private Long sprvsnTeamSn;
+    /** 참여 형태 (PTFRM). 이 사업 하나를 읽을 때만 값이 있다 */
+    private String ptcpShpCd;
+    private String ptcpShpNm;
+
+    /** 컨소시엄 참여·하도급이라 결과를 나라장터에서 가져오지 않고 직접 입력하는지 (11/04) */
+    public boolean isManualResult() {
+        return BidCode.isManualResult(ptcpShpCd);
+    }
 
     /** 선택 목록에 보일 이름. 예: "통합 보안관제 체계 구축 · 결과 등록" */
     public String getLabel() {

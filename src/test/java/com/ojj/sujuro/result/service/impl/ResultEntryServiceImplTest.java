@@ -42,12 +42,18 @@ import com.ojj.sujuro.auth.code.Role;
 import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.common.exception.BusinessException;
 import com.ojj.sujuro.common.file.FileStorage;
+import com.ojj.sujuro.history.code.ProcessType;
+import com.ojj.sujuro.history.service.HistoryService;
+import com.ojj.sujuro.notification.code.NotificationType;
+import com.ojj.sujuro.notification.service.NotificationService;
+import com.ojj.sujuro.result.code.ResultCode;
 import com.ojj.sujuro.result.dto.CompanyArticleScoreDTO;
 import com.ojj.sujuro.result.dto.EvaluationArticleDTO;
 import com.ojj.sujuro.result.dto.EvaluationCompareDTO;
 import com.ojj.sujuro.result.dto.EvaluationFileDTO;
 import com.ojj.sujuro.result.dto.EvaluationForm;
 import com.ojj.sujuro.result.dto.EvaluationScoreDTO;
+import com.ojj.sujuro.result.dto.ManualResultForm;
 import com.ojj.sujuro.result.dto.ResultBidDTO;
 import com.ojj.sujuro.result.dto.ResultCompanyDTO;
 import com.ojj.sujuro.result.dto.ResultOutcomeDTO;
@@ -75,6 +81,8 @@ class ResultEntryServiceImplTest {
     private StatsService statsService;
     private ResultCollectService collect;
     private FileStorage storage;
+    private NotificationService notifications;
+    private HistoryService history;
     private ResultEntryServiceImpl service;
 
     private final LoginUser mgmt = user("2022-0009", Role.MGMT);
@@ -90,7 +98,9 @@ class ResultEntryServiceImplTest {
         statsService = mock(StatsService.class);
         collect = mock(ResultCollectService.class);
         storage = mock(FileStorage.class);
-        service = new ResultEntryServiceImpl(resultMapper, statsMapper, statsService, collect, storage);
+        notifications = mock(NotificationService.class);
+        history = mock(HistoryService.class);
+        service = new ResultEntryServiceImpl(resultMapper, statsMapper, statsService, collect, storage, notifications, history);
         when(statsMapper.findArchive(8L)).thenReturn(archive(3L));
         when(statsMapper.findDevTeamSnOf("2024-0031")).thenReturn(3L);
         when(statsMapper.findDevTeamSnOf("2024-0099")).thenReturn(4L);
@@ -119,7 +129,8 @@ class ResultEntryServiceImplTest {
         ResultsViewDTO w = service.build(mgmt, 999L, null, false);
         assertEquals(5L, w.getBid().getPbancSn()); // 제출 완료가 맨 앞
         assertEquals(null, w.getArchive());
-        verify(resultMapper, never()).findCompanies(5L);
+        assertEquals(null, w.getCompany()); // 평가표는 결과 등록 뒤에 넣는다
+        verify(resultMapper).findCompanies(5L); // 개찰 업체 목록은 제출 완료부터 보인다
 
         assertThrows(AccessDeniedException.class, () -> service.build(user("2025-0001", Role.MEMBER), 8L, null, false));
     }
@@ -239,6 +250,116 @@ class ResultEntryServiceImplTest {
         assertTrue(message(() -> service.importResult(mgmt, 6L)).startsWith("제출 완료 상태인 사업만"));
         when(collect.isReady()).thenReturn(false);
         assertTrue(message(() -> service.importResult(mgmt, 5L)).contains("사업자번호(company.biz-no)"));
+    }
+
+    /* 컨소시엄 참여·하도급 (11/04): 나라장터에서 가져올 수 없어 결과와 수주 금액만 경영지원실이 직접 입력한다 */
+
+    @Test
+    void 컨소시엄_수주는_금액과_함께_등록하고_팀장에게_알린다() {
+        when(resultMapper.findResultBid(5L)).thenReturn(manualBid(5L, "PS050", "PF020", "컨소시엄 참여"));
+        when(resultMapper.updateToResult(5L)).thenReturn(1);
+
+        assertEquals("결과를 등록했습니다: 수주. 장단점은 담당 팀 팀장이 입력합니다.",
+                service.saveManualResult(mgmt, 5L, manual(ResultCode.WON, "120,000,000")));
+
+        InOrder order = inOrder(resultMapper);
+        order.verify(resultMapper).mergeManualBidRslt(5L, ResultCode.WON, 120000000L, "2022-0009");
+        order.verify(resultMapper).updateToResult(5L);
+        verify(history).record(5L, ProcessType.RESULT_REGISTERED, "2022-0009", 3L, "컨소시엄 참여 · 수주 (직접 입력)");
+        verify(notifications).sendToTeamLeaders(eq(3L), eq(NotificationType.EVL_TABLE_REQUEST), eq(5L), anyString());
+    }
+
+    @Test
+    void 하도급_탈락은_금액을_넣어_보내도_저장하지_않는다() {
+        when(resultMapper.findResultBid(5L)).thenReturn(manualBid(5L, "PS050", "PF030", "하도급"));
+        when(resultMapper.updateToResult(5L)).thenReturn(1);
+
+        service.saveManualResult(mgmt, 5L, manual(ResultCode.LOST, "120000000"));
+
+        verify(resultMapper).mergeManualBidRslt(5L, ResultCode.LOST, null, "2022-0009");
+    }
+
+    @Test
+    void 이미_결과_등록이면_값만_고치고_알림과_이력은_남기지_않는다() {
+        when(resultMapper.findResultBid(5L)).thenReturn(manualBid(5L, "PS060", "PF030", "하도급"));
+
+        assertEquals("결과를 고쳤습니다: 수주", service.saveManualResult(mgmt, 5L, manual(ResultCode.WON, "5000")));
+
+        verify(resultMapper).mergeManualBidRslt(5L, ResultCode.WON, 5000L, "2022-0009");
+        verify(resultMapper, never()).updateToResult(anyLong());
+        verify(history, never()).record(anyLong(), anyString(), anyString(), any(), anyString());
+        verify(notifications, never()).sendToTeamLeaders(any(), anyString(), any(), anyString());
+    }
+
+    @Test
+    void 직접_입력은_경영지원실만_컨소시엄_하도급만_제출_완료_뒤에만_한다() {
+        when(resultMapper.findResultBid(5L)).thenReturn(manualBid(5L, "PS050", "PF020", "컨소시엄 참여"));
+        assertThrows(AccessDeniedException.class, () -> service.saveManualResult(leader, 5L, manual(ResultCode.LOST, null)));
+
+        when(resultMapper.findResultBid(6L)).thenReturn(manualBid(6L, "PS050", "PF010", "주관"));
+        assertTrue(message(() -> service.saveManualResult(mgmt, 6L, manual(ResultCode.LOST, null))).startsWith("직접 입력은 컨소시엄"));
+        when(resultMapper.findResultBid(7L)).thenReturn(manualBid(7L, "PS050", null, null)); // 참여 형태를 안 정했으면 주관처럼 가져온다
+        assertTrue(message(() -> service.saveManualResult(mgmt, 7L, manual(ResultCode.LOST, null))).startsWith("직접 입력은 컨소시엄"));
+
+        when(resultMapper.findResultBid(9L)).thenReturn(manualBid(9L, "PS040", "PF020", "컨소시엄 참여"));
+        assertTrue(message(() -> service.saveManualResult(mgmt, 9L, manual(ResultCode.LOST, null))).startsWith("결과는 제출 완료가 된 뒤에"));
+        verify(resultMapper, never()).mergeManualBidRslt(anyLong(), anyString(), any(), anyString());
+    }
+
+    @Test
+    void 결과와_금액이_틀리면_저장하지_않는다() {
+        when(resultMapper.findResultBid(5L)).thenReturn(manualBid(5L, "PS050", "PF020", "컨소시엄 참여"));
+
+        assertTrue(message(() -> service.saveManualResult(mgmt, 5L, manual("", null))).startsWith("결과를 수주나 탈락"));
+        assertTrue(message(() -> service.saveManualResult(mgmt, 5L, manual("BR099", null))).startsWith("결과를 수주나 탈락"));
+        assertTrue(message(() -> service.saveManualResult(mgmt, 5L, manual(ResultCode.WON, " "))).startsWith("수주하면 우리 회사가 받는 금액"));
+        assertTrue(message(() -> service.saveManualResult(mgmt, 5L, manual(ResultCode.WON, "1.2억"))).startsWith("수주 금액은 원 단위"));
+        assertTrue(message(() -> service.saveManualResult(mgmt, 5L, manual(ResultCode.WON, "0"))).startsWith("수주 금액은 원 단위"));
+        assertTrue(message(() -> service.saveManualResult(mgmt, 5L, manual(ResultCode.WON, "1234567890123456"))).startsWith("수주 금액은 원 단위"));
+        verify(resultMapper, never()).mergeManualBidRslt(anyLong(), anyString(), any(), anyString());
+    }
+
+    @Test
+    void 그사이_상태가_바뀌면_예외로_되돌린다() {
+        when(resultMapper.findResultBid(5L)).thenReturn(manualBid(5L, "PS050", "PF020", "컨소시엄 참여"));
+        when(resultMapper.updateToResult(5L)).thenReturn(0);
+
+        assertTrue(message(() -> service.saveManualResult(mgmt, 5L, manual(ResultCode.LOST, null))).contains("상태가 바뀌었습니다"));
+        verify(history, never()).record(anyLong(), anyString(), anyString(), any(), anyString());
+    }
+
+    @Test
+    void 컨소시엄은_나라장터에서_가져오지_않는다고_안내한다() {
+        when(resultMapper.findResultBid(5L)).thenReturn(manualBid(5L, "PS050", "PF020", "컨소시엄 참여")); // findResultTarget 은 null
+
+        assertTrue(message(() -> service.importResult(mgmt, 5L)).contains("결과를 직접 입력합니다"));
+        verify(collect, never()).register(any());
+    }
+
+    @Test
+    void 경영지원실만_컨소시엄_사업에서_입력_칸을_본다() {
+        when(resultMapper.findResultBids(any())).thenReturn(Arrays.asList(bid(5L, "PS050")));
+        when(resultMapper.findResultBid(5L)).thenReturn(manualBid(5L, "PS050", "PF020", "컨소시엄 참여"));
+        assertTrue(service.build(mgmt, 5L, null, false).isCanEnterResult());
+        assertFalse(service.build(leader, 5L, null, false).isCanEnterResult());
+
+        when(resultMapper.findResultBid(5L)).thenReturn(manualBid(5L, "PS050", "PF010", "주관"));
+        assertFalse(service.build(mgmt, 5L, null, false).isCanEnterResult());
+    }
+
+    private static ResultBidDTO manualBid(Long sn, String stts, String shpCd, String shpNm) {
+        ResultBidDTO b = bid(sn, stts);
+        b.setSprvsnTeamSn(3L);
+        b.setPtcpShpCd(shpCd);
+        b.setPtcpShpNm(shpNm);
+        return b;
+    }
+
+    private static ManualResultForm manual(String rsltCd, String amt) {
+        ManualResultForm f = new ManualResultForm();
+        f.setBidRsltCd(rsltCd);
+        f.setScsbdAmt(amt);
+        return f;
     }
 
     @Test

@@ -396,5 +396,9 @@ public class ScheduleService {
             List<ScheduleEvent> list = byDate.get(date.toString());
             v.getCells().add(new Cell(d, date.equals(today), list == null ? new ArrayList<ScheduleEvent>() : list));
         }
+        // 마지막 주도 7칸을 채운다 (빈 칸이 없으면 그 자리에 칸 사이 선 색이 짙게 보인다)
+        while (v.getCells().size() % 7 != 0) {
+            v.getCells().add(new Cell(0, false, new ArrayList<ScheduleEvent>()));
+        }
     }
 }

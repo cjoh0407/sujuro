@@ -72,7 +72,7 @@ public class SecurityConfig {
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID"))
             .sessionManagement(session -> session
-                .invalidSessionUrl("/login?expired"));
+                .invalidSessionStrategy(new ExpiredSessionStrategy()));
 
         return http.build();
     }

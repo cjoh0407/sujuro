@@ -80,6 +80,9 @@
       <when test="sort == 'recent'">
         ORDER BY P.REG_DT DESC, P.PBANC_SN DESC
       </when>
+      <when test="sort == 'no'">
+        ORDER BY P.PBANC_SN ASC
+      </when>
       <otherwise>
         <!-- 사전규격은 아직 마감일이 없으므로 뒤로 보낸다. -->
         ORDER BY P.BID_DDLN_DT ASC NULLS LAST, P.PBANC_SN ASC

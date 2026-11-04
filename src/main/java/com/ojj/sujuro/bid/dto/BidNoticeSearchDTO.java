@@ -25,6 +25,7 @@ public class BidNoticeSearchDTO {
     /** 정렬 */
     public static final String SORT_DEADLINE = "deadline"; // 마감일 빠른 순
     public static final String SORT_RECENT = "recent";     // 최신 순 (등록 역순)
+    public static final String SORT_NO = "no";             // 번호 순 (PBANC_SN 오름차순, 목록의 번호 칸)
 
     /** 공고단계코드 (PBSTP). 비어 있으면 전체 탭. 11/03 탭을 진행상태에서 공고단계로 바꿨다 */
     private String stepCd;
@@ -46,7 +47,7 @@ public class BidNoticeSearchDTO {
         if (!BY_NO.equals(searchBy) && !BY_ORG.equals(searchBy)) {
             searchBy = BY_NAME;
         }
-        if (!SORT_RECENT.equals(sort)) {
+        if (!SORT_RECENT.equals(sort) && !SORT_NO.equals(sort)) {
             sort = SORT_DEADLINE;
         }
         if (page < 1) {

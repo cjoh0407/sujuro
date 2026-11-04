@@ -210,12 +210,12 @@
 
   <select id="findArchive" resultType="com.ojj.sujuro.result.dto.StatsArchiveDTO">
     SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, P.ORDER_INST_NM AS orderInstNm,
-           P.SPRVSN_TEAM_SN AS teamSn, T.TEAM_NM AS teamNm, PS.CD_NM AS ptcpShpNm,
+           P.SPRVSN_TEAM_SN AS teamSn, T.TEAM_NM AS teamNm, P.PTCP_SHP_CD AS ptcpShpCd, PS.CD_NM AS ptcpShpNm,
            P.ALTMNT_BGT_AMT AS budget, P.BID_DDLN_DT AS bidDdlnDt,
            P.TECH_SCOR_SCR AS techScorScr, P.PRC_SCOR_SCR AS prcScorScr,
            R.BID_RSLT_CD AS rsltCd, RC.CD_NM AS rsltNm, R.EVL_RNK AS evlRnk,
            R.TECH_EVL_SCR AS techEvlScr, R.TECH_EVL_ORGNL_SCR AS techEvlOrgnlScr,
-           R.PRC_EVL_SCR AS prcEvlScr, R.SNTHS_EVL_SCR AS snthsEvlScr,
+           R.PRC_EVL_SCR AS prcEvlScr, R.SNTHS_EVL_SCR AS snthsEvlScr, R.SCSBD_AMT AS scsbdAmt,
            R.STRPT_CN AS strptCn, R.SBPT_CS_CN AS sbptCsCn, R.SPLMNT_CN AS splmntCn
       FROM TB_BID_PBANC P
       <include refid="resultJoin"/>

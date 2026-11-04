@@ -31,7 +31,6 @@
 .sch .sch-gap{flex:1}
 .sch .sch-del{color:var(--sch-red);border-color:var(--sch-red)}
 .sch .sch-del:hover{background:rgba(164,41,47,.08)}
-.sch div.ev{cursor:default}
 /* 날짜·시간 두 칸: 제목 한 줄 + 입력칸 높이를 같게 맞춘다 */
 .sch .sch-two{align-items:end}
 .sch .sch-two .lbl{line-height:18px;white-space:nowrap}
@@ -50,3 +49,4 @@
 .sch .sch-ev.dragging{opacity:.45}
 .sch .cal .cell.drop-ok{outline:2px dashed var(--accent);outline-offset:-3px;background:var(--accent-soft)}
 .sch .cal .cell.drop-no{background:rgba(164,41,47,.06);cursor:not-allowed}
+

@@ -26,6 +26,7 @@ import com.ojj.sujuro.common.exception.BusinessException;
 import com.ojj.sujuro.common.file.FileStorage;
 import com.ojj.sujuro.result.dto.EvaluationFileDTO;
 import com.ojj.sujuro.result.dto.EvaluationForm;
+import com.ojj.sujuro.result.dto.ManualResultForm;
 import com.ojj.sujuro.result.dto.ResultsViewDTO;
 import com.ojj.sujuro.result.dto.StatsAnalysisForm;
 import com.ojj.sujuro.result.service.ResultEntryService;
@@ -37,6 +38,7 @@ import com.ojj.sujuro.result.service.ResultEntryService;
  *   /results?bid=&co=&fromFile=        화면 (bid: 사업건. 없으면 제출 완료가 먼저. co: 평가표를 볼 개찰 업체, 없으면 우리 회사.
  *                                      fromFile: 올린 엑셀에서 입력 칸을 다시 채운다)
  *   POST /results/import               나라장터에서 결과 가져오기 (제출 완료 사업)
+ *   POST /results/manual               결과 직접 입력 (컨소시엄 참여·하도급 사업, 경영지원실)
  *   POST /results/evaluation-file      평가표 엑셀 올리기 (업체별)
  *   GET  /results/evaluation-file?bid=&co=  업체의 평가표 엑셀 내려받기 (우리 회사 것은 /stats/bids/{bid}/evaluation-file 도 된다)
  *   POST /results/evaluation           평가 항목·배점·위원별 점수 저장 (업체별, 엑셀에서 읽어 채운 값을 팀장이 확인해 저장)
@@ -79,6 +81,18 @@ public class ResultController {
             ra.addFlashAttribute("resultMessage", resultEntryService.importResult(user, bid));
         } catch (BusinessException e) {
             ra.addFlashAttribute("resultError", e.getMessage());
+        }
+        return back(ra, bid, null);
+    }
+
+    @PostMapping("/manual")
+    public String saveManualResult(@AuthenticationPrincipal LoginUser user, @RequestParam Long bid,
+                                   ManualResultForm form, RedirectAttributes ra) {
+        try {
+            ra.addFlashAttribute("resultMessage", resultEntryService.saveManualResult(user, bid, form));
+        } catch (BusinessException e) {
+            ra.addFlashAttribute("resultError", e.getMessage());
+            ra.addFlashAttribute("manualForm", form); // 입력한 값을 다시 채워 준다
         }
         return back(ra, bid, null);
     }

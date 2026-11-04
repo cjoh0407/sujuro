@@ -34,6 +34,16 @@ function schOpenEdit(btn) {
   schOpen('schEdit');
 }
 
+/* 수정 권한이 없는 사람이 일정을 누르면 내용만 보여 준다 (자동 마감 일정 포함) */
+function schOpenView(btn) {
+  var d = btn.dataset;
+  document.getElementById('sv-title').value = d.title || '';
+  document.getElementById('sv-date').value = d.date || '';
+  document.getElementById('sv-time').value = d.time || '';
+  document.getElementById('sv-pbanc').textContent = d.pbanc || '';
+  schOpen('schView');
+}
+
 function schDelete() {
   var title = document.getElementById('se-title').value;
   if (window.confirm('\'' + title + '\' 일정을 삭제하시겠습니까?\n삭제하면 되돌릴 수 없고, 제안팀원에게 삭제 알림이 갑니다.')) {
@@ -44,7 +54,7 @@ function schDelete() {
 /* Esc 로 열린 모달을 닫는다 */
 document.addEventListener('keydown', function (e) {
   if (e.key !== 'Escape') return;
-  ['schAdd', 'schEdit'].forEach(schClose);
+  ['schAdd', 'schEdit', 'schView'].forEach(schClose);
 });
 
 /* 드래그로 일정 옮기기 (주관팀 팀장, 우리 팀이 등록한 일정).

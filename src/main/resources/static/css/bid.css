@@ -4,16 +4,29 @@
 
 /* 공고 목록 (11/03 열 간격 일반화). 칸 너비를 고정한다(table-layout:fixed).
    내용에 맞춰 늘고 줄면 미배정·마감일 없음처럼 값이 빈 칸이 있을 때, 또 탭·페이지가 바뀔 때마다 열 위치가 흔들렸다.
-   공고명 칸만 남는 너비를 갖고 줄을 바꾼다. 수요기관·주관팀이 칸보다 길면 말줄임(…)하고, 마우스를 올리면 전체가 보인다.
-   화면이 좁으면 표가 옆으로 넘어간다(.ts). */
-.notice-table{table-layout:fixed;min-width:1100px}
-.notice-table col.w-no{width:130px}
-.notice-table col.w-step{width:96px}
-.notice-table col.w-type{width:96px}
-.notice-table col.w-inst{width:170px}
-.notice-table col.w-ddln{width:108px}
-.notice-table col.w-bgt{width:80px}
-.notice-table col.w-team{width:124px}
-.notice-table col.w-prog{width:108px}
-.notice-table th,.notice-table td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.notice-table td.c-name{white-space:normal;overflow-wrap:anywhere}
+   칸 너비 = 그 열 글자 너비 + --gap (11/04). 남는 너비를 열 수로 똑같이 나눠서 화면 너비와 상관없이 글자 사이 간격이 일정하다.
+   글자 너비 합이 863px, 열이 10개다. 열을 바꾸면 --gap 과 min-width(863 + 28×10) 도 같이 바꾼다.
+   모든 칸은 한 줄이고 넘치면 말줄임(…)한다. 공고명·수요기관·주관팀은 마우스를 올리면 전체가 보인다.
+   화면이 좁으면 표가 옆으로 넘어간다(.ts). 모든 열은 가운데 정렬이다 (11/04). */
+.notice-wrap{container-type:inline-size}
+.notice-table{table-layout:fixed;min-width:1143px;--gap:max(28px,calc((100cqw - 863px) / 10))}
+.notice-table col.w-sn{width:calc(28px + var(--gap))}
+.notice-table col.w-no{width:calc(91px + var(--gap))}
+.notice-table col.w-step{width:calc(60px + var(--gap))}
+.notice-table col.w-type{width:calc(60px + var(--gap))}
+.notice-table col.w-name{width:calc(250px + var(--gap))}
+.notice-table col.w-inst{width:calc(110px + var(--gap))}
+.notice-table col.w-ddln{width:calc(80px + var(--gap))}
+.notice-table col.w-bgt{width:calc(48px + var(--gap))}
+.notice-table col.w-team{width:calc(72px + var(--gap))}
+.notice-table col.w-prog{width:calc(64px + var(--gap))}
+.notice-table th,.notice-table td{text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* 공고 목록 머리글 오른쪽의 마지막 수집. 줄이 좁아 아래로 내려가도 오른쪽에 붙는다 */
+.list-info{margin-left:auto;font-size:11.5px}
+
+/* 페이지 번호 줄: 번호는 가운데, 건수는 맨 오른쪽. 양옆 칸 너비가 같아서 건수가 있어도 번호가 치우치지 않는다.
+   건수 글자는 .list-info 와 같은 크기이고, 오른쪽 여백은 card-head 와 같아 위아래 끝이 맞는다. */
+.pager-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center}
+.pager-row .pager{grid-column:2}
+.pager-info{grid-column:3;justify-self:end;padding-right:18px;font-size:11.5px;white-space:nowrap}

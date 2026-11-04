@@ -7,6 +7,8 @@
   - 결과 등록: 제출 완료(PS050) 공고에 최종 낙찰자가 올라오면 개찰 목록 전체를 TB_CO_EVL_RSLT 에, 우리 회사 결과를
     TB_BID_RSLT 에 넣고 상태를 결과 등록(PS060)으로 바꾼다. 수주(BR010)·탈락(BR020)은 낙찰자 사업자번호로 정한다.
   - 평가표: 엑셀은 파일구분 평가표(FL070)로 보관만 하고 읽지 않는다. 항목·배점·위원별 점수는 경영지원실이 직접 적는다.
+  - 컨소시엄 참여(PF020)·하도급(PF030): 개찰 목록에 우리 회사가 나오지 않아 자동 등록 대상에서 뺀다.
+    결과와 수주 금액은 경영지원실이 직접 입력한다 (mergeManualBidRslt, 11/04).
 -->
 <mapper namespace="com.ojj.sujuro.result.mapper.ResultMapper">
 
@@ -15,12 +17,16 @@
     P.SPRVSN_TEAM_SN AS sprvsnTeamSn
   </sql>
 
+  <!-- 나라장터에서 결과를 가져오는 참여 형태. 컨소시엄 참여·하도급은 직접 입력한다. 참여 형태를 안 정했으면 주관처럼 가져온다 -->
+  <sql id="autoResultShp">NVL(P.PTCP_SHP_CD, 'PF010') NOT IN ('PF020', 'PF030')</sql>
+
   <select id="findResultTargets" resultType="com.ojj.sujuro.result.dto.ResultTargetDTO">
     SELECT <include refid="targetCols"/>
       FROM TB_BID_PBANC P
      WHERE P.PBANC_STTS_CD = 'PS050'
        AND P.PBANC_STEP_CD IN ('PP040', 'PP050')
        AND P.BID_PBANC_NO IS NOT NULL
+       AND <include refid="autoResultShp"/>
      ORDER BY P.PBANC_SN
   </select>
 
@@ -29,6 +35,7 @@
     SELECT <include refid="targetCols"/>
       FROM TB_BID_PBANC P
      WHERE P.PBANC_SN = #{pbancSn} AND P.PBANC_STTS_CD = 'PS050' AND P.BID_PBANC_NO IS NOT NULL
+       AND <include refid="autoResultShp"/>
   </select>
 
   <!-- 비어 있을 때만 채운다. 수집·등록이 이미 넣은 값은 그대로 둔다 -->
@@ -72,6 +79,18 @@
                   #{scsbdAmt, jdbcType=NUMERIC}, SYSDATE)
   </update>
 
+  <!-- 컨소시엄 참여·하도급의 결과 직접 입력 (11/04). 결과와 수주 금액만 쓴다. 수집한 값이 아니라 수집일시는 비우고, 입력한 사람을 남긴다 -->
+  <update id="mergeManualBidRslt">
+    MERGE INTO TB_BID_RSLT R
+    USING (SELECT #{pbancSn} AS PBANC_SN FROM DUAL) S
+       ON (R.PBANC_SN = S.PBANC_SN)
+     WHEN MATCHED THEN UPDATE
+          SET R.BID_RSLT_CD = #{bidRsltCd}, R.SCSBD_AMT = #{scsbdAmt, jdbcType=NUMERIC},
+              R.MDFR_ID = #{userId}, R.MDFCN_DT = SYSDATE
+     WHEN NOT MATCHED THEN INSERT (PBANC_SN, BID_RSLT_CD, SCSBD_AMT, MDFR_ID, MDFCN_DT)
+          VALUES (#{pbancSn}, #{bidRsltCd}, #{scsbdAmt, jdbcType=NUMERIC}, #{userId}, SYSDATE)
+  </update>
+
   <update id="updateToResult">
     UPDATE TB_BID_PBANC
        SET PBANC_STTS_CD = 'PS060', LAST_CFMTN_DT = SYSDATE
@@ -96,10 +115,12 @@
     SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, P.BID_PBANC_NO AS bidPbancNo, P.ORDER_INST_NM AS orderInstNm,
            T.TEAM_NM AS teamNm, P.PBANC_STTS_CD AS pbancSttsCd, S.CD_NM AS pbancSttsNm,
            P.BID_DDLN_DT AS bidDdlnDt, P.OPENG_DT AS opengDt, P.EVL_MTHD_NM AS evlMthdNm,
-           P.TECH_SCOR_SCR AS techScorScr, P.PRC_SCOR_SCR AS prcScorScr
+           P.TECH_SCOR_SCR AS techScorScr, P.PRC_SCOR_SCR AS prcScorScr,
+           P.SPRVSN_TEAM_SN AS sprvsnTeamSn, P.PTCP_SHP_CD AS ptcpShpCd, PF.CD_NM AS ptcpShpNm
       FROM TB_BID_PBANC P
       LEFT JOIN TB_TEAM T ON T.TEAM_SN = P.SPRVSN_TEAM_SN
       LEFT JOIN TB_COM_CD S ON S.GROUP_CD = 'PBSTS' AND S.CD = P.PBANC_STTS_CD
+      LEFT JOIN TB_COM_CD PF ON PF.GROUP_CD = 'PTFRM' AND PF.CD = P.PTCP_SHP_CD
      WHERE P.PBANC_SN = #{pbancSn}
   </select>
 

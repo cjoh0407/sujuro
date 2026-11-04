@@ -18,6 +18,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -52,6 +55,8 @@ public class G2bApiClient {
     /** 첨부 헤더 읽기용. RestTemplate 은 응답을 닫을 때 본문을 끝까지 읽어 버려서 따로 둔다. */
     private final HttpClient fileClient;
     private final Duration readTimeout;
+    private final int retryMaxAttempts;
+    private final Duration retryWait;
 
     private final String serviceKey;
     private final String baseUrl;
@@ -76,7 +81,9 @@ public class G2bApiClient {
                         @Value("${g2b.path.contract-process}") String contractProcessPath,
                         @Value("${g2b.path.order-plan}") String orderPlanPath,
                         @Value("${g2b.connect-timeout}") Duration connectTimeout,
-                        @Value("${g2b.read-timeout}") Duration readTimeout) {
+                        @Value("${g2b.read-timeout}") Duration readTimeout,
+                        @Value("${g2b.retry.max-attempts}") int retryMaxAttempts,
+                        @Value("${g2b.retry.wait}") Duration retryWait) {
         this.restTemplate = builder
                 .setConnectTimeout(connectTimeout)
                 .setReadTimeout(readTimeout)
@@ -86,6 +93,8 @@ public class G2bApiClient {
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
         this.readTimeout = readTimeout;
+        this.retryMaxAttempts = retryMaxAttempts;
+        this.retryWait = retryWait;
         this.serviceKey = serviceKey;
         this.baseUrl = baseUrl;
         this.preSpecPath = preSpecPath;
@@ -347,16 +356,7 @@ public class G2bApiClient {
     }
 
     private G2bResponse call(String url, String what) {
-        String body;
-        try {
-            ResponseEntity<String> res = restTemplate.getForEntity(URI.create(url), String.class);
-            body = res.getBody();
-        } catch (Exception e) {
-            // 어떤 주소를 불렀는지 로그에 남기되 인증키는 지운다.
-            log.warn("나라장터 {} 조회 실패: {}", what, maskKey(url), e);
-            throw new BusinessException(
-                    "나라장터에서 지금 " + what + " 정보를 불러오지 못했습니다. 잠시 후 다시 시도하세요.");
-        }
+        String body = fetch(url, what);
 
         JsonNode root;
         try {
@@ -376,6 +376,48 @@ public class G2bApiClient {
 
         JsonNode resBody = root.path("response").path("body");
         return new G2bResponse(resBody.path("items"), body, resBody.path("totalCount").asInt(0));
+    }
+
+    /**
+     * 주소를 불러 본문을 돌려준다. 일시적인 실패는 잠깐 기다렸다가 다시 부른다 (11/04).
+     * 수집은 목록을 수십 페이지 연달아 부르는데, 한 번만 실패해도 그 단계를 통째로 건너뛰었다.
+     * 전체 대기는 호출 하나에 최대 (읽기 제한 + 기다림) × 시도 횟수 정도다.
+     */
+    private String fetch(String url, String what) {
+        for (int attempt = 1; ; attempt++) {
+            try {
+                ResponseEntity<String> res = restTemplate.getForEntity(URI.create(url), String.class);
+                return res.getBody();
+            } catch (Exception e) {
+                if (attempt >= retryMaxAttempts || !isTemporary(e)) {
+                    throw fetchFailed(url, what, attempt, e);
+                }
+                // 예외 메시지에는 쿼리(인증키)가 없다. RestTemplate 이 주소의 ? 뒤를 빼고 만든다.
+                log.warn("나라장터 {} 조회 실패, {}/{}회. {} 뒤 다시 부릅니다: {}",
+                        what, attempt, retryMaxAttempts, retryWait, e.getMessage());
+                try {
+                    Thread.sleep(retryWait.toMillis());
+                } catch (InterruptedException interrupted) {
+                    // 서버가 내려가는 중이다. 기다리지 않고 끝낸다.
+                    Thread.currentThread().interrupt();
+                    throw fetchFailed(url, what, attempt, e);
+                }
+            }
+        }
+    }
+
+    private BusinessException fetchFailed(String url, String what, int attempt, Exception e) {
+        // 어떤 주소를 불렀는지 로그에 남기되 인증키는 지운다.
+        log.warn("나라장터 {} 조회 실패 ({}회 시도): {}", what, attempt, maskKey(url), e);
+        return new BusinessException(
+                "나라장터에서 지금 " + what + " 정보를 불러오지 못했습니다. 잠시 후 다시 시도하세요.");
+    }
+
+    /** 시간 초과·연결 끊김, 나라장터 쪽 오류(5xx), 호출 제한(429). 인증키 오류 같은 나머지 4xx 는 다시 불러도 같다. */
+    private static boolean isTemporary(Exception e) {
+        return e instanceof ResourceAccessException
+                || e instanceof HttpServerErrorException
+                || e instanceof HttpClientErrorException.TooManyRequests;
     }
 
     /** 로그에 인증키가 남지 않게 지운다. */

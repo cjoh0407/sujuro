@@ -9,14 +9,16 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--chart-join:#5B84E8;--chart-won:#3BA676}}
 :root[data-theme="dark"]{--chart-join:#5B84E8;--chart-won:#3BA676}
 
-/* 통계의 3:7 배치와 왼쪽 사업 목록은 제안 화면과 같은 proposal.css 의 .split, .bid-item 을 쓴다 (11/04) */
+/* 통계의 3:7 배치와 왼쪽 사업 목록, 평가·결과 입력의 3:7 배치는 제안 화면과 같은 proposal.css 의 .split, .bid-item 을 쓴다 (11/04) */
 
-/* 연도·팀 고르기 버튼(사업 목록 아래)과 팝업 (11/03). 팝업은 일정·사용자 관리의 .modal 과 같은 모양이다 */
-.scope-btn{width:100%;display:flex;flex-direction:column;gap:2px;padding:12px 34px 12px 14px;position:relative;
-  font:inherit;font-size:12.5px;text-align:left;color:var(--text);background:none;border:0;border-radius:inherit;cursor:pointer}
-.scope-btn::after{content:"›";position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:15px}
-.scope-btn:hover{background:var(--alt)}
-.scope-btn .faint{font-size:11px}
+/* 왼쪽 목록은 진행 중과 지난 사업을 한 칸에 모으므로 제안 화면(4줄)보다 길게 8줄까지 보이고, 넘으면 칸 안에서 스크롤한다 */
+.bid-body.year-body{max-height:496px}
+
+/* 전체 종합 줄과 연도·팀 팝업 (11/04). 줄은 목록(.bid-item)과 같은 모양이고, 누르면 팝업이 열려서 오른쪽에 › 를 둔다.
+   팝업은 일정·사용자 관리의 .modal 과 같은 모양이다 */
+button.bid-item{position:relative;width:100%;padding-right:34px;font-family:inherit;text-align:left;background:none;
+  border-width:0 0 1px;border-style:solid;border-color:var(--border);cursor:pointer}
+button.bid-item::after{content:"›";position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:15px}
 .stats-modal{position:fixed;inset:0;background:rgba(15,19,24,.45);display:flex;align-items:center;justify-content:center;z-index:70;padding:16px}
 .stats-modal[hidden]{display:none}
 .stats-modal .box{width:380px;max-width:94vw;background:var(--surface);border-radius:12px;border:1px solid var(--border);box-shadow:0 12px 32px rgba(0,0,0,.18)}
@@ -29,6 +31,15 @@
    점수 줄을 카드 높이에 고르게 벌려 아래에 빈 공간이 남지 않게 한다 */
 .score-card{display:flex;flex-direction:column}
 .score-card>.pad{flex:1;display:flex;flex-direction:column;justify-content:space-evenly}
+
+/* 제출 산출물에 파일이 없을 때 (11/04). 옆 공고 기본 정보 카드 높이만큼 늘어난 칸의 정가운데에 문구를 둔다 */
+.file-empty{display:flex;flex-direction:column}
+.file-empty>.empty{flex:1;display:flex;align-items:center;justify-content:center}
+
+/* 아직 결과가 없는 사업 (11/04). 점수·평가 항목별 점수·장단점 카드의 정가운데에 안내 문구를 둔다 */
+.pending-card{display:flex;flex-direction:column}
+.pending-msg{flex:1;display:flex;align-items:center;justify-content:center;min-height:200px;padding:18px;text-align:center;font-size:13px;color:var(--muted)}
+.pending-msg.sm{min-height:110px}
 
 /* 연도별 참여·수주 막대 차트 (StatsChartDTO 가 좌표를 계산한다) */
 .chart{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
@@ -78,6 +89,12 @@
 .evl-grid input.nm{width:100%;min-width:180px}
 .evl-grid input.num{width:76px}
 .evl-grid th.cm,.evl-grid td.cm{text-align:center}
+/* 배점 칸(둘째 칸)도 가운데다. .cm 은 위원 칸을 세는 데 쓰므로(results/index.html 스크립트) 붙이지 않는다 */
+.evl-grid th:nth-child(2),.evl-grid td:nth-child(2){text-align:center}
+.evl-grid input.num{text-align:center}
+
+/* 평가·결과 입력의 점수 칸은 가운데 정렬이다 (11/04) */
+.sc{text-align:center}
 
 /* 평가·결과 입력: 사업명 줄(제안 화면 proposal.css 의 .biz 와 같은 모양), 결과 한 줄, 개찰 업체 중 우리 회사 행 */
 .biz{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 16px;border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:10px;background:var(--alt);font-size:13px}

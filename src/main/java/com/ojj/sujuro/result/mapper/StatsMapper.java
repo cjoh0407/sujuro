@@ -12,6 +12,7 @@ import com.ojj.sujuro.result.dto.StatsArchiveDTO;
 import com.ojj.sujuro.result.dto.StatsArticleDTO;
 import com.ojj.sujuro.result.dto.StatsCompetitorDTO;
 import com.ojj.sujuro.result.dto.StatsFileDTO;
+import com.ojj.sujuro.result.dto.ResultBidDTO;
 import com.ojj.sujuro.result.dto.StatsHistoryDTO;
 import com.ojj.sujuro.result.dto.StatsRateDTO;
 import com.ojj.sujuro.result.dto.StatsTallyDTO;
@@ -50,11 +51,17 @@ public interface StatsMapper {
     /** 통계(전체 종합)의 자주 만난 경쟁 업체 다섯 곳 (11/03). 많이 만난 순 */
     List<StatsCompetitorDTO> competitors(@Param("teamSn") Long teamSn, @Param("year") String year);
 
-    /** 결과가 등록된 이 팀의 사업 (연도 상관없이 마감일 최근 순) */
-    List<StatsHistoryDTO> history(@Param("teamSn") Long teamSn);
+    /** 이 팀의 진행 중 사업: 고른 연도의 참여 확정·제안 작성 중·제출 완료 (마감일이 없으면 올해, 결과를 입력할 제출 완료가 먼저) */
+    List<ResultBidDTO> inProgress(@Param("teamSn") Long teamSn, @Param("year") String year);
+
+    /** 이 팀의 지난 사업: 고른 연도의 결과 등록·유찰 (마감일 최근 순) */
+    List<StatsHistoryDTO> history(@Param("teamSn") Long teamSn, @Param("year") String year);
 
     /** 결과가 등록된 개발팀 사업 하나. 아니면 null */
     StatsArchiveDTO findArchive(@Param("pbancSn") Long pbancSn);
+
+    /** 참여 확정 뒤의 개발팀 사업 하나의 공고 기본 정보 (결과는 읽지 않는다). 아니면 null */
+    StatsArchiveDTO findPendingBid(@Param("pbancSn") Long pbancSn);
 
     /** 팀장이 확정한 최종 제안서. 없으면 null */
     StatsFileDTO findFinalFile(@Param("pbancSn") Long pbancSn);

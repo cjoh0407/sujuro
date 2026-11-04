@@ -2,8 +2,9 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <!--/*
   사업별 결과 분석 (FR-080, 081, 087). UI 목업 v3.5 의 rArchive() 화면과 같은 구성이다.
-  11/03 통계 화면 오른쪽 칸으로 옮겼다. 왼쪽 드롭다운에서 사업을 고르면 통계(stats/index)가 이 조각을 넣는다.
+  11/03 통계 화면 오른쪽 칸으로 옮겼다. 왼쪽 목록에서 사업을 고르면 통계(stats/index)가 이 조각을 넣는다.
   경영지원실은 모든 개발팀, 팀장은 자기 팀 사업만 본다.
+  11/04 아직 결과가 없는 사업(archive.pending. 진행 중·유찰)도 같은 자리에 보인다. 공고 기본 정보만 채우고 점수·평가 항목별 점수·장단점 칸 가운데에 안내 문구를 둔다.
   모두 읽기 화면이다. 결과·평가표는 경영지원실이, 평가 점수·장단점은 담당 팀 팀장이 평가·결과 입력(/results)에서 넣는다.
 
   모델: archive (result.dto.StatsArchiveDTO), canEdit (평가·결과 입력으로 가는 버튼)
@@ -20,17 +21,17 @@
       <div class="info-grid">
         <div><div class="k">발주기관</div><div class="v" th:text="${archive.orderInstNm ?: '-'}">발주기관</div></div>
         <div><div class="k">참여 형태</div><div class="v" th:text="${archive.ptcpShpNm ?: '미지정'}">주관</div></div>
-        <div><div class="k">예산</div><div class="v" th:text="${archive.budgetText}">0.0억</div></div>
+        <div><div class="k">수주 금액</div><div class="v" th:text="${archive.scsbdAmtText ?: '-'}">1.2억</div></div>
         <div><div class="k">담당 팀</div><div class="v" th:text="${archive.teamNm}">개발1팀</div></div>
         <div><div class="k">제출 마감</div>
           <div class="v" th:text="${archive.bidDdlnDt != null} ? ${#dates.format(archive.bidDdlnDt, 'yyyy-MM-dd')} : '-'">2026-09-24</div></div>
-        <div><div class="k">결과</div><div class="v"><b th:text="${archive.resultText}">수주 · 1위</b></div></div>
-        <div th:if="${archive.scsbdAmtText}"><div class="k">수주 금액</div><div class="v" th:text="${archive.scsbdAmtText}">1.2억</div></div>
+        <div><div class="k" th:text="${archive.pending} ? '진행 상태' : '결과'">결과</div>
+          <div class="v"><b th:text="${archive.pending} ? ${archive.pbancSttsNm} : ${archive.resultText}">수주 · 1위</b></div></div>
       </div>
     </div>
 
     <!-- 팀장이 최종본으로 확정한 제안서 통합본 -->
-    <div class="card">
+    <div class="card" th:classappend="${archive.finalFile == null} ? 'file-empty'">
       <div class="card-head"><h3>제출 산출물</h3></div>
       <div class="item" th:if="${archive.finalFile}" th:with="f=${archive.finalFile}">
         <span>📄</span>
@@ -41,12 +42,25 @@
         </div>
         <span class="t"><a class="btn sm" th:href="@{/stats/bids/{sn}/final-file(sn=${archive.pbancSn})}">내려받기</a></span>
       </div>
-      <div class="empty" th:unless="${archive.finalFile}">보관된 제출 파일이 없습니다.</div>
+      <div class="empty" th:unless="${archive.finalFile}"
+           th:text="${archive.pending} ? '결과가 등록된 사업만 제출 파일을 보여 줍니다.' : '보관된 제출 파일이 없습니다.'">보관된 제출 파일이 없습니다.</div>
+    </div>
+  </div>
+
+  <!--/* 아직 결과가 없는 사업: 점수·평가 항목별 점수 칸 가운데에 안내 문구 */-->
+  <div class="two even" th:if="${archive.pending}">
+    <div class="card pending-card">
+      <div class="card-head"><h3>점수</h3></div>
+      <div class="pending-msg" th:text="${archive.pendingMessage}">아직 입찰 진행 중인 사업건입니다.</div>
+    </div>
+    <div class="card pending-card">
+      <div class="card-head"><h3>평가 항목별 점수</h3></div>
+      <div class="pending-msg" th:text="${archive.pendingMessage}">아직 입찰 진행 중인 사업건입니다.</div>
     </div>
   </div>
 
   <!-- 컨소시엄 참여·하도급은 순위·점수·평가표를 받지 않아 이 줄이 없다 (11/04) -->
-  <div class="two even" th:unless="${archive.manualResult}">
+  <div class="two even" th:unless="${archive.pending or archive.manualResult}">
     <!-- 사업 전체의 최종 성적. 나라장터 개찰 결과에서 가져온다. 만점은 공고의 기술·가격 배점(비율).
          카드 높이는 옆 평가 항목별 점수에 맞추고, 점수 줄을 그 높이에 고르게 벌려 아래 빈 공간이 없게 한다 (11/03, .score-card) -->
     <th:block th:replace="~{stats/fragments/result-parts :: scoreCard(${archive})}"></th:block>
@@ -61,11 +75,15 @@
     </div>
   </div>
 
+  <div class="card pending-card" th:if="${archive.pending}">
+    <div class="card-head"><h3>장단점 분석</h3></div>
+    <div class="pending-msg sm" th:text="${archive.pendingMessage}">아직 입찰 진행 중인 사업건입니다.</div>
+  </div>
+
   <!-- 장단점 분석 (FR-081). 담당 팀 팀장이 평가·결과 입력에서 적는다 -->
-  <div class="card">
+  <div class="card" th:unless="${archive.pending}">
     <div class="card-head">
       <h3>장단점 분석</h3>
-      <span class="faint" style="font-size:11.5px">담당 팀 팀장이 평가·결과 입력에서 적습니다</span>
     </div>
     <div class="pad grid3">
       <div>

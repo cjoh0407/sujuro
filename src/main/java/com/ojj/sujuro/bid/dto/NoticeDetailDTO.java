@@ -1,6 +1,8 @@
 package com.ojj.sujuro.bid.dto;
 
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.util.Date;
 import java.util.List;
@@ -21,6 +23,9 @@ import lombok.Setter;
 @Getter
 @Setter
 public class NoticeDetailDTO extends BidNoticeDTO {
+
+    /** 나라장터 사전규격 상세 주소. 공식 문서에는 없어서 실제 공고(R26BD00294092)로 열어 확인했다 (2026-11-04) */
+    private static final String PRE_SPEC_URL = "https://www.g2b.go.kr/link/PRVA004_02/single/?bfSpecRegNo=";
 
     /** 공고 번호 셋. 뒤 단계로 넘어가도 앞 번호는 지우지 않는다. (상세의 '발주계획·사전규격 연결' 줄은 10/28 사용자 요청으로 뺐다) */
     private String orderPlanNo;
@@ -49,7 +54,7 @@ public class NoticeDetailDTO extends BidNoticeDTO {
     private String evlMthdNm;
     private Integer lmtPageCnt;
 
-    /** 나라장터 원문 링크 */
+    /** 입찰공고 API 가 준 나라장터 원문 주소 (bidNtceDtlUrl). 화면은 getSourceUrl 을 쓴다 */
     private String pbancDtlUrl;
 
     private Long sprvsnTeamSn;
@@ -82,6 +87,17 @@ public class NoticeDetailDTO extends BidNoticeDTO {
 
     /** 기술:가격 평가 비율. 예: "기술 80 : 가격 20". 협상에 의한 계약에만 있다. 없으면 null */
     private String evlRatioText;
+
+    /**
+     * 나라장터 원문 주소. 입찰공고부터는 API 가 준 주소이고, 사전규격은 API 에 상세 주소가 없어 등록번호로 만든다.
+     * 발주계획은 바로 가는 주소를 확인하지 못해 없다(null).
+     */
+    public String getSourceUrl() {
+        if (isPreSpec() && bfSpecRgstNo != null && !bfSpecRgstNo.isEmpty()) {
+            return PRE_SPEC_URL + URLEncoder.encode(bfSpecRgstNo, StandardCharsets.UTF_8);
+        }
+        return pbancDtlUrl;
+    }
 
     /** 입찰공고 단계 이후인지. 참여 결정과 제안요청서는 이 단계부터다. */
     public boolean isBidNoticeOrLater() {

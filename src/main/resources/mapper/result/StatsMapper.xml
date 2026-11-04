@@ -8,6 +8,7 @@
   기준
   - 팀     : 주관팀(SPRVSN_TEAM_SN). 개발부(DP030) 팀만 본다.
   - 연도   : 입찰 마감일(BID_DDLN_DT)의 연도. 마감일이 없는 공고는 연도 통계에 들어가지 않는다.
+             왼쪽 목록의 진행 중 사업만 마감일이 아직 없으면 올해로 보고, 그 연도를 고를 수 있게 한다.
   - 참여   : 참여 확정부터. PS030 참여 확정, PS040 제안 작성 중, PS050 제출 완료, PS060 결과 등록, PS070 유찰
   - 결과   : 결과 등록(PS060)이고 입찰 결과가 수주(BR010)·탈락(BR020)인 공고. 유찰(PS070)은 결과가 아니다.
   - 수주율 : 수주 ÷ 결과. 유찰은 빠진다.
@@ -46,9 +47,10 @@
   </select>
 
   <select id="findYears" resultType="string">
-    SELECT DISTINCT TO_CHAR(P.BID_DDLN_DT, 'YYYY')
+    SELECT DISTINCT NVL(TO_CHAR(P.BID_DDLN_DT, 'YYYY'), TO_CHAR(SYSDATE, 'YYYY'))
       FROM TB_BID_PBANC P
-     WHERE <include refid="joinedCond"/> AND P.BID_DDLN_DT IS NOT NULL AND <include refid="teamIn"/>
+     WHERE <include refid="joinedCond"/> AND <include refid="teamIn"/>
+       AND (P.BID_DDLN_DT IS NOT NULL OR P.PBANC_STTS_CD IN ('PS030', 'PS040', 'PS050'))
      ORDER BY 1
   </select>
 
@@ -191,8 +193,21 @@
      FETCH FIRST 5 ROWS ONLY
   </select>
 
+  <!-- 통계 왼쪽 목록의 앞쪽, 진행 중 사업 (11/04). 전체 종합에 고른 연도의 이 팀 사업. 마감일이 아직 없으면 올해로 본다(목록에서 사라지지 않게).
+       제출 완료는 결과를 입력해야 해서 여기에 넣고 맨 앞에 둔다 -->
+  <select id="inProgress" resultType="com.ojj.sujuro.result.dto.ResultBidDTO">
+    SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, P.PBANC_STTS_CD AS pbancSttsCd, S.CD_NM AS pbancSttsNm
+      FROM TB_BID_PBANC P
+      LEFT JOIN TB_COM_CD S ON S.GROUP_CD = 'PBSTS' AND S.CD = P.PBANC_STTS_CD
+     WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040', 'PS050') AND P.SPRVSN_TEAM_SN = #{teamSn}
+       AND NVL(TO_CHAR(P.BID_DDLN_DT, 'YYYY'), TO_CHAR(SYSDATE, 'YYYY')) = #{year}
+     ORDER BY DECODE(P.PBANC_STTS_CD, 'PS050', 1, 'PS040', 2, 3), P.BID_DDLN_DT DESC NULLS LAST, P.PBANC_SN DESC
+  </select>
+
+  <!-- 통계 왼쪽 목록의 뒤쪽, 지난 사업 (11/04). 전체 종합에 고른 연도의 결과 등록·유찰. 유찰은 결과 행이 없어 LEFT JOIN 이다 -->
   <select id="history" resultType="com.ojj.sujuro.result.dto.StatsHistoryDTO">
     SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, P.ORDER_INST_NM AS orderInstNm,
+           P.PBANC_STTS_CD AS pbancSttsCd,
            T.TEAM_NM AS teamNm, P.ALTMNT_BGT_AMT AS budget,
            R.BID_RSLT_CD AS rsltCd, RC.CD_NM AS rsltNm,
            CASE WHEN EXISTS (SELECT 1 FROM TB_ATCH_FILE F
@@ -200,10 +215,11 @@
                                 AND F.LAST_YN = 'Y' AND F.DEL_YN = 'N')
                 THEN 'Y' ELSE 'N' END AS finalFileYn
       FROM TB_BID_PBANC P
-      <include refid="resultJoin"/>
+      LEFT JOIN TB_BID_RSLT R ON R.PBANC_SN = P.PBANC_SN AND R.BID_RSLT_CD IN ('BR010', 'BR020')
       JOIN TB_TEAM T ON T.TEAM_SN = P.SPRVSN_TEAM_SN
       LEFT JOIN TB_COM_CD RC ON RC.GROUP_CD = 'BDRST' AND RC.CD = R.BID_RSLT_CD
-     WHERE <include refid="resultCond"/> AND P.SPRVSN_TEAM_SN = #{teamSn}
+     WHERE P.PBANC_STTS_CD IN ('PS060', 'PS070') AND P.SPRVSN_TEAM_SN = #{teamSn}
+       AND TO_CHAR(P.BID_DDLN_DT, 'YYYY') = #{year}
      ORDER BY P.BID_DDLN_DT DESC NULLS LAST, P.PBANC_SN DESC
      FETCH FIRST 100 ROWS ONLY
   </select>
@@ -211,7 +227,7 @@
   <select id="findArchive" resultType="com.ojj.sujuro.result.dto.StatsArchiveDTO">
     SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, P.ORDER_INST_NM AS orderInstNm,
            P.SPRVSN_TEAM_SN AS teamSn, T.TEAM_NM AS teamNm, P.PTCP_SHP_CD AS ptcpShpCd, PS.CD_NM AS ptcpShpNm,
-           P.ALTMNT_BGT_AMT AS budget, P.BID_DDLN_DT AS bidDdlnDt,
+           P.BID_DDLN_DT AS bidDdlnDt,
            P.TECH_SCOR_SCR AS techScorScr, P.PRC_SCOR_SCR AS prcScorScr,
            R.BID_RSLT_CD AS rsltCd, RC.CD_NM AS rsltNm, R.EVL_RNK AS evlRnk,
            R.TECH_EVL_SCR AS techEvlScr, R.TECH_EVL_ORGNL_SCR AS techEvlOrgnlScr,
@@ -223,6 +239,19 @@
       LEFT JOIN TB_COM_CD PS ON PS.GROUP_CD = 'PTFRM' AND PS.CD = P.PTCP_SHP_CD
       LEFT JOIN TB_COM_CD RC ON RC.GROUP_CD = 'BDRST' AND RC.CD = R.BID_RSLT_CD
      WHERE <include refid="resultCond"/> AND P.PBANC_SN = #{pbancSn}
+  </select>
+
+  <!-- 아직 결과가 없는 사업의 공고 기본 정보 (11/04). 결과가 있는 사업은 findArchive 가 먼저 찾는다 -->
+  <select id="findPendingBid" resultType="com.ojj.sujuro.result.dto.StatsArchiveDTO">
+    SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, P.ORDER_INST_NM AS orderInstNm,
+           P.SPRVSN_TEAM_SN AS teamSn, T.TEAM_NM AS teamNm, P.PTCP_SHP_CD AS ptcpShpCd, PS.CD_NM AS ptcpShpNm,
+           P.BID_DDLN_DT AS bidDdlnDt,
+           P.PBANC_STTS_CD AS pbancSttsCd, S.CD_NM AS pbancSttsNm
+      FROM TB_BID_PBANC P
+      JOIN TB_TEAM T ON T.TEAM_SN = P.SPRVSN_TEAM_SN AND T.DEPT_CD = 'DP030'
+      LEFT JOIN TB_COM_CD PS ON PS.GROUP_CD = 'PTFRM' AND PS.CD = P.PTCP_SHP_CD
+      LEFT JOIN TB_COM_CD S ON S.GROUP_CD = 'PBSTS' AND S.CD = P.PBANC_STTS_CD
+     WHERE <include refid="joinedCond"/> AND P.PBANC_SN = #{pbancSn}
   </select>
 
   <select id="findFinalFile" resultType="com.ojj.sujuro.result.dto.StatsFileDTO">

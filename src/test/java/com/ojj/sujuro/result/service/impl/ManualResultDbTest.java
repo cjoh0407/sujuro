@@ -144,7 +144,7 @@ class ManualResultDbTest {
         String archive = page(leader, "/stats?bid=" + sn);
         assertTrue(archive.contains("수주 금액"));
         assertTrue(archive.contains("1.2억"));
-        assertFalse(archive.contains("점수 (나라장터 평가 결과 기준)"));
+        assertFalse(archive.contains("<h3>점수</h3>"));
         assertFalse(archive.contains("평가 항목별 점수"));
         assertTrue(archive.contains("class=\"split\""));
         assertTrue(archive.contains("(가상) 컨소시엄 사업"));

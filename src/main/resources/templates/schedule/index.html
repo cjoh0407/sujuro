@@ -6,6 +6,7 @@
 <head>
   <title>일정 관리</title>
   <th:block layout:fragment="head">
+    <meta name="async-forms" content="on"><!-- 이 화면의 폼은 새로고침 없이 저장한다 (js/async-form.js) -->
     <link rel="stylesheet" th:href="@{/css/schedule.css}">
   </th:block>
 </head>
@@ -15,8 +16,8 @@
 
 <th:block layout:fragment="content">
 <div class="sch">
-  <div class="banner ok" th:if="${done != null}" th:text="${done}" style="margin-bottom:12px">처리했습니다.</div>
-  <div class="banner err" th:if="${error != null}" th:text="${error}" style="margin-bottom:12px">오류 안내</div>
+  <div class="banner ok" data-flash="done" th:if="${done != null}" th:text="${done}" style="margin-bottom:12px">처리했습니다.</div>
+  <div class="banner err" data-flash="error" th:if="${error != null}" th:text="${error}" style="margin-bottom:12px">오류 안내</div>
 
   <div class="faint" style="margin-bottom:12px">
     <span th:text="${view.scopeText}">내가 참여하는 사업 일정</span> · 참여가 확정된 사업의 제출 마감은 자동으로 들어옵니다.

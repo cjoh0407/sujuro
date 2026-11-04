@@ -20,7 +20,10 @@ final class FlashRedirect {
     /** 처리 후 돌아가기. action은 완료 안내 문구를 돌려준다. tab이 null이면 tab 파라미터를 붙이지 않는다. */
     static String run(RedirectAttributes ra, String path, Long bid, String tab, Supplier<String> action) {
         try {
-            ra.addFlashAttribute("done", action.get());
+            String done = action.get();
+            if (done != null) {
+                ra.addFlashAttribute("done", done);
+            }
         } catch (BusinessException e) {
             ra.addFlashAttribute("error", e.getMessage());
         }

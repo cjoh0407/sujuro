@@ -17,6 +17,7 @@
 <head>
   <title>질의응답 기록</title>
   <th:block layout:fragment="head">
+    <meta name="async-forms" content="on"><!-- 이 화면의 폼은 새로고침 없이 저장한다 (js/async-form.js) -->
     <link rel="stylesheet" th:href="@{/css/proposal.css}">
   </th:block>
 </head>
@@ -32,8 +33,8 @@
 
   <th:block th:unless="${#lists.isEmpty(bids)}" th:with="prs=${tab == 'prs'}">
 
-    <div class="banner ok" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
-    <div class="banner err" th:if="${error != null}" th:text="${error}">오류 안내</div>
+    <div class="banner ok" data-flash="done" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
+    <div class="banner err" data-flash="error" th:if="${error != null}" th:text="${error}">오류 안내</div>
 
     <!-- 3:7 화면: 왼쪽에 사업건 목록, 오른쪽에 업무 화면 -->
     <div class="split">
@@ -91,7 +92,7 @@
       <form th:action="@{/qa}" method="get" class="row">
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
         <input type="hidden" name="tab" th:value="${tab}">
-        <select name="past" onchange="this.form.submit()" th:disabled="${#lists.isEmpty(pastBids)}" aria-label="이전 사업 Q&amp;A 보기">
+        <select name="past" onchange="this.form.requestSubmit()" th:disabled="${#lists.isEmpty(pastBids)}" aria-label="이전 사업 Q&amp;A 보기">
           <option value="" th:text="${#lists.isEmpty(pastBids)} ? '볼 수 있는 이전 사업 Q&amp;A 없음' : '이전 사업 Q&amp;A 보기'">이전 사업 Q&amp;A 보기</option>
           <option th:each="pb : ${pastBids}" th:value="${pb.pbancSn}" th:selected="${pastBid != null and pastBid.pbancSn == pb.pbancSn}"
                   th:text="${pb.label} + ' (' + ${pb.qnaCnt} + '건)'">사업명 (3건)</option>

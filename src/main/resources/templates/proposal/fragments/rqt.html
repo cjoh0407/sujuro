@@ -39,7 +39,7 @@
 <form th:fragment="rqAdd(t)" th:action="@{/proposal/rqt/map}" method="post">
   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
   <input type="hidden" name="tocSn" th:value="${t.tocSn}">
-  <select name="rqtMttrSn" onchange="this.form.submit()" style="max-width:260px">
+  <select name="rqtMttrSn" onchange="this.form.requestSubmit()" style="max-width:260px">
     <option value="">+ 요구사항 추가</option>
     <option th:each="q : ${unmappedList}" th:value="${q.rqtMttrSn}"
             th:text="${q.rqtMttrNo + ' · ' + q.rqtMttrNm}">SFR-001 · 요구사항</option>
@@ -51,7 +51,7 @@
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
     <input type="hidden" name="rqtMttrSn" th:value="${q.rqtMttrSn}">
     <input type="hidden" name="view" value="unmapped">
-    <select name="tocSn" onchange="this.form.submit()" style="max-width:280px">
+    <select name="tocSn" onchange="this.form.requestSubmit()" style="max-width:280px">
       <option value="">세부 목차 선택</option>
       <option th:each="x : ${mapTargets}" th:value="${x.tocSn}" th:text="${x.label + ' (' + x.ownerLabel + ')'}">1.1 목차 (담당자)</option>
     </select>

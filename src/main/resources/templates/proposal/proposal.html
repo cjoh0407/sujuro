@@ -11,6 +11,7 @@
 <head>
   <title>스토리보드 관리</title>
   <th:block layout:fragment="head">
+    <meta name="async-forms" content="on"><!-- 이 화면의 폼은 새로고침 없이 저장한다 (js/async-form.js) -->
     <link rel="stylesheet" th:href="@{/css/proposal.css}">
   </th:block>
 </head>
@@ -27,8 +28,8 @@
 
   <th:block th:unless="${#lists.isEmpty(bids)}">
 
-    <div class="banner ok" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
-    <div class="banner err" th:if="${error != null}" th:text="${error}">오류 안내</div>
+    <div class="banner ok" data-flash="done" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
+    <div class="banner err" data-flash="error" th:if="${error != null}" th:text="${error}">오류 안내</div>
 
     <!-- 3:7 화면: 왼쪽에 사업건 목록 · 인원 추가, 오른쪽에 업무 화면 -->
     <div class="split">

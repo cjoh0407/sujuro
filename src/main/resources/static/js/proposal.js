@@ -182,13 +182,15 @@ window.addEventListener('scroll', function (e) { // 목록 안을 스크롤하�
 }, true);
 window.addEventListener('resize', function () { if (ownPanel && Date.now() - ownPanel.openedAt > 400) closeOwnPanel(); });
 document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeOwnPanel(); });
-document.addEventListener('DOMContentLoaded', initOwnerPickers);
+onPageReady(function () { coSel = null; closeOwnPanel(); initOwnerPickers(); }); // 비동기 저장으로 목차 표가 바뀌면 다시 붙인다
 
 /* ---------- 저장하지 않은 입력 경고 ---------- */
 
-/* 폼을 보내는 중이면 경고하지 않는다. form.submit()은 submit 이벤트가 없으니 saveNow로 보낸다 */
+/* 폼을 보내는 중이면 경고하지 않는다.
+   requestSubmit()은 submit 이벤트를 일으켜 비동기 저장(async-form.js)이 가로챌 수 있다. (submit()은 이벤트가 없다) */
 var saving = false;
-function saveNow(f) { saving = true; f.submit(); }
+function saveNow(f) { saving = true; if (f.requestSubmit) f.requestSubmit(); else f.submit(); }
+onPageReady(function () { saving = false; }); // 비동기 저장이 끝나 새 내용이 오면 다시 경고 대상
 document.addEventListener('submit', function (e) { if (!e.defaultPrevented) saving = true; });
 
 /* data-track 칸에 적고 저장하지 않은 채 나가려 하면 브라우저가 확인을 묻는다 */
@@ -205,8 +207,9 @@ window.addEventListener('beforeunload', function (e) {
    팀·직급·이름을 바꾸면 처음부터 다시 받는다. 체크한 사람은 mp.picked에 기억해 두고, 보낼 때 hidden userId로 만든다. */
 var mp = { offset: 0, hasMore: true, loading: false, seq: 0, picked: {}, timer: null };
 
-/* 인원 추가 칸은 팝업이 아니라 왼쪽 아래에 늘 떠 있다. 화면이 열리면 후보를 불러온다 */
+/* 인원 추가 칸은 팝업이 아니라 왼쪽 아래에 늘 떠 있다. 화면이 열리면(비동기 저장 뒤 포함) 후보를 처음부터 불러온다 */
 function initMemPop() {
+  mp.picked = {};
   if (document.getElementById('memPop')) reloadMemPop();
 }
 
@@ -315,7 +318,7 @@ document.addEventListener('click', function (e) {
     c.dispatchEvent(new Event('change'));
   }
 });
-document.addEventListener('DOMContentLoaded', initMemPop);
+onPageReady(initMemPop);
 
 /* ---------- 요구사항 PDF 추출 미리보기 (FR-050-1) ---------- */
 
@@ -533,7 +536,7 @@ function toggleTocMode() {
   if (w) setTocMode(!w.classList.contains('view'));
 }
 
-document.addEventListener('DOMContentLoaded', function () {
+onPageReady(function () {
   var w = document.getElementById('tocWrap');
   if (!w || !document.getElementById('tocModeBtn')) return; // 수정할 수 없는 사람은 원래 글자로만 보인다
   var saved = null;

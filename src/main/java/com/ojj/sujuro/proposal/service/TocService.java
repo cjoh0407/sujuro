@@ -68,6 +68,12 @@ public interface TocService {
     int importForm(Long pbancSn, String tocSeCd, Long tocFormSn, Long teamSn);
 
     /**
+     * 고른 양식(srcFormSn)의 목차를 새 이름(newName)의 양식으로 복사한 뒤, 그 양식을 이 사업건 목차로 가져온다.
+     * 같은 팀에 같은 이름의 양식이 있으면 막는다. 만든 목차 개수를 돌려준다.
+     */
+    int importFormAs(Long pbancSn, String tocSeCd, Long srcFormSn, String newName, Long teamSn, String userId);
+
+    /**
      * 지금 사업건 목차를 주관팀 양식으로 저장하고, 저장한 양식을 이 사업건의 현재 양식으로 기록한다 (FR-048).
      * 같은 팀에 같은 이름의 양식이 있으면 그 양식을 지금 목차로 덮어쓰고 true를, 새로 만들었으면 false를 돌려준다.
      * 같은 이름이 다른 구분(제안서/제안요약서) 양식이면 덮어쓰지 않고 막는다.

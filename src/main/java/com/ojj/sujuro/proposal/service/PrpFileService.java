@@ -1,5 +1,7 @@
 package com.ojj.sujuro.proposal.service;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +56,50 @@ public interface PrpFileService {
 
     /** 내려받을 파일 정보. 이 사업건의 제안서 파일이 아니면 예외 (FR-062) */
     PrpFileDto findForDownload(Long pbancSn, Long fileSn);
+
+    /** 올릴 수 있는 형식 PDF / PPT(ppt·pptx). 그 밖의 형식은 빈 문자열 */
+    static String formatOf(String name) {
+        if (name == null) {
+            return "";
+        }
+        int i = name.lastIndexOf('.');
+        String ext = i < 0 ? "" : name.substring(i + 1).trim().toLowerCase(java.util.Locale.ROOT);
+        return "pdf".equals(ext) ? "PDF" : ("ppt".equals(ext) || "pptx".equals(ext)) ? "PPT" : "";
+    }
+
+    /** 확장자를 뺀 이름 (앞뒤 공백 제거, 대소문자 무시용 소문자) */
+    static String baseName(String name) {
+        if (name == null) {
+            return "";
+        }
+        int i = name.lastIndexOf('.');
+        return (i < 0 ? name : name.substring(0, i)).trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    /** 한 버전(통합본은 차수)에 묶이는 파일의 키 */
+    static int versionKey(PrpFileDto f) {
+        try {
+            return f.getIntgCycl() != null ? f.getIntgCycl() : Integer.parseInt(f.getVerNo().trim());
+        } catch (RuntimeException e) {
+            return 0;
+        }
+    }
+
+    /** 같은 버전(통합본은 차수)의 PDF·PPT를 한 묶음으로, 최신 버전 먼저, 묶음 안은 PDF → PPT 순 */
+    static List<List<PrpFileDto>> groupVersions(List<?> files) { // 화면(SpEL)이 부르므로 제네릭 변환을 피해 List<?>로 받는다
+        Map<Integer, List<PrpFileDto>> m = new LinkedHashMap<>();
+        for (Object o : files) {
+            PrpFileDto f = (PrpFileDto) o;
+            m.computeIfAbsent(versionKey(f), k -> new ArrayList<>()).add(f);
+        }
+        List<List<PrpFileDto>> out = new ArrayList<>();
+        m.entrySet().stream().sorted((a, b) -> Integer.compare(b.getKey(), a.getKey())).forEach(e -> {
+            List<PrpFileDto> g = e.getValue();
+            g.sort(Comparator.comparing((PrpFileDto x) -> x.getFmt().isEmpty() ? "Z" : x.getFmt()).thenComparing(PrpFileDto::getFileSn));
+            out.add(g);
+        });
+        return out;
+    }
 
     /** 목록을 목차일련번호별로 묶는 도우미 */
     static Map<Long, List<PrpFileDto>> groupByToc(List<PrpFileDto> files) {

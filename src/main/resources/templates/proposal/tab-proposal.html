@@ -10,19 +10,23 @@
 <th:block th:fragment="tab">
 
   <!-- 진행 단계: ① 목차 양식 불러오기 → ② 목차별 담당자 지정 → ③ 요구사항 연결 (FR-046, FR-049, FR-051) -->
-  <div class="steps"
+  <!-- 지하철 노선도처럼: 동그라미 역을 선으로 잇고, 위에 완료(초록)·진행중(파랑)·대기(회색) 뱃지를 단다 -->
+  <div class="metro" th:unless="${ended}"
        th:with="s1=${!#lists.isEmpty(tocs)}, s2=${assignedAll}, s3=${assignedAll and rqtTotal > 0 and unmapped == 0}">
-    <div class="step" th:classappend="${s1} ? 'done' : 'cur'">
-      <b>① 목차 양식 불러오기</b>
-      <span th:text="${s1} ? '양식 적용됨' : '목차 양식을 불러오세요'">양식 적용됨</span>
+    <div class="mstop" th:classappend="${s1} ? 'done' : 'cur'">
+      <span class="pill" th:classappend="${s1} ? 'success' : 'accent'" th:text="${s1} ? '완료' : '진행중'">완료</span>
+      <span class="mdot" th:text="${s1} ? '✓' : '1'">1</span>
+      <b>목차 양식 불러오기</b>
     </div>
-    <div class="step" th:classappend="${s2} ? 'done' : (${s1} ? 'cur' : '')">
-      <b>② 목차별 담당자 지정</b>
-      <span th:text="${s2} ? '모든 목차 지정 완료' : (${s1} ? '미지정 ' + ${unassigned} + '개' : '①이 먼저 필요')">미지정 0개</span>
+    <div class="mstop" th:classappend="${s2} ? 'done' : (${s1} ? 'cur' : 'todo')">
+      <span class="pill" th:classappend="${s2} ? 'success' : (${s1} ? 'accent' : 'neutral')" th:text="${s2} ? '완료' : (${s1} ? '진행중' : '대기')">진행중</span>
+      <span class="mdot" th:text="${s2} ? '✓' : '2'">2</span>
+      <b>목차별 담당자 지정</b>
     </div>
-    <div class="step" th:classappend="${s3} ? 'done' : (${s2} ? 'cur' : '')">
-      <b>③ 요구사항 연결</b>
-      <span th:text="${s3} ? '모두 연결됨' : (${s2} ? '미매핑 ' + ${unmapped} + '건' : '②가 먼저 필요')">미매핑 0건</span>
+    <div class="mstop" th:classappend="${s3} ? 'done' : (${s2} ? 'cur' : 'todo')">
+      <span class="pill" th:classappend="${s3} ? 'success' : (${s2} ? 'accent' : 'neutral')" th:text="${s3} ? '완료' : (${s2} ? '진행중' : '대기')">대기</span>
+      <span class="mdot" th:text="${s3} ? '✓' : '3'">3</span>
+      <b>요구사항 연결</b>
     </div>
   </div>
 
@@ -117,13 +121,15 @@
 
   <th:block th:unless="${(#lists.isEmpty(tocs) and curForm == null) or unmapView or extract != null}">
 
-    <th:block th:if="${canLoad}"><th:block th:replace="~{proposal/fragments/toc :: formBar('prop')}"></th:block></th:block>
+    <!-- 보기 모드 / 수정 모드: 매핑이 다 끝났으면 처음에 보기 모드(글자로만 보여 줌)로 열고, 버튼으로 언제든 수정 모드로 바꾼다 (proposal.js setTocMode) -->
+    <div class="toc-wrap" id="tocWrap" th:data-bid="${bid.pbancSn}" th:data-done="${assignedAll and rqtTotal > 0 and unmapped == 0}">
+    <div class="toc-formbar" th:if="${canLoad}"><th:block th:replace="~{proposal/fragments/toc :: formBar('prop')}"></th:block></div>
 
     <!-- 목차 · 담당자 · 요구사항 연결 (FR-047, FR-049, FR-051) -->
     <div class="card" th:with="cols=${canEdit ? 6 : 5}">
       <div class="card-head">
         <h3 th:text="${bid.label} + ' · 제안서 목차 · 담당자 · 요구사항 (이 사업건만 수정됨)'">제안서 목차</h3>
-        <th:block th:replace="~{proposal/fragments/toc :: addTop('prop')}"></th:block>
+        <button type="button" class="btn sm" id="tocModeBtn" th:if="${canEdit}" onclick="toggleTocMode()">수정 모드로 바꾸기</button>
       </div>
       <div class="pad" style="padding-bottom:0"><th:block th:replace="~{proposal/fragments/toc :: curForm}"></th:block></div>
       <div class="pad" style="padding-bottom:0">
@@ -147,12 +153,22 @@
           <thead>
             <tr>
               <th>세부 목차</th><th>담당자</th><th>요구사항 ID</th><th style="width:34%">요구사항 명칭</th><th>예상 쪽수</th>
-              <th th:if="${canEdit}"></th>
+              <th th:if="${canEdit}" class="col-edit"></th>
             </tr>
           </thead>
           <tbody>
             <tr th:if="${#lists.isEmpty(tocs)}">
-              <td th:colspan="${cols}" class="empty">아직 목차가 없습니다. 오른쪽 위 [+ 1단계 목차 추가]로 첫 목차를 만드세요. 만드는 목차는 현재 양식에 바로 저장됩니다.</td>
+              <!-- 목차가 하나도 없으면 안내 대신 바로 첫 1단계 목차를 적게 한다 (만든 목차는 현재 양식에 바로 저장) -->
+              <td th:colspan="${cols}" class="empty" th:unless="${canEdit}">아직 목차가 없습니다.</td>
+              <td th:colspan="${cols}" th:if="${canEdit}" style="padding:18px 12px">
+                <form th:action="@{/proposal/toc/add}" method="post" class="row" style="justify-content:center">
+                  <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                  <input type="hidden" name="tab" value="prop">
+                  <span class="faint">아직 목차가 없습니다. 첫 1단계 목차를 적어 주세요.</span>
+                  <input type="text" name="label" placeholder="1단계 목차 이름" maxlength="250" required data-track style="width:240px" autocomplete="off">
+                  <button class="btn sm primary" type="submit">목차 추가</button>
+                </form>
+              </td>
             </tr>
             <th:block th:each="t : ${tocs}">
 
@@ -162,7 +178,7 @@
                   <th:block th:replace="~{proposal/fragments/toc :: labelCell(${t}, 'prop')}"></th:block>
                   <th:block th:replace="~{proposal/fragments/toc :: tocTools(${t})}"></th:block>
                 </td>
-                <td th:if="${canEdit}" class="toc-group-bg">
+                <td th:if="${canEdit}" class="toc-group-bg col-edit">
                   <th:block th:replace="~{proposal/fragments/toc :: delBtn(${t}, 'prop')}"></th:block>
                 </td>
               </tr>
@@ -172,7 +188,7 @@
                         th:with="mine=${rqtsByToc[t.tocSn]}, can=${t.assigned and canReq},
                                  addable=${can and !#lists.isEmpty(unmappedList)},
                                  mc=${#lists.size(mine)}, nn=${mc + (addable ? 1 : 0)}, n=${nn == 0 ? 1 : nn}">
-                <tr th:each="i : ${#numbers.sequence(0, n - 1)}">
+                <tr th:each="i : ${#numbers.sequence(0, n - 1)}" th:classappend="${addable and i == mc} ? 'rq-add-row'">
                   <td th:if="${i == 0}" th:rowspan="${n}" class="vtop" th:style="'padding-left:' + ${t.indent} + 'px'">
                     <th:block th:replace="~{proposal/fragments/toc :: labelCell(${t}, 'prop')}"></th:block>
                     <div th:if="${canEdit}"><th:block th:replace="~{proposal/fragments/toc :: tocTools(${t})}"></th:block></div>
@@ -182,7 +198,7 @@
                   </td>
 
                   <th:block th:if="${i lt mc}" th:with="q=${mine[i]}">
-                    <td class="vtop"><th:block th:replace="~{proposal/fragments/rqt :: rqId(${q}, ${can})}"></th:block></td>
+                    <td><th:block th:replace="~{proposal/fragments/rqt :: rqId(${q}, ${can})}"></th:block></td>
                     <td><th:block th:replace="~{proposal/fragments/rqt :: rqInfo(${q})}"></th:block></td>
                   </th:block>
 
@@ -195,7 +211,7 @@
                   <td th:if="${i == 0}" th:rowspan="${n}" class="vtop">
                     <th:block th:replace="~{proposal/fragments/toc :: pages(${t})}"></th:block>
                   </td>
-                  <td th:if="${i == 0 and canEdit}" th:rowspan="${n}" class="vtop">
+                  <td th:if="${i == 0 and canEdit}" th:rowspan="${n}" class="vtop col-edit">
                     <th:block th:replace="~{proposal/fragments/toc :: delBtn(${t}, 'prop')}"></th:block>
                   </td>
                 </tr>
@@ -207,6 +223,7 @@
           </tbody>
         </table>
       </div>
+    </div>
     </div>
   </th:block>
 

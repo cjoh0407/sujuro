@@ -29,7 +29,38 @@
     <div class="banner ok" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
     <div class="banner err" th:if="${error != null}" th:text="${error}">오류 안내</div>
 
-    <th:block th:replace="~{proposal/fragments/bid-header :: bidSelect('/docs')}"></th:block>
+    <!-- 3:7 화면: 왼쪽에 사업건 목록, 오른쪽에 업무 화면 -->
+    <div class="split">
+    <aside class="split-l">
+      <th:block th:replace="~{proposal/fragments/bid-header :: bidList('/docs')}"></th:block>
+      <!-- 파일 올리기: 경영지원실이 만든 체크리스트에서 서류를 고르고 올린다 (제안서 파일 관리의 올리기 칸과 같은 박스). 나라장터 등록 뒤에는 닫힌다 -->
+      <div class="card" id="upCard" th:if="${open}">
+        <div class="card-head">
+          <h3>서류 파일 올리기</h3>
+          <span class="faint" style="font-size:11.5px">최대 50MB</span>
+        </div>
+        <form th:action="@{/docs/upload}" method="post" enctype="multipart/form-data" class="pad mp-form">
+          <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+          <select name="dcmntSn" required th:disabled="${#lists.isEmpty(docs)}">
+            <option value="" disabled selected th:text="${#lists.isEmpty(docs)} ? '체크리스트가 비어 있습니다' : '서류 고르기'">서류 고르기</option>
+            <option th:each="d : ${docs}" th:value="${d.dcmntSn}"
+                    th:text="${d.dcmntNm + (d.essential ? ' (필수)' : '') + (d.fileSn != null ? ' · 올림' : '')}">최종 제안서 (필수)</option>
+          </select>
+          <label class="drop">
+            <input type="file" name="file" required data-max-mb="50">
+            <span class="ic ic-upload"></span>
+            <span class="drop-body">
+              <span class="drop-text"><span><b>파일 선택</b> · 끌어 놓기</span></span>
+              <span class="drop-hint"></span>
+            </span>
+          </label>
+          <div class="row" style="justify-content:flex-end">
+            <button class="btn sm primary" type="submit">올리기</button>
+          </div>
+        </form>
+      </div>
+    </aside>
+    <div class="split-r">
     <th:block th:replace="~{proposal/fragments/bid-header :: bizHead}"></th:block>
 
     <!-- 준비 현황 (FR-070, NFR-013: 저장된 데이터로 계산) -->
@@ -37,17 +68,16 @@
       <div class="stat">
         <div class="l">준비 완료</div>
         <div class="v" th:text="${readyCnt} + ' / ' + ${#lists.size(docs)}">0 / 0</div>
-        <div class="h">전체 서류</div>
       </div>
       <div class="stat">
         <div class="l">누락된 필수 서류</div>
         <div class="v" th:text="${missingCnt}">0</div>
-        <div class="h" th:text="${missing.isEmpty()} ? '없음' : ${missing}">없음</div>
+        <div class="h" th:unless="${missing.isEmpty()}" th:text="${missing}"></div>
       </div>
       <div class="stat">
         <div class="l">최종 제안서</div>
         <div class="v" th:text="${finalDoc == null} ? '-' : ${finalDoc.statusNm}">미준비</div>
-        <div class="h" th:text="${finalDoc == null} ? '체크리스트에 \'최종 제안서\' 항목이 없음' : (${finalDoc.fileSn != null} ? ${finalDoc.orgnlFileNm} : '올린 파일 없음')">체크리스트의 최종 제안서</div>
+        <div class="h" th:if="${finalDoc != null and finalDoc.fileSn != null}" th:text="${finalDoc.orgnlFileNm}"></div>
       </div>
       <div class="stat">
         <div class="l">나라장터 등록</div>
@@ -60,7 +90,6 @@
     <div class="card">
       <div class="card-head">
         <h3>필요 서류 체크리스트</h3>
-        <span class="faint" style="font-size:11.5px">입찰공고서 참가자격 서류 + 나라장터 필요서류를 종합 · 항목 추가·삭제는 경영지원실 · 파일 업로드·다운로드는 경영지원실과 제안팀</span>
       </div>
       <div class="ts">
         <table>
@@ -94,7 +123,7 @@
                 <form th:if="${admin and open}" th:action="@{/docs/due}" method="post">
                   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                   <input type="hidden" name="dcmntSn" th:value="${d.dcmntSn}">
-                  <input type="date" name="due" th:value="${d.sbmsnDdlnDt != null} ? ${#dates.format(d.sbmsnDdlnDt, 'yyyy-MM-dd')} : ''"
+                  <input type="date" name="due" th:min="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}" th:value="${d.sbmsnDdlnDt != null} ? ${#dates.format(d.sbmsnDdlnDt, 'yyyy-MM-dd')} : ''"
                          onchange="this.form.submit()">
                 </form>
                 <span th:unless="${admin and open}" th:text="${d.sbmsnDdlnDt != null} ? ${#dates.format(d.sbmsnDdlnDt, 'yyyy-MM-dd')} : '-'">-</span>
@@ -108,36 +137,23 @@
                 </div>
                 <span class="faint" th:if="${d.fileSn == null}">없음</span>
                 <div class="row file-acts">
-                  <a class="btn sm" th:if="${d.fileSn != null}" th:href="@{/docs/download(bid=${bid.pbancSn}, fileSn=${d.fileSn})}">내려받기</a>
+                  <a class="ico" th:if="${d.fileSn != null}" title="내려받기" aria-label="내려받기" th:href="@{/docs/download(bid=${bid.pbancSn}, fileSn=${d.fileSn})}"><span class="ic ic-download"></span></a>
                   <form th:if="${#sets.contains(deletable, d.fileSn)}" th:action="@{/docs/file-delete}" method="post" style="display:inline"
                         onsubmit="return askReason(this)">
                     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                     <input type="hidden" name="fileSn" th:value="${d.fileSn}">
                     <input type="hidden" name="reason">
-                    <button class="btn sm danger" type="submit">파일 삭제</button>
-                  </form>
-                  <form th:if="${open}" th:action="@{/docs/upload}" method="post" enctype="multipart/form-data" class="drop-row">
-                    <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-                    <input type="hidden" name="dcmntSn" th:value="${d.dcmntSn}">
-                    <label class="drop sm">
-                      <input type="file" name="file" required data-max-mb="50">
-                      <span class="ic ic-upload"></span>
-                      <span class="drop-body">
-                        <span class="drop-text"><span><b>파일 선택</b> · 끌어 놓기</span></span>
-                        <span class="drop-hint"></span>
-                      </span>
-                    </label>
-                    <button class="btn sm" type="submit" th:text="${d.fileSn != null} ? '다시 올리기' : '올리기'">올리기</button>
+                    <button class="ico danger" type="submit" title="파일 삭제" aria-label="파일 삭제"><span class="ic ic-trash"></span></button>
                   </form>
                 </div>
                 </div>
               </td>
               <td th:if="${admin and open}">
-                <form th:action="@{/docs/delete}" method="post" th:data-name="${d.dcmntNm}"
-                      onsubmit="return confirm('&quot;' + this.dataset.name + '&quot; 서류를 체크리스트에서 삭제할까요?')">
+                <form th:action="@{/docs/delete}" method="post" th:data-name="${d.dcmntNm}" th:data-files="${d.fileTotal}"
+                      onsubmit="return confirm('&quot;' + this.dataset.name + '&quot; 서류를 체크리스트에서 삭제할까요?' + (this.dataset.files > 0 ? ' 올린 파일도 모두 삭제되며 되돌릴 수 없습니다.' : ''))">
                   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                   <input type="hidden" name="dcmntSn" th:value="${d.dcmntSn}">
-                  <button class="btn sm danger" type="submit">삭제</button>
+                  <button class="ico" type="submit" title="서류 삭제" aria-label="서류 삭제"><span class="ic ic-close"></span></button>
                 </form>
               </td>
             </tr>
@@ -158,7 +174,7 @@
           <option value="TK010">경영지원실</option>
           <option value="TK020">제안팀</option>
         </select>
-        <input type="date" name="due">
+        <input type="date" name="due" th:min="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
         <button class="btn sm" type="submit">+ 서류 추가</button>
       </form>
     </div>
@@ -171,9 +187,6 @@
           <span class="faint" style="font-weight:400" th:text="'· 쪽번호 입력 ' + ${pagedCnt} + ' / ' + ${#lists.size(articles)}">· 쪽번호 입력 0 / 0</span>
         </h3>
         <span class="pill neutral" th:unless="${open}">나라장터 등록 후 잠김</span>
-      </div>
-      <div class="pad faint" style="font-size:11.5px;padding-bottom:0">
-        제안요청서(RFP)의 평가 항목과 배점은 경영지원실이 넣고, 제안팀은 항목마다 해당 내용이 있는 최종 제안서의 쪽번호를 적습니다. (예: 12-15, 3, 20-21)
       </div>
       <form id="evPages" th:if="${canPage}" th:action="@{/docs/article/pages}" method="post">
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
@@ -236,7 +249,6 @@
     <div class="card" th:if="${showDeleted}">
       <div class="card-head">
         <h3 th:text="'삭제된 파일 (' + ${deletedCnt} + ')'">삭제된 파일</h3>
-        <span class="faint" style="font-size:11.5px">목록에서만 숨긴 제출서류 파일입니다. 원본과 기록은 보관되며 내려받을 수 있습니다.</span>
       </div>
       <div class="ts">
         <table>
@@ -249,7 +261,7 @@
               <td th:text="${(f.rgtrNm ?: f.rgtrId) + ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm')}">올린 사람</td>
               <td th:text="${(f.dltrNm ?: f.dltrId) + ' · ' + #dates.format(f.delDt, 'yyyy-MM-dd HH:mm')}">삭제한 사람</td>
               <td th:text="${f.delRsn}">사유</td>
-              <td><a class="btn sm" th:href="@{/docs/download(bid=${bid.pbancSn}, fileSn=${f.fileSn})}">내려받기</a></td>
+              <td><a class="ico" title="내려받기" aria-label="내려받기" th:href="@{/docs/download(bid=${bid.pbancSn}, fileSn=${f.fileSn})}"><span class="ic ic-download"></span></a></td>
             </tr>
           </tbody>
         </table>
@@ -261,10 +273,10 @@
       <div class="row" style="justify-content:space-between">
         <div>
           <b>나라장터 등록 완료 처리</b>
-          <div class="faint" style="font-size:11.5px">필수 서류가 모두 준비 완료여야 합니다. 등록 일시와 담당자가 기록되고 상태가 "제출 완료"로 바뀝니다.</div>
+          <div class="faint" style="font-size:11.5px">필수 서류가 모두 준비 완료여야 합니다.</div>
         </div>
         <span class="pill success" th:if="${sub.submitted}"
-              th:text="'등록 완료 · ' + ${sub.sbmsnDt != null ? #dates.format(sub.sbmsnDt, 'yyyy-MM-dd HH:mm') : ''} + ' · ' + ${sub.prsnrNm ?: ''}">등록 완료</span>
+              th:text="'등록 완료' + (${sub.sbmsnDt != null} ? ' · ' + ${#dates.format(sub.sbmsnDt, 'yyyy-MM-dd HH:mm')} : '') + (${!#strings.isEmpty(sub.prsnrNm)} ? ' · ' + ${sub.prsnrNm} : '')">등록 완료</span>
         <th:block th:unless="${sub.submitted}">
           <form th:if="${admin}" th:action="@{/docs/register}" method="post"
                 onsubmit="return confirm('나라장터 등록 완료로 처리할까요? 처리 후에는 체크리스트와 조견표를 고칠 수 없습니다.')">
@@ -274,6 +286,8 @@
           <span class="pill neutral" th:unless="${admin}">경영지원실이 등록</span>
         </th:block>
       </div>
+    </div>
+    </div>
     </div>
   </th:block>
 </th:block>

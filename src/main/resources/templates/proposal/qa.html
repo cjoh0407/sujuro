@@ -35,7 +35,38 @@
     <div class="banner ok" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
     <div class="banner err" th:if="${error != null}" th:text="${error}">오류 안내</div>
 
-    <th:block th:replace="~{proposal/fragments/bid-header :: bidSelect('/qa')}"></th:block>
+    <!-- 3:7 화면: 왼쪽에 사업건 목록, 오른쪽에 업무 화면 -->
+    <div class="split">
+    <aside class="split-l">
+      <th:block th:replace="~{proposal/fragments/bid-header :: bidList('/qa')}"></th:block>
+      <!-- Q&amp;A 추가: 예전 목록 위 [+ 추가] 버튼과 팝업 대신 왼쪽 아래 칸에서 바로 쓴다 (제안팀 인원 추가·파일 올리기와 같은 박스) -->
+      <div class="card" id="qaCard" th:if="${canWrite}">
+        <div class="card-head">
+          <h3 th:text="${prs} ? '발표 Q&amp;A 기록' : '예상 Q&amp;A 추가'">예상 Q&amp;A 추가</h3>
+        </div>
+        <form th:action="@{/qa/add}" method="post" class="pad mp-form">
+          <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+          <input type="hidden" name="tab" th:value="${tab}">
+          <label class="qa-side-l"><span><span class="qa-star" title="필수">*</span>질문</span>
+            <textarea name="qstnCn" rows="3" maxlength="4000" required></textarea>
+          </label>
+          <label class="qa-side-l qa-grow">
+            <span th:text="${prs} ? '답변 (발표 때 한 답변)' : '준비한 답변 (나중에 채워도 됩니다)'">답변</span>
+            <textarea name="ansCn" maxlength="4000"></textarea>
+          </label>
+          <label class="qa-side-l">관련 요구사항 (선택)
+            <select name="rqtMttrSn">
+              <option value="">선택 안 함</option>
+              <option th:each="r : ${rqts}" th:value="${r.rqtMttrSn}" th:text="${r.rqtMttrNo + ' ' + r.rqtMttrNm}">SFR-001 요구사항명</option>
+            </select>
+          </label>
+          <div class="row" style="justify-content:flex-end">
+            <button class="btn sm primary" type="submit">등록</button>
+          </div>
+        </form>
+      </div>
+    </aside>
+    <div class="split-r">
     <th:block th:replace="~{proposal/fragments/bid-header :: bizHead}"></th:block>
 
     <!-- 예상·발표 Q&amp;A 탭 (FR-076) -->
@@ -46,16 +77,14 @@
          th:text="'발표 Q&amp;A (' + ${prsCnt} + ')'">발표 Q&amp;A (0)</a>
     </div>
 
-    <div class="banner info" th:unless="${prs}">제안 평가 전에 나올 만한 질문과 준비한 답변을 정리하세요. 관련 요구사항을 고르면 그 요구사항의 목차별로 묶여 보입니다.</div>
-    <div class="banner info" th:if="${prs}">발표 때 실제로 나온 질문과 답변을 기록합니다. 함께 들은 제안팀 누구나 기록할 수 있습니다.</div>
     <div class="banner info" th:unless="${canWrite}">영업부·경영지원실은 질의응답 기록을 볼 수만 있습니다. 입력·수정·삭제는 그 사업건의 제안팀이 합니다.</div>
 
     <!-- 검색 · 이전 사업 Q&amp;A 보기 -->
     <div class="qa-bar">
-      <form th:action="@{/qa}" method="get" class="row">
+      <form th:action="@{/qa}" method="get" class="row" style="flex:1;max-width:640px">
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
         <input type="hidden" name="tab" th:value="${tab}">
-        <input type="search" name="q" th:value="${q}" placeholder="질문·답변 검색" maxlength="100" style="width:240px">
+        <input type="search" name="q" th:value="${q}" placeholder="질문·답변 검색" maxlength="100" style="flex:1;min-width:0">
         <button class="btn sm" type="submit">검색</button>
         <a class="link" style="font-size:12px" th:if="${!#strings.isEmpty(q)}" th:href="@{/qa(bid=${bid.pbancSn}, tab=${tab})}">검색 지우기</a>
       </form>
@@ -115,11 +144,10 @@
                 th:text="'· \'' + ${q} + '\' 검색 결과 ' + ${foundCnt} + ' / ' + ${itemCnt} + '건'">· 검색 결과</span>
           <span class="faint" style="font-weight:400" th:if="${unansweredCnt > 0}" th:text="'· 답변 미작성 ' + ${unansweredCnt} + '건'">· 답변 미작성 0건</span>
         </h3>
-        <button class="btn sm primary" type="button" onclick="addQa()" th:if="${canWrite}" th:text="${prs} ? '+ 발표 Q&amp;A 기록' : '+ 예상 Q&amp;A 추가'">+ 예상 Q&amp;A 추가</button>
       </div>
 
       <div class="empty" th:if="${itemCnt == 0}"
-           th:text="${prs} ? '기록한 발표 Q&amp;A가 없습니다. 오른쪽 위 [+ 발표 Q&amp;A 기록]으로 발표 때 나온 질문을 기록하세요.' : '등록한 예상 Q&amp;A가 없습니다. 오른쪽 위 [+ 예상 Q&amp;A 추가]로 예상 질문을 등록하세요.'">없습니다.</div>
+           th:text="${prs} ? '기록한 발표 Q&amp;A가 없습니다.' : '등록한 예상 Q&amp;A가 없습니다.'">없습니다.</div>
       <div class="empty" th:if="${itemCnt > 0 and foundCnt == 0}">검색어가 들어 있는 질문·답변이 없습니다.</div>
 
       <div class="ts" th:if="${foundCnt > 0}">
@@ -209,6 +237,8 @@
       </div>
     </div>
 
+    </div>
+    </div>
   </th:block>
 </th:block>
 <th:block layout:fragment="scripts">

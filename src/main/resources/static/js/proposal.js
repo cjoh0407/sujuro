@@ -54,6 +54,17 @@ function askFormRename(btn) {
   return true;
 }
 
+/* 새 이름으로 복사해서 바꾸기: 고른 양식의 목차를 새 이름 양식으로 복사해 가져온다. 새 이름을 hidden tocFormNm에 넣고 import로 보낸다 */
+function askFormCopy(btn) {
+  var f = btn.form, sel = f.elements.tocFormSn, opt = sel.options[sel.selectedIndex];
+  if (!sel.value) return true; // 양식을 안 골랐으면 브라우저가 "선택하세요"를 띄운다
+  var old = opt.dataset.name || '', nm = prompt('"' + old + '" 양식을 복사해서 가져옵니다. 새 양식 이름을 입력하세요.', old + ' 복사');
+  if (nm === null || !nm.trim()) return false;
+  if (!confirm('현재 목차와 담당자 지정이 사라지고, 연결된 요구사항은 모두 미매핑이 됩니다. "' + nm.trim() + '" 양식으로 복사해서 바꿀까요?')) return false;
+  f.elements.tocFormNm.value = nm.trim();
+  return true;
+}
+
 function confirmFormDelete(btn) {
   var sel = btn.form.elements.tocFormSn, opt = sel.options[sel.selectedIndex];
   if (!sel.value) return true;
@@ -69,24 +80,109 @@ function confirmFormSave(f) {
 
 /* ---------- 목차 담당자: 제안팀원 / 외부 회사 (FR-049·FR-043-1) ---------- */
 
-/* "+ 외부 회사 직접 입력"을 고르면 입력칸을 열고, 그 밖의 값은 바로 저장한다 */
+/* "+ 외부 회사 직접 입력"을 고르면 왼쪽 아래 "외부 회사 입력" 칸을 열고, 그 밖의 값은 바로 저장한다 */
+var coSel = null; // 외부 회사를 입력 중인 담당자 선택칸
+
 function pickOwner(sel) {
-  var box = sel.form.querySelector('.co-new'), inp = box.querySelector('input');
-  if (sel.value === 'co-new') {
-    box.hidden = false; inp.disabled = false; inp.focus();
+  var panel = document.getElementById('coPanel');
+  if (sel.value === 'co-new' && panel) {
+    if (coSel && coSel !== sel) restoreOwner(coSel); // 다른 줄에서 열려 있었으면 그 줄은 원래 값으로
+    coSel = sel;
+    document.getElementById('coTocSn').value = sel.form.elements.tocSn.value;
+    document.getElementById('coTarget').textContent = sel.form.dataset.label || '';
+    panel.hidden = false;
+    var inp = document.getElementById('coNmInput');
+    inp.value = ''; inp.focus();
     return;
   }
-  box.hidden = true; inp.disabled = true; inp.value = '';
+  if (panel) panel.hidden = true;
+  coSel = null;
   saveNow(sel.form);
 }
 
-/* 직접 입력 취소: 선택칸을 원래 값으로 되돌린다 */
-function cancelOwner(btn) {
-  var f = btn.form, sel = f.elements.picId, box = f.querySelector('.co-new'), inp = box.querySelector('input');
-  inp.value = ''; inp.disabled = true; box.hidden = true;
+/* 선택칸을 처음 값으로 되돌린다 */
+function restoreOwner(sel) {
   for (var i = 0; i < sel.options.length; i++) sel.options[i].selected = sel.options[i].defaultSelected;
   if (sel.value === 'co-new') sel.value = '';
+  if (sel.syncPicker) sel.syncPicker();
 }
+
+/* 외부 회사 입력 취소: 칸을 닫고 그 줄의 선택값을 원래대로 */
+function cancelOwner() {
+  var panel = document.getElementById('coPanel');
+  if (panel) panel.hidden = true;
+  if (coSel) restoreOwner(coSel);
+  coSel = null;
+}
+
+/* 담당자 선택창: 기본 선택창은 목록 길이를 브라우저가 정해 들쭉날쭉하므로, 같은 선택칸을 바탕으로
+   높이가 정해진(.own-panel) 목록을 따로 그린다. 값은 원래 <select>에 넣고 change를 일으켜 위 pickOwner가 그대로 일한다. */
+var ownPanel = null;
+
+function closeOwnPanel() {
+  if (ownPanel) { ownPanel.remove(); ownPanel = null; }
+}
+
+function openOwnPanel(sel, btn) {
+  closeOwnPanel();
+  var p = document.createElement('div');
+  p.className = 'own-panel';
+  Array.prototype.forEach.call(sel.children, function (ch) {
+    var opts = ch.tagName === 'OPTGROUP' ? ch.children : [ch];
+    if (ch.tagName === 'OPTGROUP') {
+      var h = document.createElement('div');
+      h.className = 'own-grp'; h.textContent = ch.label; p.appendChild(h);
+    }
+    Array.prototype.forEach.call(opts, function (o) {
+      var it = document.createElement('div');
+      it.className = 'own-item' + (o.selected ? ' on' : '');
+      it.textContent = o.textContent;
+      it.addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        sel.value = o.value;
+        closeOwnPanel();
+        sel.syncPicker();
+        sel.dispatchEvent(new Event('change')); // onchange="pickOwner(this)"
+      });
+      p.appendChild(it);
+    });
+  });
+  document.body.appendChild(p);
+  var r = btn.getBoundingClientRect(), below = window.innerHeight - r.bottom, h = Math.min(p.offsetHeight, 280);
+  p.style.width = Math.max(r.width, 220) + 'px';
+  p.style.left = Math.min(r.left, window.innerWidth - Math.max(r.width, 220) - 8) + 'px';
+  p.style.top = (below >= h + 8 || r.top < h + 8 ? r.bottom + 2 : r.top - h - 2) + 'px';
+  var on = p.querySelector('.own-item.on');
+  if (on) p.scrollTop = Math.max(0, on.offsetTop - 80);
+  p.openedAt = Date.now();
+  ownPanel = p;
+}
+
+function initOwnerPickers() {
+  document.querySelectorAll('.owner-form select[name="picId"]').forEach(function (sel) {
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'own-btn';
+    sel.syncPicker = function () {
+      var o = sel.options[sel.selectedIndex];
+      btn.textContent = o ? o.textContent : '미지정';
+    };
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (ownPanel) closeOwnPanel(); else openOwnPanel(sel, btn);
+    });
+    sel.style.display = 'none';
+    sel.parentNode.insertBefore(btn, sel);
+    sel.syncPicker();
+  });
+}
+document.addEventListener('click', closeOwnPanel);
+window.addEventListener('scroll', function (e) { // 목록 안을 스크롤하는 건 닫지 않는다
+  // 열린 직후(0.4초)에 생기는 레이아웃 변화·포커스 이동 때문에 생기는 스크롤로는 닫지 않는다
+  if (ownPanel && Date.now() - ownPanel.openedAt > 400 && e.target !== ownPanel && !ownPanel.contains(e.target)) closeOwnPanel();
+}, true);
+window.addEventListener('resize', function () { if (ownPanel && Date.now() - ownPanel.openedAt > 400) closeOwnPanel(); });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeOwnPanel(); });
+document.addEventListener('DOMContentLoaded', initOwnerPickers);
 
 /* ---------- 저장하지 않은 입력 경고 ---------- */
 
@@ -104,22 +200,21 @@ window.addEventListener('beforeunload', function (e) {
   if (dirty) { e.preventDefault(); e.returnValue = ''; }
 });
 
-/* ---------- 제안팀 인원 찾기 팝업 (FR-043 v4.0) ----------
+/* ---------- 제안팀 인원 추가 (FR-043 v4.0, 왼쪽 아래 칸) ----------
    후보는 서버에서 20명씩 받아 온다(fetch, JSON). 목록 끝까지 스크롤하면 다음 20명을 이어 붙인다(무한 스크롤).
    팀·직급·이름을 바꾸면 처음부터 다시 받는다. 체크한 사람은 mp.picked에 기억해 두고, 보낼 때 hidden userId로 만든다. */
 var mp = { offset: 0, hasMore: true, loading: false, seq: 0, picked: {}, timer: null };
 
-function openMemPop() {
-  var pop = document.getElementById('memPop');
-  if (!pop) return;
-  pop.hidden = false;
-  if (!document.getElementById('mp-body').children.length) reloadMemPop();
-  document.getElementById('mp-q').focus();
+/* 인원 추가 칸은 팝업이 아니라 왼쪽 아래에 늘 떠 있다. 화면이 열리면 후보를 불러온다 */
+function initMemPop() {
+  if (document.getElementById('memPop')) reloadMemPop();
 }
 
-function closeMemPop() {
-  var pop = document.getElementById('memPop');
-  if (pop) pop.hidden = true;
+/* 체크한 사람을 모두 해제 */
+function clearMemPop() {
+  mp.picked = {};
+  document.querySelectorAll('#mp-body input[type="checkbox"]').forEach(function (c) { c.checked = false; });
+  document.getElementById('mp-cnt').textContent = '0명 선택';
 }
 
 /* 필터가 바뀌면 목록을 비우고 처음부터 */
@@ -170,7 +265,7 @@ function loadMemPop() {
     .catch(function () {
       if (seq !== mp.seq) return;
       mp.loading = false;
-      state.textContent = '목록을 불러오지 못했습니다. 잠시 후 다시 열어 주세요.';
+      state.textContent = '목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';
     });
 }
 
@@ -211,7 +306,7 @@ function checkMemPop(f) {
   return true;
 }
 
-/* 줄 아무 데나 눌러도 체크, Esc로 닫기 */
+/* 줄 아무 데나 눌러도 체크 */
 document.addEventListener('click', function (e) {
   var row = e.target.closest && e.target.closest('#memPop .mp-row');
   if (row && e.target.tagName !== 'INPUT') {
@@ -220,9 +315,7 @@ document.addEventListener('click', function (e) {
     c.dispatchEvent(new Event('change'));
   }
 });
-document.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape') closeMemPop();
-});
+document.addEventListener('DOMContentLoaded', initMemPop);
 
 /* ---------- 요구사항 PDF 추출 미리보기 (FR-050-1) ---------- */
 
@@ -405,3 +498,45 @@ document.addEventListener('drop', function (e) {
   }
 });
 
+
+
+/* ---------- 목차 표 보기 모드 / 수정 모드 ----------
+   매핑이 다 끝난 사업건은 처음에 보기 모드로 연다(입력칸·선택창을 글자로 바꾸고 편집 버튼을 숨김).
+   고른 모드는 이 탭을 닫기 전까지 사업건마다 기억한다(sessionStorage, 안 되는 환경에서는 기본값). */
+function tocModeKey(w) { return 'tocMode:' + (w.dataset.bid || ''); }
+
+function setTocMode(view) {
+  var w = document.getElementById('tocWrap');
+  if (!w) return;
+  w.classList.toggle('view', view);
+  w.querySelectorAll('.ro').forEach(function (x) { x.remove(); });
+  w.querySelectorAll('[data-ro-hid]').forEach(function (x) { x.style.display = ''; x.removeAttribute('data-ro-hid'); });
+  if (view) {
+    w.querySelectorAll('.ts input[type="text"], .ts input[type="number"], .ts .own-btn').forEach(function (el) {
+      if (el.closest('.rq-add-row') || el.closest('tr.addrow')) return;
+      var text = el.classList.contains('own-btn') ? el.textContent : el.value;
+      if (el.type === 'number') text = text + '쪽';
+      var s = document.createElement('span');
+      s.className = 'ro' + (el.classList.contains('bold') ? ' bold' : '') + (text === '미지정' ? ' faint' : '');
+      s.textContent = text;
+      el.style.display = 'none'; el.setAttribute('data-ro-hid', '1');
+      el.insertAdjacentElement('afterend', s);
+    });
+  }
+  var b = document.getElementById('tocModeBtn');
+  if (b) b.textContent = view ? '수정 모드로 바꾸기' : '보기 모드로 바꾸기';
+  try { sessionStorage.setItem(tocModeKey(w), view ? 'view' : 'edit'); } catch (e) { /* 저장 못 해도 괜찮다 */ }
+}
+
+function toggleTocMode() {
+  var w = document.getElementById('tocWrap');
+  if (w) setTocMode(!w.classList.contains('view'));
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  var w = document.getElementById('tocWrap');
+  if (!w || !document.getElementById('tocModeBtn')) return; // 수정할 수 없는 사람은 원래 글자로만 보인다
+  var saved = null;
+  try { saved = sessionStorage.getItem(tocModeKey(w)); } catch (e) { /* 무시 */ }
+  setTocMode(saved ? saved === 'view' : w.dataset.done === 'true');
+});

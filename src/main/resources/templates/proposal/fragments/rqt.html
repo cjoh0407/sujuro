@@ -24,7 +24,7 @@
 
 <div th:fragment="rqInfo(q)" class="rq-line">
   <span th:text="${q.rqtMttrNm}">요구사항명</span>
-  <span th:if="${canReq}" style="display:inline-flex;gap:3px">
+  <span th:if="${canReq}" class="rq-acts" style="display:inline-flex;gap:3px">
     <a class="ico" title="수정" aria-label="수정" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped', edit=${q.rqtMttrSn})} + '#rqform'"><span class="ic ic-edit"></span></a>
     <form th:action="@{/proposal/rqt/delete}" method="post" style="display:inline"
           th:data-no="${q.rqtMttrNo}" onsubmit="return confirm('요구사항 ' + this.dataset.no + '을(를) 삭제할까요?')">

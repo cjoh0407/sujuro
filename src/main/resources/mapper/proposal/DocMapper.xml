@@ -105,6 +105,15 @@
     UPDATE TB_SBMSN_DCMNT SET SBMSN_DDLN_DT = #{sbmsnDdlnDt, jdbcType=DATE} WHERE DCMNT_SN = #{dcmntSn}
   </update>
 
+  <select id="findFilesOfDoc" resultType="com.ojj.sujuro.proposal.dto.PrpFileDto">
+    SELECT F.FILE_SN AS fileSn, F.STRG_FILE_NM AS strgFileNm, F.FILE_PATH_NM AS filePathNm
+      FROM TB_ATCH_FILE F WHERE F.DCMNT_SN = #{dcmntSn}
+  </select>
+
+  <delete id="deleteFilesOfDoc">
+    DELETE FROM TB_ATCH_FILE WHERE DCMNT_SN = #{dcmntSn}
+  </delete>
+
   <delete id="deleteDoc">
     DELETE FROM TB_SBMSN_DCMNT WHERE DCMNT_SN = #{dcmntSn}
   </delete>

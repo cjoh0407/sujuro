@@ -38,7 +38,7 @@ public class RefFileService {
     /** 목록에서 작은 그림으로 보여도 되는 확장자 */
     private static final Set<String> PREVIEW_EXT = new HashSet<>(Arrays.asList("png", "jpg", "jpeg", "gif", "webp", "bmp"));
 
-    private static final int MEMO_MAX = 500;
+    private static final int MEMO_MAX = 30; // 표에서 잘리지 않고 한 줄로 보이는 길이
 
     private final RefFileMapper mapper;
     private final FileStorage storage;

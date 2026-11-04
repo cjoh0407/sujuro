@@ -10,6 +10,7 @@
 <head>
   <title>참고자료</title>
   <th:block layout:fragment="head">
+    <link rel="stylesheet" th:href="@{/css/proposal.css}"><!-- 끌어 놓기 칸(.drop) 모양을 제안서 파일 올리기와 같게 쓴다 -->
     <link rel="stylesheet" th:href="@{/css/refs.css}">
   </th:block>
 </head>
@@ -21,21 +22,36 @@
 
   <div class="banner ok" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
   <div class="banner err" th:if="${error != null}" th:text="${error}">오류 안내</div>
-  <div class="card">
-    <div class="card-head"><h3>자료 올리기</h3></div>
-    <form class="ref-up" th:action="@{/refs/upload}" method="post" enctype="multipart/form-data">
-      <input type="hidden" name="se" th:value="${se}">
-      <div class="fld grow">
-        <label for="refFile">파일</label>
-        <input id="refFile" type="file" name="file" required data-max-mb="50">
+  <!-- 3:7 화면: 왼쪽에 자료 올리기 카드(제안 화면들과 같은 박스), 오른쪽에 자료 목록 -->
+  <div class="split">
+  <aside class="split-l">
+    <div class="card" id="upCard">
+      <div class="card-head">
+        <h3>자료 올리기</h3>
+        <span class="faint" style="font-size:11.5px">최대 50MB</span>
       </div>
-      <div class="fld grow">
-        <label for="refMemo">설명 (선택)</label>
-        <input id="refMemo" type="text" name="memo" maxlength="500" placeholder="예: 제안서 본문용 고딕체">
-      </div>
-      <button class="btn primary" type="submit">올리기</button>
-    </form>
-  </div>
+      <form th:action="@{/refs/upload}" method="post" enctype="multipart/form-data" class="pad mp-form">
+        <input type="hidden" name="se" th:value="${se}">
+        <label class="drop">
+          <input type="file" name="file" required data-max-mb="50">
+          <span class="ic ic-upload"></span>
+          <span class="drop-body">
+            <span class="drop-text"><span><b>파일 선택</b> · 끌어 놓기</span></span>
+            <span class="drop-hint"></span>
+          </span>
+        </label>
+        <label class="qa-side-l">
+          <span class="row" style="justify-content:space-between"><span>설명 (선택)</span><span class="faint" id="refMemoCnt" style="font-weight:400">0 / 30</span></span>
+          <input type="text" name="memo" maxlength="30" placeholder="예: 제안서 본문용 고딕체"
+                 oninput="document.getElementById('refMemoCnt').textContent = this.value.length + ' / 30'">
+        </label>
+        <div class="row" style="justify-content:flex-end">
+          <button class="btn sm primary" type="submit">올리기</button>
+        </div>
+      </form>
+    </div>
+  </aside>
+  <div class="split-r">
 
   <div class="card">
     <div class="card-head ref-head">
@@ -66,19 +82,19 @@
             </td>
             <td>
               <div class="ref-nm" th:text="${f.orgnlFileNm}" th:title="${f.orgnlFileNm}">파일명.ttf</div>
-              <div class="ref-memo" th:if="${f.memoCn != null}" th:text="${f.memoCn}">설명</div>
+              <div class="ref-memo" th:if="${f.memoCn != null}" th:text="${f.memoCn}" th:title="${f.memoCn}">설명</div>
             </td>
             <td class="c-se"><span class="pill" th:text="${f.seNm}">폰트</span></td>
             <td class="c-sz" th:text="${f.sizeText}">120KB</td>
             <td class="c-who" th:text="${f.rgtrNm != null ? f.rgtrNm : f.rgtrId}">홍길동</td>
             <td class="c-dt" th:text="${#dates.format(f.regDt, 'yyyy-MM-dd')}">2026-11-03</td>
             <td class="c-act">
-              <a class="btn sm" th:href="@{/refs/download(refFileSn=${f.refFileSn})}">내려받기</a>
+              <a class="ico" title="내려받기" aria-label="내려받기" th:href="@{/refs/download(refFileSn=${f.refFileSn})}"><span class="ic ic-download"></span></a>
               <form class="inl" th:if="${leader or f.rgtrId == me}" th:action="@{/refs/delete}" method="post"
                     onsubmit="return confirm('이 자료를 삭제할까요?');">
                 <input type="hidden" name="refFileSn" th:value="${f.refFileSn}">
                 <input type="hidden" name="se" th:value="${se}">
-                <button class="btn sm danger" type="submit">삭제</button>
+                <button class="ico danger" type="submit" title="삭제" aria-label="삭제"><span class="ic ic-trash"></span></button>
               </form>
             </td>
           </tr>
@@ -96,22 +112,13 @@
       <span class="off" th:unless="${page < totalPages}">&raquo;</span>
     </div>
   </div>
+  </div>
+  </div>
 
 </th:block>
 
 <th:block layout:fragment="scripts">
-  <script>
-    // 올리기 전에 용량을 먼저 확인한다 (서버도 같은 기준으로 다시 확인한다)
-    document.querySelectorAll('input[type=file][data-max-mb]').forEach(function (inp) {
-      inp.addEventListener('change', function () {
-        var max = Number(inp.getAttribute('data-max-mb')) * 1048576;
-        if (inp.files[0] && inp.files[0].size > max) {
-          alert('파일당 최대 ' + inp.getAttribute('data-max-mb') + 'MB까지 올릴 수 있습니다.');
-          inp.value = '';
-        }
-      });
-    });
-  </script>
+  <script th:src="@{/js/proposal.js}"></script><!-- 끌어 놓기·용량 확인 (proposal.js dropRender) -->
 </th:block>
 
 </body>

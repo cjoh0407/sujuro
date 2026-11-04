@@ -45,6 +45,12 @@ public interface DocMapper {
 
     int deleteDoc(@Param("dcmntSn") Long dcmntSn);
 
+    /** 이 서류에 올린 파일 전부 (삭제한 기록 포함). 서류를 지울 때 파일 정보를 먼저 읽는다 */
+    List<PrpFileDto> findFilesOfDoc(@Param("dcmntSn") Long dcmntSn);
+
+    /** 이 서류에 올린 파일 기록 전부 삭제 (서류를 지우려면 먼저 지워야 한다) */
+    int deleteFilesOfDoc(@Param("dcmntSn") Long dcmntSn);
+
     /* ---------- 조견표: 평가 항목·배점·쪽번호 (FR-071) ---------- */
 
     /** 이 사업건 평가 항목 (정렬순서대로) */

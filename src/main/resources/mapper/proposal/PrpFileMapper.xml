@@ -64,7 +64,7 @@
 
   <!-- 버전은 그 목차에 올라간 파일 수 + 1. 삭제(숨김)한 파일도 세므로 번호가 되돌아가지 않는다 -->
   <select id="nextTocVersion" resultType="int">
-    SELECT COUNT(*) + 1 FROM TB_ATCH_FILE
+    SELECT NVL(MAX(TO_NUMBER(TRIM(VER_NO))), 0) + 1 FROM TB_ATCH_FILE
      WHERE PBANC_SN = #{pbancSn} AND FILE_SE_CD = #{fileSeCd} AND TOC_SN = #{tocSn}
   </select>
 
@@ -88,6 +88,7 @@
 
   <update id="markFinal">
     UPDATE TB_ATCH_FILE SET LAST_YN = 'Y', DCSMKR_ID = #{userId}, CFMTN_DT = SYSDATE
-     WHERE FILE_SN = #{fileSn}
+     WHERE PBANC_SN = #{pbancSn} AND FILE_SE_CD = 'FL030' AND DEL_YN = 'N'
+       AND INTG_CYCL = (SELECT INTG_CYCL FROM TB_ATCH_FILE WHERE FILE_SN = #{fileSn})
   </update>
 </mapper>

@@ -30,12 +30,19 @@
     <div class="banner ok" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
     <div class="banner err" th:if="${error != null}" th:text="${error}">오류 안내</div>
 
-    <th:block th:replace="~{proposal/fragments/bid-header :: bidSelect('/proposal')}"></th:block>
+    <!-- 3:7 화면: 왼쪽에 사업건 목록 · 인원 추가, 오른쪽에 업무 화면 -->
+    <div class="split">
+    <aside class="split-l">
+      <th:block th:replace="~{proposal/fragments/bid-header :: bidList('/proposal')}"></th:block>
+      <th:block th:if="${canAssign}"><th:block th:replace="~{proposal/fragments/bid-header :: memPicker}"></th:block></th:block>
+      <th:block th:if="${canAssign}"><th:block th:replace="~{proposal/fragments/bid-header :: coPanel}"></th:block></th:block>
+    </aside>
+    <div class="split-r">
     <th:block th:replace="~{proposal/fragments/bid-header :: bizHead}"></th:block>
     <th:block th:replace="~{proposal/fragments/bid-header :: teamCard}"></th:block>
 
     <!-- 주관팀이 아니면 할 수 있는 일을 안내 -->
-    <div class="banner info" th:unless="${canLoad}">
+    <div class="banner info" th:unless="${canLoad or ended}">
       <span>제안팀(주관팀·참여팀 인원)은 목차를 추가·수정할 수 있습니다. 양식 불러오기·저장은 주관팀 인원만 할 수 있습니다. 담당자는 최하위 목차에만 두며 주관팀 팀장이 지정합니다.</span>
     </div>
 
@@ -47,6 +54,8 @@
 
     <th:block th:if="${tab == 'prop'}"><th:block th:replace="~{proposal/tab-proposal :: tab}"></th:block></th:block>
     <th:block th:if="${tab == 'sum'}"><th:block th:replace="~{proposal/tab-summary :: tab}"></th:block></th:block>
+    </div>
+    </div>
   </th:block>
 </th:block>
 

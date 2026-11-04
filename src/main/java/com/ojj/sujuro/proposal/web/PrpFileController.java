@@ -1,5 +1,6 @@
 package com.ojj.sujuro.proposal.web;
 
+import com.ojj.sujuro.common.exception.BusinessException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -69,7 +70,7 @@ public class PrpFileController {
         if (bids.isEmpty()) {
             return "proposal/files";
         }
-        Long pbancSn = bid != null ? bid : bids.get(0).getPbancSn();
+        Long pbancSn = bid != null ? bid : ProposalBidDto.defaultPbancSn(bids);
         accessChecker.requireProposalMember(pbancSn, user);
         String tk = TAB_FULL.equals(tab) || TAB_SUMMARY.equals(tab) ? tab : TAB_PART;
 
@@ -152,10 +153,12 @@ public class PrpFileController {
                          @RequestParam("tocSn") Long tocSn,
                          @RequestParam(value = "done", defaultValue = "false") boolean done, RedirectAttributes ra) {
         accessChecker.requireLeadTeamLeader(bid, user);
-        return FlashRedirect.run(ra, PATH, bid, tabParam(tab), () -> {
-            fileService.markReviewed(bid, tocSn, done);
-            return done ? "검토 완료로 표시했습니다." : "검토 완료 표시를 풀었습니다.";
-        });
+        try {
+            fileService.markReviewed(bid, tocSn, done); // 버튼 색이 바뀌므로 완료 문구는 띄우지 않는다
+        } catch (BusinessException e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return FlashRedirect.to(ra, PATH, bid, tabParam(tab));
     }
 
     /** 파일 삭제: 목록에서만 숨기고 원본·삭제자·일시·사유를 남긴다 (NFR-009) */

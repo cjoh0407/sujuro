@@ -109,10 +109,7 @@ public class TocServiceImpl implements TocService {
         if (form == null || !form.isInUse() || teamSn == null || !teamSn.equals(form.getTeamSn())) {
             throw new BusinessException("선택한 목차 양식을 찾을 수 없습니다. 주관팀이 저장한 양식만 불러올 수 있습니다.");
         }
-        List<TocDto> items = mapper.findFormItems(tocFormSn);
-        if (items.isEmpty()) {
-            throw new BusinessException("'" + form.getTocFormNm() + "'에 목차 항목이 없습니다.");
-        }
+        List<TocDto> items = mapper.findFormItems(tocFormSn); // 항목이 없는 양식도 고를 수 있다 (빈 목차로 시작)
         if (mapper.countByBid(pbancSn, se) > 0) {
             if (mapper.countFilesByBid(pbancSn, se) > 0) {
                 throw new BusinessException("이미 올린 파일(삭제한 파일 기록 포함)이 있어 양식을 바꿀 수 없습니다. 필요한 목차만 직접 수정하세요.");
@@ -135,6 +132,31 @@ public class TocServiceImpl implements TocService {
         }
         mapper.updateBidForm(pbancSn, tocFormSn); // 화면에 "현재 목차 양식"으로 보여 준다
         return items.size();
+    }
+
+    @Transactional
+    @Override
+    public int importFormAs(Long pbancSn, String tocSeCd, Long srcFormSn, String newName, Long teamSn, String userId) {
+        String se = checkFormSe(tocSeCd);
+        if (srcFormSn == null) {
+            throw new BusinessException("복사할 목차 양식을 골라 주세요.");
+        }
+        TocFormDto src = mapper.findForm(srcFormSn);
+        if (src == null || !src.isInUse() || teamSn == null || !teamSn.equals(src.getTeamSn())) {
+            throw new BusinessException("선택한 목차 양식을 찾을 수 없습니다. 주관팀이 저장한 양식만 불러올 수 있습니다.");
+        }
+        String nm = cleanFormName(newName);
+        if (mapper.findFormByName(teamSn, nm) != null) {
+            throw new BusinessException("'" + nm + "'은(는) 이미 있는 양식 이름입니다. 다른 이름을 쓰세요.");
+        }
+        TocFormDto form = new TocFormDto();
+        form.setTeamSn(teamSn);
+        form.setTocFormNm(nm);
+        form.setTocSeCd(se);
+        form.setRgtrId(userId);
+        mapper.insertForm(form);
+        writeFormItems(form.getTocFormSn(), se, mapper.findFormItems(srcFormSn)); // 고른 양식의 목차를 새 이름 양식으로 복사
+        return importForm(pbancSn, se, form.getTocFormSn(), teamSn); // 새 양식을 이 사업건 목차로 가져오고 현재 양식으로 둔다
     }
 
     @Transactional

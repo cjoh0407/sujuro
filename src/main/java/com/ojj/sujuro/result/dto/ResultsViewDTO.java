@@ -20,6 +20,9 @@ public class ResultsViewDTO {
     /** [나라장터에서 결과 가져오기]를 할 수 있는지 (경영지원실) */
     private boolean canImport;
 
+    /** 컨소시엄 참여·하도급 사업의 결과를 직접 입력할 수 있는지 (경영지원실, 11/04) */
+    private boolean canEnterResult;
+
     /** 평가표 엑셀을 올릴 수 있는지 (경영지원실, 이 사업을 맡은 팀의 팀장) */
     private boolean canUpload;
 
@@ -36,7 +39,7 @@ public class ResultsViewDTO {
     /** 결과 등록 사업만: 점수·평가 항목·평가표·장단점 (StatsService.findArchive) */
     private StatsArchiveDTO archive;
 
-    /** 결과 등록 사업만: 개찰 업체 (순위 순) */
+    /** 제출 완료·결과 등록 사업: 참여한 개찰 업체 전체 (순위 순) */
     private List<ResultCompanyDTO> companies = new ArrayList<>();
 
     /* 평가표는 개찰 업체마다 따로 올린다. 아래는 화면에서 고른 업체(기본은 우리 회사)의 것이다 */

@@ -57,6 +57,8 @@ public final class BidCode {
 
     /** 참여형태 (PTFRM) - 팀 배정 때 영업부가 고른다. 고르는 칸은 공통코드에서 읽는다. */
     public static final String GROUP_PTCP_SHP = "PTFRM";
+    public static final String PTCP_SHP_CONSORTIUM = "PF020";  // 컨소시엄 참여
+    public static final String PTCP_SHP_SUBCONTRACT = "PF030"; // 하도급
 
     /** 부서 (DEPTS) - 공고를 배정받는 팀은 개발부 팀이다 */
     public static final String DEPT_DEV = "DP030";
@@ -100,6 +102,14 @@ public final class BidCode {
     public static final String FILE_RFP = "FL010";       // RFP (입찰공고의 제안요청서)
     public static final String FILE_PRE_SPEC = "FL080";  // 사전규격 규격서 (제안요청서 초안 포함)
     public static final String FILE_BID_ATCH = "FL090";  // 입찰공고 첨부 (제안요청서 말고 나머지)
+
+    /**
+     * 결과를 사람이 직접 입력하는 참여 형태인지 (11/04 수정사항). 컨소시엄 참여·하도급은 나라장터 개찰 목록에
+     * 주관사·원도급사 이름으로 올라와 우리 회사 결과를 찾을 수 없다. 참여 형태를 정하지 않았으면 주관처럼 자동으로 가져온다.
+     */
+    public static boolean isManualResult(String ptcpShpCd) {
+        return is(ptcpShpCd, PTCP_SHP_CONSORTIUM) || is(ptcpShpCd, PTCP_SHP_SUBCONTRACT);
+    }
 
     /**
      * 화면의 진행상태 (11/03 수정사항). 공고상태 코드를 일곱 가지 이름으로 보여 준다. DB 의 공고상태 코드는 그대로다.

@@ -22,10 +22,10 @@ public interface ResultMapper {
 
     /* ---- 결과 등록 (수집) ---- */
 
-    /** 제출 완료(PS050)이고 개찰·계약 단계인 공고 */
+    /** 제출 완료(PS050)이고 개찰·계약 단계인 공고. 컨소시엄 참여·하도급은 직접 입력하므로 뺀다 */
     List<ResultTargetDTO> findResultTargets();
 
-    /** 제출 완료인 공고 하나 (단계 상관없음). 아니면 null */
+    /** 제출 완료인 공고 하나 (단계 상관없음). 아니거나 컨소시엄 참여·하도급이면 null */
     ResultTargetDTO findResultTarget(@Param("pbancSn") Long pbancSn);
 
     /** 공고의 기술·가격 배점(비율)이 비어 있으면 채운다 */
@@ -36,6 +36,10 @@ public interface ResultMapper {
 
     /** 우리 회사 결과. 이미 있으면 결과·순위·점수·낙찰금액만 고친다(장단점은 그대로) */
     int mergeBidRslt(BidRsltDTO r);
+
+    /** 컨소시엄 참여·하도급의 결과 직접 입력 (11/04). 결과와 수주 금액만 고친다. 탈락이면 금액은 null */
+    int mergeManualBidRslt(@Param("pbancSn") Long pbancSn, @Param("bidRsltCd") String bidRsltCd,
+                           @Param("scsbdAmt") Long scsbdAmt, @Param("userId") String userId);
 
     /** 제출 완료 → 결과 등록. 그사이 상태가 바뀌었으면 0 */
     int updateToResult(@Param("pbancSn") Long pbancSn);

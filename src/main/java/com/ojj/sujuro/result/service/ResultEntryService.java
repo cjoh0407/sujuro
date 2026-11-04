@@ -5,6 +5,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.result.dto.EvaluationFileDTO;
 import com.ojj.sujuro.result.dto.EvaluationForm;
+import com.ojj.sujuro.result.dto.ManualResultForm;
 import com.ojj.sujuro.result.dto.ResultsViewDTO;
 import com.ojj.sujuro.result.dto.StatsAnalysisForm;
 
@@ -16,12 +17,14 @@ import com.ojj.sujuro.result.dto.StatsAnalysisForm;
  * 통계(항목별 득점률)에는 우리 회사 점수만 들어간다.
  * 권한이 없으면 AccessDeniedException(403), 결과가 등록된 사업이 아니거나 값이 틀리면 BusinessException.
  * 순위·점수는 입력하지 않는다. 나라장터 개찰 결과에서 가져온다(ResultCollectService).
+ * 컨소시엄 참여·하도급은 나라장터에서 가져올 수 없어 결과와 수주 금액을 경영지원실이 직접 입력한다(saveManualResult).
  */
 public interface ResultEntryService {
 
     /**
      * 화면 한 장. bid 가 목록에 없으면 첫 사업건(제출 완료가 맨 앞)을 고른다.
-     * 결과 등록 사업이면 사업별 결과 분석과 같은 값과 개찰 업체 목록, 고른 업체(coSn)의 평가표, 업체별 비교를 같이 담는다.
+     * 개찰 업체 목록은 제출 완료부터 담는다(참여한 업체 전체).
+     * 결과 등록 사업이면 사업별 결과 분석과 같은 값, 고른 업체(coSn)의 평가표, 업체별 비교를 같이 담는다.
      * 팀장에게는 고른 업체의 평가표 엑셀을 읽어 입력 칸을 채워 준다(excelForm). 그 업체가 저장한 점수가 없을 때,
      * 또는 fromFile 이면(엑셀을 새로 올렸거나 [엑셀에서 다시 불러오기]) 읽는다. 저장은 팀장이 확인한 뒤 한다.
      */
@@ -33,6 +36,16 @@ public interface ResultEntryService {
      * 사업자번호가 설정되지 않았으면 BusinessException.
      */
     String importResult(LoginUser user, Long pbancSn);
+
+    /**
+     * 컨소시엄 참여·하도급 사업의 결과 직접 입력 (11/04, 경영지원실만). 개찰 목록에 주관사·원도급사 이름으로 올라와
+     * 나라장터에서 가져올 수 없다. 결과(수주·탈락)와 수주 금액만 받는다. 수주 금액은 우리 회사가 받는 몫이고 통계의 수주 금액에 들어간다.
+     * 제출 완료면 결과 등록으로 올리고 담당 팀 팀장에게 장단점 입력을 알린다. 이미 결과 등록이면 값만 고친다.
+     * 다른 참여 형태이거나 값이 틀리면 BusinessException.
+     *
+     * @return 화면에 보여 줄 안내 문구
+     */
+    String saveManualResult(LoginUser user, Long pbancSn, ManualResultForm form);
 
     /** 장단점 분석 (FR-081). 빈 칸은 지운다. 한 칸이 4000바이트(한글 약 1,300자)를 넘으면 BusinessException */
     void saveAnalysis(LoginUser user, Long pbancSn, StatsAnalysisForm form);

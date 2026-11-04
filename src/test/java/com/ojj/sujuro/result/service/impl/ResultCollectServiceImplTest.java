@@ -141,23 +141,41 @@ class ResultCollectServiceImplTest {
     }
 
     @Test
-    void 최종_낙찰자가_아직_없으면_다음_수집까지_기다린다() throws Exception {
+    void 최종_낙찰자가_아직_없으면_개찰_업체만_저장하고_다음_수집까지_기다린다() throws Exception {
         when(api.findAward("R26BK01541118")).thenReturn(response("[]"));
         ResultOutcomeDTO out = service("1078728988").register(target());
 
         assertEquals(ResultOutcomeDTO.Kind.WAITING, out.getKind());
-        verify(api, never()).findOpeningCompanies(anyString());
+        ArgumentCaptor<CoEvlRsltDTO> co = ArgumentCaptor.forClass(CoEvlRsltDTO.class);
+        verify(mapper, times(2)).mergeCoEvlRslt(co.capture());
+        assertEquals("N", co.getAllValues().get(0).getScsbdYn()); // 낙찰자를 아직 모른다
+        assertEquals("Y", co.getAllValues().get(0).getOurCoYn());
         verify(mapper, never()).mergeBidRslt(any());
+        verify(mapper, never()).updateToResult(anyLong());
     }
 
     @Test
-    void 개찰_목록에_우리_회사가_없으면_등록하지_않고_사람이_보게_한다() {
+    void 개찰_목록에_우리_회사가_없어도_참여_업체는_모두_저장하고_결과는_등록하지_않는다() {
         ResultOutcomeDTO out = service("1234567890").register(target());
 
         assertEquals(ResultOutcomeDTO.Kind.NOT_LISTED, out.getKind());
         assertTrue(out.getMessage().contains("1234567890"));
-        verify(mapper, never()).mergeCoEvlRslt(any());
+        ArgumentCaptor<CoEvlRsltDTO> co = ArgumentCaptor.forClass(CoEvlRsltDTO.class);
+        verify(mapper, times(2)).mergeCoEvlRslt(co.capture());
+        assertEquals("N", co.getAllValues().get(0).getOurCoYn());
+        assertEquals("N", co.getAllValues().get(1).getOurCoYn());
+        assertEquals("Y", co.getAllValues().get(0).getScsbdYn()); // 낙찰자 표시는 그대로 남긴다
+        verify(mapper, never()).mergeBidRslt(any());
         verify(mapper, never()).updateToResult(anyLong());
+    }
+
+    @Test
+    void 개찰_전이면_저장할_업체가_없다() throws Exception {
+        when(api.findAward("R26BK01541118")).thenReturn(response("[]"));
+        when(api.findOpeningCompanies("R26BK01541118")).thenReturn(response("[]"));
+
+        assertEquals(ResultOutcomeDTO.Kind.WAITING, service("1078728988").register(target()).getKind());
+        verify(mapper, never()).mergeCoEvlRslt(any());
     }
 
     @Test

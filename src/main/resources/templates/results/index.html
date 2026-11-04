@@ -8,14 +8,15 @@
   경영지원실: 모든 사업, 결과 가져오기(view.canImport)·평가표 올리기(view.canUpload). 점수·장단점은 읽기만.
   팀장: 자기 팀 사업만, 평가표 올리기·평가 항목·점수·장단점 입력(view.canScore). 회의 결정, 2026-11-02 반영.
   사업건 선택 → 머리 줄 → 상태별 안내 →
-    제출 완료 : 입찰 결과 카드 + [나라장터에서 결과 가져오기] (평일 오후 5시 수집도 같은 일을 한다)
+    제출 완료 : 입찰 결과 카드 + [나라장터에서 결과 가져오기] (평일 오후 5시 수집도 같은 일을 한다) → 개찰 업체 점수(받아 둔 참여 업체 전체)
     결과 등록 : 입찰 결과(순위·점수·원점수·비교) → 개찰 업체 점수 → 평가표(업체 고르기 → 엑셀 올리기 → 읽어 채운 항목·배점·위원별 점수 저장)
                → 업체별 평가표 비교 → 평가 항목별 점수·득점률(우리 회사) → 장단점 분석
     유찰      : 점수 없음 안내
+    컨소시엄 참여·하도급 : 나라장터에서 가져올 수 없어 결과·수주 금액 직접 입력(경영지원실) → 장단점 분석 (11/04)
   목업의 '수행 인력 기록'은 넣지 않았다 (사업별 결과 분석의 PM/투입을 빼기로 한 것과 같은 결정, 2026-10-29).
 
   모델: view (result.dto.ResultsViewDTO), evaluationForm (result.dto.EvaluationForm, 결과 등록 사업만)
-        저장 뒤 안내(flash): resultMessage·resultError, evaluationMessage·evaluationError, analysisMessage·analysisError·analysisForm
+        저장 뒤 안내(flash): resultMessage·resultError·manualForm, evaluationMessage·evaluationError, analysisMessage·analysisError·analysisForm
 */-->
 <head>
   <title>평가·결과 입력</title>
@@ -58,7 +59,8 @@
       <b th:text="${b.pbancNm}">사업명</b>
       <span class="faint" th:text="|${b.orderInstNm ?: '-'} · ${b.bidPbancNo ?: '-'} · ${b.teamNm ?: '-'}|">기관 · 공고번호 · 팀</span>
       <span class="faint" th:if="${b.opengDt}" th:text="|개찰 ${#dates.format(b.opengDt, 'yyyy-MM-dd')}|">개찰</span>
-      <span class="pill neutral" th:if="${b.scoringText}" th:text="${b.scoringText}">기술 90 : 가격 10</span>
+      <span class="pill neutral" th:if="${b.scoringText != null and !b.manualResult}" th:text="${b.scoringText}">기술 90 : 가격 10</span>
+      <span class="pill neutral" th:if="${b.manualResult}" th:text="${b.ptcpShpNm}">컨소시엄 참여</span>
       <span class="pill" th:classappend="${b.sttsPill}" th:text="${b.progressNm}">결과 등록</span>
     </div>
 
@@ -76,9 +78,9 @@
       <span>입찰 결과와 평가표는 나라장터 등록이 끝나 "제출 완료"가 된 뒤, 결과 단계에서 입력합니다.</span>
     </div>
 
-    <th:block th:if="${b.submitted or b.resulted}">
+    <th:block th:if="${(b.submitted or b.resulted) and !b.manualResult}">
       <div class="banner info">
-        <span><b>입찰 결과·순위·기술·가격·종합 점수</b>는 나라장터 API 에서 우리 회사 사업자번호로 가져옵니다.
+        <span>참여한 <b>모든 업체의 순위·기술·가격·종합 점수</b>를 나라장터 API 에서 가져오고, 그중 우리 회사 사업자번호로 <b>입찰 결과</b>를 가립니다.
           <b>평가 항목·배점·항목별 점수</b>는 API 에 없어서 <b>평가표 엑셀을 올리면</b> 그 엑셀에서 읽어 채우고, 담당 팀 팀장이 확인해 저장합니다.</span>
       </div>
       <div class="banner warn" th:unless="${view.ready}">
@@ -86,8 +88,55 @@
       </div>
     </th:block>
 
+    <!-- 컨소시엄 참여·하도급 (11/04): 개찰 목록에 주관사·원도급사 이름으로 올라와 나라장터에서 가져올 수 없다.
+         결과와 수주 금액만 경영지원실이 직접 입력하고, 장단점은 담당 팀 팀장이 입력한다. 순위·점수·평가표는 받지 않는다 -->
+    <th:block th:if="${(b.submitted or b.resulted) and b.manualResult}">
+      <div class="banner info">
+        <span th:text="|${b.ptcpShpNm} 사업은 나라장터 개찰 목록에 주관사·원도급사 이름으로 올라와 결과를 가져올 수 없습니다. 결과와 수주 금액을 경영지원실이 직접 입력하고, 장단점은 담당 팀 팀장이 입력합니다. 순위·점수·평가표는 받지 않습니다.|">안내</span>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h3>입찰 결과 (직접 입력)</h3>
+          <a class="btn sm" th:if="${a != null}" th:href="@{/stats(bid=${b.pbancSn})}">사업별 결과 분석</a>
+        </div>
+        <!-- 경영지원실: 입력·수정. 저장에 실패해 돌아왔으면 입력하던 값을 다시 채운다 -->
+        <form class="pad" method="post" th:action="@{/results/manual}" th:if="${view.canEnterResult}"
+              th:with="rslt=${manualForm != null} ? ${manualForm.bidRsltCd} : (${a != null} ? ${a.rsltCd} : null),
+                       amt=${manualForm != null} ? ${manualForm.scsbdAmt} : (${a != null} ? ${a.scsbdAmt} : null)"
+              style="display:flex;flex-direction:column;gap:10px">
+          <input type="hidden" name="bid" th:value="${b.pbancSn}">
+          <div class="grid2">
+            <div class="fld">
+              <label for="mn-rslt">결과</label>
+              <select id="mn-rslt" name="bidRsltCd" required>
+                <option value="">선택</option>
+                <option value="BR010" th:selected="${rslt == 'BR010'}">수주</option>
+                <option value="BR020" th:selected="${rslt == 'BR020'}">탈락</option>
+              </select>
+            </div>
+            <div class="fld">
+              <label for="mn-amt">수주 금액 (원, 우리 회사가 받는 몫)</label>
+              <input id="mn-amt" name="scsbdAmt" type="text" inputmode="numeric" maxlength="20" placeholder="수주일 때만. 예: 120000000" th:value="${amt}">
+            </div>
+          </div>
+          <div class="row">
+            <button class="btn primary sm" type="submit" th:text="${b.resulted} ? '결과 고치기' : '결과 등록'">결과 등록</button>
+            <span class="faint" style="font-size:11.5px" th:if="${b.submitted}">등록하면 진행상태가 결과 등록으로 바뀌고 담당 팀 팀장에게 알림이 갑니다.</span>
+          </div>
+        </form>
+        <!-- 팀장: 읽기만 -->
+        <th:block th:unless="${view.canEnterResult}">
+          <div class="pad result-row" th:if="${a != null}">
+            <span class="pill" th:classappend="${a.won} ? 'success' : 'neutral'" th:text="${a.rsltNm}">수주</span>
+            <span th:if="${a.scsbdAmtText}">수주 금액 <b class="mono" th:text="${a.scsbdAmtText}">1.2억</b></span>
+          </div>
+          <div class="pad faint" style="font-size:12.5px" th:if="${a == null}">아직 입력하지 않았습니다. 결과는 경영지원실이 입력합니다.</div>
+        </th:block>
+      </div>
+    </th:block>
+
     <!-- 제출 완료: 아직 결과 전 -->
-    <div class="card" th:if="${b.submitted}">
+    <div class="card" th:if="${b.submitted and !b.manualResult}">
       <div class="card-head">
         <h3>입찰 결과 · 기술·가격·종합 점수 (API)</h3>
         <form method="post" th:action="@{/results/import}" th:if="${view.canImport}">
@@ -96,8 +145,9 @@
         </form>
       </div>
       <div class="pad faint" style="font-size:12.5px">
-        아직 가져오지 않았습니다. 최종 낙찰자가 나라장터에 올라오면 평일 오후 5시 수집 때 자동으로 가져오고
+        결과를 아직 등록하지 않았습니다. 최종 낙찰자가 나라장터에 올라오면 평일 오후 5시 수집 때 자동으로 가져오고
         상태가 "결과 등록"으로 바뀝니다. 협상에 의한 계약은 개찰 몇 주 뒤에 낙찰자가 정해집니다.
+        개찰이 끝난 공고는 낙찰자가 나오기 전에도 참여 업체를 아래에 보여 줍니다.
       </div>
     </div>
 
@@ -105,7 +155,7 @@
       결과 데이터를 찾을 수 없습니다. 개발팀이 맡은 사업인지, 입찰 결과가 수주·탈락으로 등록됐는지 확인하세요.
     </div>
 
-    <th:block th:if="${b.resulted and a != null}">
+    <th:block th:if="${b.resulted and a != null and !b.manualResult}">
 
       <!-- FR-077 입찰 결과: 우리 회사 순위·점수와 비교할 업체와의 차이 -->
       <div class="card">
@@ -130,8 +180,10 @@
         </div>
       </div>
 
-      <!-- 개찰 업체 점수: 결과를 등록할 때 개찰 목록 전체를 받아 둔다 -->
-      <div class="card" th:unless="${#lists.isEmpty(view.companies)}">
+    </th:block>
+
+      <!-- 개찰 업체 점수: 참여한 업체 전체 (11/04). 수집이 개찰 목록을 그대로 받아 둔다. 낙찰자가 나오기 전이나 우리 회사가 목록에 없어도 보인다 -->
+      <div class="card" th:if="${(b.submitted or b.resulted) and !b.manualResult and !#lists.isEmpty(view.companies)}">
         <div class="card-head">
           <h3>개찰 업체 점수</h3>
           <span class="faint" style="font-size:11.5px">기술 원점수는 차등점수제 적용 전, 기술점수는 적용 후</span>
@@ -160,6 +212,11 @@
           </table>
         </div>
       </div>
+
+    <th:block th:if="${b.resulted and a != null}">
+
+      <!-- 컨소시엄 참여·하도급은 아래 장단점 분석만 보인다 (11/04) -->
+      <th:block th:unless="${b.manualResult}">
 
       <!-- FR-078·079 평가표: 업체 고르기 → 1) 엑셀 올리기 → 2) 엑셀에서 읽어 채운 항목·배점·위원별 점수 확인·저장.
            업체마다 따로 올려 아래 '업체별 평가표 비교'에서 나란히 본다. 통계에는 우리 회사 점수만 들어간다. -->
@@ -341,6 +398,8 @@
       <div class="banner info" th:if="${#lists.isEmpty(a.articles)}">
         <span>항목별 점수와 득점률 비교는 평가표를 올리고 항목과 점수를 입력하면 표시됩니다.</span>
       </div>
+
+      </th:block>
 
       <!-- FR-081 장단점 분석 -->
       <div class="card">

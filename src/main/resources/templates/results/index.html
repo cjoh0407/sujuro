@@ -88,7 +88,7 @@
           </label>
           <div class="row">
             <div class="up-note">엑셀(XLS · XLSX) 파일만 올릴 수 있습니다.</div>
-            <button class="btn sm primary" type="submit" th:text="${cf} ? '다시 올리기' : '올리기'">올리기</button>
+            <button class="btn sm primary" type="submit">올리기</button>
           </div>
         </form>
       </div>
@@ -250,8 +250,7 @@
 
           <th:block th:if="${a.ourCompanyListed and co != null}">
             <div class="evl-file mt-0 pt-0 u-border-top-0" th:if="${cf}">
-              <span class="faint" th:text="|평가표 ${cf.orgnlFileNm} · ${cf.rgtrNm ?: '-'}${cf.regDt != null ? ' · ' + #dates.format(cf.regDt, 'yyyy-MM-dd HH:mm') : ''}|">평가표</span>
-              <a class="btn sm" th:href="@{/results/evaluation-file(bid=${b.pbancSn}, co=${co.coEvlRsltSn})}">내려받기</a>
+              <span class="faint" th:text="|업로드 파일명 : ${cf.orgnlFileNm}|">업로드 파일명</span>
             </div>
 
             <div class="empty" th:unless="${cf}"
@@ -272,31 +271,39 @@
                   th:with="n=${evaluationForm.cmsnrCount}" class="stack-12">
               <input type="hidden" name="bid" th:value="${b.pbancSn}">
               <input type="hidden" name="co" th:value="${co.coEvlRsltSn}">
-              <div class="row">
-                <b class="fs-12_5">항목·배점·위원별 점수</b>
-                <label for="evl-cnt" class="lbl">평가위원 수</label>
-                <input id="evl-cnt" name="cmsnrCnt" type="number" min="1" max="20" step="1" th:value="${n}" class="w-72px">
-                <button type="button" class="btn sm" id="evl-add">항목 추가</button>
-                <!-- 저장한 점수가 보일 때만: 올린 엑셀에서 다시 채운다 (저장 전까지 바뀌지 않는다) -->
-                <a class="btn sm" th:if="${view.excelForm == null and !#lists.isEmpty(view.companyForm.filledItems)}"
-                   th:href="@{/results(bid=${b.pbancSn}, co=${co.coEvlRsltSn}, fromFile=true)}">엑셀에서 다시 불러오기</a>
-              </div>
-              <div class="ts">
+              <input type="hidden" id="evl-cnt" name="cmsnrCnt" th:value="${n}">
+              <b class="fs-12_5">항목·배점·위원별 점수</b>
+              <!--/* 항목은 5줄까지 보이고, 넘치면 칸 안에서 오르내린다 (.evl-scroll).
+                     작은 [−][+]: 위원은 마지막 위원 오른쪽(1~20명), 항목은 마지막 항목 왼쪽(1줄 이상). [−] 는 항상 마지막 것을 지운다 (맨 아래 스크립트) */-->
+              <div class="ts evl-scroll">
                 <table class="evl-grid">
                   <thead>
                     <tr>
-                      <th>평가항목</th><th>배점</th>
+                      <th class="ctl"></th><th>평가항목</th><th>배점</th>
                       <th class="cm" th:each="j : ${#numbers.sequence(1, n)}" th:text="|위원${j}|">위원1</th>
+                      <th class="ctl-end">
+                        <span class="evl-ctl" role="group" aria-label="평가위원 수">
+                          <button type="button" class="evl-mini" id="evl-cm-minus" title="마지막 평가위원 지우기" aria-label="마지막 평가위원 지우기" th:disabled="${n <= 1}">−</button>
+                          <button type="button" class="evl-mini" id="evl-cm-plus" title="평가위원 추가" aria-label="평가위원 추가" th:disabled="${n >= 20}">+</button>
+                        </span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody id="evl-rows">
                     <tr th:each="r, st : ${evaluationForm.items}">
+                      <td class="ctl">
+                        <span class="evl-ctl" id="evl-row-ctl" role="group" aria-label="평가 항목 수" th:if="${st.last}">
+                          <button type="button" class="evl-mini" id="evl-row-minus" title="마지막 항목 지우기" aria-label="마지막 항목 지우기" th:disabled="${st.size <= 1}">−</button>
+                          <button type="button" class="evl-mini" id="evl-row-plus" title="항목 추가" aria-label="항목 추가">+</button>
+                        </span>
+                      </td>
                       <td><input class="nm" maxlength="100" th:name="|items[${st.index}].nm|" th:value="${r.nm}"></td>
                       <td><input class="num" type="number" min="0" max="100" step="any"
                                  th:name="|items[${st.index}].max|" th:value="${r.max}"></td>
                       <td class="cm" th:each="j : ${#numbers.sequence(0, n - 1)}">
                         <input class="num" type="number" min="0" step="any"
                                th:name="|items[${st.index}].scores[${j}]|" th:value="${r.scoreAt(j)}"></td>
+                      <td class="ctl-end"></td>
                     </tr>
                   </tbody>
                 </table>
@@ -309,7 +316,7 @@
         </div>
       </div>
 
-      <!-- 업체별 평가표 비교: 평가표를 저장한 업체끼리 항목별 위원 평균을 나란히 본다. 괄호는 우리 − 그 업체 (빨강 = 우리가 뒤진 항목) -->
+      <!-- 업체별 평가표 비교: 평가표를 저장한 업체끼리 항목별 위원 평균을 나란히 본다. 괄호는 그 업체 − 우리 (빨강 = 그 업체가 앞서 우리가 뒤진 항목) -->
       <div class="card" th:if="${a.ourCompanyListed and view.evaluationCompare != null}" th:with="cmp=${view.evaluationCompare}">
         <div class="card-head">
           <h3>업체별 평가표 비교</h3>
@@ -334,7 +341,7 @@
                 <td class="mono sc" th:each="x : ${r.cells}">
                   <span th:text="${x.text}">14.5</span>
                   <span th:if="${x.diff}" th:style="${x.behind} ? 'color:var(--danger)' : 'color:var(--faint)'"
-                        th:text="|(${x.diff})|">(−0.5)</span>
+                        th:text="|(${x.diff})|">(+0.5)</span>
                 </td>
               </tr>
               <tr>
@@ -342,7 +349,7 @@
                 <td></td>
                 <td class="mono sc" th:each="c : ${cmp.columns}">
                   <b th:text="${c.totalText}">96.5</b>
-                  <span class="faint" th:if="${c.totalDiff}" th:text="|(${c.totalDiff})|">(−1.2)</span>
+                  <span class="faint" th:if="${c.totalDiff}" th:text="|(${c.totalDiff})|">(+1.2)</span>
                 </td>
               </tr>
             </tbody>

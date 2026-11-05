@@ -29,7 +29,8 @@ public class StatsArchiveDTO {
 
     private Long pbancSn;
     private String pbancNm;
-    private String orderInstNm;
+    /** 공고 기본 정보의 수요기관. 수요기관이 없으면 발주기관이 들어온다 (11/05) */
+    private String instNm;
     private Long teamSn;
     private String teamNm;
     private String ptcpShpCd;

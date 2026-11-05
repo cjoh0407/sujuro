@@ -121,7 +121,6 @@
            P.BID_PBANC_CYCL                          AS bidPbancCycl,
            P.TRCK_STTS_CD                            AS trckSttsCd,
            TRCK.CD_NM                                AS trckSttsNm,
-           P.DMND_INST_NM                            AS dmndInstNm,
            P.PTCP_SHP_CD                             AS ptcpShpCd,
            PTFM.CD_NM                                AS ptcpShpNm,
            P.SW_BIZ_YN                               AS swBizYn,

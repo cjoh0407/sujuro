@@ -46,7 +46,7 @@ public class BidNoticeDTO {
 
     private String orderInstNm;
 
-    /** 목록의 수요기관 칸. 실수요기관이 없으면(발주계획·입찰공고 단계) 발주기관이 들어온다 (11/03 수정사항) */
+    /** 목록과 상세의 수요기관 칸. 실수요기관이 없으면(발주계획·입찰공고 단계) 발주기관이 들어온다 (11/03 수정사항) */
     private String instNm;
 
     /** 배정예산금액 (원) */

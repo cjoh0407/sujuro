@@ -29,7 +29,7 @@
 
 <div class="evl-file" th:fragment="evaluationFile(a)" th:if="${a.evaluationFile}" th:with="f=${a.evaluationFile}">
   <span class="faint" th:text="|평가표 ${f.orgnlFileNm} · ${f.rgtrNm ?: '-'}${f.regDt != null ? ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm') : ''}|">평가표</span>
-  <a class="btn sm" th:href="@{/bid-history/bids/{sn}/evaluation-file(sn=${a.pbancSn})}">내려받기</a>
+  <a class="ico" title="내려받기" aria-label="내려받기" th:href="@{/bid-history/bids/{sn}/evaluation-file(sn=${a.pbancSn})}"><span class="ic ic-download"></span></a>
 </div>
 
 <!--/* 평가 항목별 점수 그래프 (11/05). 좌표는 ArticleScoreChartDTO 가 계산한다. viewBox 크기는 그 클래스의 WIDTH·HEIGHT 와 같다 */-->

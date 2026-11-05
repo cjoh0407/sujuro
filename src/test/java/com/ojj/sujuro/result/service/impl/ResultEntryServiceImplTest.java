@@ -121,18 +121,18 @@ class ResultEntryServiceImplTest {
         StatsArchiveDTO archive = archive(3L);
         when(statsService.findArchive(mgmt, 8L)).thenReturn(archive);
 
-        ResultsViewDTO v = service.build(mgmt, 8L, null, false);
+        ResultsViewDTO v = service.build(mgmt, 8L, null);
         assertEquals(8L, v.getBid().getPbancSn());
         assertEquals(archive, v.getArchive());
         assertEquals(OURS, v.getCompany().getCoEvlRsltSn()); // 업체를 고르지 않으면 우리 회사
 
-        ResultsViewDTO w = service.build(mgmt, 999L, null, false);
+        ResultsViewDTO w = service.build(mgmt, 999L, null);
         assertEquals(5L, w.getBid().getPbancSn()); // 제출 완료가 맨 앞
         assertEquals(null, w.getArchive());
         assertEquals(null, w.getCompany()); // 평가표는 결과 등록 뒤에 넣는다
         verify(resultMapper).findCompanies(5L); // 개찰 업체 목록은 제출 완료부터 보인다
 
-        assertThrows(AccessDeniedException.class, () -> service.build(user("2025-0001", Role.MEMBER), 8L, null, false));
+        assertThrows(AccessDeniedException.class, () -> service.build(user("2025-0001", Role.MEMBER), 8L, null));
     }
 
     @Test
@@ -143,19 +143,19 @@ class ResultEntryServiceImplTest {
         when(statsService.findArchive(mgmt, 8L)).thenReturn(archive(3L));
         when(statsService.findArchive(leader, 8L)).thenReturn(archive(3L));
 
-        ResultsViewDTO m = service.build(mgmt, 8L, null, false);
+        ResultsViewDTO m = service.build(mgmt, 8L, null);
         assertTrue(m.isCanImport());
         assertTrue(m.isCanUpload());
         assertFalse(m.isCanScore());
 
-        ResultsViewDTO l = service.build(leader, 8L, null, false);
+        ResultsViewDTO l = service.build(leader, 8L, null);
         verify(resultMapper).findResultBids(3L); // 팀장은 자기 팀 사업만
         assertFalse(l.isCanImport());
         assertTrue(l.isCanUpload());
         assertTrue(l.isCanScore());
 
         // 개발팀이 아닌 팀장은 볼 사업이 없다
-        ResultsViewDTO none = service.build(user("2024-0500", Role.LEADER), null, null, false);
+        ResultsViewDTO none = service.build(user("2024-0500", Role.LEADER), null, null);
         assertTrue(none.getBids().isEmpty());
         assertEquals(null, none.getBid());
     }
@@ -164,7 +164,7 @@ class ResultEntryServiceImplTest {
     void 팀장_화면은_고른_업체의_엑셀을_읽어_입력_칸을_채우고_저장은_하지_않는다() {
         leaderView();
 
-        ResultsViewDTO v = service.build(leader, 8L, OTHER, false);
+        ResultsViewDTO v = service.build(leader, 8L, OTHER);
         assertEquals(OTHER, v.getCompany().getCoEvlRsltSn());
         EvaluationForm f = v.getExcelForm();
         assertEquals("2", f.getCmsnrCnt());
@@ -173,16 +173,23 @@ class ResultEntryServiceImplTest {
         assertTrue(v.getExcelNote().startsWith("올린 엑셀에서 평가 항목 1개와 평가위원 2명의 점수를 읽어 채웠습니다"));
         verify(resultMapper, never()).insertArticle(any());
 
-        // 저장한 점수가 있으면 저장한 값을 보이고, [엑셀에서 다시 불러오기](fromFile)일 때만 다시 읽는다
+        // 저장을 마친 엑셀이면(위원 수가 기록돼 있으면) 저장한 값을 보인다
         when(resultMapper.findCompanyScores(OTHER)).thenReturn(Collections.singletonList(score(1, "14.5")));
-        ResultsViewDTO saved = service.build(leader, 8L, OTHER, false);
+        EvaluationFileDTO savedFile = file("고용노동 사업_[ 엑사아이엔티 주식회사 ].xlsx");
+        savedFile.setCmsnrCnt(1);
+        when(resultMapper.findCompanyEvaluationFile(OTHER)).thenReturn(savedFile);
+        ResultsViewDTO saved = service.build(leader, 8L, OTHER);
         assertNull(saved.getExcelForm());
         assertEquals("14.5", saved.getCompanyForm().getItems().get(0).scoreAt(0));
-        assertEquals("2", service.build(leader, 8L, OTHER, true).getExcelForm().getCmsnrCnt());
+
+        // 엑셀을 새로 올리면(위원 수가 비어 있으면) 저장한 점수가 있어도 입력 칸을 엑셀에서 채운다. 저장은 하지 않는다
+        when(resultMapper.findCompanyEvaluationFile(OTHER)).thenReturn(file("고용노동 사업_[ 엑사아이엔티 주식회사 ].xlsx"));
+        assertEquals("2", service.build(leader, 8L, OTHER).getExcelForm().getCmsnrCnt());
+        verify(resultMapper, never()).insertArticle(any());
 
         // 모양이 다른 파일이면 이유만 알리고 직접 입력하게 둔다
         when(storage.load("evaluation/8", "abc.xlsx")).thenReturn(new ByteArrayResource("x".getBytes(StandardCharsets.UTF_8)));
-        ResultsViewDTO bad = service.build(leader, 8L, OTHER, true);
+        ResultsViewDTO bad = service.build(leader, 8L, OTHER);
         assertNull(bad.getExcelForm());
         assertTrue(bad.getExcelError().contains("열지 못했습니다"));
     }
@@ -193,12 +200,12 @@ class ResultEntryServiceImplTest {
         when(resultMapper.findResultBid(8L)).thenReturn(bid(8L, "PS060"));
         when(statsService.findArchive(mgmt, 8L)).thenReturn(archive(3L));
 
-        assertNull(service.build(mgmt, 8L, OTHER, true).getExcelForm());
+        assertNull(service.build(mgmt, 8L, OTHER).getExcelForm());
         verify(storage, never()).load(anyString(), anyString());
     }
 
     @Test
-    void 업체별_비교는_점수를_저장한_업체만_우리_회사부터_보이고_차이는_우리_빼기_그_업체() {
+    void 업체별_비교는_점수를_저장한_업체만_우리_회사부터_보이고_차이는_그_업체_빼기_우리() {
         leaderView();
         when(resultMapper.findCompanyArticleScores(8L)).thenReturn(Arrays.asList(
                 articleScore(OTHER, 101L, "전략 및 방법론", "15", 14.6),
@@ -206,22 +213,23 @@ class ResultEntryServiceImplTest {
                 articleScore(OTHER, 102L, "기술 및 기능", "30", 28.0),
                 articleScore(OURS, 102L, "기술 및 기능", "30", 28.5)));
 
-        EvaluationCompareDTO c = service.build(leader, 8L, null, false).getEvaluationCompare();
+        EvaluationCompareDTO c = service.build(leader, 8L, null).getEvaluationCompare();
         assertTrue(c.isComparable());
         assertEquals("지엔소프트(주)", c.getColumns().get(0).getCoNm()); // 우리 회사가 첫 열
         assertEquals(2, c.getRows().size());
         EvaluationCompareDTO.Cell strategy = c.getRows().get(0).getCells().get(1);
         assertEquals("14.6", strategy.getText());
-        assertEquals("−0.6", strategy.getDiff());
+        assertEquals("+0.6", strategy.getDiff()); // 그 업체가 0.6 높다
         assertTrue(strategy.isBehind());
-        assertEquals("+0.5", c.getRows().get(1).getCells().get(1).getDiff());
+        assertEquals("−0.5", c.getRows().get(1).getCells().get(1).getDiff());
+        assertFalse(c.getRows().get(1).getCells().get(1).isBehind());
         assertEquals("42.5", c.getColumns().get(0).getTotalText());
-        assertEquals("−0.1", c.getColumns().get(1).getTotalDiff());
+        assertEquals("+0.1", c.getColumns().get(1).getTotalDiff());
 
         // 한 업체만 저장했으면 비교하지 않는다
         when(resultMapper.findCompanyArticleScores(8L)).thenReturn(Collections.singletonList(
                 articleScore(OURS, 101L, "전략 및 방법론", "15", 14.0)));
-        assertFalse(service.build(leader, 8L, null, false).getEvaluationCompare().isComparable());
+        assertFalse(service.build(leader, 8L, null).getEvaluationCompare().isComparable());
     }
 
     private void leaderView() {
@@ -340,11 +348,11 @@ class ResultEntryServiceImplTest {
     void 경영지원실만_컨소시엄_사업에서_입력_칸을_본다() {
         when(resultMapper.findResultBids(any())).thenReturn(Arrays.asList(bid(5L, "PS050")));
         when(resultMapper.findResultBid(5L)).thenReturn(manualBid(5L, "PS050", "PF020", "컨소시엄 참여"));
-        assertTrue(service.build(mgmt, 5L, null, false).isCanEnterResult());
-        assertFalse(service.build(leader, 5L, null, false).isCanEnterResult());
+        assertTrue(service.build(mgmt, 5L, null).isCanEnterResult());
+        assertFalse(service.build(leader, 5L, null).isCanEnterResult());
 
         when(resultMapper.findResultBid(5L)).thenReturn(manualBid(5L, "PS050", "PF010", "주관"));
-        assertFalse(service.build(mgmt, 5L, null, false).isCanEnterResult());
+        assertFalse(service.build(mgmt, 5L, null).isCanEnterResult());
     }
 
     private static ResultBidDTO manualBid(Long sn, String stts, String shpCd, String shpNm) {
@@ -509,14 +517,6 @@ class ResultEntryServiceImplTest {
         // 경영지원실과 다른 팀 팀장은 입력하지 않는다
         assertThrows(AccessDeniedException.class, () -> service.saveEvaluation(mgmt, 8L, null, form("1", row("전략", "15", "14"))));
         assertThrows(AccessDeniedException.class, () -> service.saveEvaluation(otherLeader, 8L, null, form("1", row("전략", "15", "14"))));
-    }
-
-    @Test
-    void 업체_평가표_내려받기는_경영지원실과_담당_팀_팀장만() {
-        assertEquals("고용노동 사업_[ 엑사아이엔티 주식회사 ].xlsx",
-                service.findCompanyEvaluationFile(leader, 8L, OTHER).getOrgnlFileNm());
-        assertEquals("고용노동 사업_[ 지엔소프트(주) ].xlsx", service.findCompanyEvaluationFile(mgmt, 8L, null).getOrgnlFileNm());
-        assertThrows(AccessDeniedException.class, () -> service.findCompanyEvaluationFile(otherLeader, 8L, OTHER));
     }
 
     @Test

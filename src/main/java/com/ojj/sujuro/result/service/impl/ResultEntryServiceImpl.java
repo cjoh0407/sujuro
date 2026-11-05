@@ -95,7 +95,7 @@ public class ResultEntryServiceImpl implements ResultEntryService {
 
     @Override
     @Transactional(readOnly = true)
-    public ResultsViewDTO build(LoginUser user, Long bid, Long coSn, boolean fromFile) {
+    public ResultsViewDTO build(LoginUser user, Long bid, Long coSn) {
         ResultsViewDTO v = new ResultsViewDTO();
         v.setReady(resultCollectService.isReady());
         v.setCanImport(user.getRole() == Role.MGMT);
@@ -128,20 +128,20 @@ public class ResultEntryServiceImpl implements ResultEntryService {
             v.setCanScore(a != null && isTeamLeader(user, a));
             ResultCompanyDTO co = pickCompany(companies, coSn);
             if (a != null && co != null) {
-                fillCompany(v, sn, co, fromFile);
+                fillCompany(v, sn, co);
             }
         }
         return v;
     }
 
     /** 평가표 칸: 고른 업체의 저장된 점수·마지막 평가표, 팀장이면 엑셀에서 읽은 값, 그리고 업체별 비교 */
-    private void fillCompany(ResultsViewDTO v, Long pbancSn, ResultCompanyDTO co, boolean fromFile) {
+    private void fillCompany(ResultsViewDTO v, Long pbancSn, ResultCompanyDTO co) {
         v.setCompany(co);
         List<EvaluationScoreDTO> saved = resultMapper.findCompanyScores(co.getCoEvlRsltSn());
         v.setCompanyForm(EvaluationForm.fromSaved(saved));
         EvaluationFileDTO file = resultMapper.findCompanyEvaluationFile(co.getCoEvlRsltSn());
         v.setCompanyFile(file);
-        if (v.isCanScore() && file != null && (fromFile || saved.isEmpty())) {
+        if (v.isCanScore() && file != null && (saved.isEmpty() || file.isUnsaved())) {
             fillFromExcel(v, file);
         }
         v.setEvaluationCompare(EvaluationCompareDTO.of(v.getCompanies(), resultMapper.findCompanyArticleScores(pbancSn)));
@@ -169,16 +169,6 @@ public class ResultEntryServiceImpl implements ResultEntryService {
         } catch (IOException e) {
             v.setExcelError("엑셀 파일을 열지 못했습니다. 아래에 직접 입력해 주세요.");
         }
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public EvaluationFileDTO findCompanyEvaluationFile(LoginUser user, Long pbancSn, Long coSn) {
-        StatsArchiveDTO a = requireArchive(pbancSn);
-        if (user.getRole() != Role.MGMT && !isTeamLeader(user, a)) {
-            throw new AccessDeniedException("이 사업의 평가표는 경영지원실과 담당 팀 팀장만 내려받을 수 있습니다.");
-        }
-        return resultMapper.findCompanyEvaluationFile(requireCompany(pbancSn, coSn).getCoEvlRsltSn());
     }
 
     @Override

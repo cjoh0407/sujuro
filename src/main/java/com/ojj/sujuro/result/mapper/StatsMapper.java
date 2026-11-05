@@ -10,7 +10,6 @@ import com.ojj.sujuro.result.dto.EvaluationFileDTO;
 import com.ojj.sujuro.result.dto.EvaluationScoreDTO;
 import com.ojj.sujuro.result.dto.StatsArchiveDTO;
 import com.ojj.sujuro.result.dto.StatsArticleDTO;
-import com.ojj.sujuro.result.dto.StatsCompetitorDTO;
 import com.ojj.sujuro.result.dto.StatsFileDTO;
 import com.ojj.sujuro.result.dto.ResultBidDTO;
 import com.ojj.sujuro.result.dto.StatsHistoryDTO;
@@ -47,9 +46,6 @@ public interface StatsMapper {
 
     /** 사업별 결과 분석의 업체 × 평가 항목(대분류) 점수 (11/03). 평가표 엑셀을 올린 업체만, 우리 회사 먼저 */
     List<CompanyCategoryScoreDTO> companyArticleScores(@Param("pbancSn") Long pbancSn);
-
-    /** 통계(전체 종합)의 자주 만난 경쟁 업체 다섯 곳 (11/03). 많이 만난 순 */
-    List<StatsCompetitorDTO> competitors(@Param("teamSn") Long teamSn, @Param("year") String year);
 
     /** 이 팀의 진행 중 사업: 고른 연도의 참여 확정·제안 작성 중·제출 완료 (마감일이 없으면 올해, 결과를 입력할 제출 완료가 먼저) */
     List<ResultBidDTO> inProgress(@Param("teamSn") Long teamSn, @Param("year") String year);

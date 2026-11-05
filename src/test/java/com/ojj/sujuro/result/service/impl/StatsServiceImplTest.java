@@ -276,9 +276,60 @@ class StatsServiceImplTest {
         StatsTallyDTO t = StatsTallyDTO.empty("2026", 3L, "개발1팀");
         t.setJoined(7);
         StatsChartDTO c = StatsChartDTO.of(Arrays.asList("2025", "2026"), Collections.singletonMap("2026", t), "2026");
-        assertEquals(8, c.getGridLines().get(2).getLabel());
+        assertEquals("8", c.getGridLines().get(2).getLabel());
         assertEquals("", c.getGroups().get(0).getBars().get(0).getPath()); // 2025 참여 0건은 막대 없이 숫자만
         assertTrue(c.getGroups().get(1).isSelected());
+    }
+
+    @Test
+    void 수주_금액_차트는_연도마다_막대_하나이고_억_단위다() {
+        StatsTallyDTO t = StatsTallyDTO.empty("2026", 3L, "개발1팀");
+        t.setWonAmt(1_590_000_000L);
+        StatsChartDTO c = StatsChartDTO.amountOf(Arrays.asList("2025", "2026"), Collections.singletonMap("2026", t), "2026");
+
+        assertEquals(Arrays.asList("0", "10", "20"), gridLabels(c)); // 15.9억 → 20억까지
+        assertEquals(1, c.getGroups().get(1).getBars().size());
+        StatsChartDTO.Bar bar = c.getGroups().get(1).getBars().get(0);
+        assertEquals("s-won", bar.getCls());
+        assertEquals("15.9", bar.getValue());
+        assertEquals("2026년 수주 금액 15.9억", bar.getTitle());
+        assertTrue(c.getGroups().get(1).isSelected());
+
+        StatsChartDTO.Bar none = c.getGroups().get(0).getBars().get(0); // 집계가 없는 연도는 막대 없이 0
+        assertEquals("", none.getPath());
+        assertEquals("0", none.getValue());
+        assertEquals("연도별 수주 금액: 2025년 0.0억, 2026년 15.9억", c.getAriaLabel());
+    }
+
+    @Test
+    void 수주_금액_차트_눈금은_가장_큰_값에_맞춰_깔끔하게_올린다() {
+        assertEquals(Arrays.asList("0", "25", "50"), gridLabels(amountChart(4_930_000_000L)));
+        assertEquals(Arrays.asList("0", "100", "200"), gridLabels(amountChart(12_000_000_000L)));
+        assertEquals(Arrays.asList("0", "0.2", "0.4"), gridLabels(amountChart(30_000_000L)));
+        assertEquals(Arrays.asList("0", "5", "10"), gridLabels(amountChart(1_000_000_000L))); // 딱 맞으면 그 값까지
+        assertEquals(Arrays.asList("0", "5", "10"), gridLabels(amountChart(0L))); // 수주가 없어도 축은 그린다
+    }
+
+    @Test
+    void 차트는_최근_5년이고_고른_연도가_더_오래됐으면_그_연도부터_그린다() {
+        java.util.List<String> years = Arrays.asList("2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025");
+        java.util.List<String> recent = Arrays.asList("2021", "2022", "2023", "2024", "2025");
+
+        assertEquals(recent, StatsServiceImpl.chartYears(years, "2025"));
+        assertEquals(recent, StatsServiceImpl.chartYears(years, "2021"));
+        assertEquals(Arrays.asList("2019", "2020", "2021", "2022", "2023"), StatsServiceImpl.chartYears(years, "2019"));
+        assertEquals(Arrays.asList("2018", "2019", "2020", "2021", "2022"), StatsServiceImpl.chartYears(years, "2018"));
+        assertEquals(Collections.singletonList("2025"), StatsServiceImpl.chartYears(Collections.singletonList("2025"), "2025"));
+    }
+
+    private static StatsChartDTO amountChart(long wonAmt) {
+        StatsTallyDTO t = StatsTallyDTO.empty("2026", 3L, "개발1팀");
+        t.setWonAmt(wonAmt);
+        return StatsChartDTO.amountOf(Collections.singletonList("2026"), Collections.singletonMap("2026", t), "2026");
+    }
+
+    private static java.util.List<String> gridLabels(StatsChartDTO c) {
+        return c.getGridLines().stream().map(StatsChartDTO.GridLine::getLabel).collect(java.util.stream.Collectors.toList());
     }
 
     private static String scoreText(StatsArchiveDTO a, double price) {

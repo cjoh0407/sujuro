@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 /**
- * 사업별 결과 분석의 평가 항목별 점수 표 (11/03): 업체별 점수·항목 등수·종합 점수 등수, 종합 점수 1등을 수주 업체로.
+ * 사업별 결과 분석의 평가 항목별 점수 데이터 (11/03): 업체별 점수·항목 등수·종합 점수 등수, 종합 점수 1등을 수주 업체로.
  * 점수는 테스트 데이터(db/03_test_data.sql 9번 사업)의 대분류 점수를 빌렸다.
  */
 class ArticleScoreTableDTOTest {

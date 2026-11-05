@@ -33,7 +33,7 @@ import com.ojj.sujuro.result.dto.ResultTargetDTO;
 import com.ojj.sujuro.result.mapper.ResultMapper;
 
 /**
- * 컨소시엄 참여·하도급 사업의 결과 직접 입력 (11/04). 화면 → 저장 → 통계까지 로컬 Oracle 로 실제로 돌린다.
+ * 컨소시엄 참여·하도급 사업의 결과 직접 입력 (11/04). 화면 → 저장 → 사업 이력 관리까지 로컬 Oracle 로 실제로 돌린다.
  * 로그인도 진짜로 한다(테스트 계정). 나라장터·알림은 목이고, 끝나면 모두 되돌린다(@Transactional).
  * DB 가 있어야 해서 평소 mvn test 에서는 건너뛴다. 돌릴 때: mvn -o test -Dsujuro.db-test=true -Dtest=ManualResultDbTest
  *
@@ -83,7 +83,7 @@ class ManualResultDbTest {
     }
 
     @Test
-    void 경영지원실이_입력하면_결과_등록이_되고_팀장과_통계에_보인다() throws Exception {
+    void 경영지원실이_입력하면_결과_등록이_되고_팀장과_사업_이력_관리에_보인다() throws Exception {
         Long sn = insertNotice("R26BK99990021", "PF020", "(가상) 컨소시엄 사업");
         MockHttpSession mgmt = login(MGMT);
         MockHttpSession leader = login(LEADER);
@@ -139,9 +139,10 @@ class ManualResultDbTest {
         assertFalse(leaderAfter.contains("action=\"/results/manual\""));
         assertTrue(leaderAfter.contains("1.2억"));
         assertTrue(leaderAfter.contains("장단점 저장"));
+        assertEquals(3, leaderAfter.split("class=\"analysis-input\"", -1).length - 1, "세 칸 모두 높이가 고정이고 넘치면 칸 안에서 스크롤합니다");
 
         // 사업별 결과 분석: 수주 금액이 보이고 점수·평가표 칸은 없다. 왼쪽 목록에 이 사업이 있다
-        String archive = page(leader, "/stats?bid=" + sn);
+        String archive = page(leader, "/bid-history?bid=" + sn);
         assertTrue(archive.contains("수주 금액"));
         assertTrue(archive.contains("1.2억"));
         assertFalse(archive.contains("<h3>점수</h3>"));
@@ -160,7 +161,7 @@ class ManualResultDbTest {
     }
 
     @Test
-    void 통계의_참여_형태별_수주율과_수주_금액에_들어간다() throws Exception {
+    void 결과를_넣으면_수주_금액이_저장되고_사업_이력_관리_목록에_보인다() throws Exception {
         Long sn = insertNotice("R26BK99990031", "PF030", "(가상) 하도급 사업");
         Number wonBefore = wonAmt();
         MockHttpSession mgmt = login(MGMT);
@@ -170,9 +171,8 @@ class ManualResultDbTest {
                 .andExpect(r -> assertEquals(302, r.getResponse().getStatus()));
 
         assertEquals(wonBefore.longValue() + 300000000L, wonAmt().longValue());
-        String stats = page(mgmt, "/stats?team=" + teamSn + "&year=2026");
-        assertTrue(stats.contains("전체 종합"));
-        assertTrue(stats.contains("(가상) 하도급 사업"));
+        String history = page(mgmt, "/bid-history?team=" + teamSn + "&year=2026");
+        assertTrue(history.contains("(가상) 하도급 사업"));
     }
 
     private Number wonAmt() {

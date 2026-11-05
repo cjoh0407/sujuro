@@ -35,12 +35,12 @@ import com.ojj.sujuro.result.service.ResultEntryService;
  * 평가·결과 입력 (FR-077~081). 경영지원실·팀장 (SecurityConfig 의 /results/** 규칙). 누가 무엇을 하는지는 ResultEntryService.
  * UI 목업 v3.5 의 rResults() 화면과 같은 구성이다.
  *
- *   /results?bid=&co=&fromFile=        화면 (bid: 사업건. 없으면 통계로 보낸다, 사업건은 통계의 사업 목록에서 고른다. co: 평가표를 볼 개찰 업체, 없으면 우리 회사.
+ *   /results?bid=&co=&fromFile=        화면 (bid: 사업건. 없으면 사업 이력 관리로 보낸다, 사업건은 사업 이력 관리의 목록에서 고른다. co: 평가표를 볼 개찰 업체, 없으면 우리 회사.
  *                                      fromFile: 올린 엑셀에서 입력 칸을 다시 채운다)
  *   POST /results/import               나라장터에서 결과 가져오기 (제출 완료 사업)
  *   POST /results/manual               결과 직접 입력 (컨소시엄 참여·하도급 사업, 경영지원실)
  *   POST /results/evaluation-file      평가표 엑셀 올리기 (업체별)
- *   GET  /results/evaluation-file?bid=&co=  업체의 평가표 엑셀 내려받기 (우리 회사 것은 /stats/bids/{bid}/evaluation-file 도 된다)
+ *   GET  /results/evaluation-file?bid=&co=  업체의 평가표 엑셀 내려받기 (우리 회사 것은 /bid-history/bids/{bid}/evaluation-file 도 된다)
  *   POST /results/evaluation           평가 항목·배점·위원별 점수 저장 (업체별, 엑셀에서 읽어 채운 값을 팀장이 확인해 저장)
  *   POST /results/analysis             장단점 분석 입력
  *
@@ -67,7 +67,7 @@ public class ResultController {
                        @RequestParam(required = false) Long co,
                        @RequestParam(defaultValue = "false") boolean fromFile, Model model) {
         if (bid == null) {
-            return "redirect:/stats"; // 이 화면에는 사업건 목록이 없다 (11/04)
+            return "redirect:/bid-history"; // 이 화면에는 사업건 목록이 없다 (11/04)
         }
         ResultsViewDTO view = resultEntryService.build(user, bid, co, fromFile);
         model.addAttribute("view", view);

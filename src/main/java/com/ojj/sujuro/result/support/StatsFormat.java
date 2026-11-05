@@ -3,7 +3,7 @@ package com.ojj.sujuro.result.support;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-/** 통계 화면의 숫자 표시. 금액은 공고 목록(BidNoticeDTO)과 같은 "억" 단위로 보여 준다. */
+/** 결과 화면의 숫자 표시. 금액은 공고 목록(BidNoticeDTO)과 같은 "억" 단위로 보여 준다. */
 public final class StatsFormat {
 
     private static final BigDecimal HUNDRED_MILLION = new BigDecimal(100_000_000L);

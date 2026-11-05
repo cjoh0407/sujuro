@@ -17,7 +17,7 @@ import com.ojj.sujuro.result.support.StatsFormat;
 import lombok.Getter;
 
 /**
- * 사업별 결과 분석의 평가 항목별 점수 표 (11/03 수정사항).
+ * 사업별 결과 분석의 평가 항목별 점수 (11/03 수정사항). 화면에는 표 대신 그래프로 그린다 (11/05, ArticleScoreChartDTO).
  * 평가표 엑셀을 올린 업체가 열(우리 회사 먼저, 나머지는 개찰 순위 순), 평가 항목(대분류)이 행이다.
  * 칸은 위원 평균 점수와 그 항목에서의 등수, 맨 아래 줄은 종합 점수(항목 점수 합)와 등수다.
  * 종합 점수 1등 업체를 수주 업체로 보여 준다. 업체가 하나뿐이면 등수와 수주 업체를 매기지 않는다.
@@ -56,11 +56,13 @@ public class ArticleScoreTableDTO {
     @Getter
     public static class Row {
         private final String catNm;
+        private final double max;
         private final String maxText;
         private final List<Cell> cells = new ArrayList<>();
 
         Row(String catNm, double max) {
             this.catNm = catNm;
+            this.max = max;
             this.maxText = StatsFormat.score(max);
         }
     }
@@ -68,12 +70,15 @@ public class ArticleScoreTableDTO {
     /** 항목 × 업체 한 칸 */
     @Getter
     public static class Cell {
-        /** 위원 평균 점수. 그 업체가 이 항목 점수가 없으면 "-" */
+        /** 위원 평균 점수. 그 업체가 이 항목 점수가 없으면 null */
+        private final Double score;
+        /** 보여 줄 점수. 그 업체가 이 항목 점수가 없으면 "-" */
         private final String text;
         /** 이 항목 등수. 업체가 하나뿐이거나 점수가 없으면 null */
         private final Integer rank;
 
         Cell(Double score, Integer rank) {
+            this.score = score;
             this.text = StatsFormat.score(score);
             this.rank = rank;
         }
@@ -81,6 +86,11 @@ public class ArticleScoreTableDTO {
 
     public boolean isEmpty() {
         return columns.isEmpty();
+    }
+
+    /** 화면에 그릴 그래프 좌표 */
+    public ArticleScoreChartDTO getChart() {
+        return ArticleScoreChartDTO.of(this);
     }
 
     /** 등수를 매길 수 있는지 (업체 둘 이상) */

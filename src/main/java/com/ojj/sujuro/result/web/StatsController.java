@@ -31,7 +31,8 @@ import com.ojj.sujuro.result.service.StatsService;
  * 통계 (FR-083~088)와 사업별 결과 분석 (FR-080, 081, 087).
  *
  *   /stats                                    통계 (team: 경영지원실이 고른 팀, year: 네 자리 연도,
- *                                             bid: 왼쪽 드롭다운에서 고른 사업. 있으면 오른쪽에 그 사업의 결과 분석)
+ *                                             bid: 왼쪽 목록에서 고른 사업. 있으면 오른쪽에 그 사업의 결과 분석,
+ *                                             아직 결과가 없으면 공고 기본 정보와 안내 문구)
  *   /stats/export                             CSV 내려받기
  *   /stats/bids/{pbancSn}                     예전 사업별 결과 분석 주소. /stats?bid= 로 보낸다 (11/03 통계 2:8 화면)
  *   /stats/bids/{pbancSn}/final-file          그 사업의 최종 제안서 내려받기
@@ -63,9 +64,16 @@ public class StatsController {
         if (bid != null) {
             StatsArchiveDTO archive = statsService.findArchive(user, bid);
             if (archive == null) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "결과가 등록된 사업을 찾을 수 없습니다.");
+                archive = statsService.findPending(user, bid);
             }
-            team = archive.getTeamSn(); // 왼쪽 드롭다운은 고른 사업의 팀 사업으로 채운다
+            if (archive == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "사업을 찾을 수 없습니다.");
+            }
+            // 왼쪽 목록은 고른 사업의 팀·연도 사업으로 채운다. 다른 화면에서 바로 와도 고른 사업이 목록에 있다
+            team = archive.getTeamSn();
+            if (archive.getListYear() != null) {
+                year = archive.getListYear();
+            }
             model.addAttribute("archive", archive);
             // 이 화면은 모두 읽기만 한다. 평가·결과 입력으로 가는 버튼을 보여 준다 (팀장은 자기 팀 사업만 여기 온다)
             model.addAttribute("canEdit", user.getRole() == Role.MGMT || user.getRole() == Role.LEADER);

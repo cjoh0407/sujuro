@@ -76,7 +76,8 @@ public class StatsServiceImpl implements StatsService {
 
         v.setPtcpShpRates(statsMapper.ptcpShpRates(team.getTeamSn(), picked));
         v.setCompetitors(statsMapper.competitors(team.getTeamSn(), picked));
-        v.setHistory(statsMapper.history(team.getTeamSn()));
+        v.setInProgress(statsMapper.inProgress(team.getTeamSn(), picked));
+        v.setHistory(statsMapper.history(team.getTeamSn(), picked));
         return v;
     }
 
@@ -123,6 +124,11 @@ public class StatsServiceImpl implements StatsService {
     }
 
     @Override
+    public StatsArchiveDTO findPending(LoginUser user, Long pbancSn) {
+        return checked(user, statsMapper.findPendingBid(pbancSn));
+    }
+
+    @Override
     public StatsFileDTO findFinalFile(LoginUser user, Long pbancSn) {
         return readable(user, pbancSn) == null ? null : statsMapper.findFinalFile(pbancSn);
     }
@@ -134,12 +140,12 @@ public class StatsServiceImpl implements StatsService {
 
     /** 사업 하나를 이 사용자가 볼 수 있는지. 없는 사업이면 null, 볼 수 없으면 403 */
     private StatsArchiveDTO readable(LoginUser user, Long pbancSn) {
+        return checked(user, statsMapper.findArchive(pbancSn));
+    }
+
+    private StatsArchiveDTO checked(LoginUser user, StatsArchiveDTO a) {
         List<StatsTeamDTO> teams = teamsOf(user);
-        StatsArchiveDTO a = statsMapper.findArchive(pbancSn);
-        if (a == null) {
-            return null;
-        }
-        if (teams.stream().noneMatch(t -> t.getTeamSn().equals(a.getTeamSn()))) {
+        if (a != null && teams.stream().noneMatch(t -> t.getTeamSn().equals(a.getTeamSn()))) {
             throw new AccessDeniedException("자기 팀 사업의 결과 분석만 볼 수 있습니다.");
         }
         return a;

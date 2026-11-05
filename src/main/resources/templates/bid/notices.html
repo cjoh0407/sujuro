@@ -21,41 +21,18 @@
 
 <th:block layout:fragment="content">
 
-  <div class="page-head">
-    <div>
-      <h2>공고 관리</h2>
-    </div>
-    <!-- [지금 수집] (FR-025). 오후 5시 자동 수집과 같은 일을 지금 한다. 영업부만 누른다.
-         나라장터를 여러 번 불러 수십 초 걸릴 수 있어, 누르면 버튼을 막고 '수집 중' 으로 바꾼다. -->
-    <form method="post" th:action="@{/notices/collect}" sec:authorize="hasRole('SALES')" data-collect-form>
-      <!-- autocomplete="off": Firefox 가 새로고침 뒤에도 막아 둔(disabled) 상태를 기억하지 않게 한다 -->
-      <button class="btn" type="submit" autocomplete="off">지금 수집</button>
-    </form>
-  </div>
-
   <div class="banner ok" th:if="${registMessage}" th:text="${registMessage}">등록했습니다</div>
   <div class="banner ok" th:if="${collectMessage}" th:text="${collectMessage}">지금 수집을 마쳤습니다</div>
   <div class="banner warn" th:if="${collectError}" th:text="${collectError}">방금 지금 수집을 했습니다</div>
 
-  <!-- 공고 등록 (영업부). 번호만 넣으면 나라장터 API로 내용을 가져온다. 키워드 검색은 없다. -->
-  <div class="card" sec:authorize="hasRole('SALES')">
-    <div class="card-head">
+  <!-- 공고 등록 (영업부). 번호만 넣으면 나라장터 API로 내용을 가져온다. 키워드 검색은 없다. 제목과 입력을 한 줄로 줄였다 (11/04). -->
+  <div class="card regist-card" sec:authorize="hasRole('SALES')">
+    <form class="row" method="post" th:action="@{/notices/register}">
       <h3>공고 등록</h3>
-      <span class="faint" style="font-size:11.5px">영업부가 나라장터에서 찾은 공고를 번호로 등록합니다</span>
-    </div>
-    <div class="pad" style="display:flex;flex-direction:column;gap:10px">
-      <form class="row" method="post" th:action="@{/notices/register}">
-        <span class="lbl">공고번호</span>
-        <input type="text" name="pbancNo" placeholder="R26DD… · R26BD… · R26BK…"
-               style="flex:1;min-width:180px;max-width:320px" required>
-        <button class="btn primary sm" type="submit">등록</button>
-      </form>
-      <div class="faint" style="font-size:11.5px">
-        발주계획번호(R26DD…)·사전규격등록번호(R26BD…)·입찰공고번호(R26BK…) 중 아무거나 넣으면
-        번호를 보고 단계를 정해 등록하고, 사업명·발주기관·예산을 나라장터에서 가져옵니다.
-        발주계획으로 등록한 공고는 사전규격이 올라오면 매일 오후 5시 수집 때 사전규격 단계로 바뀝니다.
-      </div>
-    </div>
+      <span class="lbl">공고번호</span>
+      <input type="text" name="pbancNo" placeholder="R26DD… · R26BD… · R26BK…" style="width:240px;max-width:100%" required>
+      <button class="btn primary sm" type="submit">등록</button>
+    </form>
   </div>
 
   <!-- 탭: 공고단계별 (11/03 진행상태 탭에서 바꿨다). 건수가 0인 단계도 보여 준다. 숫자는 검색어와 무관한 전체 건수다. -->
@@ -69,22 +46,30 @@
        th:text="|${tab.tabNm} ${tab.cnt}|">발주계획 0</a>
   </div>
 
-  <!-- 검색·정렬. page 를 넘기지 않으므로 검색하면 1페이지부터 다시 본다. -->
-  <form class="row" method="get" th:action="@{/notices}">
-    <input type="hidden" name="stepCd" th:value="${search.stepCd}">
-    <select name="searchBy" aria-label="검색 대상">
-      <option value="name" th:selected="${search.searchBy == 'name'}">공고명</option>
-      <option value="no" th:selected="${search.searchBy == 'no'}">공고번호</option>
-      <option value="org" th:selected="${search.searchBy == 'org'}">수요기관</option>
-    </select>
-    <input type="text" name="keyword" th:value="${search.keyword}" placeholder="검색어" style="width:220px">
-    <button class="btn sm" type="submit">검색</button>
-    <select name="sort" data-auto-submit aria-label="정렬">
-      <option value="deadline" th:selected="${search.sort == 'deadline'}">마감일 빠른 순</option>
-      <option value="recent" th:selected="${search.sort == 'recent'}">최신 순</option>
-      <option value="no" th:selected="${search.sort == 'no'}">번호 순</option>
-    </select>
-  </form>
+  <!-- 검색·정렬과 [지금 수집]. page 를 넘기지 않으므로 검색하면 1페이지부터 다시 본다. -->
+  <div class="search-row">
+    <form class="row" method="get" th:action="@{/notices}">
+      <input type="hidden" name="stepCd" th:value="${search.stepCd}">
+      <select name="searchBy" aria-label="검색 대상">
+        <option value="name" th:selected="${search.searchBy == 'name'}">공고명</option>
+        <option value="no" th:selected="${search.searchBy == 'no'}">공고번호</option>
+        <option value="org" th:selected="${search.searchBy == 'org'}">수요기관</option>
+      </select>
+      <input type="text" name="keyword" th:value="${search.keyword}" placeholder="검색어" style="width:220px">
+      <button class="btn sm" type="submit">검색</button>
+      <select name="sort" data-auto-submit aria-label="정렬">
+        <option value="deadline" th:selected="${search.sort == 'deadline'}">마감일 빠른 순</option>
+        <option value="recent" th:selected="${search.sort == 'recent'}">최신 순</option>
+        <option value="no" th:selected="${search.sort == 'no'}">번호 순</option>
+      </select>
+    </form>
+    <!-- [지금 수집] (FR-025). 오후 5시 자동 수집과 같은 일을 지금 한다. 영업부만 누른다. 검색 줄 맨 오른쪽에 둔다 (11/04).
+         나라장터를 여러 번 불러 수십 초 걸릴 수 있어, 누르면 버튼을 막고 '수집 중' 으로 바꾼다. -->
+    <form method="post" th:action="@{/notices/collect}" sec:authorize="hasRole('SALES')" data-collect-form>
+      <!-- autocomplete="off": Firefox 가 새로고침 뒤에도 막아 둔(disabled) 상태를 기억하지 않게 한다 -->
+      <button class="btn sm" type="submit" autocomplete="off">지금 수집</button>
+    </form>
+  </div>
 
   <div class="card">
     <div class="card-head">

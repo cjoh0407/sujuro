@@ -8,7 +8,7 @@ import com.ojj.sujuro.result.support.StatsFormat;
 import lombok.Getter;
 import lombok.Setter;
 
-/** 평가·결과 입력의 사업건 한 줄 (선택 목록과 머리 줄). 참여 확정 뒤의 공고만 온다 */
+/** 사업건 한 줄 (평가·결과 입력의 머리 줄, 통계의 진행 중 목록). 참여 확정 뒤의 공고만 온다 */
 @Getter
 @Setter
 public class ResultBidDTO {
@@ -40,11 +40,6 @@ public class ResultBidDTO {
     /** 컨소시엄 참여·하도급이라 결과를 나라장터에서 가져오지 않고 직접 입력하는지 (11/04) */
     public boolean isManualResult() {
         return BidCode.isManualResult(ptcpShpCd);
-    }
-
-    /** 선택 목록에 보일 이름. 예: "통합 보안관제 체계 구축 · 결과 등록" */
-    public String getLabel() {
-        return pbancNm + " · " + (pbancSttsCd == null ? "-" : getProgressNm());
     }
 
     /** 진행상태 이름. 공고 화면과 같은 일곱 가지(배정 전 … 유찰·불참)로 보여 준다 (11/03, BidCode.progressNm) */

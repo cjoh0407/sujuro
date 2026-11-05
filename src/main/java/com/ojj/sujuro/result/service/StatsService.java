@@ -32,6 +32,12 @@ public interface StatsService {
      */
     StatsArchiveDTO findArchive(LoginUser user, Long pbancSn);
 
+    /**
+     * 아직 결과가 없는 사업(진행 중·유찰)의 공고 기본 정보. 참여 확정 뒤의 개발팀 사업이 아니면 null. 권한은 findArchive 와 같다.
+     * 제안서 파일은 결과 등록 전에는 제안팀만 보므로 최종 제안서는 읽지 않는다.
+     */
+    StatsArchiveDTO findPending(LoginUser user, Long pbancSn);
+
     /** 사업별 결과 분석의 최종 제안서. 사업을 볼 수 없거나 파일이 없으면 null (권한은 findArchive 와 같다) */
     StatsFileDTO findFinalFile(LoginUser user, Long pbancSn);
 

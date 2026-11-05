@@ -1,5 +1,7 @@
 package com.ojj.sujuro.result.dto;
 
+import java.text.SimpleDateFormat;
+import java.time.Year;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -32,8 +34,11 @@ public class StatsArchiveDTO {
     private String teamNm;
     private String ptcpShpCd;
     private String ptcpShpNm;
-    private Long budget;
     private Date bidDdlnDt;
+
+    /** 공고 상태. 아직 결과가 없는 사업(StatsMapper.findPendingBid)만 값이 있다 */
+    private String pbancSttsCd;
+    private String pbancSttsNm;
 
     /** 공고의 기술·가격 배점(비율). 입찰공고 API techAbltEvlRt·bidPrceEvlRt. 10/29 전에 등록한 공고는 비어 있을 수 있다 */
     private Double techScorScr;
@@ -73,8 +78,38 @@ public class StatsArchiveDTO {
     /** 평가표 입력 칸에 채울 값 (저장된 항목·위원별 점수, 없으면 빈 줄) */
     private EvaluationForm evaluationForm;
 
+    /**
+     * 통계 왼쪽 목록에서 이 사업이 들어가는 연도. 입찰 마감일의 연도이고, 마감일이 아직 없는 진행 중 사업은 올해다
+     * (StatsMapper.inProgress 와 같은 기준). 그 밖에 마감일이 없으면 null
+     */
+    public String getListYear() {
+        if (bidDdlnDt != null) {
+            return new SimpleDateFormat("yyyy").format(bidDdlnDt);
+        }
+        return isInProgress() ? String.valueOf(Year.now().getValue()) : null;
+    }
+
     public boolean isWon() {
         return ResultCode.WON.equals(rsltCd);
+    }
+
+    /** 아직 결과가 없어 공고 기본 정보만 보이는 사업인지 (진행 중·유찰, 11/04) */
+    public boolean isPending() {
+        return rsltCd == null;
+    }
+
+    /** 진행 중 사업인지: 참여 확정·제안 작성 중·제출 완료 */
+    public boolean isInProgress() {
+        return BidCode.STTS_JOINED.equals(pbancSttsCd) || BidCode.STTS_WRITING.equals(pbancSttsCd)
+                || BidCode.STTS_SUBMITTED.equals(pbancSttsCd);
+    }
+
+    /** 결과가 없는 사업의 점수·평가 항목별 점수·장단점 칸에 보일 안내 */
+    public String getPendingMessage() {
+        if (isInProgress()) {
+            return "아직 입찰 진행 중인 사업건입니다.";
+        }
+        return BidCode.STTS_FAILED_BID.equals(pbancSttsCd) ? "유찰된 사업건입니다." : "아직 결과가 입력되지 않은 사업건입니다.";
     }
 
     /** 예: "수주 · 1위" */
@@ -82,16 +117,12 @@ public class StatsArchiveDTO {
         return (rsltNm == null ? "-" : rsltNm) + (evlRnk == null ? "" : " · " + evlRnk + "위");
     }
 
-    public String getBudgetText() {
-        return StatsFormat.eok(budget);
-    }
-
     /** 컨소시엄 참여·하도급이라 결과를 직접 입력한 사업인지. 순위·점수·평가표가 없다 (11/04) */
     public boolean isManualResult() {
         return BidCode.isManualResult(ptcpShpCd);
     }
 
-    /** 수주 금액. 예: "15.9억". 탈락이면 null */
+    /** 수주 금액. 예: "15.9억". 탈락·유찰·진행 중이면 null */
     public String getScsbdAmtText() {
         return scsbdAmt == null ? null : StatsFormat.eok(scsbdAmt);
     }

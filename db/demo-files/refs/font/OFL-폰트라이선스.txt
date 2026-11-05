@@ -1,0 +1,4 @@
+Noto Sans CJK / Noto Serif CJK (Korean subset)
+Copyright 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'.
+This Font Software is licensed under the SIL Open Font License, Version 1.1. https://openfontlicense.org
+수주로 시연용으로 한글 글자 일부만 남긴 부분 글꼴입니다.

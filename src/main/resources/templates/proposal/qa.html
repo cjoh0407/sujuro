@@ -90,8 +90,8 @@
       <form th:action="@{/qa}" method="get" class="row">
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
         <input type="hidden" name="tab" th:value="${tab}">
-        <select name="past" data-change-submit th:disabled="${#lists.isEmpty(pastBids)}" aria-label="이전 사업 Q&amp;A 보기">
-          <option value="" th:text="${#lists.isEmpty(pastBids)} ? '볼 수 있는 이전 사업 Q&amp;A 없음' : '이전 사업 Q&amp;A 보기'">이전 사업 Q&amp;A 보기</option>
+        <select name="past" class="qa-past" data-change-submit th:disabled="${#lists.isEmpty(pastBids)}" aria-label="이전 사업 Q&amp;A 보기">
+          <option value="" th:text="${#lists.isEmpty(pastBids)} ? '이전 사업 Q&amp;A 없음' : '이전 사업 Q&amp;A 보기'">이전 사업 Q&amp;A 보기</option>
           <option th:each="pb : ${pastBids}" th:value="${pb.pbancSn}" th:selected="${pastBid != null and pastBid.pbancSn == pb.pbancSn}"
                   th:text="${pb.label} + ' (' + ${pb.qnaCnt} + '건)'">사업명 (3건)</option>
         </select>

@@ -80,7 +80,7 @@
           <tr class="hv" th:each="f : ${files}">
             <td class="c-pv">
               <img th:if="${f.previewable}" class="ref-thumb" th:src="@{/refs/view(refFileSn=${f.refFileSn})}" th:alt="${f.orgnlFileNm}" loading="lazy">
-              <span th:unless="${f.previewable}" class="ref-doc" aria-hidden="true"><span class="ic ic-file"></span></span>
+              <span th:unless="${f.previewable}" class="ref-doc" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4"/></svg></span>
             </td>
             <td>
               <div class="ref-nm" th:text="${f.orgnlFileNm}" th:title="${f.orgnlFileNm}">파일명.ttf</div>
@@ -90,7 +90,7 @@
             <td class="c-sz" th:text="${f.sizeText}">120KB</td>
             <td class="c-who" th:text="${f.rgtrNm != null ? f.rgtrNm : f.rgtrId}">홍길동</td>
             <td class="c-dt" th:text="${#dates.format(f.regDt, 'yyyy-MM-dd')}">2026-11-03</td>
-            <td class="c-act">
+            <td class="c-act c-end">
               <a class="ico" title="내려받기" aria-label="내려받기" th:href="@{/refs/download(refFileSn=${f.refFileSn})}"><span class="ic ic-download"></span></a>
               <form class="inl" th:if="${leader or f.rgtrId == me}" th:action="@{/refs/delete}" method="post"
                     data-confirm="이 자료를 삭제할까요?">

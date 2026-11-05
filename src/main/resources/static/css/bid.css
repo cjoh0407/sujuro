@@ -114,7 +114,8 @@
 .nd-chips li span{font-size:12px;color:var(--muted)}
 
 /* 첨부파일 한 줄: 아이콘 · 이름 · [내려받기] */
-.nd-file svg{color:var(--accent);flex:none}
+/* 아이콘 자리는 참고자료(refs.css .ref-doc)와 같은 40×40, 가운데 정렬 */
+.nd-file svg{color:var(--accent);flex:none;box-sizing:content-box;padding:10px}
 .nd-file-txt{flex:1;min-width:0;display:flex;align-items:baseline;gap:4px 10px;flex-wrap:wrap}
 .nd-file-txt .faint{white-space:nowrap}
 .nd-file-txt b{overflow-wrap:anywhere}

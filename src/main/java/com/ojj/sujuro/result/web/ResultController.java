@@ -120,7 +120,7 @@ public class ResultController {
                                StatsAnalysisForm form, RedirectAttributes ra) {
         try {
             resultEntryService.saveAnalysis(user, bid, form);
-            ra.addFlashAttribute("analysisMessage", "장단점 분석을 저장했습니다.");
+            ra.addFlashAttribute("analysisMessage", "분석 기록을 저장했습니다.");
         } catch (BusinessException e) {
             ra.addFlashAttribute("analysisError", e.getMessage());
             ra.addFlashAttribute("analysisForm", form);

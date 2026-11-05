@@ -65,6 +65,11 @@ function askFormCopy(btn) {
   return true;
 }
 
+/* [다른 양식으로 바꾸기]: 양식을 골랐을 때만 확인창을 띄운다 (안 골랐으면 브라우저가 선택해 달라고 한다) */
+function confirmFormChange(btn) {
+  return !btn.form.elements.tocFormSn.value || confirm(btn.dataset.msg);
+}
+
 function confirmFormDelete(btn) {
   var sel = btn.form.elements.tocFormSn, opt = sel.options[sel.selectedIndex];
   if (!sel.value) return true;
@@ -189,6 +194,14 @@ onPageReady(function () { coSel = null; closeOwnPanel(); initOwnerPickers(); });
 /* 폼을 보내는 중이면 경고하지 않는다.
    requestSubmit()은 submit 이벤트를 일으켜 비동기 저장(async-form.js)이 가로챌 수 있다. (submit()은 이벤트가 없다) */
 var saving = false;
+/* 입력 칸이 바뀌면 그 칸이 든 폼을 저장한다 (data-on-change="saveNowOf") */
+function saveNowOf(el) { saveNow(el.form); }
+
+/* 참고자료 설명 글자 수 (data-on-input="refMemoCount") */
+function refMemoCount(el) {
+  document.getElementById('refMemoCnt').textContent = el.value.length + ' / 30';
+}
+
 function saveNow(f) { saving = true; if (f.requestSubmit) f.requestSubmit(); else f.submit(); }
 onPageReady(function () { saving = false; }); // 비동기 저장이 끝나 새 내용이 오면 다시 경고 대상
 document.addEventListener('submit', function (e) { if (!e.defaultPrevented) saving = true; });

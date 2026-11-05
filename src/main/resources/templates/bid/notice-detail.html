@@ -420,16 +420,7 @@
 </th:block>
 
 <th:block layout:fragment="scripts">
-  <script>
-    // 되돌리기 어려운 처리(불참 종결·공고 삭제·참여·불참)는 한 번 더 묻는다.
-    document.querySelectorAll('[data-confirm]').forEach(function (btn) {
-      btn.addEventListener('click', function (e) {
-        if (!window.confirm(btn.getAttribute('data-confirm'))) {
-          e.preventDefault();
-        }
-      });
-    });
-  </script>
+  <script th:src="@{/js/notice-detail.js}"></script>
 </th:block>
 
 </body>

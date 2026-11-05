@@ -111,7 +111,7 @@
                 <form th:if="${canSt}" th:action="@{/docs/status}" method="post">
                   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                   <input type="hidden" name="dcmntSn" th:value="${d.dcmntSn}">
-                  <select name="prgrsSttsCd" onchange="this.form.requestSubmit()">
+                  <select name="prgrsSttsCd" data-change-submit>
                     <option value="DS010" th:selected="${d.prgrsSttsCd == 'DS010'}">미준비</option>
                     <option value="DS020" th:selected="${d.prgrsSttsCd == 'DS020'}">준비 중</option>
                     <option value="DS030" th:selected="${d.prgrsSttsCd == 'DS030'}">준비 완료</option>
@@ -124,7 +124,7 @@
                   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                   <input type="hidden" name="dcmntSn" th:value="${d.dcmntSn}">
                   <input type="date" name="due" th:min="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}" th:value="${d.sbmsnDdlnDt != null} ? ${#dates.format(d.sbmsnDdlnDt, 'yyyy-MM-dd')} : ''"
-                         onchange="this.form.requestSubmit()">
+                         data-change-submit>
                 </form>
                 <span th:unless="${admin and open}" th:text="${d.sbmsnDdlnDt != null} ? ${#dates.format(d.sbmsnDdlnDt, 'yyyy-MM-dd')} : '-'">-</span>
               </td>
@@ -139,7 +139,7 @@
                 <div class="row file-acts">
                   <a class="ico" th:if="${d.fileSn != null}" title="내려받기" aria-label="내려받기" th:href="@{/docs/download(bid=${bid.pbancSn}, fileSn=${d.fileSn})}"><span class="ic ic-download"></span></a>
                   <form th:if="${#sets.contains(deletable, d.fileSn)}" th:action="@{/docs/file-delete}" method="post" class="d-inline"
-                        onsubmit="return askReason(this)">
+                        data-on-submit="askReason">
                     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                     <input type="hidden" name="fileSn" th:value="${d.fileSn}">
                     <input type="hidden" name="reason">
@@ -149,8 +149,7 @@
                 </div>
               </td>
               <td th:if="${admin and open}">
-                <form th:action="@{/docs/delete}" method="post" th:data-name="${d.dcmntNm}" th:data-files="${d.fileTotal}"
-                      onsubmit="return confirm('&quot;' + this.dataset.name + '&quot; 서류를 체크리스트에서 삭제할까요?' + (this.dataset.files > 0 ? ' 올린 파일도 모두 삭제되며 되돌릴 수 없습니다.' : ''))">
+                <form th:action="@{/docs/delete}" method="post" th:data-confirm="|「${d.dcmntNm}」 서류를 체크리스트에서 삭제할까요?${d.fileTotal > 0 ? ' 올린 파일도 모두 삭제되며 되돌릴 수 없습니다.' : ''}|">
                   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                   <input type="hidden" name="dcmntSn" th:value="${d.dcmntSn}">
                   <button class="ico" type="submit" title="서류 삭제" aria-label="서류 삭제"><span class="ic ic-close"></span></button>
@@ -212,8 +211,7 @@
                 </th:block>
               </td>
               <td th:if="${admin and open}">
-                <form th:action="@{/docs/article/delete}" method="post" th:data-name="${a.evlArtclNm}"
-                      onsubmit="return confirm('&quot;' + this.dataset.name + '&quot; 평가 항목을 삭제할까요? 적어 둔 쪽번호도 함께 지워집니다.')">
+                <form th:action="@{/docs/article/delete}" method="post" th:data-confirm="|「${a.evlArtclNm}」 평가 항목을 삭제할까요? 적어 둔 쪽번호도 함께 지워집니다.|">
                   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                   <input type="hidden" name="evlArtclSn" th:value="${a.evlArtclSn}">
                   <button class="ico danger" type="submit" title="삭제" aria-label="삭제"><span class="ic ic-trash"></span></button>
@@ -278,7 +276,7 @@
               th:text="'등록 완료' + (${sub.sbmsnDt != null} ? ' · ' + ${#dates.format(sub.sbmsnDt, 'yyyy-MM-dd HH:mm')} : '') + (${!#strings.isEmpty(sub.prsnrNm)} ? ' · ' + ${sub.prsnrNm} : '')">등록 완료</span>
         <th:block th:unless="${sub.submitted}">
           <form th:if="${admin}" th:action="@{/docs/register}" method="post"
-                onsubmit="return confirm('나라장터 등록 완료로 처리할까요? 처리 후에는 체크리스트와 조견표를 고칠 수 없습니다.')">
+                data-confirm="나라장터 등록 완료로 처리할까요? 처리 후에는 체크리스트와 조견표를 고칠 수 없습니다.">
             <input type="hidden" name="bid" th:value="${bid.pbancSn}">
             <button class="btn primary" type="submit" th:disabled="${!canRegister}">나라장터 등록 완료 처리</button>
           </form>

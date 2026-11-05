@@ -90,7 +90,7 @@
       <form th:action="@{/qa}" method="get" class="row">
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
         <input type="hidden" name="tab" th:value="${tab}">
-        <select name="past" onchange="this.form.requestSubmit()" th:disabled="${#lists.isEmpty(pastBids)}" aria-label="이전 사업 Q&amp;A 보기">
+        <select name="past" data-change-submit th:disabled="${#lists.isEmpty(pastBids)}" aria-label="이전 사업 Q&amp;A 보기">
           <option value="" th:text="${#lists.isEmpty(pastBids)} ? '볼 수 있는 이전 사업 Q&amp;A 없음' : '이전 사업 Q&amp;A 보기'">이전 사업 Q&amp;A 보기</option>
           <option th:each="pb : ${pastBids}" th:value="${pb.pbancSn}" th:selected="${pastBid != null and pastBid.pbancSn == pb.pbancSn}"
                   th:text="${pb.label} + ' (' + ${pb.qnaCnt} + '건)'">사업명 (3건)</option>
@@ -115,7 +115,7 @@
           <thead><tr><th>구분</th><th>질문</th><th>답변</th><th>관련 요구사항</th></tr></thead>
           <tbody th:each="g : ${pastGroups}">
             <tr class="qa-group"><td colspan="4" th:text="${g.title} + ' (' + ${#lists.size(g.items)} + ')'">Ⅰ. 사업의 이해 (2)</td></tr>
-            <tr class="hv qa-row" th:each="x : ${g.items}" title="눌러서 자세히 보기" onclick="openQa(this, event)"
+            <tr class="hv qa-row" th:each="x : ${g.items}" title="눌러서 자세히 보기" data-on-click="openQa"
                 th:data-q="${x.qstnCn}" th:data-a="${x.ansCn}"
                 th:data-r="${x.rqtMttrSn != null} ? ${x.rqtMttrNo + ' ' + x.rqtMttrNm} : ''">
               <td><span class="pill" th:classappend="${x.presented} ? 'accent' : 'neutral'" th:text="${x.presented} ? '발표' : '예상'">예상</span></td>
@@ -155,7 +155,7 @@
           <thead><tr><th>질문</th><th>답변</th><th>관련 요구사항</th></tr></thead>
           <tbody th:each="g : ${groups}">
             <tr class="qa-group"><td colspan="3" th:text="${g.title} + ' (' + ${#lists.size(g.items)} + ')'">Ⅰ. 사업의 이해 (2)</td></tr>
-            <tr class="hv qa-row" th:each="x : ${g.items}" title="눌러서 자세히 보기" onclick="openQa(this, event)"
+            <tr class="hv qa-row" th:each="x : ${g.items}" title="눌러서 자세히 보기" data-on-click="openQa"
                 th:data-q="${x.qstnCn}" th:data-a="${x.ansCn}"
                 th:data-r="${x.rqtMttrSn != null} ? ${x.rqtMttrNo + ' ' + x.rqtMttrNm} : ''"
                 th:data-sn="${canWrite} ? ${x.qstnAnsSn} : null" th:data-rsn="${x.rqtMttrSn}" th:data-del="${canDeleteAll or x.wrtrId == me}">
@@ -179,12 +179,12 @@
            추가: 목록 위 [+ 추가] 버튼 → 빈 입력 칸
            수정: 보기에서 [수정] → 같은 팝업에서 입력 칸으로 바뀐다. [취소]는 보기로 돌아간다
          이전 사업 Q&amp;A는 보기만 한다. -->
-    <div class="modal" id="qaPop" hidden onclick="if (event.target === this) closeQa()"
+    <div class="modal" id="qaPop" hidden data-self-click="closeQa"
          th:data-add-title="${prs} ? '발표 Q&amp;A 기록' : '예상 Q&amp;A 추가'">
       <div class="box" role="dialog" aria-modal="true" aria-labelledby="qaPopTitle">
         <div class="card-head">
           <h3 id="qaPopTitle">질의응답 상세</h3>
-          <button class="ico" type="button" title="닫기" aria-label="닫기" onclick="closeQa()"><span class="ic ic-close"></span></button>
+          <button class="ico" type="button" title="닫기" aria-label="닫기" data-on-click="closeQa"><span class="ic ic-close"></span></button>
         </div>
 
         <!-- 보기 -->
@@ -195,13 +195,13 @@
             <div class="qa-box"><div class="qa-pop-l">관련 요구사항</div><div id="qaPopR"></div></div>
           </div>
           <div class="pad row qa-pop-act" id="qaViewAct" hidden>
-            <form id="qaPopDel" th:action="@{/qa/delete}" method="post" onsubmit="return confirm('이 질의응답을 삭제할까요?')">
+            <form id="qaPopDel" th:action="@{/qa/delete}" method="post" data-confirm="이 질의응답을 삭제할까요?">
               <input type="hidden" name="bid" th:value="${bid.pbancSn}">
               <input type="hidden" name="tab" th:value="${tab}">
               <input type="hidden" name="qstnAnsSn" id="qaDelSn">
               <button class="btn sm danger" type="submit">삭제</button>
             </form>
-            <button class="btn sm primary" type="button" onclick="editQa()">수정</button>
+            <button class="btn sm primary" type="button" data-on-click="editQa">수정</button>
           </div>
         </div>
 
@@ -229,7 +229,7 @@
             </div>
           </div>
           <div class="pad row qa-pop-act">
-            <button class="btn sm" type="button" onclick="cancelQaForm()">취소</button>
+            <button class="btn sm" type="button" data-on-click="cancelQaForm">취소</button>
             <button class="btn sm primary" type="submit" id="qaFormSubmit">등록</button>
           </div>
         </form>

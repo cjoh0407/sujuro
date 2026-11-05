@@ -74,7 +74,7 @@
         <form class="pad mp-form" method="post" enctype="multipart/form-data" th:action="@{/results/evaluation-file}">
           <input type="hidden" name="bid" th:value="${b.pbancSn}">
           <input type="hidden" name="co" th:value="${co.coEvlRsltSn}">
-          <select id="evl-co" name="co" form="evl-co-form" aria-label="평가표를 볼 업체" onchange="this.form.submit()">
+          <select id="evl-co" name="co" form="evl-co-form" aria-label="평가표를 볼 업체" data-change-submit>
             <option th:each="c : ${view.companies}" th:value="${c.coEvlRsltSn}" th:text="${c.optionLabel}"
                     th:selected="${c.coEvlRsltSn == co.coEvlRsltSn}">1위 업체</option>
           </select>
@@ -394,74 +394,7 @@
 
 <th:block layout:fragment="scripts">
   <script th:src="@{/js/proposal.js}"></script><!-- 끌어 놓기·형식·용량 확인 (proposal.js dropRender) -->
-  <script>
-    // 평가표 입력 칸: 위원 수를 바꾸면 위원 칸을 늘리거나 줄이고, [항목 추가] 는 빈 줄을 붙인다.
-    // 이름은 서버가 묶는 모양(items[i].nm, items[i].max, items[i].scores[j])과 같아야 한다.
-    (function () {
-      var form = document.getElementById('evl-form');
-      if (!form) {
-        return;
-      }
-      var cnt = document.getElementById('evl-cnt');
-      var body = document.getElementById('evl-rows');
-      var head = form.querySelector('thead tr');
-
-      function scoreCell(i, j) {
-        var td = document.createElement('td');
-        td.className = 'cm';
-        var input = document.createElement('input');
-        input.className = 'num';
-        input.type = 'number';
-        input.min = '0';
-        input.step = 'any';
-        input.name = 'items[' + i + '].scores[' + j + ']';
-        td.appendChild(input);
-        return td;
-      }
-
-      function resize() {
-        var n = parseInt(cnt.value, 10);
-        if (!(n >= 1 && n <= 20)) {
-          return;
-        }
-        var ths = head.querySelectorAll('th.cm');
-        for (var k = ths.length; k < n; k++) {
-          var th = document.createElement('th');
-          th.className = 'cm';
-          th.textContent = '위원' + (k + 1);
-          head.appendChild(th);
-        }
-        for (var m = ths.length - 1; m >= n; m--) {
-          head.removeChild(ths[m]);
-        }
-        body.querySelectorAll('tr').forEach(function (tr, i) {
-          var tds = tr.querySelectorAll('td.cm');
-          for (var j = tds.length; j < n; j++) {
-            tr.appendChild(scoreCell(i, j));
-          }
-          for (var x = tds.length - 1; x >= n; x--) {
-            tr.removeChild(tds[x]);
-          }
-        });
-      }
-
-      cnt.addEventListener('input', resize);
-      document.getElementById('evl-add').addEventListener('click', function () {
-        var i = body.querySelectorAll('tr').length;
-        var tr = document.createElement('tr');
-        tr.innerHTML = '<td><input class="nm" maxlength="100"></td>'
-            + '<td><input class="num" type="number" min="0" max="100" step="any"></td>';
-        tr.querySelector('.nm').name = 'items[' + i + '].nm';
-        tr.querySelector('.num').name = 'items[' + i + '].max';
-        var n = head.querySelectorAll('th.cm').length;
-        for (var j = 0; j < n; j++) {
-          tr.appendChild(scoreCell(i, j));
-        }
-        body.appendChild(tr);
-        tr.querySelector('.nm').focus();
-      });
-    })();
-  </script>
+  <script th:src="@{/js/results.js}"></script>
 </th:block>
 
 </body>

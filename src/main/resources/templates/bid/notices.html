@@ -60,7 +60,7 @@
       </select>
       <input type="text" name="keyword" th:value="${search.keyword}" placeholder="검색어" class="w-220px">
       <button class="btn sm" type="submit">검색</button>
-      <select name="sort" data-auto-submit aria-label="정렬">
+      <select name="sort" data-change-submit aria-label="정렬">
         <option value="deadline" th:selected="${search.sort == 'deadline'}">마감일 빠른 순</option>
         <option value="recent" th:selected="${search.sort == 'recent'}">최신 순</option>
         <option value="no" th:selected="${search.sort == 'no'}">번호 순</option>
@@ -185,30 +185,7 @@
 </th:block>
 
 <th:block layout:fragment="scripts">
-  <script>
-    // 정렬을 고르면 바로 검색 폼을 보낸다. (목업의 onchange 정렬과 같은 동작)
-    document.querySelectorAll('[data-auto-submit]').forEach(function (el) {
-      el.addEventListener('change', function () { el.form.submit(); });
-    });
-
-    // [지금 수집] 은 끝날 때까지 수십 초 걸릴 수 있다. 두 번 눌리지 않게 막고 진행 중임을 보여 준다.
-    document.querySelectorAll('[data-collect-form]').forEach(function (form) {
-      form.addEventListener('submit', function () {
-        var btn = form.querySelector('button');
-        btn.disabled = true;
-        btn.textContent = '수집 중…';
-      });
-    });
-
-    // 결과를 본 뒤 [뒤로 가기] 로 돌아오면 브라우저가 누르던 순간의 화면(막힌 버튼)을 그대로 되살린다.
-    // 화면이 다시 보일 때마다 버튼을 풀어 둔다. 수집이 정말 돌고 있으면 서버가 '진행 중' 으로 막는다.
-    window.addEventListener('pageshow', function () {
-      document.querySelectorAll('[data-collect-form] button').forEach(function (btn) {
-        btn.disabled = false;
-        btn.textContent = '지금 수집';
-      });
-    });
-  </script>
+  <script th:src="@{/js/notices.js}"></script>
 </th:block>
 
 </body>

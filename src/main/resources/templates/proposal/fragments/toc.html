@@ -70,7 +70,7 @@
 </div>
 
 <form th:fragment="summaryReset" th:if="${canLoad}" th:action="@{/proposal/toc/summary/reset}" method="post" class="row"
-      onsubmit="return confirm('지금 제안요약서 목차를 모두 지우고 기본 목차로 되돌립니다. 고친 목차와 담당자 지정이 사라집니다. 되돌릴까요?')">
+      data-confirm="지금 제안요약서 목차를 모두 지우고 기본 목차로 되돌립니다. 고친 목차와 담당자 지정이 사라집니다. 되돌릴까요?">
   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
   <button class="btn sm" type="submit">기본 목차로 되돌리기</button>
 </form>
@@ -93,18 +93,18 @@
         </select>
         <button class="btn sm" type="submit"
                 th:data-msg="${k == 'sum'} ? '현재 목차와 담당자 지정이 사라집니다. 선택한 양식으로 바꿀까요?' : '현재 목차와 담당자 지정이 사라지고, 연결된 요구사항은 모두 미매핑이 됩니다. 선택한 양식으로 바꿀까요?'"
-                onclick="return !this.form.elements.tocFormSn.value || confirm(this.dataset.msg)">다른 양식으로 바꾸기</button>
-        <button class="btn sm" type="submit" onclick="return askFormCopy(this)">새 이름으로 복사해서 바꾸기</button>
+                data-on-click="confirmFormChange">다른 양식으로 바꾸기</button>
+        <button class="btn sm" type="submit" data-on-click="askFormCopy">새 이름으로 복사해서 바꾸기</button>
         <button class="btn sm" type="submit" th:formaction="@{/proposal/toc/form/rename}"
-                onclick="return askFormRename(this)">이름 바꾸기</button>
+                data-on-click="askFormRename">이름 바꾸기</button>
         <button class="btn sm danger" type="submit" th:formaction="@{/proposal/toc/form/delete}"
-                onclick="return confirmFormDelete(this)">양식 삭제</button>
+                data-on-click="confirmFormDelete">양식 삭제</button>
       </th:block>
       <span class="faint" th:if="${#lists.isEmpty(forms)}">저장된 양식 없음</span>
     </form>
     <!-- 지금 목차를 양식으로 저장: 같은 이름이면 그 양식을 덮어쓰고, 다른 이름이면 새 양식이 생긴다 -->
     <!-- 현재 양식이 있으면 목차를 고칠 때마다 그 양식에 저장되고 이름은 [이름 바꾸기]로 바꾸므로 저장 칸은 숨긴다. 양식 없이 만든 목차(제안서)와 제안요약서에서만 보인다 -->
-    <form th:if="${k == 'sum' or curForm == null or !curForm.inUse}" th:action="@{/proposal/toc/form}" method="post" class="row form-save" onsubmit="return confirmFormSave(this)">
+    <form th:if="${k == 'sum' or curForm == null or !curForm.inUse}" th:action="@{/proposal/toc/form}" method="post" class="row form-save" data-on-submit="confirmFormSave">
       <input type="hidden" name="bid" th:value="${bid.pbancSn}">
       <input type="hidden" name="tab" th:value="${k}">
       <input type="text" name="tocFormNm" placeholder="새 양식 이름" maxlength="100" required class="w-190px" autocomplete="off">
@@ -126,7 +126,7 @@
     <input type="hidden" name="tab" th:value="${k}">
     <input type="hidden" name="tocSn" th:value="${t.tocSn}">
     <input type="text" name="label" class="lbl-in" th:classappend="${t.group} ? 'bold'" th:value="${t.label}"
-           maxlength="250" required data-track onchange="saveNow(this.form)">
+           maxlength="250" required data-track data-on-change="saveNowOf">
   </form>
   <th:block th:unless="${canEdit}">
     <b th:if="${t.group}" th:text="${t.label}">묶음 목차</b>
@@ -135,15 +135,15 @@
 </th:block>
 
 <span th:fragment="tocTools(t)" th:if="${canEdit}" class="toc-tools">
-  <button type="button" class="ico" data-m="d" onclick="openAdd(this)" title="하위 목차 추가" aria-label="하위 목차 추가"
+  <button type="button" class="ico" data-m="d" data-on-click="openAdd" title="하위 목차 추가" aria-label="하위 목차 추가"
           th:data-t="${t.tocSn}" th:data-label="${t.label}" th:data-depth="${t.depth}"><span class="ic ic-child"></span></button>
-  <button type="button" class="ico" data-m="s" onclick="openAdd(this)" title="같은 단계 목차 추가" aria-label="같은 단계 목차 추가"
+  <button type="button" class="ico" data-m="s" data-on-click="openAdd" title="같은 단계 목차 추가" aria-label="같은 단계 목차 추가"
           th:data-t="${t.tocSn}" th:data-label="${t.label}" th:data-depth="${t.depth}"><span class="ic ic-sibling"></span></button>
 </span>
 
 <tr th:fragment="addRow(t, k, cols)" th:if="${canEdit}" class="addrow" th:id="'add-' + ${t.tocSn}" hidden>
   <td th:colspan="${cols}">
-    <form th:action="@{/proposal/toc/add-near}" method="post" class="row" onsubmit="return confirmAdd(this)"
+    <form th:action="@{/proposal/toc/add-near}" method="post" class="row" data-on-submit="confirmAdd"
           th:data-label="${t.label}" th:data-leaf="${t.leaf}" th:data-rqts="${t.rqtCnt}" th:data-pic="${t.picId != null}">
       <input type="hidden" name="bid" th:value="${bid.pbancSn}">
       <input type="hidden" name="tab" th:value="${k}">
@@ -152,14 +152,14 @@
       <span class="faint cap"></span>
       <input type="text" name="label" placeholder="번호를 포함해 입력 (예: 1.2.3 보안 방안)" maxlength="250" required data-track class="w-280px">
       <button class="btn sm primary" type="submit">추가</button>
-      <button class="btn sm" type="button" onclick="closeAdd(this)">취소</button>
+      <button class="btn sm" type="button" data-on-click="closeAdd">취소</button>
     </form>
   </td>
 </tr>
 
 <form th:fragment="delBtn(t, k)" th:action="@{/proposal/toc/delete}" method="post" class="d-inline"
       th:data-label="${t.label}" th:data-group="${t.group}" th:data-rqts="${t.group ? t.subRqtCnt : t.rqtCnt}"
-      onsubmit="return confirmDel(this)">
+      data-on-submit="confirmDel">
   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
   <input type="hidden" name="tab" th:value="${k}">
   <input type="hidden" name="tocSn" th:value="${t.tocSn}">
@@ -174,7 +174,7 @@
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
     <input type="hidden" name="tab" th:value="${k}">
     <input type="hidden" name="tocSn" th:value="${t.tocSn}">
-    <select name="picId" onchange="pickOwner(this)" class="mw-210px">
+    <select name="picId" data-on-change="pickOwner" class="mw-210px">
       <option value="">미지정</option>
       <optgroup label="제안팀원">
         <!-- 비활성 직원은 고르는 목록에 내지 않는다. 이미 담당자로 남아 있는 사람만 "(비활성)"으로 보여 준다 -->
@@ -204,7 +204,7 @@
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
     <input type="hidden" name="tocSn" th:value="${t.tocSn}">
     <input type="number" name="pages" min="0" max="9999" th:value="${t.pages}" class="w-64px"
-           onchange="this.form.requestSubmit()">
+           data-change-submit>
   </form>
   <span th:unless="${canEdit}" th:text="${t.pages}">0</span>
 </th:block>

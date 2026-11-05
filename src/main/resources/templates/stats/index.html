@@ -4,23 +4,18 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/default}">
 <!--/*
-  통계 (FR-016, 083~088). UI 목업 v3.5 의 rStats() 화면과 같은 구성이다.
-  11/04 스토리보드 관리·제안서 파일 화면과 같은 3:7 양식이다(proposal.css 의 .split, .bid-item 을 같이 쓴다).
-    왼쪽  : 사업 목록 블록: '전체 종합' → 고른 연도의 진행 사업. '전체 종합'을 누르면 팝업에서 연도·팀을 고른다 (11/04).
-            진행 사업은 눌러서 펼치는 목록이고, 진행 중(view.inProgress)이 먼저이고 지난 사업(view.history. 결과 등록·유찰)이 이어진다.
-            사업을 누르면 오른쪽이 그 사업으로 바뀐다.
-    오른쪽: 전체 종합이면 통계(요약 카드 4개 → 연도별 참여·수주 | 연도별 수주 금액 → 참여 형태별 수주율),
-            사업을 고르면 그 사업의 사업별 결과 분석(stats/fragments/archive). 아직 결과가 없으면 공고 기본 정보와 안내 문구만 보인다.
-  11/03 오른쪽의 과거 사업 이력 표는 뺐다. 사업은 왼쪽 목록에서 고른다.
-  11/03 평가 항목별 분석은 사업별 결과 분석(평가 항목별 점수)으로만 옮겼다.
-  11/05 경쟁 업체 표를 빼고 연도별 수주 금액 차트를 넣었다.
-  11/05 연도·팀을 고르면(팝업 또는 차트의 연도) 페이지를 새로 열지 않고 머리와 본문만 바꾼다. 차트는 고른 연도만 선명하다. 스크립트는 맨 아래.
-  경영지원실은 개발팀을 골라 보고(전체 합계 없음), 팀장은 자기 팀만 본다.
+  사업 이력 관리 (11/05). 통계(요약 카드·차트·수주율·경쟁 업체)를 지우고 새로 만든 탭이다.
+  스토리보드 관리·제안서 파일 화면과 같은 3:7 양식이다(proposal.css 의 .split, .bid-item 을 같이 쓴다).
+    왼쪽  : 사업 목록 블록: 제목 줄 오른쪽의 연도·팀 드롭다운 → 고른 연도·팀의 사업. 경영지원실은 연도와 팀, 팀장은 연도만 고른다.
+            사업은 진행 중(view.inProgress)이 먼저이고 지난 사업(view.history. 결과 등록·유찰)이 이어진다.
+            드롭다운을 바꾸면 페이지를 새로 열지 않고 머리와 본문만 바꾼다(맨 아래 스크립트).
+    오른쪽: 고른 사업의 사업별 결과 분석(stats/fragments/archive). 고르지 않았으면 제안 화면처럼 목록 맨 위 사업을 보여 준다.
+            아직 결과가 없으면 공고 기본 정보와 안내 문구만 보인다.
 
-  모델: view (result.dto.StatsViewDTO), archive·canEdit (사업을 골랐을 때만)
+  모델: view (result.dto.StatsViewDTO), archive·canEdit (볼 사업이 있을 때만)
 */-->
 <head>
-  <title>통계</title>
+  <title>사업 이력 관리</title>
   <th:block layout:fragment="head">
     <link rel="stylesheet" th:href="@{/css/proposal.css}"><!-- 3:7 배치(.split)와 목록(.bid-item) 모양을 제안 화면과 같게 쓴다 -->
     <link rel="stylesheet" th:href="@{/css/stats.css}">
@@ -28,22 +23,19 @@
 </head>
 <body>
 
-<h1 layout:fragment="pageTitle">통계</h1>
+<h1 layout:fragment="pageTitle">사업 이력 관리</h1>
 
 <th:block layout:fragment="content">
 
-  <!-- 머리 (11/03). '통계'와 범위 설명 대신, 왼쪽에서 고른 것을 보인다.
-       사업을 골랐으면 사업명(NFR-023, 원래 사업별 결과 분석 머리), 전체 종합이면 팀 · 연도 -->
+  <!-- 머리: 보고 있는 사업명(NFR-023). 볼 사업이 없으면 탭 이름과 팀 · 연도 -->
   <div class="page-head" th:unless="${view.locked}">
     <div th:if="${archive}">
       <h2 th:text="${archive.pbancNm}">사업명</h2>
-      
     </div>
     <div th:unless="${archive}">
-      <h2>전체 종합</h2>
+      <h2>사업 이력 관리</h2>
       <div class="sub" th:text="|${view.teamNm} · ${view.year}년|">개발1팀 · 2026년</div>
     </div>
-    <!-- 엑셀 다운로드(CSV) 버튼은 11/03 뺐다 -->
     <div class="row" th:if="${archive}">
       <a class="btn sm" th:if="${canEdit}" th:href="@{/results(bid=${archive.pbancSn})}">평가·결과 입력</a>
     </div>
@@ -52,140 +44,58 @@
 
   <!-- 개발팀이 아닌 팀장 등 볼 팀이 없을 때 -->
   <div class="card" th:if="${view.locked}">
-    <div class="lock"><div style="font-size:26px">🔒</div><b th:text="${view.lockMessage}">통계는 개발팀 단위로 제공됩니다.</b></div>
+    <div class="lock"><div style="font-size:26px">🔒</div><b th:text="${view.lockMessage}">사업 이력은 개발팀 단위로 제공됩니다.</b></div>
   </div>
 
   <div class="split" th:unless="${view.locked}">
 
-  <!-- 왼쪽 3: 볼 것 고르기 (11/04). 제안 화면의 사업건 목록과 같은 블록이다. 누르면 오른쪽이 바뀐다 -->
+  <!-- 왼쪽 3: 볼 사업 고르기. 제안 화면의 사업건 목록과 같은 블록이다. 누르면 오른쪽이 바뀐다 -->
   <aside class="split-l">
     <div class="card">
-      <div class="card-head">
+      <!--/* 드롭다운은 제목 줄 오른쪽에 둔다. 고르면 바로 그 연도·팀의 사업으로 바뀐다(맨 아래 스크립트). 팀장은 자기 팀만 보므로 팀 칸이 없다 */-->
+      <div class="card-head scope-head">
         <h3>사업 목록</h3>
-        <span class="faint" style="font-size:11.5px" th:text="|${#lists.size(view.inProgress) + #lists.size(view.history)}건|">3건</span>
+        <form class="scope-form" method="get" th:action="@{/bid-history}">
+          <select id="sc-year" name="year" aria-label="연도" title="입찰 마감일 기준 연도">
+            <option th:each="y : ${view.years}" th:value="${y}" th:text="|${y}년|" th:selected="${y == view.year}">2026년</option>
+          </select>
+          <select id="sc-team" name="team" aria-label="팀" th:if="${#lists.size(view.teams) > 1}">
+            <option th:each="t : ${view.teams}" th:value="${t.teamSn}" th:text="${t.teamNm}"
+                    th:selected="${t.teamSn == view.teamSn}">개발1팀</option>
+          </select>
+        </form>
       </div>
       <div class="bid-list">
-        <!--/* 누르면 연도·팀 팝업이 열린다. 사업을 보다가 전체 종합으로 돌아갈 때도 팝업의 [보기]를 누른다 */-->
-        <button type="button" class="bid-item" th:classappend="${archive == null} ? 'on'" data-scope-open aria-haspopup="dialog">
-          <b>전체 종합</b>
-        </button>
-        <!--/* 제안서 관리의 지난 사업처럼 눌러서 펼친다 (11/04). 처음에는 접혀 있고, 사업을 고른 화면에서는 그 사업이 보이게 펼친다 */-->
-        <details class="bid-past" th:open="${archive != null}">
-          <summary class="bid-grp" th:text="|${view.year}년 진행 사업 (${#lists.size(view.inProgress) + #lists.size(view.history)})|">2026년 진행 사업</summary>
-          <div class="bid-body year-body">
-            <a class="bid-item" th:each="p : ${view.inProgress}" th:href="@{/stats(team=${view.teamSn}, year=${view.year}, bid=${p.pbancSn})}"
-               th:classappend="${archive != null and archive.pbancSn == p.pbancSn} ? 'on'">
-              <b th:title="${p.pbancNm}" th:text="${p.pbancNm}">사업명</b>
-              <span class="pill neutral" th:text="${p.pbancSttsNm}">제안 작성 중</span>
-            </a>
-            <a class="bid-item" th:each="h : ${view.history}" th:href="@{/stats(team=${view.teamSn}, year=${view.year}, bid=${h.pbancSn})}"
-               th:classappend="${archive != null and archive.pbancSn == h.pbancSn} ? 'on'">
-              <b th:title="${h.pbancNm}" th:text="${h.pbancNm}">사업명</b>
-              <span class="pill" th:classappend="${h.won} ? 'success' : 'neutral'" th:text="${h.pillText}">수주</span>
-            </a>
-            <div class="empty" th:if="${#lists.isEmpty(view.inProgress) and #lists.isEmpty(view.history)}"
-                 th:text="|${view.year}년 진행 사업이 없습니다.|">진행 사업이 없습니다.</div>
-          </div>
-        </details>
+        <div class="bid-body year-body">
+          <a class="bid-item" th:each="p : ${view.inProgress}" th:href="@{/bid-history(team=${view.teamSn}, year=${view.year}, bid=${p.pbancSn})}"
+             th:classappend="${archive != null and archive.pbancSn == p.pbancSn} ? 'on'">
+            <b th:title="${p.pbancNm}" th:text="${p.pbancNm}">사업명</b>
+            <span class="pill neutral" th:text="${p.pbancSttsNm}">제안 작성 중</span>
+          </a>
+          <a class="bid-item" th:each="h : ${view.history}" th:href="@{/bid-history(team=${view.teamSn}, year=${view.year}, bid=${h.pbancSn})}"
+             th:classappend="${archive != null and archive.pbancSn == h.pbancSn} ? 'on'">
+            <b th:title="${h.pbancNm}" th:text="${h.pbancNm}">사업명</b>
+            <span class="pill" th:classappend="${h.won} ? 'success' : 'neutral'" th:text="${h.pillText}">수주</span>
+          </a>
+          <div class="empty" th:if="${#lists.isEmpty(view.inProgress) and #lists.isEmpty(view.history)}"
+               th:text="|${view.year}년 진행 사업이 없습니다.|">진행 사업이 없습니다.</div>
+        </div>
       </div>
     </div>
   </aside>
 
-  <!-- 연도·팀 팝업. 바깥이나 [취소]를 누르거나 Esc 로 닫는다. 고르고 [보기]를 누르면 그 연도·팀의 전체 종합으로 간다 -->
-  <div class="stats-modal" id="statsScope" hidden>
-    <div class="box" role="dialog" aria-modal="true" aria-labelledby="statsScopeTitle">
-      <div class="card-head"><h3 id="statsScopeTitle">연도 · 팀 선택</h3></div>
-      <form class="pad" method="get" th:action="@{/stats}">
-        <div class="fld">
-          <label for="sc-year">연도 (입찰 마감일 기준)</label>
-          <select id="sc-year" name="year">
-            <option th:each="y : ${view.years}" th:value="${y}" th:text="|${y}년|" th:selected="${y == view.year}">2026년</option>
-          </select>
-        </div>
-        <div class="fld">
-          <label for="sc-team">팀</label>
-          <select id="sc-team" name="team" th:disabled="${#lists.size(view.teams) < 2}">
-            <option th:each="t : ${view.teams}" th:value="${t.teamSn}" th:text="${t.teamNm}"
-                    th:selected="${t.teamSn == view.teamSn}">개발1팀</option>
-          </select>
-          <span class="faint" style="font-size:11.5px" th:if="${#lists.size(view.teams) < 2}">팀장은 자기 팀 통계만 봅니다</span>
-        </div>
-        <div class="row" style="justify-content:flex-end">
-          <button type="button" class="btn sm" data-scope-close>취소</button>
-          <button type="submit" class="btn sm primary">보기</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- 오른쪽 7: 사업을 골랐으면 사업별 결과 분석 -->
+  <!-- 오른쪽 7: 사업별 결과 분석 -->
   <div class="split-r" th:if="${archive}">
     <th:block th:replace="~{stats/fragments/archive :: body}"></th:block>
   </div>
 
-  <!-- 오른쪽 7: 전체 종합. 연도·팀은 왼쪽 [연도 · 팀] 팝업에서 고른다 -->
+  <!-- 오른쪽 7: 고른 연도·팀에 사업이 없을 때 -->
   <div class="split-r" th:unless="${archive}">
-
-    <!-- 연 단위 요약 (FR-083, 084). 11/03 평균 기술점수 카드를 빼서 네 칸이다 (공통 .stats 가 네 칸) -->
-    <div class="stats" th:with="s=${view.summary}">
-      <div class="stat">
-        <div class="l" th:text="|${view.year}년 참여|">2026년 참여</div>
-        <div class="v" th:text="|${s.joined}건|">0건</div>
-      </div>
-      <div class="stat">
-        <div class="l" th:text="|${view.year}년 수주|">2026년 수주</div>
-        <div class="v" th:text="|${s.won}건|">0건</div>
-      </div>
-      <div class="stat">
-        <div class="l">수주율</div>
-        <div class="v" th:text="${s.rateText}">-</div>
-      </div>
-      <div class="stat">
-        <div class="l">수주 금액</div>
-        <div class="v" th:text="${s.wonAmtText}">0.0억</div>
-      </div>
+    <div class="card pending-card">
+      <div class="pending-msg" th:text="|${view.year}년 ${view.teamNm} 사업이 없습니다.|">사업이 없습니다.</div>
     </div>
-
-    <!-- stats-row (11/05): 위 줄은 연도별 참여·수주와 연도별 수주 금액, 그 아래 왼쪽에 참여 형태별 수주율.
-         같은 줄 카드는 높이가 같고, 차트는 카드 높이 가운데에 둔다 -->
-    <div class="two even stats-row">
-
-      <!-- 연도별 참여·수주 (FR-083) -->
-      <div class="card chart-card">
-        <div class="card-head">
-          <h3 th:text="|연도별 참여·수주 (${view.teamNm})|">연도별 참여·수주</h3>
-          <span class="legend"><span class="sw s-join"></span>참여<span class="sw s-won"></span>수주</span>
-        </div>
-        <div class="pad">
-          <th:block th:replace="~{stats/fragments/result-parts :: barChart(${view.chart}, ${view.teamSn})}"></th:block>
-        </div>
-      </div>
-
-      <!-- 연도별 수주 금액 (11/05). 요약 카드의 수주 금액과 같은 값이다. 막대가 한 종류라 범례 대신 단위를 적는다 -->
-      <div class="card chart-card">
-        <div class="card-head">
-          <h3 th:text="|연도별 수주 금액 (${view.teamNm})|">연도별 수주 금액</h3>
-          <span class="faint" style="font-size:11.5px">단위: 억 원</span>
-        </div>
-        <div class="pad">
-          <th:block th:replace="~{stats/fragments/result-parts :: barChart(${view.amountChart}, ${view.teamSn})}"></th:block>
-        </div>
-      </div>
-
-      <!-- 참여 형태별 수주율 (FR-085) -->
-      <div class="card">
-        <div class="card-head"><h3 th:text="|참여 형태별 수주율 (${view.year}년)|">참여 형태별 수주율</h3></div>
-        <div class="pad">
-          <div class="lossrow rate" th:each="r : ${view.ptcpShpRates}">
-            <b th:text="${r.label}">주관</b>
-            <div class="bar"><i th:style="|width:${r.barWidth}%|"></i></div>
-            <span class="mono" th:text="${r.rateText}">결과 없음</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
   </div>
+
   </div>
 
 </th:block>
@@ -208,47 +118,22 @@
     }
     showPickedBid();
 
-    function pickedYear() {
-      var on = document.querySelector('.chart .yg.on');
-      return on ? on.getAttribute('data-year') : null;
-    }
-
-    function highlight(year) {
-      document.querySelectorAll('.chart .yg').forEach(function (g) {
-        g.classList.toggle('on', g.getAttribute('data-year') === year);
-      });
-    }
-
-    // 머리와 본문을 받아 온 것으로 바꾼다. 통계 화면이 아니면(로그인 만료 등) false
+    // 머리와 본문을 받아 온 것으로 바꾼다. 이 화면이 아니면(로그인 만료 등) false
     function swap(doc) {
       var head = doc.querySelector('.page-head');
       var split = doc.querySelector('.split');
       if (!head || !split) {
         return false;
       }
-      var before = pickedYear();
-      var past = document.querySelector('.bid-past');
-      var nextPast = split.querySelector('.bid-past');
-      if (past && nextPast && past.open) {
-        nextPast.open = true; // 펼쳐 둔 진행 사업은 펼친 채로 둔다
-      }
       document.querySelector('.page-head').replaceWith(head);
       document.querySelector('.split').replaceWith(split);
-
-      // 새로 넣은 차트는 바로 그려지므로, 이전 연도를 강조한 모습을 한 번 그리고 새 연도로 옮겨 서서히 바뀌게 한다
-      var after = pickedYear();
-      if (before && after && before !== after) {
-        highlight(before);
-        void document.body.offsetWidth;
-        highlight(after);
-      }
       showPickedBid();
       return true;
     }
 
     var last = 0; // 빠르게 여러 번 고르면 마지막 요청만 화면에 넣는다
 
-    // 연도·팀을 바꾼 통계를 페이지를 새로 열지 않고 보여 준다 (11/05). 실패하면 보통 방식으로 연다(로그인 만료면 로그인 화면으로 간다)
+    // 연도·팀을 바꾼 화면을 페이지를 새로 열지 않고 보여 준다. 실패하면 보통 방식으로 연다(로그인 만료면 로그인 화면으로 간다)
     function load(url, push, focusTarget) {
       var mine = ++last;
       fetch(url).then(function (res) {
@@ -261,7 +146,7 @@
           return;
         }
         if (!swap(new DOMParser().parseFromString(html, 'text/html'))) {
-          throw new Error('통계 화면이 아닙니다');
+          throw new Error('사업 이력 화면이 아닙니다');
         }
         if (push && new URL(url, location.href).href !== location.href) {
           history.pushState(null, '', url);
@@ -276,42 +161,12 @@
       });
     }
 
-    // 연도·팀 팝업 (11/03). 바깥(어두운 바탕)·[취소]·Esc 로 닫는다.
+    // 왼쪽 연도·팀 드롭다운. 고르면 바로 바뀌고, 포커스는 고른 칸에 남는다.
     // 본문을 통째로 바꾸므로 이벤트는 document 에서 받는다
-    function closeScope() {
-      document.getElementById('statsScope').hidden = true;
-      document.querySelector('[data-scope-open]').focus();
-    }
-
-    document.addEventListener('click', function (e) {
-      var t = e.target;
-      if (t.closest('[data-scope-open]')) {
-        document.getElementById('statsScope').hidden = false;
-        document.getElementById('sc-year').focus();
-      } else if (t.id === 'statsScope' || t.hasAttribute('data-scope-close')) {
-        closeScope();
-      } else if (t.closest('.chart .yg') && !e.ctrlKey && !e.metaKey && !e.shiftKey) { // 새 탭·새 창은 브라우저에 맡긴다
-        e.preventDefault();
-        var link = t.closest('.chart .yg');
-        if (!link.classList.contains('on')) {
-          load(link.getAttribute('href'), true, '.chart .yg.on');
-        }
-      }
-    });
-
-    document.addEventListener('submit', function (e) {
-      var form = e.target;
-      if (form.closest('#statsScope')) {
-        e.preventDefault();
-        closeScope();
-        load(form.action + '?' + new URLSearchParams(new FormData(form)), true, '[data-scope-open]');
-      }
-    });
-
-    document.addEventListener('keydown', function (e) {
-      var modal = document.getElementById('statsScope');
-      if (e.key === 'Escape' && modal && !modal.hidden) {
-        closeScope();
+    document.addEventListener('change', function (e) {
+      var form = e.target.closest('.scope-form');
+      if (form) {
+        load(form.action + '?' + new URLSearchParams(new FormData(form)), true, '#' + e.target.id);
       }
     });
 

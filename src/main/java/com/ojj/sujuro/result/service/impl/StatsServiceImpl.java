@@ -2,9 +2,7 @@ package com.ojj.sujuro.result.service.impl;
 
 import java.time.Year;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -14,30 +12,23 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.auth.code.Role;
-import com.ojj.sujuro.result.support.StatsFormat;
 import com.ojj.sujuro.result.dto.ArticleScoreTableDTO;
 import com.ojj.sujuro.result.dto.EvaluationFileDTO;
 import com.ojj.sujuro.result.dto.EvaluationForm;
 import com.ojj.sujuro.result.dto.StatsArchiveDTO;
-import com.ojj.sujuro.result.dto.StatsChartDTO;
-import com.ojj.sujuro.result.dto.StatsFileDTO;
-import com.ojj.sujuro.result.dto.StatsTallyDTO;
 import com.ojj.sujuro.result.dto.StatsTeamDTO;
 import com.ojj.sujuro.result.dto.StatsViewDTO;
 import com.ojj.sujuro.result.mapper.StatsMapper;
 import com.ojj.sujuro.result.service.StatsService;
 
-/** 통계. 범위 규칙은 인터페이스(StatsService), 집계 기준은 mapper/result/StatsMapper.xml 에 있다. */
+/** 사업 이력 관리. 범위 규칙은 인터페이스(StatsService), 조회 기준은 mapper/result/StatsMapper.xml 에 있다. */
 @Service
 @Transactional(readOnly = true)
 public class StatsServiceImpl implements StatsService {
 
     private static final Pattern YEAR = Pattern.compile("\\d{4}");
 
-    /** 연도별 차트에 그리는 최대 연도 수 (최근 것부터) */
-    private static final int CHART_YEARS = 5;
-
-    static final String LOCK_NO_TEAM = "통계는 개발팀 단위로 제공됩니다.";
+    static final String LOCK_NO_TEAM = "사업 이력은 개발팀 단위로 제공됩니다.";
 
     private final StatsMapper statsMapper;
 
@@ -49,7 +40,6 @@ public class StatsServiceImpl implements StatsService {
     public StatsViewDTO build(LoginUser user, Long teamSn, String year) {
         List<StatsTeamDTO> teams = teamsOf(user);
         StatsViewDTO v = new StatsViewDTO();
-        v.setScopeText(user.getRole() == Role.LEADER ? "팀장은 자기 팀 통계만 봅니다" : "각 팀별 통계와 사업별 결과 분석");
         if (teams.isEmpty()) {
             v.setLockMessage(LOCK_NO_TEAM);
             return v;
@@ -59,60 +49,14 @@ public class StatsServiceImpl implements StatsService {
         v.setTeamSn(team.getTeamSn());
         v.setTeamNm(team.getTeamNm());
 
-        List<Long> teamSns = teamSnsOf(teams);
-        List<String> years = yearsOf(teamSns);
+        List<String> years = yearsOf(teamSnsOf(teams));
         String picked = year != null && YEAR.matcher(year).matches() && years.contains(year) ? year : years.get(years.size() - 1);
         v.setYears(years);
         v.setYear(picked);
 
-        Map<String, StatsTallyDTO> byYear = new HashMap<>();
-        for (StatsTallyDTO t : statsMapper.tallyByYearTeam(teamSns)) {
-            if (t.getTeamSn().equals(team.getTeamSn())) {
-                byYear.put(t.getYear(), t);
-            }
-        }
-        v.setSummary(byYear.getOrDefault(picked, StatsTallyDTO.empty(picked, team.getTeamSn(), team.getTeamNm())));
-        List<String> chartYears = chartYears(years, picked);
-        v.setChart(StatsChartDTO.of(chartYears, byYear, picked));
-        v.setAmountChart(StatsChartDTO.amountOf(chartYears, byYear, picked));
-
-        v.setPtcpShpRates(statsMapper.ptcpShpRates(team.getTeamSn(), picked));
         v.setInProgress(statsMapper.inProgress(team.getTeamSn(), picked));
         v.setHistory(statsMapper.history(team.getTeamSn(), picked));
         return v;
-    }
-
-    /** 차트에 그릴 연도. 최근 CHART_YEARS 개이고, 고른 연도가 그보다 오래됐으면 그 연도부터 그린다. 고른 연도를 강조하려면 차트에 있어야 한다 (11/05) */
-    static List<String> chartYears(List<String> years, String picked) {
-        int from = Math.min(Math.max(0, years.size() - CHART_YEARS), years.indexOf(picked));
-        return years.subList(from, Math.min(years.size(), from + CHART_YEARS));
-    }
-
-    @Override
-    public String csv(LoginUser user) {
-        List<StatsTeamDTO> teams = teamsOf(user);
-        List<List<String>> rows = new ArrayList<>();
-        rows.add(row("연도", "팀", "참여", "결과 등록", "수주", "탈락", "유찰", "수주율(%)", "수주 금액(원)", "평균 기술점수"));
-        if (teams.isEmpty()) {
-            return toCsv(rows);
-        }
-        List<Long> teamSns = teamSnsOf(teams);
-        Map<String, StatsTallyDTO> cells = new HashMap<>();
-        for (StatsTallyDTO t : statsMapper.tallyByYearTeam(teamSns)) {
-            cells.put(t.getYear() + "|" + t.getTeamSn(), t);
-        }
-        for (String y : yearsOf(teamSns)) {
-            for (StatsTeamDTO team : teams) {
-                StatsTallyDTO t = cells.getOrDefault(y + "|" + team.getTeamSn(),
-                        StatsTallyDTO.empty(y, team.getTeamSn(), team.getTeamNm()));
-                rows.add(row(y, team.getTeamNm(), String.valueOf(t.getJoined()), String.valueOf(t.getResultCnt()),
-                        String.valueOf(t.getWon()), String.valueOf(t.getLost()), String.valueOf(t.getFailed()),
-                        t.getRate() == null ? "" : StatsFormat.number(t.getRate()),
-                        String.valueOf(t.getWonAmt()),
-                        t.getAvgTech() == null ? "" : StatsFormat.number(StatsFormat.round1(t.getAvgTech()))));
-            }
-        }
-        return toCsv(rows);
     }
 
     @Override
@@ -121,9 +65,8 @@ public class StatsServiceImpl implements StatsService {
         if (a == null) {
             return null;
         }
-        a.setArticles(statsMapper.articleRates(null, null, pbancSn));
+        a.setArticles(statsMapper.articleRates(pbancSn));
         a.setArticleTable(ArticleScoreTableDTO.of(statsMapper.companyArticleScores(pbancSn)));
-        a.setFinalFile(statsMapper.findFinalFile(pbancSn));
         a.setEvaluationFile(statsMapper.findEvaluationFile(pbancSn));
         a.setOurCompanyListed(statsMapper.countOurCompany(pbancSn) > 0);
         a.setEvaluationForm(EvaluationForm.fromSaved(statsMapper.findEvaluationScores(pbancSn)));
@@ -133,11 +76,6 @@ public class StatsServiceImpl implements StatsService {
     @Override
     public StatsArchiveDTO findPending(LoginUser user, Long pbancSn) {
         return checked(user, statsMapper.findPendingBid(pbancSn));
-    }
-
-    @Override
-    public StatsFileDTO findFinalFile(LoginUser user, Long pbancSn) {
-        return readable(user, pbancSn) == null ? null : statsMapper.findFinalFile(pbancSn);
     }
 
     @Override
@@ -169,7 +107,7 @@ public class StatsServiceImpl implements StatsService {
                     .filter(t -> t.getTeamSn().equals(mine))
                     .collect(Collectors.toList());
         }
-        throw new AccessDeniedException("통계는 경영지원실과 팀장만 볼 수 있습니다.");
+        throw new AccessDeniedException("사업 이력은 경영지원실과 팀장만 볼 수 있습니다.");
     }
 
     private static List<Long> teamSnsOf(List<StatsTeamDTO> teams) {
@@ -183,48 +121,5 @@ public class StatsServiceImpl implements StatsService {
             years.add(String.valueOf(Year.now().getValue()));
         }
         return years;
-    }
-
-    private static List<String> row(String... cells) {
-        List<String> r = new ArrayList<>();
-        for (String c : cells) {
-            r.add(c);
-        }
-        return r;
-    }
-
-    static String toCsv(List<List<String>> rows) {
-        StringBuilder sb = new StringBuilder();
-        for (List<String> r : rows) {
-            sb.append(r.stream().map(StatsServiceImpl::cell).collect(Collectors.joining(","))).append("\r\n");
-        }
-        return sb.toString();
-    }
-
-    /**
-     * CSV 한 칸. 쉼표·따옴표·줄바꿈이 있으면 따옴표로 감싼다.
-     * 엑셀이 수식으로 읽는 글자(= + - @, 탭, CR)로 시작하면 앞에 ' 를 붙인다. 음수 같은 숫자는 그대로 둔다.
-     */
-    static String cell(String s) {
-        if (s == null) {
-            return "";
-        }
-        String t = s;
-        if (!t.isEmpty() && "=+-@\t\r".indexOf(t.charAt(0)) >= 0 && !isNumber(t)) {
-            t = "'" + t;
-        }
-        if (t.indexOf(',') >= 0 || t.indexOf('"') >= 0 || t.indexOf('\n') >= 0 || t.indexOf('\r') >= 0) {
-            t = "\"" + t.replace("\"", "\"\"") + "\"";
-        }
-        return t;
-    }
-
-    private static boolean isNumber(String t) {
-        try {
-            Double.parseDouble(t);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
     }
 }

@@ -8,7 +8,7 @@ import com.ojj.sujuro.result.support.StatsFormat;
 import lombok.Getter;
 import lombok.Setter;
 
-/** 사업건 한 줄 (평가·결과 입력의 머리 줄, 통계의 진행 중 목록). 참여 확정 뒤의 공고만 온다 */
+/** 사업건 한 줄 (평가·결과 입력의 머리 줄, 사업 이력 관리의 진행 중 목록). 참여 확정 뒤의 공고만 온다 */
 @Getter
 @Setter
 public class ResultBidDTO {

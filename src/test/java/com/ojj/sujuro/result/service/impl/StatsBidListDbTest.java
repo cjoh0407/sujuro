@@ -28,8 +28,8 @@ import com.ojj.sujuro.bid.api.G2bApiClient;
 import com.ojj.sujuro.notification.service.NotificationService;
 
 /**
- * 통계의 왼쪽 목록 (11/04): 전체 종합(연도·팀 팝업)과 고른 연도의 진행 사업(진행 중 + 지난 사업), 결과가 없는 사업의 오른쪽 화면.
- * 평가·결과 입력은 메뉴 없이 통계에서 들어간다.
+ * 사업 이력 관리 (11/05): 왼쪽 연도·팀 드롭다운과 고른 연도·팀의 사업(진행 중 + 지난 사업), 결과가 없는 사업의 오른쪽 화면.
+ * 평가·결과 입력은 메뉴 없이 사업 이력 관리에서 들어간다. 통계(전체 종합)는 지웠다.
  * 로컬 Oracle 로 화면까지 돌리고 끝나면 모두 되돌린다(@Transactional).
  * DB 가 있어야 해서 평소 mvn test 에서는 건너뛴다. 돌릴 때: mvn -o test -Dsujuro.db-test=true -Dtest=StatsBidListDbTest
  *
@@ -45,6 +45,7 @@ class StatsBidListDbTest {
     /** 테스트 계정 (db/03_test_data.sql). 비밀번호는 db/README.md 의 공용 값 */
     private static final String MGMT = "2022-0009";
     private static final String LEADER = "2024-0031";
+    private static final String SALES = "2023-0067";
     private static final String PASSWORD = "Demo!2026a";
 
     private static final String WON_NM = "(가상) 2019 수주 사업";
@@ -83,18 +84,19 @@ class StatsBidListDbTest {
 
     @Test
     void 진행_사업은_고른_연도의_진행_중과_지난_사업을_합치고_누르면_통계_오른쪽이_바뀐다() throws Exception {
-        String page2019 = page(mgmt, stats("2019"));
+        String page2019 = page(mgmt, scope("2019"));
         String y2019 = yearPart(page2019);
-        assertTrue(y2019.contains("2019년 진행 사업"));
+        assertTrue(listPart(page2019).contains(yearOption("2019")));
         assertTrue(y2019.contains("href=\"" + link("2019", submitted) + "\""));
         assertTrue(y2019.contains("href=\"" + link("2019", won) + "\""));
         assertTrue(y2019.indexOf(SUBMITTED_NM) < y2019.indexOf(WON_NM), "진행 중 사업이 먼저입니다");
         assertFalse(y2019.contains(WRITING_NM));
         assertFalse(y2019.contains(FAILED_NM));
-        assertTrue(listPart(page2019).matches("(?s).*<h3>사업 목록</h3>\\s*<span[^>]*>2건</span>.*"), "건수는 둘을 더한 값입니다");
+        assertEquals(2, count(y2019, "class=\"bid-item"), "진행 중과 지난 사업을 합친 줄 수입니다");
 
-        String y2018 = yearPart(page(mgmt, stats("2018")));
-        assertTrue(y2018.contains("2018년 진행 사업"));
+        String page2018 = page(mgmt, scope("2018"));
+        String y2018 = yearPart(page2018);
+        assertTrue(listPart(page2018).contains(yearOption("2018")));
         assertTrue(y2018.contains("href=\"" + link("2018", failed) + "\""));
         assertTrue(y2018.contains(">유찰<"));
         assertFalse(y2018.contains(SUBMITTED_NM));
@@ -107,34 +109,39 @@ class StatsBidListDbTest {
         // 다른 팀 공고로 2017년을 고를 수 있게만 한다
         insertNotice("R26BK99990048", "(가상) 다른 팀 2017 사업", "PS070", "DATE '2017-06-30'", otherTeam());
 
-        String page = page(mgmt, stats("2017"));
+        String page = page(mgmt, scope("2017"));
         assertTrue(yearPart(page).contains("2017년 진행 사업이 없습니다."));
-        assertTrue(listPart(page).matches("(?s).*<h3>사업 목록</h3>\\s*<span[^>]*>0건</span>.*"));
+        assertEquals(0, count(yearPart(page), "class=\"bid-item"));
+        // 오른쪽에 볼 사업이 없으니 머리는 탭 이름이고 칸 가운데에 안내가 있다
+        assertTrue(page.contains("<h2>사업 이력 관리</h2>"));
+        assertEquals(1, count(page, "class=\"pending-msg"));
+        assertTrue(page.contains("2017년 ") && page.contains(" 사업이 없습니다."));
     }
 
     @Test
     void 마감일이_없는_진행_중_사업은_올해_목록에서_찾는다() throws Exception {
         String thisYear = String.valueOf(Year.now().getValue());
-        String progress = yearPart(page(mgmt, stats(thisYear)));
-        assertTrue(progress.contains(thisYear + "년 진행 사업"));
-        assertTrue(progress.contains("href=\"" + link(thisYear, writing) + "\""));
+        String thisYearPage = page(mgmt, scope(thisYear));
+        assertTrue(listPart(thisYearPage).contains(yearOption(thisYear)));
+        assertTrue(yearPart(thisYearPage).contains("href=\"" + link(thisYear, writing) + "\""));
 
         // 눌렀을 때도 올해 목록에서 강조한다. 다른 연도를 보던 중이어도 마찬가지다
-        String selected = yearPart(page(mgmt, stats("2018") + "&bid=" + writing));
-        assertTrue(selected.contains(thisYear + "년 진행 사업"));
+        String selected = listPart(page(mgmt, scope("2018") + "&bid=" + writing));
+        assertTrue(selected.contains(yearOption(thisYear)));
         assertTrue(selected.matches("(?s).*bid-item on\"[^>]*bid=" + writing + "\".*"), selected);
     }
 
     @Test
     void 진행_중_사업은_공고_기본_정보만_있고_세_칸_가운데에_안내_문구가_있다() throws Exception {
-        String page = page(mgmt, stats("2018") + "&bid=" + submitted);
+        String page = page(mgmt, scope("2018") + "&bid=" + submitted);
 
         assertEquals(3, count(page, IN_PROGRESS_MSG));
         assertEquals(3, count(page, "class=\"pending-msg"));
         assertTrue(page.contains("공고 기본 정보"));
         assertTrue(page.contains("(가상) 시험기관"));
         assertTrue(page.contains("제출 완료"));
-        assertTrue(page.contains("결과가 등록된 사업만 제출 파일을 보여 줍니다."));
+        assertFalse(page.contains("제출 산출물"));
+        assertEquals(1, count(page, "class=\"two even\""), "공고 기본 정보 옆에 점수 칸만 나란합니다");
         assertFalse(page.contains("기술점수"));
         assertFalse(page.contains("기록 없음"));
         // 예산 대신 수주 금액 칸이고, 아직 금액이 없어 비어 있다 (가상 공고의 예산은 5.0억)
@@ -147,19 +154,19 @@ class StatsBidListDbTest {
         // 고른 사업을 강조하고, 왼쪽 목록은 보던 연도(2018)가 아니라 그 사업의 연도(2019)로 맞춘다
         String left = listPart(page);
         assertTrue(left.matches("(?s).*bid-item on\"[^>]*bid=" + submitted + "\".*"), left);
-        assertTrue(left.contains("2019년 진행 사업"));
+        assertTrue(left.contains(yearOption("2019")));
     }
 
     @Test
     void 유찰_사업은_유찰_안내가_나오고_결과가_있는_사업은_안내가_없다() throws Exception {
-        String failedPage = page(mgmt, "/stats?bid=" + failed);
+        String failedPage = page(mgmt, "/bid-history?bid=" + failed);
         assertEquals(3, count(failedPage, "유찰된 사업건입니다."));
         assertEquals(0, count(failedPage, IN_PROGRESS_MSG));
         assertTrue(listPart(failedPage).matches("(?s).*bid-item on\"[^>]*bid=" + failed + "\".*"));
         assertTrue(failedPage.contains(AMOUNT_LABEL + "<div class=\"v\">-</div>"));
 
         // 수주한 사업은 수주 금액이 한 칸만 보이고, 입력한 금액이다 (가상 공고의 예산 5.0억이 아니다)
-        String wonPage = page(mgmt, "/stats?bid=" + won);
+        String wonPage = page(mgmt, "/bid-history?bid=" + won);
         assertEquals(0, count(wonPage, "class=\"pending-msg"));
         assertEquals(1, count(wonPage, AMOUNT_LABEL));
         assertTrue(wonPage.contains(AMOUNT_LABEL + "<div class=\"v\">1.0억</div>"));
@@ -172,7 +179,7 @@ class StatsBidListDbTest {
         mvc.perform(post("/results/manual").session(mgmt).with(csrf()).param("bid", lost.toString()).param("bidRsltCd", "BR020"))
                 .andExpect(r -> assertEquals(302, r.getResponse().getStatus()));
 
-        String page = page(mgmt, "/stats?bid=" + lost);
+        String page = page(mgmt, "/bid-history?bid=" + lost);
         assertEquals(0, count(page, "class=\"pending-msg"));
         assertTrue(page.contains(AMOUNT_LABEL + "<div class=\"v\">-</div>"));
     }
@@ -180,113 +187,195 @@ class StatsBidListDbTest {
     @Test
     void 볼_수_없는_사업은_열리지_않는다() throws Exception {
         Long others = insertNotice("R26BK99990045", "(가상) 다른 팀 사업", "PS040", "NULL", otherTeam());
-        mvc.perform(get("/stats?bid=" + others).session(login(LEADER)))
+        mvc.perform(get("/bid-history?bid=" + others).session(login(LEADER)))
                 .andExpect(r -> assertEquals(403, r.getResponse().getStatus()));
 
-        // 참여 확정 전·불참 공고는 통계 대상이 아니다
+        // 참여 확정 전·불참 공고는 사업 이력 대상이 아니다
         Long declined = insertNotice("R26BK99990046", "(가상) 불참 사업", "PS090", "NULL");
-        mvc.perform(get("/stats?bid=" + declined).session(mgmt))
+        mvc.perform(get("/bid-history?bid=" + declined).session(mgmt))
                 .andExpect(r -> assertEquals(404, r.getResponse().getStatus()));
     }
 
     @Test
-    void 전체_종합은_누르면_연도_팀_팝업이_열리고_예전_블록들은_없다() throws Exception {
-        String page = page(mgmt, stats("2019"));
+    void 경영지원실은_연도와_팀을_고르고_사업은_접지_않고_바로_보인다() throws Exception {
+        String page = page(mgmt, scope("2019"));
         String left = listPart(page);
-        assertTrue(left.contains("<button type=\"button\" class=\"bid-item on\" data-scope-open"), left);
-        assertFalse(left.contains("href=\"/stats?team=" + teamSn + "&amp;year=2019\""));
-        assertFalse(left.contains("연도 · 팀"));
-        assertFalse(page.contains("scope-btn"));
-        assertFalse(page.contains("진행했던 사업"));
-        // 진행 사업은 제안서 관리의 지난 사업처럼 접혀 있는 드롭다운이고, 줄에 건수가 보인다
-        assertTrue(left.contains("<details class=\"bid-past\">"), left);
-        assertTrue(left.contains("<summary class=\"bid-grp\">2019년 진행 사업 (2)</summary>"), left);
-        // 팝업은 연도·팀만 보내서 [보기]를 누르면 그 연도·팀의 전체 종합으로 간다
-        String popup = page.substring(page.indexOf("id=\"statsScope\""), page.indexOf("</form>", page.indexOf("id=\"statsScope\"")));
-        assertTrue(popup.contains("action=\"/stats\""));
-        assertTrue(popup.contains("name=\"year\""));
-        assertTrue(popup.contains("name=\"team\""));
-        assertFalse(popup.contains("name=\"bid\""));
+        String form = scopeForm(left);
+        assertTrue(form.contains("action=\"/bid-history\""));
+        assertTrue(form.contains(yearOption("2019")));
+        assertTrue(form.contains("name=\"team\""));
+        assertTrue(form.contains("<option value=\"" + teamSn + "\" selected=\"selected\">"), form);
+        assertTrue(form.contains("<option value=\"" + otherTeam() + "\">"), form);
+        assertFalse(form.contains("name=\"bid\""), "고르면 그 연도·팀의 사업으로 바뀝니다");
+        assertFalse(form.contains("type=\"submit\""), "고르면 바로 바뀌어서 버튼이 없습니다");
 
-        // 사업을 보는 중에도 같은 버튼이고 강조만 풀린다
-        assertTrue(listPart(page(mgmt, "/stats?bid=" + won)).contains("<button type=\"button\" class=\"bid-item\" data-scope-open"));
+        // 드롭다운은 제목 줄 오른쪽에 있고 건수 글자는 없다. 접는 줄 없이 그 아래에 사업이 보인다
+        assertTrue(left.matches("(?s).*<div class=\"card-head scope-head\">\\s*<h3>사업 목록</h3>\\s*<form class=\"scope-form\".*"), left);
+        assertFalse(left.contains("건</span>"), left);
+        assertFalse(left.contains("<details"));
+        assertFalse(left.contains("진행 사업 ("));
+        assertTrue(left.indexOf("</form>") < left.indexOf(WON_NM), left);
     }
 
     @Test
-    void 전체_종합은_연도별_차트_두_개와_그_아래_참여_형태별_수주율로_구성한다() throws Exception {
-        String page = page(mgmt, stats("2019"));
+    void 결과가_있는_사업은_공고_기본_정보_옆에_점수이고_그_아래_평가_항목별_점수를_넓게_쓴다() throws Exception {
+        // 나라장터 결과가 들어오는 주관 사업으로 바꾼다 (컨소시엄 참여·하도급은 점수가 없다)
+        jdbc.update("UPDATE TB_BID_PBANC SET PTCP_SHP_CD = 'PF010' WHERE PBANC_SN = ?", won);
+        String page = page(mgmt, "/bid-history?bid=" + won);
 
-        int joined = page.indexOf("연도별 참여·수주 (");
-        int amount = page.indexOf("연도별 수주 금액 (");
-        int rate = page.indexOf("참여 형태별 수주율 (");
-        assertTrue(joined >= 0 && joined < amount && amount < rate, "참여·수주, 수주 금액, 수주율 순서여야 합니다");
-        assertTrue(page.contains("년 수주 금액 "), "수주 금액 막대의 안내 글자가 없습니다");
-        assertFalse(page.contains("자주 만난"));
-        assertFalse(page.contains("경쟁 업체"));
+        int info = page.indexOf("<h3>공고 기본 정보</h3>");
+        int score = page.indexOf("<h3>점수</h3>");
+        int article = page.indexOf("<h3>평가 항목별 점수</h3>");
+        int analysis = page.indexOf("<h3>장단점 분석</h3>");
+        assertTrue(info >= 0 && info < score && score < article && article < analysis, "공고 기본 정보, 점수, 평가 항목별 점수, 장단점 분석 순서입니다");
+        assertEquals(1, count(page, "class=\"two even\""));
+        assertTrue(page.indexOf("class=\"two even\"") < info, "위 줄만 두 칸입니다");
+        assertFalse(page.contains("제출 산출물"));
+        assertTrue(page.contains("class=\"pad grid3 analysis\""), "장단점 세 칸 사이에 구분선이 있습니다");
     }
 
     @Test
-    void 차트는_고른_연도_묶음만_강조하고_연도를_누르면_그_연도로_간다() throws Exception {
-        for (String year : new String[] { "2018", "2019" }) {
-            String page = page(mgmt, stats(year));
-            String charts = page.substring(page.indexOf("class=\"two even stats-row\""));
+    void 평가_항목별_점수는_항목마다_업체_수만큼_막대로_그리고_항목_1등만_표시한다() throws Exception {
+        jdbc.update("UPDATE TB_BID_PBANC SET PTCP_SHP_CD = 'PF010' WHERE PBANC_SN = ?", won);
+        Long ours = company(won, "9999999900", "(가상) 우리 회사", 1, "Y", "Y");
+        Long rival = company(won, "9999999901", "(가상) 업체 A", 2, "N", "N");
+        Long strategy = article(won, "전략 및 방법론", 20, 1);
+        Long skill = article(won, "기술 및 기능", 30, 2);
+        score(ours, strategy, 18);
+        score(ours, skill, 27);
+        score(rival, strategy, 19);
+        score(rival, skill, 21);
 
-            assertEquals(2, count(charts, "class=\"yg on\""), "두 차트 모두 한 연도만 강조합니다");
-            assertEquals(2, count(charts, "aria-current=\"true\""));
-            assertTrue(charts.matches("(?s).*class=\"yg on\"[^>]*data-year=\"" + year + "\".*"), year + "년이 강조되어야 합니다");
-            assertFalse(charts.matches("(?s).*class=\"yg\"[^>]*data-year=\"" + year + "\".*"));
-            assertEquals(2, count(charts, "href=\"/stats?team=" + teamSn + "&amp;year=" + year + "\""));
+        String page = page(mgmt, "/bid-history?bid=" + won);
+        assertTrue(page.contains("class=\"score-chart\""));
+        assertFalse(page.contains("<table"), "표 대신 그래프입니다");
+        assertEquals(4, count(page, "class=\"co-bar"), "항목 2개 × 업체 2곳");
+        assertEquals(2, count(page, "class=\"co-bar first\""), "전략은 업체 A, 기술은 우리 회사가 1등입니다");
+        assertTrue(page.matches("(?s).*class=\"co-bar first\">\\s*<title>\\(가상\\) 업체 A · 전략 및 방법론 .*"), "그 항목 1등 막대가 표시됩니다");
+        assertTrue(page.matches("(?s).*class=\"co-bar first\">\\s*<title>\\(가상\\) 우리 회사 · 기술 및 기능 .*"));
+        assertTrue(page.contains("<title>(가상) 업체 A · 전략 및 방법론 19 / 20 · 1등</title>"), "마우스를 올리면 항목 등수까지 보입니다");
+        // 범례는 종합 점수와 등수, 아래에는 수주 업체
+        assertTrue(page.contains("종합 45점 · 1등"), "18 + 27");
+        assertTrue(page.contains("종합 40점 · 2등"), "19 + 21");
+        assertTrue(page.contains(">우리 회사</span>"));
+        assertTrue(page.contains("<h3>평가 항목별 점수</h3>"));
+        assertTrue(page.contains("class=\"evl-win\""));
+    }
+
+    @Test
+    void 평가표가_없으면_그래프_대신_안내가_나온다() throws Exception {
+        jdbc.update("UPDATE TB_BID_PBANC SET PTCP_SHP_CD = 'PF010' WHERE PBANC_SN = ?", won);
+        String page = page(mgmt, "/bid-history?bid=" + won);
+        assertTrue(page.contains("평가표 엑셀이 올라오지 않아 항목별 점수가 없습니다."));
+        assertFalse(page.contains("class=\"score-chart\""));
+        assertFalse(page.contains("단위: 점"));
+    }
+
+    @Test
+    void 컨소시엄_참여는_점수가_없어_공고_기본_정보를_넓게_쓴다() throws Exception {
+        String page = page(mgmt, "/bid-history?bid=" + won); // 가상 공고는 컨소시엄 참여다
+        assertTrue(page.contains("<h3>공고 기본 정보</h3>"));
+        assertTrue(page.contains("<h3>장단점 분석</h3>"));
+        assertFalse(page.contains("<h3>점수</h3>"));
+        assertFalse(page.contains("<h3>평가 항목별 점수</h3>"));
+        assertFalse(page.contains("class=\"two even\""));
+    }
+
+    @Test
+    void 팀장은_연도만_고르고_다른_팀을_주소로_넣어도_자기_팀만_본다() throws Exception {
+        MockHttpSession leader = login(LEADER);
+        String form = scopeForm(listPart(page(leader, "/bid-history?year=2019")));
+        assertTrue(form.contains("name=\"year\""));
+        assertTrue(form.contains(yearOption("2019")));
+        assertFalse(form.contains("name=\"team\""), "팀장에게는 팀 칸이 없습니다");
+
+        // 다른 팀 공고가 그 팀 번호로 들어와도 보이지 않고, 자기 팀 사업이 보인다
+        Long others = insertNotice("R26BK99990049", "(가상) 다른 팀 2019 사업", "PS070", "DATE '2019-02-28'", otherTeam());
+        String left = listPart(page(leader, "/bid-history?team=" + otherTeam() + "&year=2019"));
+        assertFalse(left.contains("bid=" + others), left);
+        assertTrue(left.contains(WON_NM), left);
+    }
+
+    @Test
+    void 사업을_고르지_않으면_목록_맨_위_사업을_보여_준다() throws Exception {
+        // 2019년: 진행 중(제출 완료)이 맨 위라 공고 기본 정보와 안내 문구가 나온다
+        String page = page(mgmt, scope("2019"));
+        assertTrue(listPart(page).matches("(?s).*bid-item on\"[^>]*bid=" + submitted + "\".*"), listPart(page));
+        assertEquals(1, count(listPart(page), "bid-item on"));
+        assertTrue(page.contains("<h2>" + SUBMITTED_NM + "</h2>"));
+        assertEquals(3, count(page, IN_PROGRESS_MSG));
+        assertTrue(page.contains("href=\"/results?bid=" + submitted + "\""));
+
+        // 2018년: 진행 중이 없으면 지난 사업 맨 위
+        String past = page(mgmt, scope("2018"));
+        assertTrue(listPart(past).matches("(?s).*bid-item on\"[^>]*bid=" + failed + "\".*"), listPart(past));
+        assertTrue(past.contains("<h2>" + FAILED_NM + "</h2>"));
+    }
+
+    @Test
+    void 통계는_없어지고_권한은_경영지원실과_팀장만이다() throws Exception {
+        String page = page(mgmt, scope("2019"));
+        for (String gone : new String[] { "전체 종합", "연도별 참여·수주", "연도별 수주 금액", "참여 형태별 수주율", "자주 만난", "class=\"chart\"", "statsScope", "data-scope" }) {
+            assertFalse(page.contains(gone), gone);
         }
+        assertTrue(page.contains("사업 이력 관리</h1>"), "페이지 제목");
+
+        // 예전 주소는 없다
+        for (String old : new String[] { "/stats", "/stats/export", "/stats/bids/" + won, "/bid-history/export", "/bid-history/bids/" + won + "/final-file" }) {
+            mvc.perform(get(old).session(mgmt)).andExpect(r -> assertEquals(404, r.getResponse().getStatus(), old));
+        }
+        mvc.perform(get("/bid-history").session(login(SALES)))
+                .andExpect(r -> assertEquals(403, r.getResponse().getStatus()));
+        assertEquals(200, mvc.perform(get("/bid-history").session(login(LEADER))).andReturn().getResponse().getStatus());
     }
 
     @Test
     void 연도_없이_바로_오면_그_사업의_연도_목록에서_강조한다() throws Exception {
         // 평가·결과 입력의 [사업별 결과 분석] 버튼처럼 연도 없이 온다
-        String list = yearPart(page(mgmt, "/stats?bid=" + won));
-        assertTrue(list.contains("2019년 진행 사업"));
-        assertTrue(listPart(page(mgmt, "/stats?bid=" + won)).contains("<details class=\"bid-past\" open=\"open\">"), "고른 사업이 보이게 펼칩니다");
-        assertTrue(listPart(page(mgmt, "/stats?bid=" + submitted)).contains("<details class=\"bid-past\" open=\"open\">"), "진행 중 사업을 골라도 펼칩니다");
+        String list = listPart(page(mgmt, "/bid-history?bid=" + won));
+        assertTrue(list.contains(yearOption("2019")));
         assertTrue(list.matches("(?s).*bid-item on\"[^>]*bid=" + won + "\".*"), list);
     }
 
     @Test
-    void 평가_결과_입력은_메뉴와_사업건_목록이_없고_통계에서_들어간다() throws Exception {
+    void 평가_결과_입력은_메뉴와_사업건_목록이_없고_사업_이력_관리에서_들어간다() throws Exception {
         for (MockHttpSession session : new MockHttpSession[] { mgmt, login(LEADER) }) {
             String page = page(session, "/results?bid=" + submitted);
-            // 머리: 사업명과 그 사업의 통계로 돌아가는 버튼
+            // 머리: 사업명과 그 사업의 이력으로 돌아가는 버튼
             assertTrue(page.contains("<h2>" + SUBMITTED_NM + "</h2>"));
-            assertTrue(page.contains("href=\"/stats?bid=" + submitted + "\""));
+            assertTrue(page.contains("href=\"/bid-history?bid=" + submitted + "\""));
             assertFalse(page.contains("사업건 목록"));
             assertFalse(page.contains("bid-item"));
             // 평가표를 올리지 않는 사업이라 왼쪽 칸 없이 넓게 보인다
             assertFalse(page.contains("class=\"split\""));
             assertFalse(page.contains("href=\"/results\""));
-            // 메뉴에는 없고 통계에 불이 들어온다
-            assertTrue(page.matches("(?s).*<a href=\"/stats\" class=\"on\">통계</a>.*"));
+            // 메뉴에는 없고 사업 이력 관리에 불이 들어온다
+            assertTrue(page.matches("(?s).*<a href=\"/bid-history\" class=\"on\">사업 이력 관리</a>.*"));
         }
 
-        // 사업건 없이 오면 고를 수 있는 통계로 보낸다 (대시보드의 [결과 관리] 등)
+        // 사업건 없이 오면 고를 수 있는 사업 이력 관리로 보낸다 (대시보드의 [결과 관리] 등)
         mvc.perform(get("/results").session(mgmt))
-                .andExpect(r -> assertEquals("/stats", r.getResponse().getRedirectedUrl()));
+                .andExpect(r -> assertEquals("/bid-history", r.getResponse().getRedirectedUrl()));
     }
 
     @Test
-    void 메뉴는_통계_일정_관리_순서다() throws Exception {
+    void 메뉴는_사업_이력_관리_일정_관리_순서다() throws Exception {
         String nav = page(mgmt, "/dashboard");
-        int stats = nav.indexOf(">통계</a>");
+        int history = nav.indexOf(">사업 이력 관리</a>");
         int schedule = nav.indexOf(">일정 관리</a>");
-        assertTrue(stats >= 0 && stats < schedule, "통계가 일정 관리보다 앞이어야 합니다");
+        assertTrue(history >= 0 && history < schedule, "사업 이력 관리가 일정 관리보다 앞이어야 합니다");
+        assertFalse(nav.contains(">통계</a>"));
         assertFalse(nav.contains(">평가·결과 입력</a>"));
         assertTrue(nav.indexOf(">사용자 관리</a>") > schedule, "사용자 관리는 그대로 있어야 합니다");
     }
 
-    private String stats(String year) {
-        return "/stats?team=" + teamSn + "&year=" + year;
+    private String scope(String year) {
+        return "/bid-history?team=" + teamSn + "&year=" + year;
     }
 
     /** 목록 줄의 주소 (화면에는 &amp; 로 나온다) */
     private String link(String year, Long sn) {
-        return "/stats?team=" + teamSn + "&amp;year=" + year + "&amp;bid=" + sn;
+        return "/bid-history?team=" + teamSn + "&amp;year=" + year + "&amp;bid=" + sn;
     }
 
     private static int count(String page, String text) {
@@ -300,10 +389,38 @@ class StatsBidListDbTest {
         return page.substring(i, page.indexOf("</aside>", i));
     }
 
-    /** 사업 목록 블록의 고른 연도 진행 사업 (전체 종합 줄 아래) */
+    /** 사업 목록 블록의 고른 연도 사업 (드롭다운 아래) */
     private static String yearPart(String page) {
         String list = listPart(page);
-        return list.substring(list.indexOf("class=\"bid-grp\""));
+        return list.substring(list.indexOf("class=\"bid-body year-body\""));
+    }
+
+    /** 사업 목록 블록의 연도·팀 드롭다운 */
+    private static String scopeForm(String list) {
+        int i = list.indexOf("<form class=\"scope-form\"");
+        assertTrue(i >= 0, "연도·팀 드롭다운이 없습니다");
+        return list.substring(i, list.indexOf("</form>", i));
+    }
+
+    /** 연도 드롭다운에서 골라져 있는 칸 */
+    private static String yearOption(String year) {
+        return "<option value=\"" + year + "\" selected=\"selected\">" + year + "년</option>";
+    }
+
+    /** 평가표 엑셀을 올린 개찰 업체 한 줄 */
+    private Long company(Long sn, String bizNo, String coNm, int rank, String ourCoYn, String scsbdYn) {
+        jdbc.update("INSERT INTO TB_CO_EVL_RSLT (PBANC_SN, BIZ_NO, CO_NM, OPENG_RNK, OUR_CO_YN, SCSBD_YN, EVL_TBL_UPLD_YN) VALUES (?, ?, ?, ?, ?, ?, 'Y')",
+                sn, bizNo, coNm, rank, ourCoYn, scsbdYn);
+        return jdbc.queryForObject("SELECT CO_EVL_RSLT_SN FROM TB_CO_EVL_RSLT WHERE PBANC_SN = ? AND BIZ_NO = ?", Long.class, sn, bizNo);
+    }
+
+    private Long article(Long sn, String nm, double max, int sort) {
+        jdbc.update("INSERT INTO TB_EVL_ARTCL (PBANC_SN, EVL_ARTCL_NM, EVL_SCOR_SCR, SORT_SEQ) VALUES (?, ?, ?, ?)", sn, nm, max, sort);
+        return jdbc.queryForObject("SELECT EVL_ARTCL_SN FROM TB_EVL_ARTCL WHERE PBANC_SN = ? AND EVL_ARTCL_NM = ?", Long.class, sn, nm);
+    }
+
+    private void score(Long coEvlRsltSn, Long artclSn, double scr) {
+        jdbc.update("INSERT INTO TB_EVL_CMSNR_SCR (CO_EVL_RSLT_SN, EVL_ARTCL_SN, CMSNR_NO, EVL_SCR) VALUES (?, ?, 1, ?)", coEvlRsltSn, artclSn, scr);
     }
 
     /** 이 팀이 아닌 개발팀 */

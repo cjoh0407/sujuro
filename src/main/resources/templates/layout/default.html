@@ -59,7 +59,6 @@
           <div class="bp-foot faint" id="bpFoot">불러오는 중…</div>
         </div>
         <div class="who">
-          <div class="avatar" th:text="${#strings.substring(#authentication.principal.name, 0, 1)}">나</div>
           <div>
             <b sec:authentication="principal.name">이름</b>
             <span th:text="${#authentication.principal.roleLabel + ' · ' + #authentication.principal.team}">권한 · 소속</span>

@@ -32,8 +32,7 @@
         <option value="no" th:selected="${search.searchBy == 'no'}">공고번호</option>
         <option value="org" th:selected="${search.searchBy == 'org'}">수요기관</option>
       </select>
-      <input type="text" name="keyword" th:value="${search.keyword}" placeholder="검색어" class="w-220px">
-      <button class="btn sm" type="submit">검색</button>
+      <span class="sbox w-220px"><input type="text" name="keyword" th:value="${search.keyword}" placeholder="검색어" aria-label="검색어"><button class="sb-btn" type="submit" title="검색" aria-label="검색"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button></span>
       <select name="sort" data-change-submit aria-label="정렬">
         <option value="deadline" th:selected="${search.sort == 'deadline'}">마감일 빠른 순</option>
         <option value="recent" th:selected="${search.sort == 'recent'}">최신 순</option>

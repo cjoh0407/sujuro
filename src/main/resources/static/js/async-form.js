@@ -17,8 +17,8 @@
  *   결과가 다른 주소(로그인 만료, 다른 화면으로 이동)면 그 화면으로 그냥 이동한다.
  *   스크립트가 꺼져 있거나 오래된 브라우저면 원래대로 새로고침 방식으로 동작한다.
  *
- * 탭 전환
- *   같은 화면 안의 탭(a.tab)을 누르면 본문만 갈아 끼우고 주소(?tab=...)를 바꾼다. 빼려면 링크에 data-async="off".
+ * 탭 전환 · 화면 안 이동
+ *   같은 화면 안의 탭(a.tab), 또는 data-nav 를 붙인 링크(같은 주소에서 ?view=… 만 바뀌는 이동)를 누르면 본문만 갈아 끼우고 주소(?tab=...)를 바꾼다. 빼려면 링크에 data-async="off".
  */
 (function () {
   var meta = document.querySelector('meta[name="async-forms"]');
@@ -40,7 +40,7 @@
      가져오지 못하거나 응답이 이상하면 원래대로 그 주소로 이동한다 */
   document.addEventListener('click', function (e) {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    var a = e.target.closest && e.target.closest('a.tab');
+    var a = e.target.closest && e.target.closest('a.tab, a[data-nav]');
     if (!a || !main.contains(a) || a.getAttribute('data-async') === 'off') return;
     if (a.target && a.target !== '_self') return;
     var to = new URL(a.href, location.href);

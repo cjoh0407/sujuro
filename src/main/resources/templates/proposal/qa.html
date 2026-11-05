@@ -83,8 +83,7 @@
       <form th:action="@{/qa}" method="get" class="row mw-640px u-flex-1">
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
         <input type="hidden" name="tab" th:value="${tab}">
-        <input type="search" name="q" th:value="${q}" placeholder="질문·답변 검색" maxlength="100" class="minw-0 u-flex-1">
-        <button class="btn sm" type="submit">검색</button>
+        <span class="sbox minw-0 u-flex-1"><input type="search" name="q" th:value="${q}" placeholder="질문·답변 검색" aria-label="질문·답변 검색" maxlength="100"><button class="sb-btn" type="submit" title="검색" aria-label="검색"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button></span>
         <a class="link fs-12_5" th:if="${!#strings.isEmpty(q)}" th:href="@{/qa(bid=${bid.pbancSn}, tab=${tab})}">검색 지우기</a>
       </form>
       <form th:action="@{/qa}" method="get" class="row">

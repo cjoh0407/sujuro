@@ -158,7 +158,7 @@
   <!-- 업체 한 곳의 마지막 평가표 파일 (업로드 기록 TB_EVL_TBL_UPLD 의 마지막 줄) -->
   <select id="findCompanyEvaluationFile" resultType="com.ojj.sujuro.result.dto.EvaluationFileDTO">
     SELECT F.FILE_SN AS fileSn, F.ORGNL_FILE_NM AS orgnlFileNm, F.STRG_FILE_NM AS strgFileNm,
-           F.FILE_PATH_NM AS filePathNm, U.USER_NM AS rgtrNm, F.REG_DT AS regDt
+           F.FILE_PATH_NM AS filePathNm, U.USER_NM AS rgtrNm, F.REG_DT AS regDt, E.CMSNR_CNT AS cmsnrCnt
       FROM TB_EVL_TBL_UPLD E
       JOIN TB_ATCH_FILE F ON F.FILE_SN = E.FILE_SN
       LEFT JOIN TB_USER U ON U.USER_ID = F.RGTR_ID

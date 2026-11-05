@@ -235,6 +235,21 @@ class StatsBidListDbTest {
     }
 
     @Test
+    void 공고_기본_정보의_기관은_수요기관이고_없으면_발주기관_값을_쓴다() throws Exception {
+        // 결과가 있는 사업(won)과 아직 결과가 없는 사업(failed) 모두 같다
+        jdbc.update("UPDATE TB_BID_PBANC SET DMND_INST_NM = '(가상) 수요 기관' WHERE PBANC_SN IN (?, ?)", won, failed);
+        for (Long sn : new Long[] { won, failed }) {
+            String page = page(mgmt, "/bid-history?bid=" + sn);
+            assertTrue(page.contains("<div class=\"k\">수요기관</div><div class=\"v\">(가상) 수요 기관</div>"), "사업 " + sn);
+            assertFalse(page.contains("(가상) 시험기관"), "수요기관이 있으면 발주기관 값은 보이지 않습니다");
+            assertFalse(page.contains("<div class=\"k\">발주기관</div>"));
+        }
+
+        String fallback = page(mgmt, "/bid-history?bid=" + submitted);
+        assertTrue(fallback.contains("<div class=\"k\">수요기관</div><div class=\"v\">(가상) 시험기관</div>"), "없으면 발주기관 값을 수요기관 칸에 씁니다");
+    }
+
+    @Test
     void 평가_항목별_점수는_항목마다_업체_수만큼_막대로_그리고_항목_1등만_표시한다() throws Exception {
         jdbc.update("UPDATE TB_BID_PBANC SET PTCP_SHP_CD = 'PF010' WHERE PBANC_SN = ?", won);
         Long ours = company(won, "9999999900", "(가상) 우리 회사", 1, "Y", "Y");

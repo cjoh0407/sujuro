@@ -56,6 +56,40 @@ class NoticeDetailPageDbTest {
     @MockBean private G2bApiClient api;
 
     @Test
+    void 첨부파일_내려받기는_제안_화면과_같은_아이콘이고_새_탭으로_연다() throws Exception {
+        Long sn = insertNotice("R26BK99990055", "PP030");
+        jdbc.update("INSERT INTO TB_ATCH_FILE (PBANC_SN, FILE_SE_CD, ORGNL_FILE_NM, ORGNL_URL, RGTR_ID) VALUES (?, 'FL010', '(가상) 제안요청서.hwpx', "
+                + "'https://example.invalid/rfp', (SELECT RGTR_ID FROM TB_BID_PBANC WHERE PBANC_SN = ?))", sn, sn);
+
+        String page = page(login(MGMT), sn);
+        assertTrue(page.contains("(가상) 제안요청서.hwpx"));
+        assertTrue(page.contains("<a class=\"ico\" title=\"내려받기\" aria-label=\"내려받기\" href=\"https://example.invalid/rfp\" "
+                + "target=\"_blank\" rel=\"noopener noreferrer\"><span class=\"ic ic-download\"></span></a>"), "아이콘 링크여야 합니다");
+        assertFalse(page.contains(">내려받기</a>"), "글자 버튼은 없습니다");
+        assertTrue(page.contains("/css/proposal.css"), "아이콘 모양은 proposal.css 에 있습니다");
+    }
+
+    @Test
+    void 기관은_수요기관_한_줄이고_수요기관이_없으면_발주기관_값을_쓴다() throws Exception {
+        MockHttpSession session = login(MGMT);
+        Long noDemand = insertNotice("R26BK99990053", "PP030");
+        Long withDemand = insertNotice("R26BK99990054", "PP030");
+        jdbc.update("UPDATE TB_BID_PBANC SET DMND_INST_NM = '(가상) 수요 기관' WHERE PBANC_SN = ?", withDemand);
+
+        String demand = page(session, withDemand);
+        assertTrue(demand.matches("(?s).*<div class=\"k\">수요기관</div>\\s*<div class=\"v\">\\(가상\\) 수요 기관</div>.*"), "수요기관 값을 보여 줍니다");
+        assertFalse(demand.contains("(가상) 시험기관"), "수요기관이 있으면 발주기관 값은 보이지 않습니다");
+
+        String fallback = page(session, noDemand);
+        assertTrue(fallback.matches("(?s).*<div class=\"k\">수요기관</div>\\s*<div class=\"v\">\\(가상\\) 시험기관</div>.*"), "없으면 발주기관 값을 수요기관 칸에 씁니다");
+
+        for (String page : new String[] { demand, fallback }) {
+            assertEquals(1, count(page, "<div class=\"k\">수요기관</div>"));
+            assertEquals(0, count(page, "<div class=\"k\">발주기관</div>"));
+        }
+    }
+
+    @Test
     void 사전규격_단계는_의견등록_마감을_강조해_보인다() throws Exception {
         String page = page(login(MGMT), insertNotice("R26BK99990051", "PP020"));
 

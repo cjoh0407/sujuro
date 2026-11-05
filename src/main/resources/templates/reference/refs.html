@@ -80,6 +80,7 @@
           <tr class="hv" th:each="f : ${files}">
             <td class="c-pv">
               <img th:if="${f.previewable}" class="ref-thumb" th:src="@{/refs/view(refFileSn=${f.refFileSn})}" th:alt="${f.orgnlFileNm}" loading="lazy">
+              <span th:unless="${f.previewable}" class="ref-doc" aria-hidden="true"><span class="ic ic-file"></span></span>
             </td>
             <td>
               <div class="ref-nm" th:text="${f.orgnlFileNm}" th:title="${f.orgnlFileNm}">파일명.ttf</div>

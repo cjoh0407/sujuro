@@ -57,7 +57,6 @@
     <div class="card" th:if="${showDeleted}">
       <div class="card-head">
         <h3 th:text="'삭제된 파일 (' + ${deletedCnt} + ')'">삭제된 파일</h3>
-        <span class="faint" style="font-size:11.5px">목록에서만 숨긴 파일입니다. 원본과 기록은 보관되며 내려받을 수 있습니다.</span>
       </div>
       <div class="ts">
         <table>
@@ -88,8 +87,6 @@
 
     <!-- ===== 목차별 파일 (FR-058, FR-059, FR-063, FR-066): 최하위 목차마다 담당자가 올린다 ===== -->
     <th:block th:unless="${tab == 'full'}">
-      <div class="banner info" th:if="${tab == 'sum'}">제안요약서(발표본)도 제안서 파트별 파일처럼 목차마다 담당자가 파일을 올리고 버전과 진행 상태를 관리합니다. 필수 제출서류에 명시되지 않아도 대부분 요구되므로 기본으로 제공합니다.</div>
-
       <div class="card" th:if="${#lists.isEmpty(leaves)}">
         <div class="empty" th:text="${tab == 'sum'} ? '제안요약서 목차가 아직 없습니다. 스토리보드 관리 화면의 &quot;제안요약서 목차&quot; 탭에서 목차를 만드세요.' : '목차가 아직 없습니다. 먼저 스토리보드 관리 화면에서 목차를 만드세요.'">목차가 아직 없습니다.</div>
       </div>
@@ -144,7 +141,7 @@
                     th:text="${t.label + ' · ' + (t.ownerLabel ?: '미지정')}">1.1 목차</option>
           </th:block>
         </select>
-        <div class="up-top" th:if="${tab == 'full'}">전체 제안서 통합본으로 올립니다 (1차, 2차처럼 버전이 쌓입니다).</div>
+        <div class="up-top" th:if="${tab == 'full'}">전체 제안서 통합본</div>
         <label class="drop">
           <input type="file" name="file" required accept=".pdf,.ppt,.pptx" th:data-max-mb="${tab == 'full'} ? 300 : 50">
           <span class="ic ic-upload"></span>

@@ -16,6 +16,9 @@
  *   5) onPageReady 로 등록한 함수를 다시 불러 새 내용에 이벤트를 붙인다.
  *   결과가 다른 주소(로그인 만료, 다른 화면으로 이동)면 그 화면으로 그냥 이동한다.
  *   스크립트가 꺼져 있거나 오래된 브라우저면 원래대로 새로고침 방식으로 동작한다.
+ *
+ * 탭 전환
+ *   같은 화면 안의 탭(a.tab)을 누르면 본문만 갈아 끼우고 주소(?tab=...)를 바꾼다. 빼려면 링크에 data-async="off".
  */
 (function () {
   var meta = document.querySelector('meta[name="async-forms"]');
@@ -31,6 +34,34 @@
     if (form.target && form.target !== '_self') return;
     e.preventDefault();
     send(form, e.submitter);
+  });
+
+  /* 탭 전환(a.tab): 같은 화면 안에서 탭만 바뀔 때는 본문만 갈아 끼운다. 새 탭·Ctrl/Shift 클릭, 다른 화면으로 가는 링크는 그대로 이동한다.
+     가져오지 못하거나 응답이 이상하면 원래대로 그 주소로 이동한다 */
+  document.addEventListener('click', function (e) {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = e.target.closest && e.target.closest('a.tab');
+    if (!a || !main.contains(a) || a.getAttribute('data-async') === 'off') return;
+    if (a.target && a.target !== '_self') return;
+    var to = new URL(a.href, location.href);
+    if (to.origin !== location.origin || to.pathname !== location.pathname || to.href === location.href) return;
+    e.preventDefault();
+    if (main.classList.contains('async-busy')) return;
+    main.classList.add('async-busy');
+    fetch(to.href, { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
+      .then(function (res) {
+        return res.text().then(function (html) { return { res: res, html: html }; });
+      })
+      .then(function (r) {
+        var next = r.res.ok && new URL(r.res.url).pathname === location.pathname
+          ? new DOMParser().parseFromString(r.html, 'text/html').querySelector('main.content') : null;
+        if (!next) { location.href = to.href; return; }
+        swap(next);
+        history.pushState({ async: true }, '', r.res.url);
+        pushed = true;
+      })
+      .catch(function () { location.href = to.href; })
+      .then(function () { main.classList.remove('async-busy'); });
   });
 
   // 검색(GET)으로 바꾼 주소에서 [뒤로 가기] 하면 그 주소 화면을 새로 연다
@@ -84,12 +115,14 @@
       b.remove();
     });
     var scrolls = keepScroll();
+    var opened = Array.prototype.map.call(main.querySelectorAll('details'), function (d) { return d.open; }); // 펼쳐 둔 "지난 사업" 등
     var focusId = document.activeElement && document.activeElement.id;
     var y = window.scrollY;
 
     main.innerHTML = next.innerHTML;
 
     restoreScroll(scrolls);
+    Array.prototype.forEach.call(main.querySelectorAll('details'), function (d, i) { if (opened[i]) d.open = true; });
     window.scrollTo(window.scrollX, y);
     if (focusId) {
       var f = document.getElementById(focusId);

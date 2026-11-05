@@ -78,8 +78,6 @@
          th:text="'발표 Q&amp;A (' + ${prsCnt} + ')'">발표 Q&amp;A (0)</a>
     </div>
 
-    <div class="banner info" th:unless="${canWrite}">영업부·경영지원실은 질의응답 기록을 볼 수만 있습니다. 입력·수정·삭제는 그 사업건의 제안팀이 합니다.</div>
-
     <!-- 검색 · 이전 사업 Q&amp;A 보기 -->
     <div class="qa-bar">
       <form th:action="@{/qa}" method="get" class="row" style="flex:1;max-width:640px">
@@ -227,7 +225,7 @@
                 <option value="">선택 안 함</option>
                 <option th:each="r : ${rqts}" th:value="${r.rqtMttrSn}" th:text="${r.rqtMttrNo + ' ' + r.rqtMttrNm}">SFR-001 요구사항명</option>
               </select>
-              <span class="faint" style="font-size:11.5px" th:if="${#lists.isEmpty(rqts)}">이 사업건에 등록한 요구사항이 없습니다. 제안서 목차 화면에서 요구사항을 먼저 추가하세요.</span>
+              <span class="faint" style="font-size:11.5px" th:if="${#lists.isEmpty(rqts)}">등록한 요구사항이 없습니다.</span>
             </div>
           </div>
           <div class="pad row qa-pop-act">

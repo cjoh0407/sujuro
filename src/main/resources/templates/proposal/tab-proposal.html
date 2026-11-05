@@ -36,7 +36,6 @@
       <b style="font-size:12.5px">
         제안서 분량 합계 <span th:text="${totalPages}">0</span>
         <th:block th:if="${bid.lmtPageCnt != null}"> / <span th:text="${bid.lmtPageCnt}">0</span></th:block>쪽
-        <span class="faint" style="font-weight:400">(초안 기능 · 제안요청서의 페이지 제한)</span>
       </b>
       <form th:if="${canAssign}" th:action="@{/proposal/limit}" method="post" class="row">
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
@@ -53,7 +52,7 @@
     목차별 예상 쪽수의 합계(<span th:text="${totalPages}">0</span>쪽)가 제한(<span th:text="${bid.lmtPageCnt}">0</span>쪽)을 넘었습니다. 분량을 조정하세요.
   </div>
   <div class="banner warn" th:if="${!#lists.isEmpty(tocs) and rqtTotal > 0 and unmapped > 0}">
-    <span>어느 목차에도 연결되지 않은 요구사항(미매핑)이 <b th:text="${unmapped} + '건'">0건</b> 있습니다. 모든 요구사항은 반드시 목차에 연결되어야 합니다.</span>
+    <span>어느 목차에도 연결되지 않은 요구사항(미매핑)이 <b th:text="${unmapped} + '건'">0건</b> 있습니다.</span>
   </div>
 
   <!-- 목차가 없으면: 팀 양식 불러오기 / 직접 목차 만들기 (FR-046, FR-047) -->
@@ -81,7 +80,6 @@
       <div class="card-head">
         <h3 th:text="'미매핑 요구사항 ' + ${unmapped} + '건 · ' + ${bid.label}">미매핑 요구사항</h3>
         <span class="row" style="gap:8px">
-          <span class="faint" style="font-size:11.5px">모든 요구사항은 세부 목차 하나에 연결되어야 합니다 · 담당자를 지정한 세부 목차만 고를 수 있습니다</span>
           <!-- 요구사항 전체 삭제 (주관팀 팀장): 추출을 다시 할 때. 목차 연결도 함께 사라진다 -->
           <form th:if="${canAssign and rqtTotal > 0}" th:action="@{/proposal/rqt/delete-all}" method="post" style="display:inline"
                 th:data-msg="'이 사업건의 요구사항 ' + ${rqtTotal} + '건을 모두 삭제합니다.'
@@ -94,7 +92,7 @@
         </span>
       </div>
       <div class="banner info" style="margin:10px 14px 0" th:if="${!#lists.isEmpty(unmappedList) and #lists.isEmpty(mapTargets)}">
-        <span>아직 연결할 수 있는 세부 목차가 없습니다. 목차를 만들고 최하위 목차에 담당자를 지정하면 여기서 연결할 수 있습니다.</span>
+        <span>연결할 수 있는 세부 목차가 없습니다.</span>
       </div>
       <div class="ts">
         <table>
@@ -106,7 +104,7 @@
               <td><th:block th:replace="~{proposal/fragments/rqt :: rqPickToc(${q})}"></th:block></td>
             </tr>
             <tr th:if="${#lists.isEmpty(unmappedList)}"><td colspan="3" class="empty"
-                th:text="${rqtTotal == 0} ? '아직 등록된 요구사항이 없습니다. 아래에서 제안요청서 PDF로 추출하거나 수기로 등록하세요.' : '미매핑 요구사항이 없습니다. 모든 요구사항이 목차에 연결됐습니다.'">미매핑 요구사항이 없습니다.</td></tr>
+                th:text="${rqtTotal == 0} ? '등록된 요구사항이 없습니다.' : '미매핑 요구사항이 없습니다.'">미매핑 요구사항이 없습니다.</td></tr>
           </tbody>
         </table>
       </div>
@@ -128,7 +126,7 @@
     <!-- 목차 · 담당자 · 요구사항 연결 (FR-047, FR-049, FR-051) -->
     <div class="card" th:with="cols=${canEdit ? 6 : 5}">
       <div class="card-head">
-        <h3 th:text="${bid.label} + ' · 제안서 목차 · 담당자 · 요구사항 (이 사업건만 수정됨)'">제안서 목차</h3>
+        <h3 th:text="${bid.label} + ' · 제안서 목차 · 담당자 · 요구사항'">제안서 목차</h3>
         <button type="button" class="btn sm" id="tocModeBtn" th:if="${canEdit}" onclick="toggleTocMode()">수정 모드로 바꾸기</button>
       </div>
       <div class="pad" style="padding-bottom:0"><th:block th:replace="~{proposal/fragments/toc :: curForm}"></th:block></div>
@@ -137,8 +135,6 @@
           <span class="faint" style="font-size:11.5px">
             요구사항 연결 진행률 <b style="color:var(--text)" th:text="${progress} + '%'">0%</b>
             (<span th:text="${rqtTotal - unmapped}">0</span>/<span th:text="${rqtTotal}">0</span>)
-            · 요구사항 하나는 가장 하위 목차 하나에만 연결됩니다(비기능 요구사항 포함)
-            · 담당자를 지정한 세부 목차부터 연결할 수 있습니다
           </span>
           <span class="row" style="gap:6px">
             <span class="pill success" th:if="${unmapped == 0 and rqtTotal > 0}">미매핑 없음</span>
@@ -206,7 +202,7 @@
                     <th:block th:replace="~{proposal/fragments/rqt :: rqAdd(${t})}"></th:block>
                   </td>
                   <td colspan="2" class="faint" th:if="${nn == 0}"
-                      th:text="${t.assigned} ? '연결된 요구사항 없음' : '담당자를 지정하면 요구사항을 연결할 수 있습니다'">연결된 요구사항 없음</td>
+                      th:text="${t.assigned} ? '연결된 요구사항 없음' : '담당자 미지정'">연결된 요구사항 없음</td>
 
                   <td th:if="${i == 0}" th:rowspan="${n}" class="vtop">
                     <th:block th:replace="~{proposal/fragments/toc :: pages(${t})}"></th:block>

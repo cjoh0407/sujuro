@@ -45,7 +45,6 @@
 <!-- 사업명 줄 -->
 <div class="biz" th:fragment="bizHead">
   <b th:text="${bid.label}">사업명</b>
-  <span class="faint" th:text="${(bid.instNm ?: '-') + ' · ' + (bid.bidPbancNo ?: '-')}">기관 · 공고번호</span>
   <span class="pill neutral" th:text="${bid.pbancSttsNm}">제안 작성 중</span>
 </div>
 

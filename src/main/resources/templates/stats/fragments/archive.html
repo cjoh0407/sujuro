@@ -63,14 +63,14 @@
   </div>
 
   <div class="card pending-card" th:if="${archive.pending}">
-    <div class="card-head"><h3>장단점 분석</h3></div>
+    <div class="card-head"><h3>분석 기록</h3></div>
     <div class="pending-msg sm" th:text="${archive.pendingMessage}">아직 입찰 진행 중인 사업건입니다.</div>
   </div>
 
   <!-- 장단점 분석 (FR-081). 담당 팀 팀장이 평가·결과 입력에서 적는다 -->
   <div class="card" th:unless="${archive.pending}">
     <div class="card-head">
-      <h3>장단점 분석</h3>
+      <h3>분석 기록</h3>
     </div>
     <div class="pad grid3 analysis">
       <div>

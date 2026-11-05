@@ -51,7 +51,8 @@
           <line class="grid" th:x1="${c.axisLeft}" th:x2="${c.axisRight}" th:y1="${g.y}" th:y2="${g.y}"></line>
           <text class="tick" th:x="${c.tickX}" th:y="${g.y}" dy="3" text-anchor="end" th:text="${g.label}">0</text>
         </g>
-        <g th:each="g : ${c.groups}">
+        <!--/* --gi: 항목 순서. 사업 이력 관리에서 막대가 항목 순서대로 차례로 자라게 한다 (stats.css) */-->
+        <g th:each="g, gs : ${c.groups}" th:style="|--gi:${gs.index}|">
           <g class="co-bar" th:each="b : ${g.bars}" th:classappend="${b.first} ? 'first'">
             <title th:text="${b.title}">업체 · 항목 0 / 0</title>
             <rect class="hit" th:x="${b.hitX}" th:y="${b.hitY}" th:width="${b.hitWidth}" th:height="${b.hitHeight}"></rect>

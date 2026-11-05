@@ -32,24 +32,25 @@
 
   <!-- 분량 합계 (FR-055, 초안 기능). 제한은 주관팀 팀장이 정한다. -->
   <div class="card pad">
-    <div class="row" style="justify-content:space-between">
-      <b style="font-size:12.5px">
-        제안서 분량 합계 <span th:text="${totalPages}">0</span>
-        <th:block th:if="${bid.lmtPageCnt != null}"> / <span th:text="${bid.lmtPageCnt}">0</span></th:block>쪽
+    <div class="row jc-between">
+      <b class="fs-12_5">
+        제안서 분량
+        <th:block th:if="${bid.lmtPageCnt == null}">합계 <span th:text="${totalPages}">0</span>쪽</th:block>
       </b>
       <form th:if="${canAssign}" th:action="@{/proposal/limit}" method="post" class="row">
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
         <span class="lbl">제한</span>
-        <input type="number" name="limit" min="1" max="9999" th:value="${bid.lmtPageCnt}" style="width:80px"
+        <input type="number" name="limit" min="1" max="9999" th:value="${bid.lmtPageCnt}" class="w-80px"
                onchange="this.form.requestSubmit()">
       </form>
     </div>
-    <div class="bar" th:classappend="${overPages > 0} ? 'red'" style="margin-top:8px" th:if="${bid.lmtPageCnt != null}">
-      <i th:style="'width:' + ${T(java.lang.Math).min(100, totalPages * 100 / bid.lmtPageCnt)} + '%'"></i>
+    <div class="gauge mt-8" data-gauge="pages" th:if="${bid.lmtPageCnt != null}"
+         th:classappend="${overPages > 0} ? 'red' : (${totalPages * 100 / bid.lmtPageCnt < 20} ? 'low')">
+      <i th:style="'width:' + ${T(java.lang.Math).min(100, totalPages * 100 / bid.lmtPageCnt)} + '%'"><em th:text="|${totalPages} / ${bid.lmtPageCnt}쪽|">0 / 200쪽</em></i>
     </div>
   </div>
   <div class="banner err" th:if="${overPages > 0}">
-    목차별 예상 쪽수의 합계(<span th:text="${totalPages}">0</span>쪽)가 제한(<span th:text="${bid.lmtPageCnt}">0</span>쪽)을 넘었습니다. 분량을 조정하세요.
+    목차별 예상 쪽수의 합계(<span th:text="${totalPages}">0</span>쪽)가 제한(<span th:text="${bid.lmtPageCnt}">0</span>쪽)을 넘었습니다. 분량을 조정해 주세요.
   </div>
   <div class="banner warn" th:if="${!#lists.isEmpty(tocs) and rqtTotal > 0 and unmapped > 0}">
     <span>어느 목차에도 연결되지 않은 요구사항(미매핑)이 <b th:text="${unmapped} + '건'">0건</b> 있습니다.</span>
@@ -66,7 +67,7 @@
     <div class="empty">
       아직 제안서 목차가 없습니다.<br><br>
       <th:block th:replace="~{proposal/fragments/toc :: emptyToc('prop')}"></th:block>
-      <div style="margin-top:14px" th:if="${canReq or rqtTotal > 0}">
+      <div class="mt-16" th:if="${canReq or rqtTotal > 0}">
         <a class="btn sm" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped')}"
            th:text="${rqtTotal > 0} ? '등록된 요구사항 ' + ${rqtTotal} + '건 보기 →' : '요구사항 먼저 등록하기 →'">요구사항 먼저 등록하기 →</a>
       </div>
@@ -79,9 +80,9 @@
     <div class="card">
       <div class="card-head">
         <h3 th:text="'미매핑 요구사항 ' + ${unmapped} + '건 · ' + ${bid.label}">미매핑 요구사항</h3>
-        <span class="row" style="gap:8px">
+        <span class="row gap-8">
           <!-- 요구사항 전체 삭제 (주관팀 팀장): 추출을 다시 할 때. 목차 연결도 함께 사라진다 -->
-          <form th:if="${canAssign and rqtTotal > 0}" th:action="@{/proposal/rqt/delete-all}" method="post" style="display:inline"
+          <form th:if="${canAssign and rqtTotal > 0}" th:action="@{/proposal/rqt/delete-all}" method="post" class="d-inline"
                 th:data-msg="'이 사업건의 요구사항 ' + ${rqtTotal} + '건을 모두 삭제합니다.'
                              + (${rqtTotal - unmapped > 0} ? ' 목차에 연결된 ' + ${rqtTotal - unmapped} + '건의 연결도 함께 사라집니다.' : '')
                              + ' 삭제하면 되돌릴 수 없습니다. 삭제할까요?'"
@@ -91,7 +92,7 @@
           </form>
         </span>
       </div>
-      <div class="banner info" style="margin:10px 14px 0" th:if="${!#lists.isEmpty(unmappedList) and #lists.isEmpty(mapTargets)}">
+      <div class="banner info u-margin-12px-16px-0" th:if="${!#lists.isEmpty(unmappedList) and #lists.isEmpty(mapTargets)}">
         <span>연결할 수 있는 세부 목차가 없습니다.</span>
       </div>
       <div class="ts">
@@ -129,26 +130,27 @@
         <h3 th:text="${bid.label} + ' · 제안서 목차 · 담당자 · 요구사항'">제안서 목차</h3>
         <button type="button" class="btn sm" id="tocModeBtn" th:if="${canEdit}" onclick="toggleTocMode()">수정 모드로 바꾸기</button>
       </div>
-      <div class="pad" style="padding-bottom:0"><th:block th:replace="~{proposal/fragments/toc :: curForm}"></th:block></div>
-      <div class="pad" style="padding-bottom:0">
-        <div class="row" style="justify-content:space-between">
-          <span class="faint" style="font-size:11.5px">
-            요구사항 연결 진행률 <b style="color:var(--text)" th:text="${progress} + '%'">0%</b>
-            (<span th:text="${rqtTotal - unmapped}">0</span>/<span th:text="${rqtTotal}">0</span>)
+      <div class="pad pb-0"><th:block th:replace="~{proposal/fragments/toc :: curForm}"></th:block></div>
+      <div class="pad pb-0">
+        <div class="row jc-between">
+          <span class="faint fs-11_5">
+            요구사항 연결
           </span>
-          <span class="row" style="gap:6px">
+          <span class="row gap-8">
             <span class="pill success" th:if="${unmapped == 0 and rqtTotal > 0}">미매핑 없음</span>
             <a class="btn sm" th:classappend="${unmapped > 0} ? 'danger'" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped')}"
                th:text="${unmapped > 0} ? '미매핑 ' + ${unmapped} + '건 · 요구사항 추가 →' : '요구사항 추가 →'">요구사항 추가 →</a>
           </span>
         </div>
-        <div class="bar ok" style="margin-top:6px"><i th:style="'width:' + ${progress} + '%'"></i></div>
+        <div class="gauge mt-8" data-gauge="rqt" th:classappend="${progress >= 100} ? 'ok' : (${progress < 20} ? 'low')">
+          <i th:style="'width:' + ${progress} + '%'"><em th:text="|${progress}% · ${rqtTotal - unmapped}/${rqtTotal}|">0% · 0/0</em></i>
+        </div>
       </div>
       <div class="ts">
         <table>
           <thead>
             <tr>
-              <th>세부 목차</th><th>담당자</th><th>요구사항 ID</th><th style="width:34%">요구사항 명칭</th><th>예상 쪽수</th>
+              <th>세부 목차</th><th>담당자</th><th>요구사항 ID</th><th class="w-34p">요구사항 명칭</th><th>예상 쪽수</th>
               <th th:if="${canEdit}" class="col-edit"></th>
             </tr>
           </thead>
@@ -156,12 +158,12 @@
             <tr th:if="${#lists.isEmpty(tocs)}">
               <!-- 목차가 하나도 없으면 안내 대신 바로 첫 1단계 목차를 적게 한다 (만든 목차는 현재 양식에 바로 저장) -->
               <td th:colspan="${cols}" class="empty" th:unless="${canEdit}">아직 목차가 없습니다.</td>
-              <td th:colspan="${cols}" th:if="${canEdit}" style="padding:18px 12px">
-                <form th:action="@{/proposal/toc/add}" method="post" class="row" style="justify-content:center">
+              <td th:colspan="${cols}" th:if="${canEdit}" class="u-padding-16px-12px">
+                <form th:action="@{/proposal/toc/add}" method="post" class="row jc-center">
                   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                   <input type="hidden" name="tab" value="prop">
                   <span class="faint">아직 목차가 없습니다. 첫 1단계 목차를 적어 주세요.</span>
-                  <input type="text" name="label" placeholder="1단계 목차 이름" maxlength="250" required data-track style="width:240px" autocomplete="off">
+                  <input type="text" name="label" placeholder="1단계 목차 이름" maxlength="250" required data-track class="w-240px" autocomplete="off">
                   <button class="btn sm primary" type="submit">목차 추가</button>
                 </form>
               </td>

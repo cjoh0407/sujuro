@@ -251,3 +251,97 @@ a.bellbtn{display:flex;align-items:center;justify-content:center;text-decoration
 .dlg.danger .dlg-ok{background:var(--danger);border-color:var(--danger);color:#fff}
 @keyframes dlgFade{from{opacity:0}to{opacity:1}}
 @keyframes dlgPop{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:none}}
+
+/* ===== 공용 유틸 클래스 (UI 표준안 v1.0: 인라인 style 대신 사용) ===== */
+.fs-11_5{font-size:11.5px !important}
+.pt-0{padding-top:0 !important}
+.stack-12{display:flex !important;flex-direction:column !important;gap:12px !important}
+.jc-end{justify-content:flex-end !important}
+.col-all{grid-column:1 / -1 !important}
+.w-240px{width:240px !important}
+.mw-100p{max-width:100% !important}
+.w-220px{width:220px !important}
+.sh-330{--scroll-h:330px !important}
+.sh-420{--scroll-h:420px !important}
+.sh-340{--scroll-h:340px !important}
+.sh-480{--scroll-h:480px !important}
+.sh-360{--scroll-h:360px !important}
+.fs-26{font-size:26px !important}
+.jc-center{justify-content:center !important}
+.stack-16{display:flex !important;flex-direction:column !important;gap:16px !important}
+.fs-19{font-size:19px !important}
+.d-inline{display:inline !important}
+.w-200px{width:200px !important}
+.fw-normal{font-weight:400 !important}
+.w-44px{width:44px !important}
+.w-90px{width:90px !important}
+.w-160px{width:160px !important}
+.w-60px{width:60px !important}
+.jc-between{justify-content:space-between !important}
+.u-padding-12px{padding:12px !important}
+.u-padding-4px-12px-8px{padding:4px 12px 8px !important}
+.fs-12_5{font-size:12.5px !important}
+.u-cursor-pointer-padding-left-8px{cursor:pointer !important;padding-left:8px !important}
+.minw-0{min-width:0 !important}
+.w-30px{width:30px !important}
+.c-text{color:var(--text) !important}
+.u-display-inline-flex-gap-3px{display:inline-flex !important;gap:3px !important}
+.mw-260px{max-width:260px !important}
+.mw-280px{max-width:280px !important}
+.stack-8{display:flex !important;flex-direction:column !important;gap:8px !important}
+.u-margin-8px-0-0-16px-padding-0{margin:8px 0 0 16px !important;padding:0 !important}
+.u-max-height-520px-overflow-auto{max-height:520px !important;overflow:auto !important}
+.w-34px{width:34px !important}
+.w-56px{width:56px !important}
+.w-150px{width:150px !important}
+.w-120px{width:120px !important}
+.w-130px{width:130px !important}
+.w-full{width:100% !important}
+.gap-16{gap:16px !important}
+.u-align-items-flex-start{align-items:flex-start !important}
+.w-190px{width:190px !important}
+.w-280px{width:280px !important}
+.mw-210px{max-width:210px !important}
+.w-64px{width:64px !important}
+.mw-640px{max-width:640px !important}
+.u-flex-1{flex:1 !important}
+.pb-0{padding-bottom:0 !important}
+.w-32p{width:32% !important}
+.w-22p{width:22% !important}
+.w-34p{width:34% !important}
+.w-24p{width:24% !important}
+.w-80px{width:80px !important}
+.mt-8{margin-top:8px !important}
+.mt-16{margin-top:16px !important}
+.gap-8{gap:8px !important}
+.u-margin-12px-16px-0{margin:12px 16px 0 !important}
+.u-padding-16px-12px{padding:16px 12px !important}
+.nowrap{white-space:nowrap !important}
+.mt-0{margin-top:0 !important}
+.u-border-top-0{border-top:0 !important}
+.w-72px{width:72px !important}
+.mb-12{margin-bottom:12px !important}
+.fs-14{font-size:14px !important}
+.u-flex-wrap-wrap{flex-wrap:wrap !important}
+.pos-abs{position:absolute !important}
+.u-margin-0-padding-left-16px{margin:0 !important;padding-left:16px !important}
+.ta-center{text-align:center !important}
+.mw-420px{max-width:420px !important}
+.gap-4{gap:4px !important}
+.u-flex-direction-column-align-items-flex-s{flex-direction:column !important;align-items:flex-start !important}
+.u-padding-bottom-12px{padding-bottom:12px !important}
+.c-danger{color:var(--danger) !important}
+
+/* ===== 추가 토큰 (UI 표준안 v1.0: 화면 CSS에서 색을 직접 쓰지 않는다) ===== */
+:root{--line-strong:#C3CCDA;--overlay:rgba(15,19,24,.45);--shadow-pop:0 8px 24px rgba(15,19,24,.18);--on-accent:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--line-strong:#38414D;--overlay:rgba(0,0,0,.6);--shadow-pop:0 8px 24px rgba(0,0,0,.45)}}
+:root[data-theme="dark"]{--line-strong:#38414D;--overlay:rgba(0,0,0,.6);--shadow-pop:0 8px 24px rgba(0,0,0,.45)}
+
+/* ===== 진행 게이지 (굵은 막대 + 안쪽 수치). 값이 바뀌면 async-form.js가 이전 값에서 차오르게 한다 ===== */
+.gauge{position:relative;height:22px;border-radius:8px;background:var(--alt);border:1px solid var(--border)}
+.gauge>i{display:block;position:relative;height:100%;border-radius:7px;background:linear-gradient(90deg,var(--accent-s),var(--accent));transition:width .7s cubic-bezier(.22,1,.36,1)}
+.gauge>i>em{position:absolute;right:8px;top:0;line-height:20px;font-style:normal;font-size:11.5px;font-weight:700;color:var(--on-accent);white-space:nowrap}
+.gauge.low>i>em{right:auto;left:calc(100% + 8px);color:var(--muted)}
+.gauge.ok>i{background:var(--success)}
+.gauge.red>i{background:var(--danger)}
+@media (prefers-reduced-motion:reduce){.gauge>i{transition:none}}

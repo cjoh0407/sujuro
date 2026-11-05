@@ -61,7 +61,7 @@
               <option th:each="r : ${rqts}" th:value="${r.rqtMttrSn}" th:text="${r.rqtMttrNo + ' ' + r.rqtMttrNm}">SFR-001 요구사항명</option>
             </select>
           </label>
-          <div class="row" style="justify-content:flex-end">
+          <div class="row jc-end">
             <button class="btn sm primary" type="submit">등록</button>
           </div>
         </form>
@@ -80,12 +80,12 @@
 
     <!-- 검색 · 이전 사업 Q&amp;A 보기 -->
     <div class="qa-bar">
-      <form th:action="@{/qa}" method="get" class="row" style="flex:1;max-width:640px">
+      <form th:action="@{/qa}" method="get" class="row mw-640px u-flex-1">
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
         <input type="hidden" name="tab" th:value="${tab}">
-        <input type="search" name="q" th:value="${q}" placeholder="질문·답변 검색" maxlength="100" style="flex:1;min-width:0">
+        <input type="search" name="q" th:value="${q}" placeholder="질문·답변 검색" maxlength="100" class="minw-0 u-flex-1">
         <button class="btn sm" type="submit">검색</button>
-        <a class="link" style="font-size:12px" th:if="${!#strings.isEmpty(q)}" th:href="@{/qa(bid=${bid.pbancSn}, tab=${tab})}">검색 지우기</a>
+        <a class="link fs-12_5" th:if="${!#strings.isEmpty(q)}" th:href="@{/qa(bid=${bid.pbancSn}, tab=${tab})}">검색 지우기</a>
       </form>
       <form th:action="@{/qa}" method="get" class="row">
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
@@ -104,14 +104,14 @@
         <h3>
           <span class="pill neutral">이전 사업</span>
           <span th:text="${pastBid.label}">사업명</span>
-          <span class="faint" style="font-weight:400" th:text="'· Q&amp;A ' + ${pastBid.qnaCnt} + '건'">· Q&amp;A 0건</span>
+          <span class="faint fw-normal" th:text="'· Q&amp;A ' + ${pastBid.qnaCnt} + '건'">· Q&amp;A 0건</span>
         </h3>
         <a class="btn sm" th:href="@{/qa(bid=${bid.pbancSn}, tab=${tab}, q=${q})}">닫기</a>
       </div>
-      <div class="pad faint" style="font-size:11.5px;padding-bottom:0">읽기 전용입니다. 참고할 질문과 답변이 있으면 아래 등록 칸에 옮겨 적으세요.</div>
+      <div class="pad faint fs-11_5 pb-0">읽기 전용입니다. 참고할 질문과 답변이 있으면 아래 등록 칸에 옮겨 적으세요.</div>
       <div class="ts">
         <table class="qa-grid">
-          <colgroup><col style="width:64px"><col style="width:32%"><col><col style="width:22%"></colgroup>
+          <colgroup><col class="w-64px"><col class="w-32p"><col><col class="w-22p"></colgroup>
           <thead><tr><th>구분</th><th>질문</th><th>답변</th><th>관련 요구사항</th></tr></thead>
           <tbody th:each="g : ${pastGroups}">
             <tr class="qa-group"><td colspan="4" th:text="${g.title} + ' (' + ${#lists.size(g.items)} + ')'">Ⅰ. 사업의 이해 (2)</td></tr>
@@ -139,9 +139,9 @@
       <div class="card-head">
         <h3>
           <span th:text="${prs} ? '발표 Q&amp;A' : '예상 Q&amp;A'">예상 Q&amp;A</span>
-          <span class="faint" style="font-weight:400" th:if="${!#strings.isEmpty(q)}"
+          <span class="faint fw-normal" th:if="${!#strings.isEmpty(q)}"
                 th:text="'· \'' + ${q} + '\' 검색 결과 ' + ${foundCnt} + ' / ' + ${itemCnt} + '건'">· 검색 결과</span>
-          <span class="faint" style="font-weight:400" th:if="${unansweredCnt > 0}" th:text="'· 답변 미작성 ' + ${unansweredCnt} + '건'">· 답변 미작성 0건</span>
+          <span class="faint fw-normal" th:if="${unansweredCnt > 0}" th:text="'· 답변 미작성 ' + ${unansweredCnt} + '건'">· 답변 미작성 0건</span>
         </h3>
       </div>
 
@@ -151,7 +151,7 @@
 
       <div class="ts" th:if="${foundCnt > 0}">
         <table class="qa-grid">
-          <colgroup><col style="width:34%"><col><col style="width:24%"></colgroup>
+          <colgroup><col class="w-34p"><col><col class="w-24p"></colgroup>
           <thead><tr><th>질문</th><th>답변</th><th>관련 요구사항</th></tr></thead>
           <tbody th:each="g : ${groups}">
             <tr class="qa-group"><td colspan="3" th:text="${g.title} + ' (' + ${#lists.size(g.items)} + ')'">Ⅰ. 사업의 이해 (2)</td></tr>
@@ -225,7 +225,7 @@
                 <option value="">선택 안 함</option>
                 <option th:each="r : ${rqts}" th:value="${r.rqtMttrSn}" th:text="${r.rqtMttrNo + ' ' + r.rqtMttrNm}">SFR-001 요구사항명</option>
               </select>
-              <span class="faint" style="font-size:11.5px" th:if="${#lists.isEmpty(rqts)}">등록한 요구사항이 없습니다.</span>
+              <span class="faint fs-11_5" th:if="${#lists.isEmpty(rqts)}">등록한 요구사항이 없습니다.</span>
             </div>
           </div>
           <div class="pad row qa-pop-act">

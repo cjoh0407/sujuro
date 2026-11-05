@@ -38,7 +38,7 @@
       <div class="card" id="upCard" th:if="${open}">
         <div class="card-head">
           <h3>서류 파일 올리기</h3>
-          <span class="faint" style="font-size:11.5px">최대 50MB</span>
+          <span class="faint fs-11_5">최대 50MB</span>
         </div>
         <form th:action="@{/docs/upload}" method="post" enctype="multipart/form-data" class="pad mp-form">
           <input type="hidden" name="bid" th:value="${bid.pbancSn}">
@@ -55,7 +55,7 @@
               <span class="drop-hint"></span>
             </span>
           </label>
-          <div class="row" style="justify-content:flex-end">
+          <div class="row jc-end">
             <button class="btn sm primary" type="submit">올리기</button>
           </div>
         </form>
@@ -132,13 +132,13 @@
                 <div class="file-line">
                 <div th:if="${d.fileSn != null}" class="file-info">
                   <span th:text="${d.orgnlFileNm}">파일명</span>
-                  <span class="faint" style="font-size:11px"
+                  <span class="faint fs-11_5"
                         th:text="${(d.fileRgtrNm ?: '') + ' · ' + #dates.format(d.fileRegDt, 'yyyy-MM-dd HH:mm') + ' · ' + d.sizeLabel + (d.fileCnt > 1 ? ' · v' + d.fileCnt : '')}">올린 사람 · 일시</span>
                 </div>
                 <span class="faint" th:if="${d.fileSn == null}">없음</span>
                 <div class="row file-acts">
                   <a class="ico" th:if="${d.fileSn != null}" title="내려받기" aria-label="내려받기" th:href="@{/docs/download(bid=${bid.pbancSn}, fileSn=${d.fileSn})}"><span class="ic ic-download"></span></a>
-                  <form th:if="${#sets.contains(deletable, d.fileSn)}" th:action="@{/docs/file-delete}" method="post" style="display:inline"
+                  <form th:if="${#sets.contains(deletable, d.fileSn)}" th:action="@{/docs/file-delete}" method="post" class="d-inline"
                         onsubmit="return askReason(this)">
                     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                     <input type="hidden" name="fileSn" th:value="${d.fileSn}">
@@ -165,7 +165,7 @@
       </div>
       <form class="pad row" th:if="${admin and open}" th:action="@{/docs/add}" method="post">
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-        <input type="text" name="dcmntNm" placeholder="서류명 (예: 최종 제안서)" maxlength="100" required style="width:200px">
+        <input type="text" name="dcmntNm" placeholder="서류명 (예: 최종 제안서)" maxlength="100" required class="w-200px">
         <select name="esntlYn">
           <option value="Y">필수</option>
           <option value="N">선택</option>
@@ -184,7 +184,7 @@
       <div class="card-head">
         <h3>
           조견표
-          <span class="faint" style="font-weight:400" th:text="'· 쪽번호 입력 ' + ${pagedCnt} + ' / ' + ${#lists.size(articles)}">· 쪽번호 입력 0 / 0</span>
+          <span class="faint fw-normal" th:text="'· 쪽번호 입력 ' + ${pagedCnt} + ' / ' + ${#lists.size(articles)}">· 쪽번호 입력 0 / 0</span>
         </h3>
         <span class="pill neutral" th:unless="${open}">나라장터 등록 후 잠김</span>
       </div>
@@ -194,7 +194,7 @@
       <div class="ts">
         <table>
           <thead>
-            <tr><th style="width:44px">No</th><th>평가 항목</th><th style="width:90px">배점</th><th style="width:160px">쪽번호</th><th th:if="${admin and open}" style="width:60px"></th></tr>
+            <tr><th class="w-44px">No</th><th>평가 항목</th><th class="w-90px">배점</th><th class="w-160px">쪽번호</th><th th:if="${admin and open}" class="w-60px"></th></tr>
           </thead>
           <tbody>
             <tr class="hv" th:each="a, st : ${articles}">
@@ -224,24 +224,24 @@
               <td></td><td>합계</td><td class="mono" th:text="${scoreSum}">100</td><td></td><td th:if="${admin and open}"></td>
             </tr>
             <tr th:if="${#lists.isEmpty(articles)}">
-              <td th:colspan="${admin and open} ? 5 : 4" class="empty" th:text="${admin} ? '평가 항목이 없습니다. 아래에서 RFP의 평가 항목과 배점을 추가하세요.' : '경영지원실이 평가 항목과 배점을 넣으면 쪽번호를 입력할 수 있습니다.'">평가 항목이 없습니다.</td>
+              <td th:colspan="${admin and open} ? 5 : 4" class="empty" th:text="${admin} ? '평가 항목이 없습니다. 아래에서 RFP의 평가 항목과 배점을 추가해 주세요.' : '경영지원실이 평가 항목과 배점을 넣으면 쪽번호를 입력할 수 있습니다.'">평가 항목이 없습니다.</td>
             </tr>
           </tbody>
         </table>
       </div>
-      <div class="pad row" th:if="${canPage}" style="justify-content:flex-end">
+      <div class="pad row jc-end" th:if="${canPage}">
         <button class="btn primary sm" type="submit" form="evPages">쪽번호 저장</button>
       </div>
       <form class="pad row" th:if="${admin and open}" th:action="@{/docs/article/add}" method="post">
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-        <input type="text" name="evlArtclNm" placeholder="평가 항목 (예: 사업 이해도)" maxlength="100" required style="width:240px">
-        <input type="number" name="evlScorScr" placeholder="배점" min="0.001" max="100" step="0.001" required style="width:90px">
+        <input type="text" name="evlArtclNm" placeholder="평가 항목 (예: 사업 이해도)" maxlength="100" required class="w-240px">
+        <input type="number" name="evlScorScr" placeholder="배점" min="0.001" max="100" step="0.001" required class="w-90px">
         <button class="btn sm" type="submit">+ 평가 항목 추가</button>
       </form>
     </div>
 
     <!-- ===== 삭제된 파일 (원본·이력 보관, NFR-009) ===== -->
-    <div class="row" style="justify-content:flex-end" th:if="${deletedCnt > 0}">
+    <div class="row jc-end" th:if="${deletedCnt > 0}">
       <a class="link" th:unless="${showDeleted}" th:href="@{/docs(bid=${bid.pbancSn}, deleted=true)}"
          th:text="'삭제된 파일 보기 (' + ${deletedCnt} + ')'">삭제된 파일 보기 (0)</a>
       <a class="link" th:if="${showDeleted}" th:href="@{/docs(bid=${bid.pbancSn})}">삭제된 파일 닫기</a>
@@ -270,7 +270,7 @@
 
     <!-- ===== 나라장터 등록 완료 처리 (FR-073): 경영지원실 ===== -->
     <div class="card pad">
-      <div class="row" style="justify-content:space-between">
+      <div class="row jc-between">
         <div>
           <b>나라장터 등록 완료 처리</b>
         </div>

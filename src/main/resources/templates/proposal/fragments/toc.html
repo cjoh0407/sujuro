@@ -22,7 +22,7 @@
 <th:block th:fragment="emptyToc(k)">
   <!-- 요약서: 양식 목록 없이 항상 같은 기본 목차로 시작한다 (TocService.SUMMARY_DEFAULT) -->
   <th:block th:if="${k == 'sum' and canEdit}">
-    <form th:action="@{/proposal/toc/summary/start}" method="post" class="row" style="justify-content:center">
+    <form th:action="@{/proposal/toc/summary/start}" method="post" class="row jc-center">
       <input type="hidden" name="bid" th:value="${bid.pbancSn}">
       <button class="btn primary" type="submit">기본 목차로 시작</button>
     </form>
@@ -30,7 +30,7 @@
   </th:block>
   <!-- 제안서 · 주관팀 인원: 저장된 양식을 고르거나, 새 양식 이름부터 정해 만든다. 새 양식은 목차를 고칠 때마다 바로 저장된다 -->
   <th:block th:if="${k == 'prop' and canLoad}">
-    <div class="row" style="justify-content:center;gap:18px;align-items:flex-start">
+    <div class="row jc-center gap-16 u-align-items-flex-start">
       <form th:unless="${#lists.isEmpty(forms)}" th:action="@{/proposal/toc/import}" method="post" class="row">
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
         <input type="hidden" name="tab" th:value="${k}">
@@ -38,22 +38,22 @@
           <option value="" disabled selected>목차 양식 고르기</option>
           <option th:each="f : ${forms}" th:value="${f.tocFormSn}" th:text="${f.labelFor(me)}">양식</option>
         </select>
-        <input type="text" name="tocFormNm" placeholder="새 이름 (비우면 그대로 불러오기)" maxlength="100" style="width:220px" autocomplete="off">
+        <input type="text" name="tocFormNm" placeholder="새 이름 (비우면 그대로 불러오기)" maxlength="100" class="w-220px" autocomplete="off">
         <button class="btn primary" type="submit">팀 양식 불러오기</button>
       </form>
       <form th:action="@{/proposal/toc/form/new}" method="post" class="row">
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-        <input type="text" name="tocFormNm" placeholder="새 목차 양식 이름" maxlength="100" required style="width:200px" autocomplete="off">
+        <input type="text" name="tocFormNm" placeholder="새 목차 양식 이름" maxlength="100" required class="w-200px" autocomplete="off">
         <button class="btn" th:classappend="${#lists.isEmpty(forms)} ? 'primary'" type="submit"
                 th:text="${#lists.isEmpty(forms)} ? '새 목차 양식 만들기' : '새로운 목차로 작성하기'">새로운 목차로 작성하기</button>
       </form>
     </div>
   </th:block>
   <!-- 요약서이거나, 제안서에서 양식을 다룰 수 없는 제안팀원(참여팀 등): 이 사업건에서만 쓰는 목차를 첫 목차부터 만든다 -->
-  <form th:if="${canEdit and (k == 'sum' or !canLoad)}" th:action="@{/proposal/toc/start-blank}" method="post" class="row" style="justify-content:center">
+  <form th:if="${canEdit and (k == 'sum' or !canLoad)}" th:action="@{/proposal/toc/start-blank}" method="post" class="row jc-center">
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
     <input type="hidden" name="tab" th:value="${k}">
-    <input type="text" name="label" placeholder="첫 목차 이름 (번호 포함)" maxlength="250" required style="width:240px">
+    <input type="text" name="label" placeholder="첫 목차 이름 (번호 포함)" maxlength="250" required class="w-240px">
     <button class="btn" type="submit">직접 목차 만들기</button>
   </form>
 </th:block>
@@ -76,13 +76,13 @@
 </form>
 
 <div class="card pad" th:fragment="formBar(k)">
-  <div class="row" style="justify-content:space-between;gap:14px">
+  <div class="row jc-between gap-16">
     <!-- 고른 양식으로 바꾸기 · 이름 바꾸기 · 삭제: 같은 선택칸을 쓰고 버튼마다 보낼 주소가 다르다 -->
     <form th:action="@{/proposal/toc/import}" method="post" class="row form-bar">
       <input type="hidden" name="bid" th:value="${bid.pbancSn}">
       <input type="hidden" name="tab" th:value="${k}">
       <input type="hidden" name="tocFormNm" value="">
-      <b style="font-size:12.5px">주관팀 목차 양식</b>
+      <b class="fs-12_5">주관팀 목차 양식</b>
       <th:block th:unless="${#lists.isEmpty(forms)}">
         <!-- 현재 양식이 있으면 그 양식이, 없으면 "양식 선택"이 골라져 있다 -->
         <select name="tocFormSn" required>
@@ -107,7 +107,7 @@
     <form th:if="${k == 'sum' or curForm == null or !curForm.inUse}" th:action="@{/proposal/toc/form}" method="post" class="row form-save" onsubmit="return confirmFormSave(this)">
       <input type="hidden" name="bid" th:value="${bid.pbancSn}">
       <input type="hidden" name="tab" th:value="${k}">
-      <input type="text" name="tocFormNm" placeholder="새 양식 이름" maxlength="100" required style="width:190px" autocomplete="off">
+      <input type="text" name="tocFormNm" placeholder="새 양식 이름" maxlength="100" required class="w-190px" autocomplete="off">
       <button class="btn sm" type="submit">지금 목차를 새 양식으로 저장</button>
     </form>
   </div>
@@ -116,12 +116,12 @@
 <form th:fragment="addTop(k)" th:if="${canEdit}" th:action="@{/proposal/toc/add}" method="post" class="row">
   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
   <input type="hidden" name="tab" th:value="${k}">
-  <input type="text" name="label" placeholder="새 1단계 목차 이름" maxlength="250" required data-track style="width:160px">
+  <input type="text" name="label" placeholder="새 1단계 목차 이름" maxlength="250" required data-track class="w-160px">
   <button class="btn sm" type="submit">+ 1단계 목차 추가</button>
 </form>
 
 <th:block th:fragment="labelCell(t, k)">
-  <form th:if="${canEdit}" th:action="@{/proposal/toc/label}" method="post" style="display:inline">
+  <form th:if="${canEdit}" th:action="@{/proposal/toc/label}" method="post" class="d-inline">
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
     <input type="hidden" name="tab" th:value="${k}">
     <input type="hidden" name="tocSn" th:value="${t.tocSn}">
@@ -150,14 +150,14 @@
       <input type="hidden" name="tocSn" th:value="${t.tocSn}">
       <input type="hidden" name="mode" value="d">
       <span class="faint cap"></span>
-      <input type="text" name="label" placeholder="번호를 포함해 입력 (예: 1.2.3 보안 방안)" maxlength="250" required data-track style="width:280px">
+      <input type="text" name="label" placeholder="번호를 포함해 입력 (예: 1.2.3 보안 방안)" maxlength="250" required data-track class="w-280px">
       <button class="btn sm primary" type="submit">추가</button>
       <button class="btn sm" type="button" onclick="closeAdd(this)">취소</button>
     </form>
   </td>
 </tr>
 
-<form th:fragment="delBtn(t, k)" th:action="@{/proposal/toc/delete}" method="post" style="display:inline"
+<form th:fragment="delBtn(t, k)" th:action="@{/proposal/toc/delete}" method="post" class="d-inline"
       th:data-label="${t.label}" th:data-group="${t.group}" th:data-rqts="${t.group ? t.subRqtCnt : t.rqtCnt}"
       onsubmit="return confirmDel(this)">
   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
@@ -174,7 +174,7 @@
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
     <input type="hidden" name="tab" th:value="${k}">
     <input type="hidden" name="tocSn" th:value="${t.tocSn}">
-    <select name="picId" onchange="pickOwner(this)" style="max-width:210px">
+    <select name="picId" onchange="pickOwner(this)" class="mw-210px">
       <option value="">미지정</option>
       <optgroup label="제안팀원">
         <!-- 비활성 직원은 고르는 목록에 내지 않는다. 이미 담당자로 남아 있는 사람만 "(비활성)"으로 보여 준다 -->
@@ -187,7 +187,7 @@
                 th:value="${t.picId}" th:text="${t.picSttsCd == 'AS050' ? t.ownerLabel : (t.picNm ?: t.picId) + ' (제안팀 아님)'}" selected>담당자</option>
       </optgroup>
       <optgroup label="외부 회사">
-        <option th:each="c : ${coNames}" th:value="'co:' + ${c}" th:text="'🏢 ' + ${c}"
+        <option th:each="c : ${coNames}" th:value="'co:' + ${c}" th:text="${c} + ' (외부)'"
                 th:selected="${t.picId == null and c == t.picCoNm}">회사</option>
         <option value="co-new">+ 외부 회사 직접 입력</option>
       </optgroup>
@@ -203,7 +203,7 @@
   <form th:if="${canEdit}" th:action="@{/proposal/toc/pages}" method="post">
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
     <input type="hidden" name="tocSn" th:value="${t.tocSn}">
-    <input type="number" name="pages" min="0" max="9999" th:value="${t.pages}" style="width:64px"
+    <input type="number" name="pages" min="0" max="9999" th:value="${t.pages}" class="w-64px"
            onchange="this.form.requestSubmit()">
   </form>
   <span th:unless="${canEdit}" th:text="${t.pages}">0</span>

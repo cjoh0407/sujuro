@@ -167,7 +167,7 @@ public class ResultEntryServiceImpl implements ResultEntryService {
             v.setExcelError(e.getMessage());
             return;
         } catch (IOException e) {
-            v.setExcelError("엑셀 파일을 열지 못했습니다. 아래에 직접 입력하세요.");
+            v.setExcelError("엑셀 파일을 열지 못했습니다. 아래에 직접 입력해 주세요.");
         }
     }
 
@@ -235,13 +235,13 @@ public class ResultEntryServiceImpl implements ResultEntryService {
             return "결과를 고쳤습니다: " + text;
         }
         if (resultMapper.updateToResult(pbancSn) == 0) {
-            throw new BusinessException("그사이 공고 상태가 바뀌었습니다. 새로고침한 뒤 다시 확인하세요."); // 예외라 위의 저장도 되돌린다
+            throw new BusinessException("그사이 공고 상태가 바뀌었습니다. 새로고침한 뒤 다시 확인해 주세요."); // 예외라 위의 저장도 되돌린다
         }
         historyService.record(pbancSn, ProcessType.RESULT_REGISTERED, user.getEmpNo(), bid.getSprvsnTeamSn(),
                 bid.getPtcpShpNm() + " · " + text + " (직접 입력)");
         if (bid.getSprvsnTeamSn() != null) {
             notificationService.sendToTeamLeaders(bid.getSprvsnTeamSn(), NotificationType.EVL_TABLE_REQUEST, pbancSn,
-                    "[" + bid.getPbancNm() + "] 결과가 등록되었습니다(" + text + "). 평가·결과 입력에서 장단점을 입력하세요.");
+                    "[" + bid.getPbancNm() + "] 결과가 등록되었습니다(" + text + "). 평가·결과 입력에서 장단점을 입력해 주세요.");
         }
         return "결과를 등록했습니다: " + text + ". 장단점은 담당 팀 팀장이 입력합니다.";
     }
@@ -250,10 +250,10 @@ public class ResultEntryServiceImpl implements ResultEntryService {
     static Long wonAmount(String s) {
         String t = s == null ? "" : s.replaceAll("[,\\s]", "");
         if (t.isEmpty()) {
-            throw new BusinessException("수주하면 우리 회사가 받는 금액을 입력하세요.");
+            throw new BusinessException("수주하면 우리 회사가 받는 금액을 입력해 주세요.");
         }
         if (!t.matches("\\d{1,15}") || Long.parseLong(t) == 0) {
-            throw new BusinessException("수주 금액은 원 단위 숫자로 입력하세요. 예: 120000000");
+            throw new BusinessException("수주 금액은 원 단위 숫자로 입력해 주세요. 예: 120000000");
         }
         return Long.valueOf(t);
     }
@@ -312,7 +312,7 @@ public class ResultEntryServiceImpl implements ResultEntryService {
         int cmsnr = cmsnrCount(form.getCmsnrCnt());
         List<EvaluationForm.Row> rows = form.getFilledItems();
         if (rows.isEmpty()) {
-            throw new BusinessException("평가 항목을 한 줄 이상 입력하세요.");
+            throw new BusinessException("평가 항목을 한 줄 이상 입력해 주세요.");
         }
         if (rows.size() > MAX_ITEMS) {
             throw new BusinessException("평가 항목은 " + MAX_ITEMS + "개까지 입력할 수 있습니다.");
@@ -337,7 +337,7 @@ public class ResultEntryServiceImpl implements ResultEntryService {
             }
             BigDecimal max = number(r.getMax(), line + "(" + nm + ")의 배점");
             if (max.signum() <= 0 || max.compareTo(HUNDRED) > 0) {
-                throw new BusinessException(line + "(" + nm + ")의 배점은 0보다 크고 100 이하로 입력하세요.");
+                throw new BusinessException(line + "(" + nm + ")의 배점은 0보다 크고 100 이하로 입력해 주세요.");
             }
             maxSum = maxSum.add(max);
 
@@ -346,7 +346,7 @@ public class ResultEntryServiceImpl implements ResultEntryService {
                 String label = line + "(" + nm + ")의 평가위원" + (j + 1) + " 점수";
                 BigDecimal s = number(r.scoreAt(j), label);
                 if (s.signum() < 0 || s.compareTo(max) > 0) {
-                    throw new BusinessException(label + "는 0~" + StatsFormat.score(max.doubleValue()) + "(배점) 사이로 입력하세요.");
+                    throw new BusinessException(label + "는 0~" + StatsFormat.score(max.doubleValue()) + "(배점) 사이로 입력해 주세요.");
                 }
                 row.add(s);
             }
@@ -360,7 +360,7 @@ public class ResultEntryServiceImpl implements ResultEntryService {
             scores.add(row);
         }
         if (maxSum.compareTo(HUNDRED) > 0) {
-            throw new BusinessException("배점 합계가 100점을 넘습니다(" + StatsFormat.score(maxSum.doubleValue()) + "점). 엑셀의 배점기준을 확인하세요.");
+            throw new BusinessException("배점 합계가 100점을 넘습니다(" + StatsFormat.score(maxSum.doubleValue()) + "점). 엑셀의 배점기준을 확인해 주세요.");
         }
 
         // 평가 항목은 같은 공고의 업체들이 함께 쓴다. 이 업체 점수만 지우고, 이름이 같은 항목은 다시 쓴다
@@ -441,7 +441,7 @@ public class ResultEntryServiceImpl implements ResultEntryService {
                 return n;
             }
         }
-        throw new BusinessException("평가위원 수는 1~" + MAX_CMSNR + "명으로 입력하세요.");
+        throw new BusinessException("평가위원 수는 1~" + MAX_CMSNR + "명으로 입력해 주세요.");
     }
 
     /** 앞뒤 공백과 끝의 배점 표시 "(15)" 를 뗀다 */
@@ -459,7 +459,7 @@ public class ResultEntryServiceImpl implements ResultEntryService {
         try {
             return new BigDecimal(t).setScale(SCORE_SCALE, RoundingMode.HALF_UP);
         } catch (NumberFormatException e) {
-            throw new BusinessException(label + " 칸에 숫자를 입력하세요.");
+            throw new BusinessException(label + " 칸에 숫자를 입력해 주세요.");
         }
     }
 

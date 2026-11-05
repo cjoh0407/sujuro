@@ -94,7 +94,7 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
                     "사전규격등록번호 형식이 아닙니다. R + 연도 2자리 + BD + 순번 8자리 13글자입니다. (예: R26BD00283794)");
         }
         if (bidNoticeMapper.countByBfSpecRgstNo(no) > 0) {
-            throw new BusinessException("이미 등록된 사전규격입니다. 공고 목록에서 확인하세요.");
+            throw new BusinessException("이미 등록된 사전규격입니다. 공고 목록에서 확인해 주세요.");
         }
 
         G2bResponse res = g2bApiClient.findPreSpec(no);
@@ -135,7 +135,7 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
                     "발주계획번호 형식이 아닙니다. R + 연도 2자리 + DD + 순번 8자리 13글자입니다. (예: R26DD20907423)");
         }
         if (bidNoticeMapper.countByOrderPlanNo(no) > 0) {
-            throw new BusinessException("이미 등록된 발주계획입니다. 공고 목록에서 확인하세요.");
+            throw new BusinessException("이미 등록된 발주계획입니다. 공고 목록에서 확인해 주세요.");
         }
 
         G2bResponse res = g2bApiClient.findOrderPlan(no);
@@ -169,7 +169,7 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
                     "입찰공고번호 형식이 아닙니다. R + 연도 2자리 + BK + 순번 8자리 13글자입니다. (예: R26BK01790125)");
         }
         if (bidNoticeMapper.countByBidPbancNo(no) > 0) {
-            throw new BusinessException("이미 등록된 입찰공고입니다. 공고 목록에서 확인하세요.");
+            throw new BusinessException("이미 등록된 입찰공고입니다. 공고 목록에서 확인해 주세요.");
         }
 
         G2bResponse res = g2bApiClient.findBidNotice(no);
@@ -235,10 +235,10 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
             deleted = bidNoticeMapper.deleteNotice(pbancSn, BidCode.STTS_NEW);
         } catch (DataIntegrityViolationException e) {
             // 위 다섯 표 말고도 이 공고를 가리키는 행(일정·제안팀 등)이 있다
-            throw new BusinessException("이 공고에 연결된 다른 자료가 있어 삭제할 수 없습니다. 불참으로 종결하세요.");
+            throw new BusinessException("이 공고에 연결된 다른 자료가 있어 삭제할 수 없습니다. 불참으로 종결해 주세요.");
         }
         if (deleted == 0) {
-            throw new BusinessException("그사이 공고 상태가 바뀌었습니다. 새로고침한 뒤 다시 확인하세요.");
+            throw new BusinessException("그사이 공고 상태가 바뀌었습니다. 새로고침한 뒤 다시 확인해 주세요.");
         }
         String name = notice.getPbancNm() != null ? notice.getPbancNm().trim() : notice.getPbancNo();
         log.info("공고 삭제: {} '{}' (공고일련번호 {}) - {}", notice.getPbancNo(), name, pbancSn, userId);
@@ -300,7 +300,7 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
         JsonNode item = res.first();
         if (item == null) {
             throw new BusinessException(
-                    "나라장터에서 이 " + noNm + "를 찾을 수 없습니다. 번호를 다시 확인하세요. (" + no + ")");
+                    "나라장터에서 이 " + noNm + "를 찾을 수 없습니다. 번호를 다시 확인해 주세요. (" + no + ")");
         }
         return item;
     }
@@ -316,11 +316,11 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
     /** 앞뒤 공백을 없애고 대문자로 맞춘다. 사람이 소문자로 넣는 경우가 많다. */
     private static String normalize(String raw) {
         if (raw == null) {
-            throw new BusinessException("공고번호를 입력하세요.");
+            throw new BusinessException("공고번호를 입력해 주세요.");
         }
         String no = raw.trim().toUpperCase().replace(" ", "");
         if (no.isEmpty()) {
-            throw new BusinessException("공고번호를 입력하세요.");
+            throw new BusinessException("공고번호를 입력해 주세요.");
         }
         return no;
     }

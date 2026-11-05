@@ -16,7 +16,7 @@
 <div class="card" th:fragment="bidList(action)">
   <div class="card-head">
     <h3>사업건 목록</h3>
-    <span class="faint" style="font-size:11.5px" th:text="${#lists.size(bids)} + '건'">3건</span>
+    <span class="faint fs-11_5" th:text="${#lists.size(bids)} + '건'">3건</span>
   </div>
   <div class="bid-list">
     <th:block th:if="${!#lists.isEmpty(bids.?[!ended])}">
@@ -53,11 +53,11 @@
   <div class="card-head">
     <h3 th:text="'제안팀 구성 · 주관 ' + ${bid.sprvsnTeamNm ?: '미정'} + (${bid.ptcpTeamNms != null} ? ' · 참여 ' + ${bid.ptcpTeamNms} : '')">제안팀 구성</h3>
   </div>
-  <div class="pad" style="display:flex;flex-direction:column;gap:12px">
+  <div class="pad stack-12">
     <div class="mem-grid">
       <span class="pill mem-chip" th:each="m : ${members}" th:classappend="${m.leader} ? 'accent' : 'neutral'">
         <span class="mem-nm" th:title="${m.userNm + (m.teamNm != null ? ' · ' + m.teamNm : '') + m.stateMark}" th:text="${m.userNm + (m.teamNm != null ? ' · ' + m.teamNm : '') + m.stateMark}">이름 · 팀</span>
-        <form th:if="${canAssign} and ${m.removable}" th:action="@{/proposal/team/member/remove}" method="post" style="display:inline"
+        <form th:if="${canAssign} and ${m.removable}" th:action="@{/proposal/team/member/remove}" method="post" class="d-inline"
               th:data-name="${m.userNm}" onsubmit="return confirm('&quot;' + this.dataset.name + '&quot;을(를) 제안팀에서 뺄까요?')">
           <input type="hidden" name="bid" th:value="${bid.pbancSn}">
           <input type="hidden" name="tab" th:value="${tab}">
@@ -68,7 +68,7 @@
       <!-- 외부 회사: 목차 담당자로 적은 회사. ✕를 누르면 그 회사 이름을 지우고, 맡던 목차는 미지정이 된다 -->
       <span class="pill mem-chip mem-co" th:each="c : ${coNames}" th:if="${coNames != null}">
         <span class="mem-nm" th:title="${c + ' · 외부 회사'}" th:text="${c + ' · 외부'}">회사 · 외부</span>
-        <form th:if="${canAssign}" th:action="@{/proposal/toc/co/delete}" method="post" style="display:inline"
+        <form th:if="${canAssign}" th:action="@{/proposal/toc/co/delete}" method="post" class="d-inline"
               th:data-name="${c}" onsubmit="return confirm('&quot;' + this.dataset.name + '&quot; 회사를 지울까요?\n그 회사가 맡은 목차는 모두 미지정이 됩니다.')">
           <input type="hidden" name="bid" th:value="${bid.pbancSn}">
           <input type="hidden" name="tab" th:value="${tab}">
@@ -88,7 +88,7 @@
 <div class="card" id="memPop" th:fragment="memPicker" th:data-bid="${bid.pbancSn}" th:data-url="@{/proposal/team/candidates}">
   <div class="card-head">
     <h3>제안팀 인원 추가</h3>
-    <span class="faint" style="font-size:11.5px">다른 팀 인원 포함</span>
+    <span class="faint fs-11_5">다른 팀 인원 포함</span>
   </div>
   <form th:action="@{/proposal/team/member/add}" method="post" class="pad mp-form" onsubmit="return checkMemPop(this)">
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
@@ -106,13 +106,13 @@
     <input type="text" id="mp-q" placeholder="이름 검색" oninput="searchMemPop()" autocomplete="off">
     <div class="ts mp-list" id="mp-list" onscroll="moreMemPop()">
       <table>
-        <thead><tr><th style="width:30px"></th><th>이름</th><th>팀</th><th>직급</th></tr></thead>
+        <thead><tr><th class="w-30px"></th><th>이름</th><th>팀</th><th>직급</th></tr></thead>
         <tbody id="mp-body"></tbody>
       </table>
       <div class="mp-state faint" id="mp-state"></div>
     </div>
     <div id="mp-picked"></div>
-    <div class="row" style="justify-content:space-between">
+    <div class="row jc-between">
       <span class="faint" id="mp-cnt">0명 선택</span>
       <span class="row">
         <button class="btn sm" type="button" onclick="clearMemPop()">선택 해제</button>
@@ -132,12 +132,12 @@
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
     <input type="hidden" name="tab" th:value="${tab}">
     <input type="hidden" name="tocSn" id="coTocSn" value="">
-    <div class="faint" style="font-size:11.5px">담당 목차: <b id="coTarget" style="color:var(--text)"></b></div>
+    <div class="faint fs-11_5">담당 목차: <b id="coTarget" class="c-text"></b></div>
     <input type="text" name="picCoNm" id="coNmInput" placeholder="외부 회사명" maxlength="200" required autocomplete="off" list="co-names-left">
     <datalist id="co-names-left">
       <option th:each="c : ${coNames}" th:value="${c}"></option>
     </datalist>
-    <div class="row" style="justify-content:flex-end">
+    <div class="row jc-end">
       <button class="btn sm" type="button" onclick="cancelOwner()">취소</button>
       <button class="btn sm primary" type="submit">지정</button>
     </div>

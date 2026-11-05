@@ -39,7 +39,7 @@
 
 
   <div class="card" th:if="${b == null}">
-    <div class="lock"><div style="font-size:26px">🔒</div><b>참여를 확정한 사업건이 없습니다.</b></div>
+    <div class="lock"><b>참여를 확정한 사업건이 없습니다.</b></div>
   </div>
 
   <th:block th:if="${b}" th:with="upload=${view.canUpload and !b.manualResult and a.ourCompanyListed and view.company != null}">
@@ -69,7 +69,7 @@
         <form id="evl-co-form" method="get" th:action="@{/results}"><input type="hidden" name="bid" th:value="${b.pbancSn}"></form>
         <div class="card-head">
           <h3>평가표 올리기</h3>
-          <span class="faint" style="font-size:11.5px">최대 50MB</span>
+          <span class="faint fs-11_5">최대 50MB</span>
         </div>
         <form class="pad mp-form" method="post" enctype="multipart/form-data" th:action="@{/results/evaluation-file}">
           <input type="hidden" name="bid" th:value="${b.pbancSn}">
@@ -87,7 +87,7 @@
             </span>
           </label>
           <div class="up-note" th:text="|엑셀(XLS · XLSX) 파일만 올릴 수 있습니다.|">엑셀 파일만 올릴 수 있습니다.</div>
-          <div class="row" style="justify-content:flex-end">
+          <div class="row jc-end">
             <button class="btn sm primary" type="submit" th:text="${cf} ? '다시 올리기' : '올리기'">올리기</button>
           </div>
         </form>
@@ -126,10 +126,10 @@
           <a class="btn sm" th:if="${a != null}" th:href="@{/stats(bid=${b.pbancSn})}">사업별 결과 분석</a>
         </div>
         <!-- 경영지원실: 입력·수정. 저장에 실패해 돌아왔으면 입력하던 값을 다시 채운다 -->
-        <form class="pad" method="post" th:action="@{/results/manual}" th:if="${view.canEnterResult}"
+        <form class="pad stack-12" method="post" th:action="@{/results/manual}" th:if="${view.canEnterResult}"
               th:with="rslt=${manualForm != null} ? ${manualForm.bidRsltCd} : (${a != null} ? ${a.rsltCd} : null),
                        amt=${manualForm != null} ? ${manualForm.scsbdAmt} : (${a != null} ? ${a.scsbdAmt} : null)"
-              style="display:flex;flex-direction:column;gap:10px">
+>
           <input type="hidden" name="bid" th:value="${b.pbancSn}">
           <div class="grid2">
             <div class="fld">
@@ -147,7 +147,7 @@
           </div>
           <div class="row">
             <button class="btn primary sm" type="submit" th:text="${b.resulted} ? '결과 고치기' : '결과 등록'">결과 등록</button>
-            <span class="faint" style="font-size:11.5px" th:if="${b.submitted}">등록하면 진행상태가 결과 등록으로 바뀌고 담당 팀 팀장에게 알림이 갑니다.</span>
+            <span class="faint fs-11_5" th:if="${b.submitted}">등록하면 진행상태가 결과 등록으로 바뀌고 담당 팀 팀장에게 알림이 갑니다.</span>
           </div>
         </form>
         <!-- 팀장: 읽기만 -->
@@ -156,7 +156,7 @@
             <span class="pill" th:classappend="${a.won} ? 'success' : 'neutral'" th:text="${a.rsltNm}">수주</span>
             <span th:if="${a.scsbdAmtText}">수주 금액 <b class="mono" th:text="${a.scsbdAmtText}">1.2억</b></span>
           </div>
-          <div class="pad faint" style="font-size:12.5px" th:if="${a == null}">아직 입력하지 않았습니다. 결과는 경영지원실이 입력합니다.</div>
+          <div class="pad faint fs-12_5" th:if="${a == null}">아직 입력하지 않았습니다. 결과는 경영지원실이 입력합니다.</div>
         </th:block>
       </div>
     </th:block>
@@ -170,7 +170,7 @@
           <button class="btn sm primary" type="submit" th:disabled="${!view.ready}">나라장터에서 결과 가져오기</button>
         </form>
       </div>
-      <div class="pad faint" style="font-size:12.5px">
+      <div class="pad faint fs-12_5">
         결과를 아직 등록하지 않았습니다. 최종 낙찰자가 나라장터에 올라오면 평일 오후 5시 수집 때 자동으로 가져오고
         상태가 "결과 등록"으로 바뀝니다. 협상에 의한 계약은 개찰 몇 주 뒤에 낙찰자가 정해집니다.
         개찰이 끝난 공고는 낙찰자가 나오기 전에도 참여 업체를 아래에 보여 줍니다.
@@ -178,7 +178,7 @@
     </div>
 
     <div class="banner warn" th:if="${b.resulted and a == null}">
-      결과 데이터를 찾을 수 없습니다. 개발팀이 맡은 사업인지, 입찰 결과가 수주·탈락으로 등록됐는지 확인하세요.
+      결과 데이터를 찾을 수 없습니다. 개발팀이 맡은 사업인지, 입찰 결과가 수주·탈락으로 등록됐는지 확인해 주세요.
     </div>
 
     <th:block th:if="${b.resulted and a != null and !b.manualResult}">
@@ -189,13 +189,13 @@
           <h3>입찰 결과 · 기술·가격·종합 점수 (API)</h3>
 
         </div>
-        <div class="pad" style="display:flex;flex-direction:column;gap:8px">
+        <div class="pad stack-8">
           <div class="result-row">
             <span th:if="${a.evlRnk}">순위 <b th:text="|${a.evlRnk}위|">1위</b></span>
             <span th:each="s : ${a.scores}"><span th:text="${s.label}">기술점수</span> <b class="mono" th:text="${s.text}">88.5 / 90</b></span>
             <span th:if="${a.techOrgnlText}">기술 원점수 <b class="mono" th:text="${a.techOrgnlText}">85.284</b></span>
           </div>
-          <div class="faint" style="font-size:11.5px" th:if="${a.techMaxAssumed}">
+          <div class="faint fs-11_5" th:if="${a.techMaxAssumed}">
             공고에 기술 배점이 없어 기술 90 : 가격 10 으로 보고 만점을 정했습니다.
           </div>
         </div>
@@ -220,7 +220,7 @@
                   <span th:text="${c.coNm}">업체</span>
                   <span class="pill success" th:if="${c.winner}">낙찰</span>
                 </td>
-                <td class="mono muted" style="white-space:nowrap" th:text="${c.bizNoText}">107-87-28988</td>
+                <td class="mono muted nowrap" th:text="${c.bizNoText}">107-87-28988</td>
                 <td class="mono" th:text="${c.bidAmtText}">260,000,000</td>
                 <td class="mono sc" th:text="${c.techOrgnlText}">85.284</td>
                 <td class="mono sc" th:text="${c.techText}">90</td>
@@ -243,14 +243,13 @@
         <div class="card-head">
           <h3 th:text="${co != null} ? |평가 항목·배점 (평가표) · ${co.coNm}| : '평가 항목·배점 (평가표)'">평가 항목·배점 (평가표)</h3>
         </div>
-        <div class="pad" style="display:flex;flex-direction:column;gap:12px">
+        <div class="pad stack-12">
           <div class="banner warn" th:unless="${a.ourCompanyListed}">
             개찰 목록에 우리 회사 행이 없어 평가표를 넣을 수 없습니다. 나라장터 개찰 결과로 자동 등록된 사업만 넣을 수 있습니다.
           </div>
 
           <th:block th:if="${a.ourCompanyListed and co != null}">
-            <div class="evl-file" style="margin-top:0;padding-top:0;border-top:0" th:if="${cf}">
-              <span>📊</span>
+            <div class="evl-file mt-0 pt-0 u-border-top-0" th:if="${cf}">
               <span class="faint" th:text="|평가표 ${cf.orgnlFileNm} · ${cf.rgtrNm ?: '-'}${cf.regDt != null ? ' · ' + #dates.format(cf.regDt, 'yyyy-MM-dd HH:mm') : ''}|">평가표</span>
               <a class="btn sm" th:href="@{/results/evaluation-file(bid=${b.pbancSn}, co=${co.coEvlRsltSn})}">내려받기</a>
             </div>
@@ -259,7 +258,7 @@
                  th:text="|${co.coNm}의 평가표가 아직 없습니다. 왼쪽에서 엑셀을 올리면 평가 항목, 배점, 위원별 점수를 읽어 채웁니다. 담당 팀 팀장이 확인해 저장합니다.|">
               아직 평가표가 없습니다.
             </div>
-            <div class="faint" style="font-size:12px" th:if="${cf != null and !view.canScore}">
+            <div class="faint fs-12_5" th:if="${cf != null and !view.canScore}">
               평가 항목과 위원별 점수는 담당 팀 팀장이 엑셀에서 읽은 값을 확인해 저장합니다. 저장한 결과는 아래 표들에 보입니다.
             </div>
 
@@ -270,13 +269,13 @@
             </th:block>
 
             <form id="evl-form" method="post" th:if="${cf != null and view.canScore}" th:action="@{/results/evaluation}"
-                  th:with="n=${evaluationForm.cmsnrCount}" style="display:flex;flex-direction:column;gap:10px">
+                  th:with="n=${evaluationForm.cmsnrCount}" class="stack-12">
               <input type="hidden" name="bid" th:value="${b.pbancSn}">
               <input type="hidden" name="co" th:value="${co.coEvlRsltSn}">
               <div class="row">
-                <b style="font-size:12.5px">항목·배점·위원별 점수</b>
+                <b class="fs-12_5">항목·배점·위원별 점수</b>
                 <label for="evl-cnt" class="lbl">평가위원 수</label>
-                <input id="evl-cnt" name="cmsnrCnt" type="number" min="1" max="20" step="1" th:value="${n}" style="width:72px">
+                <input id="evl-cnt" name="cmsnrCnt" type="number" min="1" max="20" step="1" th:value="${n}" class="w-72px">
                 <button type="button" class="btn sm" id="evl-add">항목 추가</button>
                 <!-- 저장한 점수가 보일 때만: 올린 엑셀에서 다시 채운다 (저장 전까지 바뀌지 않는다) -->
                 <a class="btn sm" th:if="${view.excelForm == null and !#lists.isEmpty(view.companyForm.filledItems)}"
@@ -354,7 +353,7 @@
       <!-- FR-081 장단점 분석 -->
       <div class="card">
         <div class="card-head"><h3>장단점 분석</h3></div>
-        <form class="pad" method="post" th:action="@{/results/analysis}" style="display:flex;flex-direction:column;gap:10px">
+        <form class="pad stack-12" method="post" th:action="@{/results/analysis}">
           <input type="hidden" name="bid" th:value="${b.pbancSn}">
           <div class="banner ok" th:if="${analysisMessage}" th:text="${analysisMessage}">장단점 분석을 저장했습니다.</div>
           <div class="banner warn" th:if="${analysisError}" th:text="${analysisError}">강점은 한글 기준 1,300자까지 입력할 수 있습니다.</div>
@@ -377,9 +376,9 @@
           </div>
           <div class="row" th:if="${view.canScore}">
             <button class="btn primary sm" type="submit">장단점 저장</button>
-            <span class="faint" style="font-size:11.5px">빈 칸으로 저장하면 그 내용을 지웁니다.</span>
+            <span class="faint fs-11_5">빈 칸으로 저장하면 그 내용을 지웁니다.</span>
           </div>
-          <div class="faint" style="font-size:11.5px" th:unless="${view.canScore}">장단점은 담당 팀 팀장이 입력합니다.</div>
+          <div class="faint fs-11_5" th:unless="${view.canScore}">장단점은 담당 팀 팀장이 입력합니다.</div>
         </form>
       </div>
 

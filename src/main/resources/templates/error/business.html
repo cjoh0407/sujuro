@@ -13,10 +13,10 @@
   <div class="box">
     <div class="card">
       <div class="lock">
-        <div style="font-size:34px">ℹ️</div>
+        <div class="fs-26">ℹ️</div>
         <h2>요청을 처리할 수 없습니다</h2>
         <p class="muted" th:text="${message}">처리할 수 없는 이유</p>
-        <div class="row" style="justify-content:center">
+        <div class="row jc-center">
           <a class="btn" href="javascript:history.back()">이전 화면으로</a>
           <a class="btn primary" th:href="@{/dashboard}">처음 화면으로</a>
         </div>

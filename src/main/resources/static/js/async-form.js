@@ -118,8 +118,10 @@
     var opened = Array.prototype.map.call(main.querySelectorAll('details'), function (d) { return d.open; }); // 펼쳐 둔 "지난 사업" 등
     var focusId = document.activeElement && document.activeElement.id;
     var y = window.scrollY;
+    var gauges = readGauges();
 
     main.innerHTML = next.innerHTML;
+    animateGauges(gauges);
 
     restoreScroll(scrolls);
     Array.prototype.forEach.call(main.querySelectorAll('details'), function (d, i) { if (opened[i]) d.open = true; });
@@ -131,6 +133,29 @@
     if (window.runPageReady) window.runPageReady();
     flashes.forEach(function (m) { showToast(m.text, m.err ? 'err' : null); });
   }
+
+  /* 진행 게이지: 바뀌기 전 너비를 기억했다가 새 화면에서 그 너비부터 새 값까지 차오르게 한다 (처음 열 때는 0부터) */
+  function readGauges() {
+    var m = {};
+    Array.prototype.forEach.call(main.querySelectorAll('.gauge[data-gauge] > i'), function (i) {
+      m[i.parentNode.getAttribute('data-gauge')] = i.style.width;
+    });
+    return m;
+  }
+
+  function animateGauges(prev) {
+    Array.prototype.forEach.call(main.querySelectorAll('.gauge[data-gauge] > i'), function (i) {
+      var target = i.style.width;
+      var from = prev[i.parentNode.getAttribute('data-gauge')] || '0%';
+      if (from === target) return;
+      i.style.transition = 'none';
+      i.style.width = from;
+      void i.offsetWidth;
+      i.style.transition = '';
+      i.style.width = target;
+    });
+  }
+  document.addEventListener('DOMContentLoaded', function () { if (main) animateGauges({}); });
 
   /* 표·목록 안에서 스크롤해 둔 위치를 id 기준으로 기억했다가 되돌린다 */
   function keepScroll() {

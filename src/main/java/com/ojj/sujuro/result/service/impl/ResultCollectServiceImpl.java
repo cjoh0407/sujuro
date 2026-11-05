@@ -105,7 +105,7 @@ public class ResultCollectServiceImpl implements ResultCollectService {
         if (ours == null) {
             saveCompanies(companies);
             return ResultOutcomeDTO.notListed("입찰공고 " + no + " 개찰 목록에 우리 회사(사업자번호 " + ourBizNo
-                    + ")가 없어 결과를 등록하지 않았습니다. 사업자번호나 제출 여부를 확인하세요.");
+                    + ")가 없어 결과를 등록하지 않았습니다. 사업자번호나 제출 여부를 확인해 주세요.");
         }
 
         boolean won = ourBizNo.equals(winner);
@@ -166,7 +166,7 @@ public class ResultCollectServiceImpl implements ResultCollectService {
                     head + "나라장터 기술평가점수 조회에서 평가표 엑셀을 내려받아 올려 주세요.");
             if (target.getSprvsnTeamSn() != null) {
                 notificationService.sendToTeamLeaders(target.getSprvsnTeamSn(), NotificationType.EVL_TABLE_REQUEST,
-                        target.getPbancSn(), head + "평가표 엑셀이 올라오면 평가·결과 입력에서 항목별 점수와 장단점을 입력하세요.");
+                        target.getPbancSn(), head + "평가표 엑셀이 올라오면 평가·결과 입력에서 항목별 점수와 장단점을 입력해 주세요.");
             }
         } catch (RuntimeException e) {
             log.warn("평가표 업로드 요청 알림 실패: 입찰공고 {}", target.getBidPbancNo(), e);

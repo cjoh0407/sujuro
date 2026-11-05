@@ -208,7 +208,7 @@ public class NoticeTeamServiceImpl implements NoticeTeamService {
         bidNoticeMapper.deleteJoinTeams(pbancSn);
         bidNoticeMapper.clearTocOwners(pbancSn);
 
-        historyService.record(pbancSn, BidCode.PRCS_WITHDRAW, user.getEmpNo(), teamSn, why + " (영업부로 이동)");
+        historyService.record(pbancSn, BidCode.PRCS_WITHDRAW, user.getEmpNo(), teamSn, why);   // 11/05 " (영업부로 이동)" 꼬리말을 뺐다. 이력 이름(중도 철회)으로 드러난다
         notificationService.sendToRole(Role.SALES, NotificationType.WITHDRAWN, pbancSn,
                 "'" + nameOf(notice) + "' " + notice.getSprvsnTeamNm() + " 팀장이 중도 철회를 신청했습니다. 다른 팀에 재배정하거나 불참으로 종결하세요.");
         return "중도 철회했습니다. 공고가 영업부로 넘어갔고, 제안팀 " + members + "명의 배정이 풀렸습니다.";

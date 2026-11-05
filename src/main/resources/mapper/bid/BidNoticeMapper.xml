@@ -356,6 +356,8 @@
            F.VER_NO        AS verNo,
            F.ORGNL_FILE_NM AS orgnlFileNm,
            F.ORGNL_URL     AS orgnlUrl,
+           F.STRG_FILE_NM  AS strgFileNm,
+           F.FILE_PATH_NM  AS filePathNm,
            F.FILE_SZ       AS fileSz,
            F.FILE_EXTN_NM  AS fileExtnNm,
            F.REG_DT        AS regDt

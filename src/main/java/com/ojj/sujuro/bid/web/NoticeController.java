@@ -1,8 +1,15 @@
 package com.ojj.sujuro.bid.web;
 
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -18,17 +25,20 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.auth.code.Role;
+import com.ojj.sujuro.bid.dto.AtchFileDTO;
 import com.ojj.sujuro.bid.dto.BidNoticeSearchDTO;
 import com.ojj.sujuro.bid.dto.CollectResultDTO;
 import com.ojj.sujuro.bid.dto.NoticeDetailDTO;
 import com.ojj.sujuro.bid.dto.NoticeRegisterResultDTO;
 import com.ojj.sujuro.bid.dto.StepCountDTO;
 import com.ojj.sujuro.bid.service.BidNoticeService;
+import com.ojj.sujuro.bid.service.NoticeAttachmentService;
 import com.ojj.sujuro.bid.service.NoticeCollectService;
 import com.ojj.sujuro.bid.service.NoticeDetailService;
 import com.ojj.sujuro.bid.service.NoticeRegisterService;
 import com.ojj.sujuro.bid.service.NoticeTeamService;
 import com.ojj.sujuro.common.exception.BusinessException;
+import com.ojj.sujuro.common.file.FileStorage;
 import com.ojj.sujuro.history.service.HistoryService;
 
 /**
@@ -51,19 +61,25 @@ public class NoticeController {
     private final NoticeCollectService noticeCollectService;
     private final NoticeTeamService noticeTeamService;
     private final HistoryService historyService;
+    private final NoticeAttachmentService noticeAttachmentService;
+    private final FileStorage storage;
 
     public NoticeController(BidNoticeService bidNoticeService,
                             NoticeRegisterService noticeRegisterService,
                             NoticeDetailService noticeDetailService,
                             NoticeCollectService noticeCollectService,
                             NoticeTeamService noticeTeamService,
-                            HistoryService historyService) {
+                            HistoryService historyService,
+                            NoticeAttachmentService noticeAttachmentService,
+                            FileStorage storage) {
         this.bidNoticeService = bidNoticeService;
         this.noticeRegisterService = noticeRegisterService;
         this.noticeDetailService = noticeDetailService;
         this.noticeCollectService = noticeCollectService;
         this.noticeTeamService = noticeTeamService;
         this.historyService = historyService;
+        this.noticeAttachmentService = noticeAttachmentService;
+        this.storage = storage;
     }
 
     @GetMapping
@@ -233,5 +249,30 @@ public class NoticeController {
         }
         redirect.addFlashAttribute("registMessage", msg.toString());
         return "redirect:/notices";
+    }
+
+    /**
+     * 공고 첨부 내려받기 (FR-036, 11/05). 공고 상세를 볼 수 있는 사람(영업부·팀장·경영지원실)은 누구나 받는다.
+     * 우리 서버에 저장한 파일(영업부가 직접 등록한 공고)은 서버에서 바로 내려 주고,
+     * 수집만 하고 저장하지 않은 첨부는 나라장터 내려받기 주소로 보낸다.
+     */
+    @GetMapping("/{pbancSn}/files/{fileSn}")
+    public ResponseEntity<Resource> downloadFile(@PathVariable Long pbancSn, @PathVariable Long fileSn) {
+        AtchFileDTO f = noticeAttachmentService.findFiles(pbancSn).stream()
+                .filter(x -> fileSn.equals(x.getFileSn()))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다."));
+        if (f.isStored()) {
+            Resource body = storage.load(f.getFilePathNm(), f.getStrgFileNm());
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            ContentDisposition.attachment().filename(f.getOrgnlFileNm(), StandardCharsets.UTF_8).build().toString())
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(body);
+        }
+        if (f.getOrgnlUrl() != null && !f.getOrgnlUrl().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(f.getOrgnlUrl())).build();
+        }
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다.");
     }
 }

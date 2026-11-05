@@ -115,7 +115,8 @@
 
 /* 첨부파일 한 줄: 아이콘 · 이름 · [내려받기] */
 .nd-file svg{color:var(--accent);flex:none}
-.nd-file-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.nd-file-txt{flex:1;min-width:0;display:flex;align-items:baseline;gap:4px 10px;flex-wrap:wrap}
+.nd-file-txt .faint{white-space:nowrap}
 .nd-file-txt b{overflow-wrap:anywhere}
 
 /* 지금 할 일 카드 (영업부 배정 · 팀장 참여 결정). 테두리는 다른 카드와 같다 (11/05) */

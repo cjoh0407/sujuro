@@ -30,6 +30,10 @@ public class AtchFileDTO {
     /** 나라장터 내려받기 주소 */
     private String orgnlUrl;
 
+    /** 서버에 저장한 파일 이름·폴더 (11/05). 영업부가 직접 등록한 공고 첨부처럼 우리 서버에 둔 파일만 있다. 수집한 첨부는 null */
+    private String strgFileNm;
+    private String filePathNm;
+
     /** 바이트. 내려받기 응답 헤더(Content-Length)에서 얻는다. 못 얻으면 null */
     private Long fileSz;
 
@@ -46,6 +50,11 @@ public class AtchFileDTO {
     private String rgtrId;
 
     private Date regDt;
+
+    /** 우리 서버에 저장한 파일인지. 그렇다면 서버에서 바로 내려 주고, 아니면 나라장터 주소로 보낸다 */
+    public boolean isStored() {
+        return strgFileNm != null && !strgFileNm.isEmpty() && filePathNm != null && !filePathNm.isEmpty();
+    }
 
     public static AtchFileDTO of(String fileSeCd, String orgnlFileNm, String orgnlUrl) {
         AtchFileDTO file = new AtchFileDTO();

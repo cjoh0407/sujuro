@@ -172,27 +172,6 @@
      ORDER BY CASE WHEN X.OUR_CO_YN = 'Y' THEN 0 ELSE 1 END, X.OPENG_RNK NULLS LAST, X.CO_EVL_RSLT_SN, MIN(X.ORD), X.CAT_NM
   </select>
 
-  <!--
-    통계(전체 종합)의 자주 만난 경쟁 업체 (11/03). 그 팀·연도에 결과가 등록된 공고의 개찰 업체 중 우리 회사가 아닌 곳.
-    만남 = 같은 공고에 들어간 수, 우리가 앞섬 = 개찰 순위가 우리보다 뒤인 수, 상대 낙찰 = 그 업체가 낙찰자인 수. 많이 만난 순 다섯 곳.
-  -->
-  <select id="competitors" resultType="com.ojj.sujuro.result.dto.StatsCompetitorDTO">
-    SELECT MAX(C.CO_NM) AS coNm,
-           COUNT(DISTINCT P.PBANC_SN) AS metCnt,
-           COUNT(DISTINCT CASE WHEN O.OPENG_RNK &lt; C.OPENG_RNK THEN P.PBANC_SN END) AS aheadCnt,
-           COUNT(DISTINCT CASE WHEN C.SCSBD_YN = 'Y' THEN P.PBANC_SN END) AS wonCnt
-      FROM TB_BID_PBANC P
-      <include refid="resultJoin"/>
-      JOIN TB_CO_EVL_RSLT O ON O.PBANC_SN = P.PBANC_SN AND O.OUR_CO_YN = 'Y'
-      JOIN TB_CO_EVL_RSLT C ON C.PBANC_SN = P.PBANC_SN AND C.OUR_CO_YN = 'N'
-     WHERE <include refid="resultCond"/>
-       AND P.SPRVSN_TEAM_SN = #{teamSn}
-       AND TO_CHAR(P.BID_DDLN_DT, 'YYYY') = #{year}
-     GROUP BY C.BIZ_NO
-     ORDER BY COUNT(DISTINCT P.PBANC_SN) DESC, COUNT(DISTINCT CASE WHEN C.SCSBD_YN = 'Y' THEN P.PBANC_SN END) DESC, MAX(C.CO_NM)
-     FETCH FIRST 5 ROWS ONLY
-  </select>
-
   <!-- 통계 왼쪽 목록의 앞쪽, 진행 중 사업 (11/04). 전체 종합에 고른 연도의 이 팀 사업. 마감일이 아직 없으면 올해로 본다(목록에서 사라지지 않게).
        제출 완료는 결과를 입력해야 해서 여기에 넣고 맨 앞에 둔다 -->
   <select id="inProgress" resultType="com.ojj.sujuro.result.dto.ResultBidDTO">

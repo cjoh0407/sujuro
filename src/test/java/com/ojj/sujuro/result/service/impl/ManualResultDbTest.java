@@ -130,7 +130,7 @@ class ManualResultDbTest {
         String after = page(mgmt, "/results?bid=" + sn);
         assertTrue(after.contains("결과 고치기"));
         assertTrue(after.contains("value=\"120000000\""));
-        assertTrue(after.contains("장단점 분석"));
+        assertTrue(after.contains("<h3>장단점 분석</h3>")); // 제목으로 본다. 그냥 글자는 HTML 주석에도 있어서 카드가 빠져도 통과한다
         assertFalse(after.contains("<h3>개찰 업체 점수</h3>"));
         assertFalse(after.contains("<h3>평가 항목·배점 (평가표)</h3>"));
 

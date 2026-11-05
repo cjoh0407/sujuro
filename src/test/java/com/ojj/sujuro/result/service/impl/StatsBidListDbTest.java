@@ -213,6 +213,33 @@ class StatsBidListDbTest {
     }
 
     @Test
+    void 전체_종합은_연도별_차트_두_개와_그_아래_참여_형태별_수주율로_구성한다() throws Exception {
+        String page = page(mgmt, stats("2019"));
+
+        int joined = page.indexOf("연도별 참여·수주 (");
+        int amount = page.indexOf("연도별 수주 금액 (");
+        int rate = page.indexOf("참여 형태별 수주율 (");
+        assertTrue(joined >= 0 && joined < amount && amount < rate, "참여·수주, 수주 금액, 수주율 순서여야 합니다");
+        assertTrue(page.contains("년 수주 금액 "), "수주 금액 막대의 안내 글자가 없습니다");
+        assertFalse(page.contains("자주 만난"));
+        assertFalse(page.contains("경쟁 업체"));
+    }
+
+    @Test
+    void 차트는_고른_연도_묶음만_강조하고_연도를_누르면_그_연도로_간다() throws Exception {
+        for (String year : new String[] { "2018", "2019" }) {
+            String page = page(mgmt, stats(year));
+            String charts = page.substring(page.indexOf("class=\"two even stats-row\""));
+
+            assertEquals(2, count(charts, "class=\"yg on\""), "두 차트 모두 한 연도만 강조합니다");
+            assertEquals(2, count(charts, "aria-current=\"true\""));
+            assertTrue(charts.matches("(?s).*class=\"yg on\"[^>]*data-year=\"" + year + "\".*"), year + "년이 강조되어야 합니다");
+            assertFalse(charts.matches("(?s).*class=\"yg\"[^>]*data-year=\"" + year + "\".*"));
+            assertEquals(2, count(charts, "href=\"/stats?team=" + teamSn + "&amp;year=" + year + "\""));
+        }
+    }
+
+    @Test
     void 연도_없이_바로_오면_그_사업의_연도_목록에서_강조한다() throws Exception {
         // 평가·결과 입력의 [사업별 결과 분석] 버튼처럼 연도 없이 온다
         String list = yearPart(page(mgmt, "/stats?bid=" + won));

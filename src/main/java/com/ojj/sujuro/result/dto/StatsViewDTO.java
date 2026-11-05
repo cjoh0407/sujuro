@@ -9,7 +9,7 @@ import lombok.Setter;
 /**
  * 통계 화면(stats/index.html) 한 장에 필요한 값 (FR-083~088).
  * 고른 연도·팀 하나를 보여 준다. 연도별 차트는 연도와 상관없이 그 팀 전체고, 왼쪽 목록의 사업은 고른 연도 것만이다 (11/04).
- * 11/03 평가 항목별 분석은 사업별 결과 분석으로만 옮기고, 그 자리에 자주 만난 경쟁 업체를 넣었다.
+ * 11/03 평가 항목별 분석은 사업별 결과 분석으로만 옮겼다.
  */
 @Getter
 @Setter
@@ -31,10 +31,11 @@ public class StatsViewDTO {
 
     /** 고른 연도·팀의 요약 카드 */
     private StatsTallyDTO summary;
+    /** 연도별 참여·수주 건수 차트 */
     private StatsChartDTO chart;
+    /** 연도별 수주 금액 차트 (11/05) */
+    private StatsChartDTO amountChart;
     private List<StatsRateDTO> ptcpShpRates = new ArrayList<>();
-    /** 고른 연도·팀의 자주 만난 경쟁 업체 (많이 만난 순 다섯 곳) */
-    private List<StatsCompetitorDTO> competitors = new ArrayList<>();
     /** 왼쪽 목록의 앞쪽, 진행 중 사업: 이 팀·고른 연도의 참여 확정·제안 작성 중·제출 완료 */
     private List<ResultBidDTO> inProgress = new ArrayList<>();
     /** 왼쪽 목록의 뒤쪽, 지난 사업: 이 팀·고른 연도의 결과 등록·유찰 */

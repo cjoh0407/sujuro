@@ -11,6 +11,11 @@
 
 /* 통계의 3:7 배치와 왼쪽 사업 목록, 평가·결과 입력의 3:7 배치는 제안 화면과 같은 proposal.css 의 .split, .bid-item 을 쓴다 (11/04) */
 
+/* 본문 버튼 크기는 대시보드의 [공고 관리](a.btn.sm, 68×30px)에 맞춘다 (11/05). 긴 문구는 잘리지 않게 폭은 최소값만 둔다.
+   button 태그는 줄 높이가 달라 28px 이 되므로 물려받게 한다. 상단바 버튼은 모든 화면에서 같아야 해서 .content 로 한정한다 */
+.content .btn.sm{box-sizing:border-box;min-width:68px;justify-content:center}
+.content button.btn.sm{line-height:inherit}
+
 /* 왼쪽 목록은 진행 중과 지난 사업을 한 칸에 모으므로 제안 화면(4줄)보다 길게 8줄까지 보이고, 넘으면 칸 안에서 스크롤한다 */
 .bid-body.year-body{max-height:496px}
 
@@ -41,7 +46,7 @@ button.bid-item::after{content:"›";position:absolute;right:14px;top:50%;transf
 .pending-msg{flex:1;display:flex;align-items:center;justify-content:center;min-height:200px;padding:18px;text-align:center;font-size:13px;color:var(--muted)}
 .pending-msg.sm{min-height:110px}
 
-/* 연도별 참여·수주 막대 차트 (StatsChartDTO 가 좌표를 계산한다) */
+/* 연도별 참여·수주, 수주 금액 막대 차트 (StatsChartDTO 가 좌표를 계산한다) */
 .chart{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
 .chart .grid{stroke:var(--border);stroke-width:1}
 .chart .tick{font-size:9px;fill:var(--faint)}
@@ -49,7 +54,16 @@ button.bid-item::after{content:"›";position:absolute;right:14px;top:50%;transf
 .chart .s-won{fill:var(--chart-won)}
 .chart .val{font-size:9.5px;fill:var(--muted)}
 .chart .yr{font-size:11px;fill:var(--faint)}
-.chart .yr.on{fill:var(--accent);font-weight:700}
+/* 연도 묶음 (11/05). 고른 연도만 선명하고 나머지 막대와 값은 흐리다. 마우스나 키보드가 머물면 조금 진해져서 누를 수 있음을 보인다 */
+.chart .yg{cursor:pointer;text-decoration:none}
+.chart .yg path,.chart .yg .val{transition:opacity .2s}
+.chart .yg:not(.on) path{opacity:.3}
+.chart .yg:not(.on) .val{opacity:.55}
+.chart .yg:not(.on):hover path,.chart .yg:not(.on):focus-visible path{opacity:.6}
+.chart .yg:not(.on):hover .val,.chart .yg:not(.on):focus-visible .val{opacity:1}
+.chart .yg.on .val{fill:var(--text);font-weight:700}
+.chart .yg.on .yr{fill:var(--accent);font-weight:700}
+@media (prefers-reduced-motion:reduce){.chart .yg path,.chart .yg .val{transition:none}}
 .chart .hit{fill:transparent}
 .chart .bar:hover .hit{fill:var(--alt)}
 .legend{font-size:11.5px;color:var(--faint);display:inline-flex;align-items:center;gap:4px}
@@ -64,15 +78,7 @@ button.bid-item::after{content:"›";position:absolute;right:14px;top:50%;transf
 .evl-win .faint{color:var(--muted)}
 .cmp-note{font-size:11.5px;padding:10px 14px;border-top:1px solid var(--border)}
 
-/* 전체 종합의 참여 형태별 수주율은 줄여서, 아래에 자주 만난 경쟁 업체를 둔다 (11/03) */
-.rate-card .pad{padding-top:8px;padding-bottom:8px}
-.rate-card .lossrow{padding:4px 0}
-
-/* 전체 종합: 왼쪽 연도별 참여·수주 카드와 오른쪽 두 카드의 위·아래 끝을 맞춘다 (11/03).
-   오른쪽이 짧으면 참여 형태별 수주율 카드가 늘어나 줄을 고르게 벌리고(경쟁 업체 카드는 내용 높이),
-   왼쪽이 짧으면 차트 카드가 늘어나 차트를 세로 가운데에 둔다 */
-.stats-row>.col>.rate-card{flex:1;display:flex;flex-direction:column}
-.stats-row>.col>.rate-card>.pad{flex:1;display:flex;flex-direction:column;justify-content:space-evenly}
+/* 전체 종합의 두 차트 카드는 같은 높이이고, 차트는 카드 세로 가운데에 둔다 */
 .stats-row>.chart-card{display:flex;flex-direction:column}
 .stats-row>.chart-card>.pad{flex:1;display:flex;flex-direction:column;justify-content:center}
 

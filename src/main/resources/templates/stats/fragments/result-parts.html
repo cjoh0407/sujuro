@@ -8,8 +8,27 @@
     articleTable(t, emptyText) : 사업별 결과 분석의 평가 항목별 점수 표 (11/03). t = result.dto.ArticleScoreTableDTO.
                         평가표 엑셀을 올린 업체가 열이고, 항목별 점수·등수, 종합 점수·등수, 1등 업체(수주 업체)를 보여 준다.
                         평가표 엑셀이 올라오기 전에는 비어 있고 emptyText 를 보인다. 표를 바로 넣으므로 부르는 쪽은 .pad 로 감싸지 않는다.
+    barChart(c, teamSn) : 통계 전체 종합의 연도별 막대 차트 (11/05). c = result.dto.StatsChartDTO. 좌표는 StatsChartDTO 가 계산한다.
+                        연도 묶음(.yg)은 그 연도 통계로 가는 링크이고 고른 연도만 선명하다. 누르면 stats/index 스크립트가 페이지를 새로 열지 않고 바꾼다.
 */-->
 <body>
+
+<svg class="chart" viewBox="0 0 300 210" role="group" th:fragment="barChart(c, teamSn)" th:attr="aria-label=${c.ariaLabel}">
+  <g th:each="g : ${c.gridLines}">
+    <line class="grid" th:x1="${c.axisLeft}" th:x2="${c.axisRight}" th:y1="${g.y}" th:y2="${g.y}"></line>
+    <text class="tick" th:x="${c.tickX}" th:y="${g.y}" dy="3" text-anchor="end" th:text="${g.label}">0</text>
+  </g>
+  <a class="yg" th:each="yg : ${c.groups}" th:classappend="${yg.selected} ? 'on'" th:href="@{/stats(team=${teamSn}, year=${yg.year})}"
+     th:attr="data-year=${yg.year},aria-label=|${yg.label} 보기|,aria-current=${yg.selected} ? 'true'">
+    <g class="bar" th:each="b : ${yg.bars}">
+      <title th:text="${b.title}">2026년 참여 0건</title>
+      <rect class="hit" th:x="${b.hitX}" th:y="${b.hitY}" th:width="${b.hitWidth}" th:height="${b.hitHeight}"></rect>
+      <path th:unless="${#strings.isEmpty(b.path)}" th:class="${b.cls}" th:attr="d=${b.path}"></path>
+      <text class="val" th:x="${b.labelX}" th:y="${b.labelY}" text-anchor="middle" th:text="${b.value}">0</text>
+    </g>
+    <text class="yr" th:x="${yg.labelX}" th:y="${c.yearLabelY}" text-anchor="middle" th:text="${yg.label}">2026년</text>
+  </a>
+</svg>
 
 <div class="card score-card" th:fragment="scoreCard(a)">
   <div class="card-head">

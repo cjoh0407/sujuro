@@ -9,10 +9,12 @@
     왼쪽  : 사업 목록 블록: '전체 종합' → 고른 연도의 진행 사업. '전체 종합'을 누르면 팝업에서 연도·팀을 고른다 (11/04).
             진행 사업은 눌러서 펼치는 목록이고, 진행 중(view.inProgress)이 먼저이고 지난 사업(view.history. 결과 등록·유찰)이 이어진다.
             사업을 누르면 오른쪽이 그 사업으로 바뀐다.
-    오른쪽: 전체 종합이면 통계(요약 카드 4개 → 차트 | 참여 형태별 수주율 + 자주 만난 경쟁 업체),
+    오른쪽: 전체 종합이면 통계(요약 카드 4개 → 연도별 참여·수주 | 연도별 수주 금액 → 참여 형태별 수주율),
             사업을 고르면 그 사업의 사업별 결과 분석(stats/fragments/archive). 아직 결과가 없으면 공고 기본 정보와 안내 문구만 보인다.
   11/03 오른쪽의 과거 사업 이력 표는 뺐다. 사업은 왼쪽 목록에서 고른다.
-  11/03 평가 항목별 분석은 사업별 결과 분석(평가 항목별 점수)으로만 옮기고, 그 자리에 자주 만난 경쟁 업체를 넣었다.
+  11/03 평가 항목별 분석은 사업별 결과 분석(평가 항목별 점수)으로만 옮겼다.
+  11/05 경쟁 업체 표를 빼고 연도별 수주 금액 차트를 넣었다.
+  11/05 연도·팀을 고르면(팝업 또는 차트의 연도) 페이지를 새로 열지 않고 머리와 본문만 바꾼다. 차트는 고른 연도만 선명하다. 스크립트는 맨 아래.
   경영지원실은 개발팀을 골라 보고(전체 합계 없음), 팀장은 자기 팀만 본다.
 
   모델: view (result.dto.StatsViewDTO), archive·canEdit (사업을 골랐을 때만)
@@ -66,7 +68,6 @@
         <!--/* 누르면 연도·팀 팝업이 열린다. 사업을 보다가 전체 종합으로 돌아갈 때도 팝업의 [보기]를 누른다 */-->
         <button type="button" class="bid-item" th:classappend="${archive == null} ? 'on'" data-scope-open aria-haspopup="dialog">
           <b>전체 종합</b>
-          <span class="pill neutral" th:text="|${view.year}년 · ${view.teamNm}|">2026년 · 개발1팀</span>
         </button>
         <!--/* 제안서 관리의 지난 사업처럼 눌러서 펼친다 (11/04). 처음에는 접혀 있고, 사업을 고른 화면에서는 그 사업이 보이게 펼친다 */-->
         <details class="bid-past" th:open="${archive != null}">
@@ -110,8 +111,8 @@
           <span class="faint" style="font-size:11.5px" th:if="${#lists.size(view.teams) < 2}">팀장은 자기 팀 통계만 봅니다</span>
         </div>
         <div class="row" style="justify-content:flex-end">
-          <button type="button" class="btn" data-scope-close>취소</button>
-          <button type="submit" class="btn primary">보기</button>
+          <button type="button" class="btn sm" data-scope-close>취소</button>
+          <button type="submit" class="btn sm primary">보기</button>
         </div>
       </form>
     </div>
@@ -145,76 +146,42 @@
       </div>
     </div>
 
-    <!-- stats-row: 왼쪽 연도별 참여·수주와 오른쪽 두 카드(참여 형태별 수주율 + 자주 만난 경쟁 업체)의 위·아래 끝을 맞춘다 (11/03).
-         남는 높이는 참여 형태별 수주율이 줄 간격을 벌려 채우고, 차트는 카드 높이 가운데에 둔다 -->
+    <!-- stats-row (11/05): 위 줄은 연도별 참여·수주와 연도별 수주 금액, 그 아래 왼쪽에 참여 형태별 수주율.
+         같은 줄 카드는 높이가 같고, 차트는 카드 높이 가운데에 둔다 -->
     <div class="two even stats-row">
 
-      <!-- 연도별 참여·수주 (FR-083). 좌표는 StatsChartDTO 가 계산한다 -->
+      <!-- 연도별 참여·수주 (FR-083) -->
       <div class="card chart-card">
         <div class="card-head">
           <h3 th:text="|연도별 참여·수주 (${view.teamNm})|">연도별 참여·수주</h3>
           <span class="legend"><span class="sw s-join"></span>참여<span class="sw s-won"></span>수주</span>
         </div>
-        <div class="pad" th:with="c=${view.chart}">
-          <svg class="chart" viewBox="0 0 300 210" role="img" th:attr="aria-label=${c.ariaLabel}">
-            <g th:each="g : ${c.gridLines}">
-              <line class="grid" th:x1="${c.axisLeft}" th:x2="${c.axisRight}" th:y1="${g.y}" th:y2="${g.y}"></line>
-              <text class="tick" th:x="${c.tickX}" th:y="${g.y}" dy="3" text-anchor="end" th:text="${g.label}">0</text>
-            </g>
-            <g th:each="yg : ${c.groups}">
-              <g class="bar" th:each="b : ${yg.bars}">
-                <title th:text="${b.title}">2026년 참여 0건</title>
-                <rect class="hit" th:x="${b.hitX}" th:y="${b.hitY}" th:width="${b.hitWidth}" th:height="${b.hitHeight}"></rect>
-                <path th:unless="${#strings.isEmpty(b.path)}" th:class="${b.cls}" th:attr="d=${b.path}"></path>
-                <text class="val" th:x="${b.labelX}" th:y="${b.labelY}" text-anchor="middle" th:text="${b.value}">0</text>
-              </g>
-              <text class="yr" th:classappend="${yg.selected} ? 'on'" th:x="${yg.labelX}" th:y="${c.yearLabelY}"
-                    text-anchor="middle" th:text="${yg.label}">2026년</text>
-            </g>
-          </svg>
+        <div class="pad">
+          <th:block th:replace="~{stats/fragments/result-parts :: barChart(${view.chart}, ${view.teamSn})}"></th:block>
         </div>
       </div>
 
-      <!-- 오른쪽: 참여 형태별 수주율(줄여서) 아래에 자주 만난 경쟁 업체 (11/03).
-           평가 항목별 분석은 사업별 결과 분석으로만 옮겼다 -->
-      <div class="col">
+      <!-- 연도별 수주 금액 (11/05). 요약 카드의 수주 금액과 같은 값이다. 막대가 한 종류라 범례 대신 단위를 적는다 -->
+      <div class="card chart-card">
+        <div class="card-head">
+          <h3 th:text="|연도별 수주 금액 (${view.teamNm})|">연도별 수주 금액</h3>
+          <span class="faint" style="font-size:11.5px">단위: 억 원</span>
+        </div>
+        <div class="pad">
+          <th:block th:replace="~{stats/fragments/result-parts :: barChart(${view.amountChart}, ${view.teamSn})}"></th:block>
+        </div>
+      </div>
 
-        <!-- 참여 형태별 수주율 (FR-085) -->
-        <div class="card rate-card">
-          <div class="card-head"><h3 th:text="|참여 형태별 수주율 (${view.year}년)|">참여 형태별 수주율</h3></div>
-          <div class="pad">
-            <div class="lossrow rate" th:each="r : ${view.ptcpShpRates}">
-              <b th:text="${r.label}">주관</b>
-              <div class="bar"><i th:style="|width:${r.barWidth}%|"></i></div>
-              <span class="mono" th:text="${r.rateText}">결과 없음</span>
-            </div>
+      <!-- 참여 형태별 수주율 (FR-085) -->
+      <div class="card">
+        <div class="card-head"><h3 th:text="|참여 형태별 수주율 (${view.year}년)|">참여 형태별 수주율</h3></div>
+        <div class="pad">
+          <div class="lossrow rate" th:each="r : ${view.ptcpShpRates}">
+            <b th:text="${r.label}">주관</b>
+            <div class="bar"><i th:style="|width:${r.barWidth}%|"></i></div>
+            <span class="mono" th:text="${r.rateText}">결과 없음</span>
           </div>
         </div>
-
-        <!-- 자주 만난 경쟁 업체 (11/03). 개찰 결과(나라장터) 기준, 많이 만난 순 다섯 곳 -->
-        <div class="card">
-          <div class="card-head">
-            <h3 th:text="|자주 만난 경쟁 업체 (${view.year}년)|">자주 만난 경쟁 업체</h3>
-            <span class="faint" style="font-size:11.5px">개찰 결과 기준 · 상위 5곳</span>
-          </div>
-          <div class="ts">
-            <table>
-              <thead><tr><th>업체</th><th>만남</th><th>우리가 앞섬</th><th>상대 낙찰</th></tr></thead>
-              <tbody>
-                <tr class="hv" th:each="c : ${view.competitors}">
-                  <td th:text="${c.coNm}">경쟁사</td>
-                  <td class="mono" th:text="|${c.metCnt}회|">0회</td>
-                  <td class="mono" th:text="|${c.aheadCnt}회|">0회</td>
-                  <td class="mono" th:text="|${c.wonCnt}회|">0회</td>
-                </tr>
-                <tr th:if="${#lists.isEmpty(view.competitors)}">
-                  <td colspan="4" class="empty" th:text="|${view.year}년 결과가 등록된 사업에 다른 개찰 업체가 없습니다.|">다른 개찰 업체가 없습니다.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
       </div>
     </div>
 
@@ -225,44 +192,132 @@
 
 <th:block layout:fragment="scripts">
 <script>
-  // 사업 목록은 칸 안에서 스크롤한다. 고른 사업이 칸 밖에 있으면 보이는 자리로 옮긴다
   (function () {
-    var on = document.querySelector('.bid-body .bid-item.on');
-    if (!on) {
-      return;
+    // 사업 목록은 칸 안에서 스크롤한다. 고른 사업이 칸 밖에 있으면 보이는 자리로 옮긴다
+    function showPickedBid() {
+      var on = document.querySelector('.bid-body .bid-item.on');
+      if (!on) {
+        return;
+      }
+      var box = on.parentNode;
+      var row = on.getBoundingClientRect();
+      var view = box.getBoundingClientRect();
+      if (row.bottom > view.bottom || row.top < view.top) {
+        box.scrollTop += row.top - view.top;
+      }
     }
-    var box = on.parentNode;
-    var row = on.getBoundingClientRect();
-    var view = box.getBoundingClientRect();
-    if (row.bottom > view.bottom || row.top < view.top) {
-      box.scrollTop += row.top - view.top;
-    }
-  })();
+    showPickedBid();
 
-  // 연도·팀 팝업 열고 닫기 (11/03). 바깥(어두운 바탕)·[취소]·Esc 로 닫는다
-  (function () {
-    var modal = document.getElementById('statsScope');
-    var opener = document.querySelector('[data-scope-open]');
-    if (!modal || !opener) {
-      return;
+    function pickedYear() {
+      var on = document.querySelector('.chart .yg.on');
+      return on ? on.getAttribute('data-year') : null;
     }
-    function close() {
-      modal.hidden = true;
-      opener.focus();
+
+    function highlight(year) {
+      document.querySelectorAll('.chart .yg').forEach(function (g) {
+        g.classList.toggle('on', g.getAttribute('data-year') === year);
+      });
     }
-    opener.addEventListener('click', function () {
-      modal.hidden = false;
-      document.getElementById('sc-year').focus();
-    });
-    modal.addEventListener('click', function (e) {
-      if (e.target === modal || e.target.hasAttribute('data-scope-close')) {
-        close();
+
+    // 머리와 본문을 받아 온 것으로 바꾼다. 통계 화면이 아니면(로그인 만료 등) false
+    function swap(doc) {
+      var head = doc.querySelector('.page-head');
+      var split = doc.querySelector('.split');
+      if (!head || !split) {
+        return false;
+      }
+      var before = pickedYear();
+      var past = document.querySelector('.bid-past');
+      var nextPast = split.querySelector('.bid-past');
+      if (past && nextPast && past.open) {
+        nextPast.open = true; // 펼쳐 둔 진행 사업은 펼친 채로 둔다
+      }
+      document.querySelector('.page-head').replaceWith(head);
+      document.querySelector('.split').replaceWith(split);
+
+      // 새로 넣은 차트는 바로 그려지므로, 이전 연도를 강조한 모습을 한 번 그리고 새 연도로 옮겨 서서히 바뀌게 한다
+      var after = pickedYear();
+      if (before && after && before !== after) {
+        highlight(before);
+        void document.body.offsetWidth;
+        highlight(after);
+      }
+      showPickedBid();
+      return true;
+    }
+
+    var last = 0; // 빠르게 여러 번 고르면 마지막 요청만 화면에 넣는다
+
+    // 연도·팀을 바꾼 통계를 페이지를 새로 열지 않고 보여 준다 (11/05). 실패하면 보통 방식으로 연다(로그인 만료면 로그인 화면으로 간다)
+    function load(url, push, focusTarget) {
+      var mine = ++last;
+      fetch(url).then(function (res) {
+        if (!res.ok) {
+          throw new Error('HTTP ' + res.status);
+        }
+        return res.text();
+      }).then(function (html) {
+        if (mine !== last) {
+          return;
+        }
+        if (!swap(new DOMParser().parseFromString(html, 'text/html'))) {
+          throw new Error('통계 화면이 아닙니다');
+        }
+        if (push && new URL(url, location.href).href !== location.href) {
+          history.pushState(null, '', url);
+        }
+        if (focusTarget) {
+          document.querySelector(focusTarget).focus({ preventScroll: true });
+        }
+      }).catch(function () {
+        if (mine === last) {
+          location.assign(url);
+        }
+      });
+    }
+
+    // 연도·팀 팝업 (11/03). 바깥(어두운 바탕)·[취소]·Esc 로 닫는다.
+    // 본문을 통째로 바꾸므로 이벤트는 document 에서 받는다
+    function closeScope() {
+      document.getElementById('statsScope').hidden = true;
+      document.querySelector('[data-scope-open]').focus();
+    }
+
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t.closest('[data-scope-open]')) {
+        document.getElementById('statsScope').hidden = false;
+        document.getElementById('sc-year').focus();
+      } else if (t.id === 'statsScope' || t.hasAttribute('data-scope-close')) {
+        closeScope();
+      } else if (t.closest('.chart .yg') && !e.ctrlKey && !e.metaKey && !e.shiftKey) { // 새 탭·새 창은 브라우저에 맡긴다
+        e.preventDefault();
+        var link = t.closest('.chart .yg');
+        if (!link.classList.contains('on')) {
+          load(link.getAttribute('href'), true, '.chart .yg.on');
+        }
       }
     });
+
+    document.addEventListener('submit', function (e) {
+      var form = e.target;
+      if (form.closest('#statsScope')) {
+        e.preventDefault();
+        closeScope();
+        load(form.action + '?' + new URLSearchParams(new FormData(form)), true, '[data-scope-open]');
+      }
+    });
+
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && !modal.hidden) {
-        close();
+      var modal = document.getElementById('statsScope');
+      if (e.key === 'Escape' && modal && !modal.hidden) {
+        closeScope();
       }
+    });
+
+    // 뒤로·앞으로 가기는 그 주소의 화면으로 바꾼다
+    window.addEventListener('popstate', function () {
+      load(location.href, false);
     });
   })();
 </script>

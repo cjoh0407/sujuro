@@ -72,13 +72,20 @@ public class StatsServiceImpl implements StatsService {
             }
         }
         v.setSummary(byYear.getOrDefault(picked, StatsTallyDTO.empty(picked, team.getTeamSn(), team.getTeamNm())));
-        v.setChart(StatsChartDTO.of(years.subList(Math.max(0, years.size() - CHART_YEARS), years.size()), byYear, picked));
+        List<String> chartYears = chartYears(years, picked);
+        v.setChart(StatsChartDTO.of(chartYears, byYear, picked));
+        v.setAmountChart(StatsChartDTO.amountOf(chartYears, byYear, picked));
 
         v.setPtcpShpRates(statsMapper.ptcpShpRates(team.getTeamSn(), picked));
-        v.setCompetitors(statsMapper.competitors(team.getTeamSn(), picked));
         v.setInProgress(statsMapper.inProgress(team.getTeamSn(), picked));
         v.setHistory(statsMapper.history(team.getTeamSn(), picked));
         return v;
+    }
+
+    /** 차트에 그릴 연도. 최근 CHART_YEARS 개이고, 고른 연도가 그보다 오래됐으면 그 연도부터 그린다. 고른 연도를 강조하려면 차트에 있어야 한다 (11/05) */
+    static List<String> chartYears(List<String> years, String picked) {
+        int from = Math.min(Math.max(0, years.size() - CHART_YEARS), years.indexOf(picked));
+        return years.subList(from, Math.min(years.size(), from + CHART_YEARS));
     }
 
     @Override

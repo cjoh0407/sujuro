@@ -44,7 +44,7 @@
         <label class="qa-side-l">
           <span class="row jc-between"><span>설명 (선택)</span><span class="faint fw-normal" id="refMemoCnt">0 / 30</span></span>
           <input type="text" name="memo" maxlength="30" placeholder="예: 제안서 본문용 고딕체"
-                 oninput="document.getElementById('refMemoCnt').textContent = this.value.length + ' / 30'">
+                 data-on-input="refMemoCount">
         </label>
         <div class="row jc-end">
           <button class="btn sm primary" type="submit">올리기</button>
@@ -93,7 +93,7 @@
             <td class="c-act">
               <a class="ico" title="내려받기" aria-label="내려받기" th:href="@{/refs/download(refFileSn=${f.refFileSn})}"><span class="ic ic-download"></span></a>
               <form class="inl" th:if="${leader or f.rgtrId == me}" th:action="@{/refs/delete}" method="post"
-                    onsubmit="return confirm('이 자료를 삭제할까요?');">
+                    data-confirm="이 자료를 삭제할까요?">
                 <input type="hidden" name="refFileSn" th:value="${f.refFileSn}">
                 <input type="hidden" name="se" th:value="${se}">
                 <button class="ico danger" type="submit" title="삭제" aria-label="삭제"><span class="ic ic-trash"></span></button>

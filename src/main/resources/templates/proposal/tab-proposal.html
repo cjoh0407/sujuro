@@ -41,7 +41,7 @@
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
         <span class="lbl">제한</span>
         <input type="number" name="limit" min="1" max="9999" th:value="${bid.lmtPageCnt}" class="w-80px"
-               onchange="this.form.requestSubmit()">
+               data-change-submit>
       </form>
     </div>
     <div class="gauge mt-8" data-gauge="pages" th:if="${bid.lmtPageCnt != null}"
@@ -83,10 +83,9 @@
         <span class="row gap-8">
           <!-- 요구사항 전체 삭제 (주관팀 팀장): 추출을 다시 할 때. 목차 연결도 함께 사라진다 -->
           <form th:if="${canAssign and rqtTotal > 0}" th:action="@{/proposal/rqt/delete-all}" method="post" class="d-inline"
-                th:data-msg="'이 사업건의 요구사항 ' + ${rqtTotal} + '건을 모두 삭제합니다.'
+                th:data-confirm="'이 사업건의 요구사항 ' + ${rqtTotal} + '건을 모두 삭제합니다.'
                              + (${rqtTotal - unmapped > 0} ? ' 목차에 연결된 ' + ${rqtTotal - unmapped} + '건의 연결도 함께 사라집니다.' : '')
-                             + ' 삭제하면 되돌릴 수 없습니다. 삭제할까요?'"
-                onsubmit="return confirm(this.dataset.msg)">
+                             + ' 삭제하면 되돌릴 수 없습니다. 삭제할까요?'">
             <input type="hidden" name="bid" th:value="${bid.pbancSn}">
             <button class="btn sm danger" type="submit" th:text="'요구사항 전체 삭제 (' + ${rqtTotal} + '건)'">요구사항 전체 삭제</button>
           </form>
@@ -128,7 +127,7 @@
     <div class="card" th:with="cols=${canEdit ? 6 : 5}">
       <div class="card-head">
         <h3 th:text="${bid.label} + ' · 제안서 목차 · 담당자 · 요구사항'">제안서 목차</h3>
-        <button type="button" class="btn sm" id="tocModeBtn" th:if="${canEdit}" onclick="toggleTocMode()">수정 모드로 바꾸기</button>
+        <button type="button" class="btn sm" id="tocModeBtn" th:if="${canEdit}" data-on-click="toggleTocMode">수정 모드로 바꾸기</button>
       </div>
       <div class="pad pb-0"><th:block th:replace="~{proposal/fragments/toc :: curForm}"></th:block></div>
       <div class="pad pb-0">

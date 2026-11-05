@@ -426,32 +426,9 @@
 </th:block>
 
 <th:block layout:fragment="scripts">
-  <!-- 배정·결정·철회 결과는 오른쪽 아래 작은 알림으로 (common.js showToast). 실패(teamError)는 빨간 알림으로 조금 더 오래 -->
-  <script th:if="${teamMessage != null or teamError != null}" th:inline="javascript">
-    document.addEventListener('DOMContentLoaded', function () {
-      var ok = /*[[${teamMessage}]]*/ null;
-      var err = /*[[${teamError}]]*/ null;
-      if (!window.showToast) return;
-      if (err) window.showToast(err, 'err');
-      else if (ok) window.showToast(ok);
-    });
-  </script>
-  <script>
-    // 이력은 오래된 순이라 최신·다음 할 일이 맨 아래다. 길어서 스크롤이 생기면 처음에 맨 아래를 보여 준다 (11/05)
-    document.querySelectorAll('.nd-scroll').forEach(function (el) {
-      el.scrollTop = el.scrollHeight;
-    });
-  </script>
-  <script>
-    // 되돌리기 어려운 처리(불참 종결·공고 삭제·참여·불참·중도 철회)는 한 번 더 묻는다.
-    document.querySelectorAll('[data-confirm]').forEach(function (btn) {
-      btn.addEventListener('click', function (e) {
-        if (!window.confirm(btn.getAttribute('data-confirm'))) {
-          e.preventDefault();
-        }
-      });
-    });
-  </script>
+  <!-- 배정·결정·철회 결과는 오른쪽 아래 작은 알림으로 (common.js showToast). 실패(teamError)는 빨간 알림으로 조금 더 오래. 읽어서 띄우는 곳은 notice-detail.js -->
+  <div id="teamFlash" hidden th:if="${teamMessage != null or teamError != null}" th:data-ok="${teamMessage}" th:data-err="${teamError}"></div>
+  <script th:src="@{/js/notice-detail.js}"></script>
 </th:block>
 
 </body>

@@ -249,7 +249,7 @@
   <!-- 최근 알림: 누르면 알림 팝업과 같이 읽음 처리하고 그 알림의 화면으로 간다 (js/notification-panel.js).
        읽은 알림은 흐리게. 스크립트가 없으면 폼이 /alerts/{id}/open 으로 간다 -->
   <section class="card dash-side" aria-label="최근 알림">
-    <div class="card-head"><h3>최근 알림</h3><button class="btn sm" type="button" data-bell-open onclick="sujuroBell(true)">전체 보기</button></div>
+    <div class="card-head"><h3>최근 알림</h3><button class="btn sm" type="button" data-bell-open data-on-click="sujuroBell">전체 보기</button></div>
     <div class="dash-empty" th:if="${#lists.isEmpty(view.alerts)}">알림이 없습니다.</div>
     <form class="dash-alert" th:each="n : ${view.alerts}" th:classappend="${n.read} ? '' : 'unread'"
           th:action="@{/alerts/{id}/open(id=${n.notiSn})}" th:attr="data-noti-id=${n.notiSn}" method="post">

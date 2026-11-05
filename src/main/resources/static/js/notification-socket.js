@@ -48,7 +48,7 @@
       var data;
       try { data = JSON.parse(ev.data); } catch (e) { return; }
       if (typeof data.unreadCount === 'number') { updateBadge(data.unreadCount); }
-      if (data.content && typeof window.showToast === 'function') { window.showToast('🔔 ' + data.content); }
+      if (data.content && typeof window.showToast === 'function') { window.showToast(data.content); }
       // 알림 팝업(notification-panel.js)이 새 알림을 다시 불러오도록 알려 준다.
       document.dispatchEvent(new CustomEvent('sujuro:notification', { detail: data }));
     };

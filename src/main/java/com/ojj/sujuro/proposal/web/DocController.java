@@ -175,7 +175,10 @@ public class DocController {
                                @RequestParam("dcmntSn") Long dcmntSn,
                                @RequestParam("prgrsSttsCd") String status, RedirectAttributes ra) {
         requireViewer(bid, user);
-        return FlashRedirect.run(ra, PATH, bid, null, "준비 상태를 바꿨습니다.", () -> docService.changeStatus(bid, dcmntSn, status, isMgmt(user)));
+        return FlashRedirect.run(ra, PATH, bid, null, () -> { // 선택한 상태가 화면에 바로 보이므로 완료 문구는 띄우지 않는다
+            docService.changeStatus(bid, dcmntSn, status, isMgmt(user));
+            return null;
+        });
     }
 
     @PostMapping("/docs/upload")
@@ -184,7 +187,7 @@ public class DocController {
                             @RequestParam(value = "file", required = false) MultipartFile file, RedirectAttributes ra) {
         requireViewer(bid, user);
         if (dcmntSn == null) { // 체크리스트를 고르지 않았거나 체크리스트가 비어 있을 때 400 대신 안내
-            ra.addFlashAttribute("error", "파일을 올릴 서류를 먼저 선택해 주세요. 목록이 비어 있으면 필요 서류 체크리스트를 먼저 등록하세요.");
+            ra.addFlashAttribute("error", "파일을 올릴 서류를 먼저 선택해 주세요. 목록이 비어 있으면 필요 서류 체크리스트를 먼저 등록해 주세요.");
             return FlashRedirect.to(ra, PATH, bid, null);
         }
         return FlashRedirect.run(ra, PATH, bid, null, "서류 파일을 올렸습니다.", () -> docService.uploadDoc(bid, dcmntSn, file, user.getEmpNo()));

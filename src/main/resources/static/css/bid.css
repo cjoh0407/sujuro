@@ -49,3 +49,107 @@
 .pager-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center}
 .pager-row .pager{grid-column:2}
 .pager-info{grid-column:3;justify-self:end;padding-right:18px;font-size:11.5px;white-space:nowrap}
+
+/* ---- 공고 상세 (11/05 시안 F·G1~G4). 색은 common.css 변수만 쓴다(다크 모드) ---- */
+/* 머리 카드: 배지 · 공고번호 · 공고명 · 발주기관 한 줄. 오른쪽에 나라장터 버튼 */
+.nd-head{padding:18px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.nd-head-main{flex:1;display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;min-width:0}
+/* 공고 관리로 돌아가기: 머리 카드 왼쪽 아이콘 버튼 */
+.nd-back{flex:none;width:34px;height:34px;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);text-decoration:none}
+.nd-back:hover{border-color:var(--accent);color:var(--accent)}
+.nd-head h2{font-size:21px;line-height:1.35;word-break:keep-all}
+.nd-no{font-size:12px;color:var(--muted);letter-spacing:.02em}
+
+/* 머리 카드 오른쪽 버튼 ([제안 업무 열기] · [나라장터 공고 보기]) */
+.nd-head-acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* 배정·결정이 막힌 이유: 색 블록 대신 회색 글자 한 줄 (11/05) */
+.nd-block{margin:0;font-size:12.5px;color:var(--muted)}
+
+/* 공고 정보: 공문서식 표 모양. 4칸 격자(항목·값·항목·값), 위 굵은 선, 항목 칸은 회색 바탕 */
+.nd-info-card{overflow:hidden}
+.nd-title{padding:13px 18px;font-size:13.5px;font-weight:700}
+.nd-info{display:grid;grid-template-columns:max-content minmax(0,1fr) max-content minmax(0,1fr);border-top:1px solid var(--nd-line);font-size:13px}
+.nd-info>div{display:contents}
+.nd-info .k{white-space:nowrap;padding:11px 14px;background:var(--alt);border-bottom:1px solid var(--border);font-weight:600;color:var(--muted);font-size:12.5px}
+.nd-info .v{padding:11px 14px;border-bottom:1px solid var(--border);word-break:keep-all;overflow-wrap:anywhere}
+.nd-info>div:nth-child(even) .k{border-left:1px solid var(--border)}
+.nd-info .v.b{font-weight:700}
+.nd-info .key .k{color:var(--warning)}
+.nd-info .key .v{color:var(--warning);font-weight:700}
+@media (max-width:1300px){
+  .nd-info{grid-template-columns:max-content minmax(0,1fr)}
+  .nd-info>div:nth-child(even) .k{border-left:none}
+}
+
+/* 카드 제목 아래 줄: 공고 정보 표와 같은 1px 줄 (11/05). 하늘색과 회색 사이의 연한 색. 다크 모드는 따로 */
+.nd-page{--nd-line:#B3C3D8}
+:root[data-theme="dark"] .nd-page{--nd-line:#3B4C63}
+.nd-page .card-head{border-bottom:1px solid var(--nd-line)}
+
+/* 이력 블록 안의 작은 제목 (진행 이력 / 단계 이력) */
+.nd-sub{padding:14px 18px 0;font-size:12.5px;font-weight:700;color:var(--text)}
+.nd-sub-line{margin-top:4px;border-top:1px solid var(--nd-line)}
+.nd-tl li.stage .nd-dot{background:var(--neutral)}
+
+/* 변경 내용 표: 공고 정보와 같은 모양. 항목 칸·머리 줄 회색 바탕, 칸 사이 세로선, 바뀐 값은 굵게 */
+.nd-chg{font-size:13px}
+.nd-chg col.c-item{width:120px}
+.nd-chg col.c-tag{width:72px}
+.nd-chg thead th{background:var(--alt);color:var(--muted);font-size:12.5px;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--border);white-space:normal;line-height:1.5}
+.nd-chg thead th .faint{font-weight:400;font-size:11.5px}
+.nd-chg tbody th{text-align:left;background:var(--alt);color:var(--muted);font-weight:600;font-size:12.5px;padding:11px 14px;border-bottom:1px solid var(--border);white-space:nowrap}
+.nd-chg tbody td{font-size:13px;padding:11px 14px}
+.nd-chg th+th,.nd-chg td+td,.nd-chg th+td{border-left:1px solid var(--border)}
+.nd-chg td:last-child{text-align:center}
+.nd-chg tbody tr:last-child th,.nd-chg tbody tr:last-child td{border-bottom:none}
+
+/* 제안팀: 이름 굵게 + 팀 흐리게 칩 (동명이인 구분) */
+.nd-team{display:flex;flex-direction:column;gap:12px}
+.nd-team .lbl{margin-bottom:6px}
+.nd-team-v{font-weight:600;font-size:13px}
+.nd-chips{list-style:none;margin:0;padding:0;display:flex;gap:6px;flex-wrap:wrap}
+.nd-chips li{display:flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border);border-radius:999px;font-size:13px}
+.nd-chips li b{font-weight:700}
+.nd-chips li span{font-size:12px;color:var(--muted)}
+
+/* 첨부파일 한 줄: 아이콘 · 이름 · [내려받기] */
+.nd-file svg{color:var(--accent);flex:none}
+.nd-file-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.nd-file-txt b{overflow-wrap:anywhere}
+
+/* 지금 할 일 카드 (영업부 배정 · 팀장 참여 결정). 테두리는 다른 카드와 같다 (11/05) */
+.nd-act-body{display:flex;flex-direction:column;gap:12px}
+.nd-act select{height:38px;font-size:13px}
+.nd-req{color:var(--danger)}
+.nd-opt{font-weight:400}
+.nd-hint{margin:0;font-size:12px;line-height:1.6;color:var(--muted);background:var(--alt);border-radius:8px;padding:9px 12px}
+.btn.nd-big{justify-content:center;padding:11px 18px;font-size:14px;font-weight:700}
+.nd-2btn{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.btn.danger.nd-out{border-color:var(--danger)}
+.btn.danger.nd-out:hover{background:var(--danger-soft);color:var(--danger)}
+
+/* 접어 두는 위험한 처리 (불참 종결 · 공고 삭제 · 중도 철회) */
+.nd-fold{border-top:1px solid var(--border);padding:12px 18px}
+.nd-fold summary{font-size:12.5px;color:var(--muted);cursor:pointer}
+.nd-fold summary:hover{color:var(--text)}
+.nd-fold[open] summary{margin-bottom:12px}
+.nd-withdraw{border-top:1px solid var(--border)}
+.nd-withdraw summary{font-weight:600;font-size:13px}
+
+/* 진행 이력: 세로 점 타임라인. 불참·철회는 노란 점, 다음 할 일은 점선 점 */
+.nd-tl{list-style:none;margin:0;padding:16px 18px}
+/* 이력이 길면 목록 안에서만 스크롤한다 (4~5줄 높이). 처음엔 맨 아래(최신)를 보여 준다 (scripts) */
+.nd-scroll{max-height:300px;overflow-y:auto;overscroll-behavior:contain}
+.nd-tl li{position:relative;display:flex;gap:12px;padding-bottom:16px}
+.nd-tl li:last-child{padding-bottom:0}
+.nd-tl li::after{content:'';position:absolute;left:4px;top:15px;bottom:-1px;width:2px;background:var(--border)}
+.nd-tl li:last-child::after{display:none}
+.nd-dot{flex:none;width:10px;height:10px;margin-top:5px;border-radius:50%;background:var(--accent);box-sizing:border-box}
+.nd-tl li.warn .nd-dot{background:var(--warning)}
+.nd-tl li.next .nd-dot{background:none;border:2px dashed var(--faint)}
+.nd-tl li>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.nd-tl .at{font-size:11.5px;color:var(--faint)}
+.nd-tl b{font-size:13px}
+.nd-tl li.next b{color:var(--muted)}
+.nd-tl .who{font-size:12px;color:var(--muted);overflow-wrap:anywhere}

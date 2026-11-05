@@ -56,7 +56,7 @@
   <div class="card" th:unless="${archive.pending or archive.manualResult}">
     <div class="card-head">
       <h3>평가 항목별 점수</h3>
-      <span class="faint" style="font-size:11.5px" th:unless="${archive.articleTable.empty}">단위: 점 · 괄호는 배점</span>
+      <span class="faint fs-11_5" th:unless="${archive.articleTable.empty}">단위: 점 · 괄호는 배점</span>
     </div>
     <th:block th:replace="~{stats/fragments/result-parts :: articleChart(${archive.articleTable},
               '평가표 엑셀이 올라오지 않아 항목별 점수가 없습니다. 평가·결과 입력에서 올리면 다른 업체와 비교한 결과가 나옵니다.')}"></th:block>

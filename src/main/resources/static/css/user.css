@@ -8,8 +8,8 @@
 .usr .usr-count{font-weight:400;color:var(--muted);font-size:12.5px}
 
 /* 모달 */
-.usr .modal{position:fixed;inset:0;background:rgba(15,19,24,.45);display:flex;align-items:center;justify-content:center;z-index:70;padding:16px}
-.usr .modal .box{width:520px;max-width:94vw;max-height:88vh;overflow:auto;background:var(--surface);border-radius:12px;border:1px solid var(--border);box-shadow:0 12px 32px rgba(0,0,0,.18)}
+.usr .modal{position:fixed;inset:0;background:var(--overlay);display:flex;align-items:center;justify-content:center;z-index:70;padding:16px}
+.usr .modal .box{width:520px;max-width:94vw;max-height:88vh;overflow:auto;background:var(--surface);border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow-pop)}
 .usr .modal .box.wide{width:600px}
 .usr .icon-x{border:0;background:none;font-size:20px;line-height:1;color:var(--muted);cursor:pointer;padding:2px 6px;border-radius:50%}
 .usr .icon-x:hover{background:var(--accent-soft);color:var(--accent)}

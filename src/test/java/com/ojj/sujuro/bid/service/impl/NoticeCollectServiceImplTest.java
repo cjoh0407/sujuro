@@ -93,7 +93,7 @@ class NoticeCollectServiceImplTest {
 
         assertEquals(1, result.getCanceled());
         verify(notifications).sendToRole(Role.SALES, NotificationType.BID_CHANGED, PBANC_SN,
-                "'" + NAME + "' 입찰공고가 취소되었습니다 (차수 0 → 1). 공고 상세에서 확인하세요.");
+                "'" + NAME + "' 입찰공고가 취소되었습니다 (차수 0 → 1). 공고 상세에서 확인해 주세요.");
         verify(notifications, never()).sendToTeamLeaders(anyLong(), anyString(), anyLong(), anyString());
     }
 

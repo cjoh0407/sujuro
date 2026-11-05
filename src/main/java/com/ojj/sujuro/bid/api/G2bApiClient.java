@@ -363,7 +363,7 @@ public class G2bApiClient {
             root = objectMapper.readTree(body == null ? "" : body);
         } catch (Exception e) {
             log.warn("나라장터 {} 응답을 읽지 못했습니다: {}", what, cut(body), e);
-            throw new BusinessException("나라장터 응답을 읽지 못했습니다. 잠시 후 다시 시도하세요.");
+            throw new BusinessException("나라장터 응답을 읽지 못했습니다. 잠시 후 다시 시도해 주세요.");
         }
 
         JsonNode header = root.path("response").path("header");
@@ -410,7 +410,7 @@ public class G2bApiClient {
         // 어떤 주소를 불렀는지 로그에 남기되 인증키는 지운다.
         log.warn("나라장터 {} 조회 실패 ({}회 시도): {}", what, attempt, maskKey(url), e);
         return new BusinessException(
-                "나라장터에서 지금 " + what + " 정보를 불러오지 못했습니다. 잠시 후 다시 시도하세요.");
+                "나라장터에서 지금 " + what + " 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
     }
 
     /** 시간 초과·연결 끊김, 나라장터 쪽 오류(5xx), 호출 제한(429). 인증키 오류 같은 나머지 4xx 는 다시 불러도 같다. */

@@ -89,7 +89,7 @@
     box.appendChild(ic);
     var ti = document.createElement('div');
     ti.className = 'dlg-title';
-    ti.textContent = kind === 'prompt' ? '내용을 입력하세요' : (kind === 'alert' ? '알림' : (danger ? '정말 진행할까요?' : '확인해 주세요'));
+    ti.textContent = kind === 'prompt' ? '내용을 입력해 주세요' : (kind === 'alert' ? '알림' : (danger ? '정말 진행할까요?' : '확인해 주세요'));
     box.appendChild(ti);
     var p = document.createElement('div');
     p.className = 'dlg-msg';

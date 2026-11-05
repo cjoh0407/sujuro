@@ -103,7 +103,7 @@ class ManualResultDbTest {
         assertEquals("PS050", stts(sn));
         assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM TB_BID_RSLT WHERE PBANC_SN = ?", Integer.class, sn));
         String failed = page(mgmt, "/results?bid=" + sn); // 브라우저처럼 돌아간 화면을 연다
-        assertTrue(failed.contains("수주하면 우리 회사가 받는 금액을 입력하세요"));
+        assertTrue(failed.contains("수주하면 우리 회사가 받는 금액을 입력해 주세요"));
         assertTrue(failed.contains("<option value=\"BR010\" selected=\"selected\">"));
 
         // 팀장은 저장할 수 없다

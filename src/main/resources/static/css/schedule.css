@@ -1,9 +1,9 @@
 /* 일정 관리 화면 전용 (schedule/index.html).
    포인트 색은 오티아이 로고 색: 남색 #1d4b7e(버튼·강조), 빨간색 #a4292f(삭제). 이 화면 안에서만 바꾼다.
    캘린더 일정 색은 팀 색(common.css 의 .ev.tm1~6)을 그대로 쓴다. */
-.sch{--accent:#1d4b7e;--accent-s:#163a62;--accent-soft:rgba(29,75,126,.1);--sch-red:#a4292f}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sch{--accent:#6f9bd1;--accent-s:#8fb3de;--accent-soft:rgba(111,155,209,.16);--sch-red:#e07a7f}}
-:root[data-theme="dark"] .sch{--accent:#6f9bd1;--accent-s:#8fb3de;--accent-soft:rgba(111,155,209,.16);--sch-red:#e07a7f}
+.sch{--accent:#1d4b7e;--accent-s:#163a62;--accent-soft:rgba(29,75,126,.1);--sch-red:#a4292f;--sch-red-soft:rgba(164,41,47,.08)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sch{--accent:#6f9bd1;--accent-s:#8fb3de;--accent-soft:rgba(111,155,209,.16);--sch-red:#e07a7f;--sch-red-soft:rgba(224,122,127,.14)}}
+:root[data-theme="dark"] .sch{--accent:#6f9bd1;--accent-s:#8fb3de;--accent-soft:rgba(111,155,209,.16);--sch-red:#e07a7f;--sch-red-soft:rgba(224,122,127,.14)}
 
 .sch .btn .ic{width:15px;height:15px}
 .sch .btn:disabled{opacity:.5;cursor:not-allowed}
@@ -14,9 +14,9 @@
 .sch .sch-ev:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 
 /* 모달 */
-.sch .modal{position:fixed;inset:0;background:rgba(15,19,24,.45);display:flex;align-items:center;justify-content:center;z-index:70;padding:16px}
+.sch .modal{position:fixed;inset:0;background:var(--overlay);display:flex;align-items:center;justify-content:center;z-index:70;padding:16px}
 .sch .modal[hidden]{display:none}
-.sch .modal .box{width:460px;max-width:94vw;max-height:86vh;overflow:auto;background:var(--surface);border-radius:12px;border:1px solid var(--border);box-shadow:0 12px 32px rgba(0,0,0,.18)}
+.sch .modal .box{width:460px;max-width:94vw;max-height:86vh;overflow:auto;background:var(--surface);border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow-pop)}
 .sch .modal .box.sm{width:400px}
 .sch .modal .card-head h3{color:var(--accent)}
 .sch .icon-x{border:0;background:none;font-size:20px;line-height:1;color:var(--muted);cursor:pointer;padding:2px 6px;border-radius:50%}
@@ -30,7 +30,7 @@
 .sch .sch-actions{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:14px}
 .sch .sch-gap{flex:1}
 .sch .sch-del{color:var(--sch-red);border-color:var(--sch-red)}
-.sch .sch-del:hover{background:rgba(164,41,47,.08)}
+.sch .sch-del:hover{background:var(--sch-red-soft)}
 /* 날짜·시간 두 칸: 제목 한 줄 + 입력칸 높이를 같게 맞춘다 */
 .sch .sch-two{align-items:end}
 .sch .sch-two .lbl{line-height:18px;white-space:nowrap}
@@ -41,12 +41,12 @@
 /* 주말: 일요일은 빨간색, 토요일은 남색 (요일 머리와 날짜 숫자). 오늘 표시(동그라미)는 그대로 둔다 */
 .sch .cal > :nth-child(7n+1).dow,.sch .cal > :nth-child(7n+1) .d{color:var(--sch-red)}
 .sch .cal > :nth-child(7n).dow,.sch .cal > :nth-child(7n) .d{color:var(--accent)}
-.sch .cal .cell.today .d{color:#fff}
+.sch .cal .cell.today .d{color:var(--on-accent)}
 .sch .cal .cell.dim .d{opacity:.6}
 
 /* 드래그로 일정 옮기기: 우리 팀이 등록한, 아직 고칠 수 있는 일정만 끌 수 있다 */
 .sch .sch-ev[draggable="true"]{cursor:grab}
 .sch .sch-ev.dragging{opacity:.45}
 .sch .cal .cell.drop-ok{outline:2px dashed var(--accent);outline-offset:-3px;background:var(--accent-soft)}
-.sch .cal .cell.drop-no{background:rgba(164,41,47,.06);cursor:not-allowed}
+.sch .cal .cell.drop-no{background:var(--sch-red-soft);cursor:not-allowed}
 

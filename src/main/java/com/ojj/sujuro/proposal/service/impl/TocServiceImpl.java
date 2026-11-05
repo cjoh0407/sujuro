@@ -112,7 +112,7 @@ public class TocServiceImpl implements TocService {
         List<TocDto> items = mapper.findFormItems(tocFormSn); // 항목이 없는 양식도 고를 수 있다 (빈 목차로 시작)
         if (mapper.countByBid(pbancSn, se) > 0) {
             if (mapper.countFilesByBid(pbancSn, se) > 0) {
-                throw new BusinessException("이미 올린 파일(삭제한 파일 기록 포함)이 있어 양식을 바꿀 수 없습니다. 필요한 목차만 직접 수정하세요.");
+                throw new BusinessException("이미 올린 파일(삭제한 파일 기록 포함)이 있어 양식을 바꿀 수 없습니다. 필요한 목차만 직접 수정해 주세요.");
             }
             syncForm(pbancSn, se); // 바꾸기 전에 지금 목차를 지금 양식에 한 번 더 맞춰 둔다 (고친 내용이 사라지지 않게)
             removeAll(pbancSn, se);
@@ -178,7 +178,7 @@ public class TocServiceImpl implements TocService {
         if (overwrite) { // 같은 이름이면 그 양식을 지금 목차로 덮어쓴다 (FR-048 v4.0)
             if (!se.equals(same.getTocSeCd())) {
                 throw new BusinessException("'" + nm + "'은(는) " + seName(same.getTocSeCd())
-                        + " 양식 이름입니다. " + seName(se) + " 목차는 다른 이름으로 저장하세요.");
+                        + " 양식 이름입니다. " + seName(se) + " 목차는 다른 이름으로 저장해 주세요.");
             }
             formSn = same.getTocFormSn();
             mapper.touchForm(formSn, userId);
@@ -254,7 +254,7 @@ public class TocServiceImpl implements TocService {
         }
         String se = TocDto.SE_PROPOSAL;
         if (mapper.countByBid(pbancSn, se) > 0) {
-            throw new BusinessException("이미 제안서 목차가 있습니다. 화면을 새로고침해 확인하세요.");
+            throw new BusinessException("이미 제안서 목차가 있습니다. 화면을 새로고침해 확인해 주세요.");
         }
         String nm = cleanFormName(formName);
         if (mapper.findFormByName(teamSn, nm) != null) {
@@ -275,7 +275,7 @@ public class TocServiceImpl implements TocService {
     public void startBlank(Long pbancSn, String tocSeCd, String label) {
         String se = checkSe(tocSeCd);
         if (mapper.countByBid(pbancSn, se) > 0) {
-            throw new BusinessException("이미 목차가 있습니다. 화면을 새로고침해 확인하세요.");
+            throw new BusinessException("이미 목차가 있습니다. 화면을 새로고침해 확인해 주세요.");
         }
         if (TocDto.SE_PROPOSAL.equals(se)) {
             mapper.updateBidForm(pbancSn, null); // 양식 없이 이 사업건에서만 쓰는 목차
@@ -394,10 +394,10 @@ public class TocServiceImpl implements TocService {
         String se = TocDto.SE_SUMMARY;
         if (mapper.countByBid(pbancSn, se) > 0) {
             if (!reset) {
-                throw new BusinessException("이미 제안요약서 목차가 있습니다. 화면을 새로고침해 확인하세요.");
+                throw new BusinessException("이미 제안요약서 목차가 있습니다. 화면을 새로고침해 확인해 주세요.");
             }
             if (mapper.countFilesByBid(pbancSn, se) > 0) {
-                throw new BusinessException("이미 올린 요약서 파일(삭제한 파일 기록 포함)이 있어 기본 목차로 되돌릴 수 없습니다. 필요한 목차만 직접 수정하세요.");
+                throw new BusinessException("이미 올린 요약서 파일(삭제한 파일 기록 포함)이 있어 기본 목차로 되돌릴 수 없습니다. 필요한 목차만 직접 수정해 주세요.");
             }
             removeAll(pbancSn, se);
         }
@@ -501,7 +501,7 @@ public class TocServiceImpl implements TocService {
     private String cleanFormName(String formName) {
         String nm = formName == null ? "" : formName.trim().replaceAll("\\s+", " ");
         if (nm.isEmpty()) {
-            throw new BusinessException("양식 이름을 입력하세요.");
+            throw new BusinessException("양식 이름을 입력해 주세요.");
         }
         if (nm.length() > 100) {
             throw new BusinessException("양식 이름은 100자까지 입력할 수 있습니다.");
@@ -523,7 +523,7 @@ public class TocServiceImpl implements TocService {
         }
         String key = coKey(nm);
         if (key.isEmpty()) {
-            throw new BusinessException("외부 회사명을 입력하세요.");
+            throw new BusinessException("외부 회사명을 입력해 주세요.");
         }
         for (String used : mapper.findCoNames(pbancSn)) {
             if (coKey(used).equals(key)) {
@@ -547,7 +547,7 @@ public class TocServiceImpl implements TocService {
     private String checkFormSe(String tocSeCd) {
         String se = checkSe(tocSeCd);
         if (TocDto.SE_SUMMARY.equals(se)) {
-            throw new BusinessException("제안요약서는 목차 양식을 쓰지 않습니다. [기본 목차로 되돌리기]를 쓰거나 목차를 직접 수정하세요.");
+            throw new BusinessException("제안요약서는 목차 양식을 쓰지 않습니다. [기본 목차로 되돌리기]를 쓰거나 목차를 직접 수정해 주세요.");
         }
         return se;
     }
@@ -563,7 +563,7 @@ public class TocServiceImpl implements TocService {
     private String[] cleanLabel(String label) {
         String[] nl = TocDto.splitLabel(label);
         if (nl[1].isEmpty()) {
-            throw new BusinessException("목차 이름을 입력하세요.");
+            throw new BusinessException("목차 이름을 입력해 주세요.");
         }
         if (nl[0] != null && nl[0].length() > 50) {
             throw new BusinessException("목차 번호는 50자까지 입력할 수 있습니다.");

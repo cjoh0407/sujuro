@@ -24,6 +24,10 @@
 .ref-table td.c-dt{color:var(--muted)}
 .ref-table .c-act{width:150px;white-space:nowrap;text-align:right}
 .ref-thumb{display:block;width:40px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--border);background:var(--alt)}
+/* 이미지가 아닌 파일: 미리보기 대신 기본 문서 아이콘 (이미지 썸네일과 같은 크기) */
+.ref-doc{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:6px;border:1px solid var(--border);background:var(--alt);color:var(--ic-navy,var(--accent-s))}
+.ref-doc .ic{width:22px;height:22px}
+.ic-file{--ic:var(--ic-file-img)}
 .ref-nm{font-weight:500;word-break:break-all}
 .ref-memo{margin-top:2px;font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .inl{display:inline;margin:0}

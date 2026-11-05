@@ -163,7 +163,7 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
     @Override
     public CollectResultDTO collect(String excnSeCd, String exctrId) {
         if (!running.tryLock()) {
-            throw new BusinessException("수집이 이미 진행 중입니다. 끝난 뒤 공고 목록에서 확인하세요.");
+            throw new BusinessException("수집이 이미 진행 중입니다. 끝난 뒤 공고 목록에서 확인해 주세요.");
         }
         try {
             CollectResultDTO result = new CollectResultDTO();
@@ -777,7 +777,7 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
         String cycl = after.getBidPbancCycl() != null && after.getBidPbancCycl() > fromCycl
                 ? " (차수 " + fromCycl + " → " + after.getBidPbancCycl() + ")" : "";
         if (BidCode.is(after.getPbancTypeCd(), BidCode.TYPE_CANCELED)) {
-            return "'" + name + "' 입찰공고가 취소되었습니다" + cycl + ". 공고 상세에서 확인하세요.";
+            return "'" + name + "' 입찰공고가 취소되었습니다" + cycl + ". 공고 상세에서 확인해 주세요.";
         }
         List<String> changes = new ArrayList<>();
         if (differs(before.getBidDdlnDt(), after.getBidDdlnDt())) {
@@ -794,7 +794,7 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
             changes.add("공고명 변경 (이전: " + before.getPbancNm().trim() + ")");
         }
         return "'" + name + "' 입찰공고가 정정되었습니다" + cycl + ". "
-                + (changes.isEmpty() ? "공고 상세에서 바뀐 내용을 확인하세요." : String.join(" · ", changes));
+                + (changes.isEmpty() ? "공고 상세에서 바뀐 내용을 확인해 주세요." : String.join(" · ", changes));
     }
 
     private static String noticeDt(LocalDateTime dt) {

@@ -1,7 +1,8 @@
 /* 스토리보드 관리 화면 전용 스타일. 색은 common.css의 변수만 쓴다. */
 
 /* 사업명 줄 (fragments/bid-header :: bizHead) */
-.biz{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 16px;border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:10px;background:var(--alt);font-size:13px}
+.biz{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:4px 0}
+.biz>b{font-size:19px;font-weight:700;line-height:1.35}
 
 /* 목차 표 */
 .toc-group{font-weight:700;background:var(--alt)}
@@ -34,7 +35,7 @@
 /* ---------- 파일 첨부 영역 (.drop): 기본 파일 버튼 대신 눌러서 고르거나 끌어 놓는다 (proposal.js dropRender) ----------
    <label class="drop"> 안에 <input type="file">, .ic-upload, .drop-body(.drop-text, .drop-hint)를 둔다. 작은 칸은 .drop.sm
    input에 accept·data-max-mb를 주면 형식·용량을 고를 때 바로 확인한다. */
-.drop{position:relative;display:flex;align-items:center;gap:12px;min-width:0;padding:14px 16px;border:1.5px dashed #C3CCDA;border-radius:10px;background:var(--alt);color:var(--muted);font-size:12.5px;cursor:pointer;transition:border-color .15s,background-color .15s}
+.drop{position:relative;display:flex;align-items:center;gap:12px;min-width:0;padding:14px 16px;border:1.5px dashed var(--line-strong);border-radius:10px;background:var(--alt);color:var(--muted);font-size:12.5px;cursor:pointer;transition:border-color .15s,background-color .15s}
 .drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
 .drop.over{border-style:solid}
 .drop input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
@@ -57,15 +58,20 @@
 .mem-chip{position:relative;width:160px;box-sizing:border-box;justify-content:center;align-items:center;padding:3px 20px}
 .mem-chip .mem-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;text-align:center;font-size:11px}
 .mem-chip form{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:flex !important}
-.mem-co{background:#fdf1e1 !important;color:#8a5200 !important}
-.mem-co .x-btn{color:#8a5200}
+.mem-co{background:var(--warning-soft) !important;color:var(--warning) !important}
+.mem-co .x-btn{color:var(--warning)}
 .file-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .file-info{display:flex;flex-direction:column;gap:2px;min-width:0}
 .file-acts{align-items:center}
+/* 서류 삭제(X) 칸이 없을 때(제안팀 화면): 파일 칸에서 내려받기·삭제 버튼을 오른쪽 끝으로 밀고, 파일 없음 표시는 가운데로 */
+.no-x .file-line{flex-wrap:nowrap}
+.no-x .file-line>.file-info{flex:1 1 140px;min-width:140px;align-items:center}
+.no-x .file-line>.file-acts{margin-left:auto;flex:none}
+.no-x .file-line>.faint{flex:1;text-align:center}
 .drop-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .drop-row>.drop:not(.sm){flex:1 1 320px}
 /* 제안팀 인원 찾기 팝업 (bid-header teamCard) */
-.modal{position:fixed;inset:0;background:rgba(15,19,24,.45);display:flex;align-items:center;justify-content:center;z-index:70;padding:16px}
+.modal{position:fixed;inset:0;background:var(--overlay);display:flex;align-items:center;justify-content:center;z-index:70;padding:16px}
 .modal[hidden]{display:none}
 .modal .box{width:620px;max-width:94vw;max-height:84vh;overflow:auto;background:var(--surface);border-radius:12px;border:1px solid var(--border)}
 .mp-form{display:flex;flex-direction:column;gap:10px}
@@ -88,7 +94,7 @@ tr.addrow .cap{font-size:11.5px}
 
 /* 칩 안의 작은 빼기 버튼 (제안팀원 빼기, 요구사항 연결 해제): 아이콘과 같은 남색 ✕ */
 .x-btn{border:0;background:none;padding:0;cursor:pointer;color:var(--ic-navy);width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-left:2px;line-height:0}
-.x-btn:hover{background:rgba(29,75,126,.12)}
+.x-btn:hover{background:var(--accent-soft)}
 .x-btn .ic{width:10px;height:10px}
 /* 글자 버튼 안의 아이콘: 버튼 글자색을 따른다 */
 .btn .ic{width:14px;height:14px;margin-right:4px;vertical-align:-2px}
@@ -106,7 +112,7 @@ tr.addrow .cap{font-size:11.5px}
 .qa-box textarea,.qa-box select{width:100%;box-sizing:border-box;background:var(--surface)}
 .qa-box textarea{resize:vertical}
 .qa-pop-l{font-size:11.5px;font-weight:700;color:var(--muted)}
-.qa-req{font-weight:600;color:var(--danger, #c0392b);margin-left:4px}
+.qa-req{font-weight:600;color:var(--danger);margin-left:4px}
 .qa-full{white-space:pre-wrap;word-break:break-word;max-height:30vh;overflow:auto;line-height:1.6}
 .qa-pop-act{justify-content:flex-end;gap:6px;border-top:1px solid var(--border)}
 .qa-pop-act[hidden],#qaView[hidden],#qaForm[hidden]{display:none}
@@ -124,11 +130,11 @@ tr.addrow .cap{font-size:11.5px}
 .split-r{display:flex;flex-direction:column;gap:16px;min-width:0}
 .bid-list{overflow:hidden;border-radius:0 0 var(--radius,12px) var(--radius,12px)}
 /* 줄 높이를 고정해서 몇 줄 보일지 정확히 맞춘다: 진행 중은 4줄, 지난 사업은 2줄까지 보이고 넘으면 칸 안에서 스크롤 */
-.bid-body{max-height:248px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#C3CCDA transparent}
+.bid-body{max-height:248px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
 .bid-body.past-body{max-height:124px}
 .bid-body::-webkit-scrollbar{width:6px}
 .bid-body::-webkit-scrollbar-track{background:transparent}
-.bid-body::-webkit-scrollbar-thumb{background:#C3CCDA;border-radius:3px}
+.bid-body::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:3px}
 .bid-item{height:62px;box-sizing:border-box;justify-content:center;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:9px 14px;border-bottom:1px solid var(--border);color:var(--text);text-decoration:none;font-size:12.5px}
 .bid-item:last-child{border-bottom:0}
 .bid-item:hover{background:var(--alt)}
@@ -143,7 +149,7 @@ tr.addrow .cap{font-size:11.5px}
 /* 담당자 선택창: 목록 높이를 고정(약 9줄)하고 넘치면 스크롤 */
 .own-btn{max-width:210px;width:100%;min-width:150px;text-align:left;padding:5px 26px 5px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23636E7E' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 9px center;color:var(--text);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .own-btn:hover{border-color:var(--accent)}
-.own-panel{position:fixed;z-index:80;max-height:280px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(15,19,24,.18);padding:4px 0}
+.own-panel{position:fixed;z-index:80;max-height:280px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-pop);padding:4px 0}
 .own-grp{padding:6px 12px 2px;font-size:11px;font-weight:700;color:var(--faint)}
 .own-item{padding:6px 12px;font-size:12.5px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .own-item:hover{background:var(--alt)}
@@ -157,7 +163,7 @@ tr.addrow .cap{font-size:11.5px}
 .mstop.done::before,.mstop.cur::before{background:var(--success)}
 .mstop .pill{font-size:10.5px;padding:2px 10px;z-index:1}
 .mdot{z-index:1;width:34px;height:34px;border-radius:50%;border:3px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:var(--faint)}
-.mstop.done .mdot{border-color:var(--success);background:var(--success);color:#fff}
+.mstop.done .mdot{border-color:var(--success);background:var(--success);color:var(--on-accent)}
 .mstop.cur .mdot{border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
 .mstop b{font-size:12.5px;margin-top:2px}
 .mstop.done b{color:var(--success)}
@@ -195,8 +201,8 @@ tr.addrow .cap{font-size:11.5px}
 /* 한 버전의 PDF·PPT 묶음: 파일 형식 배지와 묶음 표시 */
 .ver-pair{border-left:3px solid var(--accent-soft)}
 .fmt{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:6px;background:var(--alt);color:var(--muted);flex:none}
-.fmt.pdf{background:#FDECEA;color:#B42318}
-.fmt.ppt{background:#FFF1E0;color:#B54708}
+.fmt.pdf{background:var(--danger-soft);color:var(--danger)}
+.fmt.ppt{background:var(--warning-soft);color:var(--warning)}
 #upCard .up-note{flex:1;font-size:11.5px;color:var(--faint);line-height:1.45}
 /* 올리기 카드 공통 규격: 위쪽 선택칸 36px, 칸 사이 12px, 아래쪽 줄(안내문+버튼) 36px 고정 → 끌어놓기 칸은 남은 공간을 채워 어느 화면이든 같은 크기 */
 #upCard .mp-form{gap:12px}
@@ -206,7 +212,7 @@ tr.addrow .cap{font-size:11.5px}
 /* 검토 완료 토글: 아직이면 테두리만, 완료면 초록 채움. 누르면 반대로 바뀐다 */
 .rv-btn{display:inline-flex;align-items:center;gap:5px;padding:4px 11px 4px 9px;border-radius:999px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);font:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s}
 .rv-btn:hover{border-color:var(--success);color:var(--success);background:var(--success-soft)}
-.rv-btn.on{border-color:var(--success);background:var(--success);color:#fff}
+.rv-btn.on{border-color:var(--success);background:var(--success);color:var(--on-accent)}
 .rv-btn.on:hover{filter:brightness(.92)}
 .rv-btn .ic{width:14px;height:14px}
 /* 사업건 목록: 진행 중 / 지난 사업 구분 */
@@ -227,6 +233,18 @@ tr.addrow .cap{font-size:11.5px}
 .qa-side-l textarea{resize:none}
 .qa-grow{flex:1;min-height:0}
 .qa-grow textarea{flex:1;min-height:80px}
-.qa-star{color:var(--danger,#c0392b);margin-right:3px;font-weight:700}
+.qa-star{color:var(--danger);margin-right:3px;font-weight:700}
 /* 요구사항 번호(COR-003)도 한글과 같은 글꼴로 */
 .qa-clip .mono{font-family:inherit}
+
+/* 제안 화면(제안서·제출서류·질의응답·참고자료)의 표: 머리글과 내용을 모두 가운데 정렬.
+   목차 이름(단계 제목 줄·들여쓰기가 있는 칸)은 왼쪽에 두고 머리글만 가운데로 둔다. 가운데로 모으면 단계 구분이 사라진다 */
+main.content table th,main.content table td{text-align:center}
+main.content table td.toc-group,main.content table td[style*="padding-left"]{text-align:left}
+.rq-line{justify-content:center}
+main.content table td.c-act{text-align:center}
+/* 질의응답 기록 표: 머리글만 가운데, 내용은 모두 왼쪽 */
+main.content table.qa-grid td{text-align:left}
+/* 참고자료 표: 머리글은 가운데, 파일 칸(이름·설명)만 왼쪽, 나머지 칸은 가운데 */
+main.content table.ref-table td:nth-child(2){text-align:left}
+main.content table.ref-table th.c-act{text-align:center}

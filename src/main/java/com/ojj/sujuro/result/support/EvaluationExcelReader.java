@@ -54,9 +54,9 @@ public final class EvaluationExcelReader {
         } catch (BusinessException e) {
             throw e;
         } catch (IOException | RuntimeException e) {
-            throw new BusinessException("엑셀 파일을 열지 못했습니다. 아래에 직접 입력하세요.");
+            throw new BusinessException("엑셀 파일을 열지 못했습니다. 아래에 직접 입력해 주세요.");
         }
-        throw new BusinessException("엑셀에서 '평가항목 · 배점기준 · 평가위원1…' 머리 줄을 찾지 못했습니다. 아래에 직접 입력하세요.");
+        throw new BusinessException("엑셀에서 '평가항목 · 배점기준 · 평가위원1…' 머리 줄을 찾지 못했습니다. 아래에 직접 입력해 주세요.");
     }
 
     /** 이 시트에 평가표가 있으면 폼, 없으면 null */
@@ -113,7 +113,7 @@ public final class EvaluationExcelReader {
             f.getItems().add(item);
         }
         if (f.getItems().isEmpty()) {
-            throw new BusinessException("엑셀의 머리 줄 아래에 평가 항목이 없습니다. 아래에 직접 입력하세요.");
+            throw new BusinessException("엑셀의 머리 줄 아래에 평가 항목이 없습니다. 아래에 직접 입력해 주세요.");
         }
         return f;
     }

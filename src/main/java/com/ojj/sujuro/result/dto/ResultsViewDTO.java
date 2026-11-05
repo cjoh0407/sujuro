@@ -29,7 +29,7 @@ public class ResultsViewDTO {
     /** 평가 항목·점수와 장단점을 입력할 수 있는지 (이 사업을 맡은 팀의 팀장. 회의 결정, 2026-11-02 반영) */
     private boolean canScore;
 
-    /** 선택 목록: 참여 확정 뒤의 사업건 (제출 완료 → 결과 등록 → 제안 작성 중 → 참여 확정 → 유찰 순) */
+    /** 이 사용자가 볼 수 있는 사업건: 참여 확정 뒤 (제출 완료 → 결과 등록 → 제안 작성 중 → 참여 확정 → 유찰 순). 고른 사업건이 이 안에 있는지 본다 */
     private List<ResultBidDTO> bids = new ArrayList<>();
     private ResultBidDTO bid;
 

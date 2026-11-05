@@ -67,8 +67,36 @@ class StatsServiceImplTest {
         StatsViewDTO v = service.build(user("2024-0031", Role.LEADER), 4L, null);
         assertEquals(3L, v.getTeamSn());
         assertEquals(1, v.getTeams().size());
-        verify(mapper).history(3L);
-        verify(mapper, never()).history(4L);
+        verify(mapper).history(3L, "2026");
+        verify(mapper, never()).history(eq(4L), anyString());
+        verify(mapper).inProgress(3L, "2026");
+        verify(mapper, never()).inProgress(eq(4L), anyString());
+    }
+
+    @Test
+    void 왼쪽_목록은_고른_연도_것만_부르고_없는_연도면_가장_최근_연도() {
+        service.build(user("2022-0009", Role.MGMT), 3L, "2025");
+        verify(mapper).history(3L, "2025");
+        verify(mapper).inProgress(3L, "2025");
+
+        service.build(user("2022-0009", Role.MGMT), 4L, "1999");
+        verify(mapper).history(4L, "2026");
+        verify(mapper).inProgress(4L, "2026");
+    }
+
+    @Test
+    void 왼쪽_목록의_연도는_마감일_연도이고_마감일_없는_진행_사업만_올해다() {
+        StatsArchiveDTO a = new StatsArchiveDTO();
+        a.setPbancSttsCd("PS040");
+        assertEquals(String.valueOf(java.time.Year.now().getValue()), a.getListYear());
+
+        a.setPbancSttsCd("PS060");
+        assertNull(a.getListYear());
+
+        a.setBidDdlnDt(java.sql.Date.valueOf("2024-06-30"));
+        assertEquals("2024", a.getListYear());
+        a.setPbancSttsCd("PS040");
+        assertEquals("2024", a.getListYear());
     }
 
     @Test
@@ -96,6 +124,38 @@ class StatsServiceImplTest {
         assertNotNull(service.findArchive(user("2022-0009", Role.MGMT), 10L));
         when(mapper.findArchive(11L)).thenReturn(null);
         assertNull(service.findArchive(user("2022-0009", Role.MGMT), 11L));
+    }
+
+    @Test
+    void 결과가_없는_사업도_다른_팀이면_열_수_없다() {
+        StatsArchiveDTO other = new StatsArchiveDTO();
+        other.setTeamSn(4L);
+        when(mapper.findPendingBid(10L)).thenReturn(other);
+
+        assertThrows(AccessDeniedException.class, () -> service.findPending(user("2024-0031", Role.LEADER), 10L));
+        assertNotNull(service.findPending(user("2022-0009", Role.MGMT), 10L));
+        assertNull(service.findPending(user("2022-0009", Role.MGMT), 11L));
+        verify(mapper, never()).findFinalFile(anyLong()); // 제안서 파일은 결과 전에 읽지 않는다
+    }
+
+    @Test
+    void 결과가_없는_사업의_안내_문구는_상태에_따른다() {
+        StatsArchiveDTO a = new StatsArchiveDTO();
+        assertTrue(a.isPending());
+        for (String stts : Arrays.asList("PS030", "PS040", "PS050")) {
+            a.setPbancSttsCd(stts);
+            assertTrue(a.isInProgress(), stts);
+            assertEquals("아직 입찰 진행 중인 사업건입니다.", a.getPendingMessage(), stts);
+        }
+        a.setPbancSttsCd("PS070");
+        assertFalse(a.isInProgress());
+        assertEquals("유찰된 사업건입니다.", a.getPendingMessage());
+        a.setPbancSttsCd("PS060");
+        assertFalse(a.isInProgress());
+        assertEquals("아직 결과가 입력되지 않은 사업건입니다.", a.getPendingMessage());
+
+        a.setRsltCd("BR010");
+        assertFalse(a.isPending());
     }
 
     @Test

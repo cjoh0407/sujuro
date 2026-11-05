@@ -6,10 +6,11 @@
 <!--/*
   통계 (FR-016, 083~088). UI 목업 v3.5 의 rStats() 화면과 같은 구성이다.
   11/04 스토리보드 관리·제안서 파일 화면과 같은 3:7 양식이다(proposal.css 의 .split, .bid-item 을 같이 쓴다).
-    왼쪽  : 사업 목록 블록. '전체 종합'과 결과가 등록된 사업(view.history)을 누르면 오른쪽이 바뀐다.
-            그 아래 [연도 · 팀] 버튼을 누르면 팝업에서 연도·팀을 고른다.
+    왼쪽  : 사업 목록 블록: '전체 종합' → 고른 연도의 진행 사업. '전체 종합'을 누르면 팝업에서 연도·팀을 고른다 (11/04).
+            진행 사업은 눌러서 펼치는 목록이고, 진행 중(view.inProgress)이 먼저이고 지난 사업(view.history. 결과 등록·유찰)이 이어진다.
+            사업을 누르면 오른쪽이 그 사업으로 바뀐다.
     오른쪽: 전체 종합이면 통계(요약 카드 4개 → 차트 | 참여 형태별 수주율 + 자주 만난 경쟁 업체),
-            사업을 고르면 그 사업의 사업별 결과 분석(stats/fragments/archive).
+            사업을 고르면 그 사업의 사업별 결과 분석(stats/fragments/archive). 아직 결과가 없으면 공고 기본 정보와 안내 문구만 보인다.
   11/03 오른쪽의 과거 사업 이력 표는 뺐다. 사업은 왼쪽 목록에서 고른다.
   11/03 평가 항목별 분석은 사업별 결과 분석(평가 항목별 점수)으로만 옮기고, 그 자리에 자주 만난 경쟁 업체를 넣었다.
   경영지원실은 개발팀을 골라 보고(전체 합계 없음), 팀장은 자기 팀만 본다.
@@ -30,11 +31,11 @@
 <th:block layout:fragment="content">
 
   <!-- 머리 (11/03). '통계'와 범위 설명 대신, 왼쪽에서 고른 것을 보인다.
-       사업을 골랐으면 사업명과 발주기관 · 담당 팀(NFR-023, 원래 사업별 결과 분석 머리), 전체 종합이면 팀 · 연도 -->
+       사업을 골랐으면 사업명(NFR-023, 원래 사업별 결과 분석 머리), 전체 종합이면 팀 · 연도 -->
   <div class="page-head" th:unless="${view.locked}">
     <div th:if="${archive}">
       <h2 th:text="${archive.pbancNm}">사업명</h2>
-      <div class="sub" th:text="|${archive.orderInstNm ?: '-'} · ${archive.teamNm}|">발주기관 · 개발1팀</div>
+      
     </div>
     <div th:unless="${archive}">
       <h2>전체 종합</h2>
@@ -42,11 +43,10 @@
     </div>
     <!-- 엑셀 다운로드(CSV) 버튼은 11/03 뺐다 -->
     <div class="row" th:if="${archive}">
-      <span class="pill" th:classappend="${archive.won} ? 'success' : 'neutral'" th:text="${archive.rsltNm}">수주</span>
       <a class="btn sm" th:if="${canEdit}" th:href="@{/results(bid=${archive.pbancSn})}">평가·결과 입력</a>
     </div>
   </div>
-  <div class="page-head" th:if="${view.locked}"><div><h2>통계</h2></div></div>
+
 
   <!-- 개발팀이 아닌 팀장 등 볼 팀이 없을 때 -->
   <div class="card" th:if="${view.locked}">
@@ -60,32 +60,33 @@
     <div class="card">
       <div class="card-head">
         <h3>사업 목록</h3>
-        <span class="faint" style="font-size:11.5px" th:text="|${#lists.size(view.history)}건|">3건</span>
+        <span class="faint" style="font-size:11.5px" th:text="|${#lists.size(view.inProgress) + #lists.size(view.history)}건|">3건</span>
       </div>
       <div class="bid-list">
-        <a class="bid-item" th:href="@{/stats(team=${view.teamSn}, year=${view.year})}" th:classappend="${archive == null} ? 'on'">
+        <!--/* 누르면 연도·팀 팝업이 열린다. 사업을 보다가 전체 종합으로 돌아갈 때도 팝업의 [보기]를 누른다 */-->
+        <button type="button" class="bid-item" th:classappend="${archive == null} ? 'on'" data-scope-open aria-haspopup="dialog">
           <b>전체 종합</b>
           <span class="pill neutral" th:text="|${view.year}년 · ${view.teamNm}|">2026년 · 개발1팀</span>
-        </a>
-        <div class="bid-grp">결과 등록 사업</div>
-        <div class="bid-body">
-          <a class="bid-item" th:each="h : ${view.history}" th:href="@{/stats(team=${view.teamSn}, year=${view.year}, bid=${h.pbancSn})}"
-             th:classappend="${archive != null and archive.pbancSn == h.pbancSn} ? 'on'">
-            <b th:title="${h.pbancNm}" th:text="${h.pbancNm}">사업명</b>
-            <span class="pill" th:classappend="${h.won} ? 'success' : 'neutral'" th:text="${h.rsltNm}">수주</span>
-          </a>
-          <div class="empty" th:if="${#lists.isEmpty(view.history)}">결과가 등록된 사업이 없습니다.</div>
-        </div>
+        </button>
+        <!--/* 제안서 관리의 지난 사업처럼 눌러서 펼친다 (11/04). 처음에는 접혀 있고, 사업을 고른 화면에서는 그 사업이 보이게 펼친다 */-->
+        <details class="bid-past" th:open="${archive != null}">
+          <summary class="bid-grp" th:text="|${view.year}년 진행 사업 (${#lists.size(view.inProgress) + #lists.size(view.history)})|">2026년 진행 사업</summary>
+          <div class="bid-body year-body">
+            <a class="bid-item" th:each="p : ${view.inProgress}" th:href="@{/stats(team=${view.teamSn}, year=${view.year}, bid=${p.pbancSn})}"
+               th:classappend="${archive != null and archive.pbancSn == p.pbancSn} ? 'on'">
+              <b th:title="${p.pbancNm}" th:text="${p.pbancNm}">사업명</b>
+              <span class="pill neutral" th:text="${p.pbancSttsNm}">제안 작성 중</span>
+            </a>
+            <a class="bid-item" th:each="h : ${view.history}" th:href="@{/stats(team=${view.teamSn}, year=${view.year}, bid=${h.pbancSn})}"
+               th:classappend="${archive != null and archive.pbancSn == h.pbancSn} ? 'on'">
+              <b th:title="${h.pbancNm}" th:text="${h.pbancNm}">사업명</b>
+              <span class="pill" th:classappend="${h.won} ? 'success' : 'neutral'" th:text="${h.pillText}">수주</span>
+            </a>
+            <div class="empty" th:if="${#lists.isEmpty(view.inProgress) and #lists.isEmpty(view.history)}"
+                 th:text="|${view.year}년 진행 사업이 없습니다.|">진행 사업이 없습니다.</div>
+          </div>
+        </details>
       </div>
-    </div>
-
-    <!-- 연도·팀 고르기 (11/03). 위쪽 탭 대신 이 버튼을 누르면 팝업에서 고른다. 연도는 입찰 마감일 기준.
-         팀장은 자기 팀 하나뿐이라 팀은 바꿀 수 없다 -->
-    <div class="card">
-      <button type="button" class="scope-btn" data-scope-open>
-        <span class="faint">연도 · 팀</span>
-        <b th:text="|${view.year}년 · ${view.teamNm}|">2026년 · 개발1팀</b>
-      </button>
     </div>
   </aside>
 
@@ -129,22 +130,18 @@
       <div class="stat">
         <div class="l" th:text="|${view.year}년 참여|">2026년 참여</div>
         <div class="v" th:text="|${s.joined}건|">0건</div>
-        <div class="h" th:text="${view.teamNm}">개발1팀</div>
       </div>
       <div class="stat">
         <div class="l" th:text="|${view.year}년 수주|">2026년 수주</div>
         <div class="v" th:text="|${s.won}건|">0건</div>
-        <div class="h" th:text="${view.teamNm}">개발1팀</div>
       </div>
       <div class="stat">
         <div class="l">수주율</div>
         <div class="v" th:text="${s.rateText}">-</div>
-        <div class="h" th:text="|결과 등록 ${s.resultCnt}건 기준 · 유찰 ${s.failed}건 제외|">결과 등록 0건 기준</div>
       </div>
       <div class="stat">
         <div class="l">수주 금액</div>
         <div class="v" th:text="${s.wonAmtText}">0.0억</div>
-        <div class="h">수주 사업 낙찰금액 합계</div>
       </div>
     </div>
 
@@ -228,6 +225,20 @@
 
 <th:block layout:fragment="scripts">
 <script>
+  // 사업 목록은 칸 안에서 스크롤한다. 고른 사업이 칸 밖에 있으면 보이는 자리로 옮긴다
+  (function () {
+    var on = document.querySelector('.bid-body .bid-item.on');
+    if (!on) {
+      return;
+    }
+    var box = on.parentNode;
+    var row = on.getBoundingClientRect();
+    var view = box.getBoundingClientRect();
+    if (row.bottom > view.bottom || row.top < view.top) {
+      box.scrollTop += row.top - view.top;
+    }
+  })();
+
   // 연도·팀 팝업 열고 닫기 (11/03). 바깥(어두운 바탕)·[취소]·Esc 로 닫는다
   (function () {
     var modal = document.getElementById('statsScope');

@@ -32,7 +32,7 @@
       <div class="card-head"><h3>공고 등록</h3></div>
       <form class="row" method="post" th:action="@{/notices/register}">
         <span class="lbl">공고번호</span>
-        <input type="text" name="pbancNo" placeholder="R26DD… · R26BD… · R26BK…" style="flex:1;min-width:180px" required>
+        <input type="text" name="pbancNo" placeholder="R26DD… · R26BD… · R26BK…" class="u-flex-1-min-width-180px" required>
         <button class="btn primary sm" type="submit">등록</button>
       </form>
     </div>
@@ -58,7 +58,7 @@
         <option value="no" th:selected="${search.searchBy == 'no'}">공고번호</option>
         <option value="org" th:selected="${search.searchBy == 'org'}">수요기관</option>
       </select>
-      <input type="text" name="keyword" th:value="${search.keyword}" placeholder="검색어" style="width:220px">
+      <input type="text" name="keyword" th:value="${search.keyword}" placeholder="검색어" class="w-220px">
       <button class="btn sm" type="submit">검색</button>
       <select name="sort" data-auto-submit aria-label="정렬">
         <option value="deadline" th:selected="${search.sort == 'deadline'}">마감일 빠른 순</option>

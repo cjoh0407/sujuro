@@ -132,7 +132,7 @@
       <div class="card" th:if="${notice.stageChange}" th:with="chg=${notice.stageChange}">
         <div class="card-head">
           <h3>변경 내용</h3>
-          <span class="faint" style="font-size:11.5px"
+          <span class="faint fs-11_5"
                 th:text="${chg.changedCnt > 0} ? |바뀐 항목 ${chg.changedCnt}개| : '바뀐 값 없음'">바뀐 항목 1개</span>
         </div>
         <div class="ts">
@@ -200,7 +200,7 @@
           <div class="item" th:each="f : ${notice.bidFiles}">
             <div>
               <b th:text="${f.orgnlFileNm}">[제안요청서] 사업.hwpx</b>
-              <div class="faint" style="font-size:11.5px">
+              <div class="faint fs-11_5">
                 <span th:text="${f.format} + (${f.sizeText} != null ? ' · ' + ${f.sizeText} : '')">HWPX · 417KB</span>
                 <span class="pill accent" th:if="${f.rfp}">제안요청서</span>
               </div>
@@ -216,7 +216,7 @@
           <div class="item" th:each="f : ${notice.preSpecFiles}">
             <div>
               <b th:text="${f.orgnlFileNm}">제안요청서(안).hwpx</b>
-              <div class="faint" style="font-size:11.5px">
+              <div class="faint fs-11_5">
                 <span th:text="${f.format} + (${f.sizeText} != null ? ' · ' + ${f.sizeText} : '')">HWPX · 3.3MB</span>
                 <span class="pill neutral" th:if="${f.rfp}">제안요청서 초안</span>
               </div>
@@ -241,7 +241,7 @@
           <th:block th:case="*">
             첨부파일 정보가 없습니다.
             <th:block th:if="${notice.sourceUrl}">
-              <a class="link" th:href="${notice.sourceUrl}" target="_blank" rel="noopener noreferrer">나라장터 원문</a>에서 확인하세요.
+              <a class="link" th:href="${notice.sourceUrl}" target="_blank" rel="noopener noreferrer">나라장터 원문</a>에서 확인해 주세요.
             </th:block>
           </th:block>
         </div>
@@ -262,17 +262,17 @@
             <div class="v faint" th:unless="${notice.sprvsnTeamNm}">미배정</div>
           </div>
         </div>
-        <div class="pad" style="padding-top:0" th:if="${notice.returned}">
+        <div class="pad pt-0" th:if="${notice.returned}">
           <!-- 팀이 불참하거나 중도 철회해 영업부로 돌아온 공고. 진행상태는 배정 전이고, 왜 돌아왔는지만 알려 준다 (11/03 '반환' 표현은 뺐다) -->
           <div class="banner warn" th:text="|담당 팀이 ${notice.rtrnSeNm}해 영업부로 돌아온 공고입니다. 다른 팀에 재배정하거나 불참으로 종결합니다.|">담당 팀이 불참해 영업부로 돌아온 공고입니다.</div>
         </div>
 
         <!-- 영업부: 배정·재배정 (신규·배정 완료일 때만). 팀장이 결정한 뒤에는 바꿀 수 없다. -->
         <th:block sec:authorize="hasRole('SALES')">
-          <div class="pad" style="padding-top:0;display:flex;flex-direction:column;gap:12px" th:if="${notice.assignable}">
+          <div class="pad stack-12 pt-0" th:if="${notice.assignable}">
             <div class="banner warn" th:if="${notice.assignBlockReason}" th:text="${notice.assignBlockReason}">취소된 공고라 배정할 수 없습니다.</div>
             <form method="post" th:action="@{/notices/{sn}/assign(sn=${notice.pbancSn})}" th:unless="${notice.assignBlockReason}"
-                  style="display:flex;flex-direction:column;gap:10px">
+                  class="stack-12">
               <div class="grid2">
                 <div class="fld">
                   <label for="as-team">주관 팀</label>
@@ -291,19 +291,19 @@
                   </select>
                 </div>
               </div>
-              <div class="row" style="justify-content:flex-end">
+              <div class="row jc-end">
                 <button class="btn sm primary" type="submit"
                         th:text="${notice.sprvsnTeamSn == null and !notice.returned} ? '배정' : '재배정'">배정</button>
               </div>
             </form>
             <!-- 다른 팀에도 맡기지 않을 때. 신규 공고만이다. -->
             <form method="post" th:action="@{/notices/{sn}/close(sn=${notice.pbancSn})}" th:if="${notice.closable}"
-                  style="display:flex;flex-direction:column;gap:10px">
+                  class="stack-12">
               <div class="fld">
                 <label for="as-skip">불참 처리 사유 (다른 팀에도 맡기지 않을 때)</label>
                 <textarea id="as-skip" name="reason" rows="2" maxlength="1000" th:text="${closeReason}"></textarea>
               </div>
-              <div class="row" style="justify-content:flex-end">
+              <div class="row jc-end">
                 <button class="btn sm danger" type="submit"
                         data-confirm="불참으로 종결하면 이 공고는 더 배정할 수 없습니다. 종결할까요?">불참 종결</button>
                 <!--/* 잘못 등록한 공고 삭제 (11/02). 팀에 한 번도 맡기지 않은 신규 공고만. 불참 종결과 한 줄에 두지만 삭제 주소로 보낸다(formaction) */-->
@@ -314,7 +314,7 @@
             </form>
 
           </div>
-          <div class="pad faint" style="padding-top:0;font-size:11.5px" th:unless="${notice.assignable}"
+          <div class="pad faint pt-0 fs-11_5" th:unless="${notice.assignable}"
                th:text="|${notice.progressNm} 상태에서는 배정을 바꿀 수 없습니다. 팀에서 철회하면 영업부로 돌아옵니다.|">제안 작성 상태에서는 배정을 바꿀 수 없습니다.</div>
         </th:block>
       </div>
@@ -323,14 +323,14 @@
       <div class="card" th:if="${notice.proposalTeamFormed}">
         <div class="card-head">
           <h3>제안팀</h3>
-          <span class="faint" style="font-size:11.5px">제안팀 구성에서 정합니다</span>
+          <span class="faint fs-11_5">제안팀 구성에서 정합니다</span>
         </div>
         <div class="info-grid">
-          <div th:if="${notice.joinTeamNms}" style="grid-column:1 / -1">
+          <div th:if="${notice.joinTeamNms}" class="col-all">
             <div class="k">참여 팀</div>
             <div class="v" th:text="${notice.joinTeamNms}">개발2팀</div>
           </div>
-          <div th:if="${notice.prpTmmbrNms}" style="grid-column:1 / -1">
+          <div th:if="${notice.prpTmmbrNms}" class="col-all">
             <div class="k">제안팀원</div>
             <div class="v" th:text="${notice.prpTmmbrNms}">김가희 · 개발1팀, 이도윤 · 개발2팀</div>
           </div>
@@ -342,12 +342,12 @@
            팀이 배정되지 않은 공고(배정 전)는 배정된 팀이 없으니 아무에게도 보이지 않는다. -->
       <div class="card" th:if="${assignedLeader}">
         <div class="card-head"><h3>참여 결정 (팀장)</h3></div>
-        <div class="pad" style="display:flex;flex-direction:column;gap:10px">
+        <div class="pad stack-12">
           <th:block th:if="${canDecide}">
             <div class="banner warn" th:if="${notice.decideBlockReason}" th:text="${notice.decideBlockReason}">아직 사전규격 단계입니다.</div>
             <div class="banner warn" th:if="${notice.decideBlockReason == null and notice.canceled}">취소된 공고라 참여할 수 없습니다. 불참으로 영업부에 돌려주세요.</div>
             <form method="post" th:action="@{/notices/{sn}/decision(sn=${notice.pbancSn})}"
-                  style="display:flex;flex-direction:column;gap:10px">
+                  class="stack-12">
               <div class="fld">
                 <label for="dc-note">결정 사유 (불참 시 필수)</label>
                 <textarea id="dc-note" name="reason" rows="3" maxlength="1000" th:text="${decideReason}"></textarea>
@@ -371,7 +371,7 @@
             <!-- 제안팀원(결정한 팀장 포함)은 바로 제안 업무로 넘어간다 -->
             <div class="row" th:if="${@accessChecker.isProposalMember(notice.pbancSn, #authentication.principal)}">
               <a class="btn sm" th:href="@{/proposal(bid=${notice.pbancSn})}">제안 업무 열기</a>
-              <span class="faint" style="font-size:11.5px">제안팀 구성·목차·요구사항</span>
+              <span class="faint fs-11_5">제안팀 구성·목차·요구사항</span>
             </div>
           </th:block>
         </div>
@@ -380,9 +380,9 @@
       <!-- 중도 철회 (FR-042). 참여 확정·제안 작성 중일 때 배정된 팀의 팀장에게만 보인다. -->
       <div class="card" th:if="${canWithdraw}">
         <div class="card-head"><h3>중도 철회</h3></div>
-        <form class="pad" method="post" th:action="@{/notices/{sn}/withdraw(sn=${notice.pbancSn})}"
-              style="display:flex;flex-direction:column;gap:10px">
-          <div class="faint" style="font-size:11.5px">
+        <form class="pad stack-12" method="post" th:action="@{/notices/{sn}/withdraw(sn=${notice.pbancSn})}"
+>
+          <div class="faint fs-11_5">
             철회하면 공고가 영업부로 넘어갑니다. 영업부가 확인 후 다른 팀에 재배정하거나 불참으로 종결합니다.
             제안팀 인원·참여팀·목차 담당자 지정은 풀리고, 목차·요구사항·올린 파일은 남습니다.
           </div>

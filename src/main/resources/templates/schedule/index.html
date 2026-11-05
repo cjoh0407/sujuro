@@ -16,14 +16,14 @@
 
 <th:block layout:fragment="content">
 <div class="sch">
-  <div class="banner ok" data-flash="done" th:if="${done != null}" th:text="${done}" style="margin-bottom:12px">처리했습니다.</div>
-  <div class="banner err" data-flash="error" th:if="${error != null}" th:text="${error}" style="margin-bottom:12px">오류 안내</div>
+  <div class="banner ok mb-12" data-flash="done" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
+  <div class="banner err mb-12" data-flash="error" th:if="${error != null}" th:text="${error}">오류 안내</div>
 
   <!-- 월 이동 + 팀 탭(영업부·경영지원실) -->
-  <div class="row" style="justify-content:space-between;margin-bottom:12px">
+  <div class="row jc-between mb-12">
     <div class="row">
       <a class="btn sm" th:href="@{/schedule(ym=${view.prevYm}, team=${view.selectedTeamSn}, pbanc=${view.selectedPbancSn})}">‹</a>
-      <b style="font-size:16px" th:text="${view.label}">2026년 10월</b>
+      <b class="fs-14" th:text="${view.label}">2026년 10월</b>
       <a class="btn sm" th:href="@{/schedule(ym=${view.nextYm}, team=${view.selectedTeamSn}, pbanc=${view.selectedPbancSn})}">›</a>
       <!-- 일정 등록 (주관팀 팀장). 주관하는 진행 중 사업이 없으면(참여팀 팀장 포함) 눌러지지 않고 이유를 보여 준다 -->
       <button class="btn sm primary" type="button" th:if="${view.canEdit}" onclick="schOpen('schAdd')"
@@ -47,8 +47,8 @@
   </div>
 
   <!-- 범례 (FR-094): 색은 팀, 글자는 종류 -->
-  <div class="row" style="margin-bottom:12px;gap:14px;flex-wrap:wrap">
-    <span style="font-size:12px" th:each="t : ${view.legendTeams}">
+  <div class="row mb-12 gap-16 u-flex-wrap-wrap">
+    <span class="fs-12_5" th:each="t : ${view.legendTeams}">
       <span class="dot" th:classappend="|tm${view.teamNoOf(t.code)}|"></span><span th:text="${t.name}">팀</span>
     </span>
   </div>
@@ -85,7 +85,7 @@
   </form>
 
   <!-- 아이콘 원본 (세종 아이콘 시안과 같은 모양). 색은 버튼 색을 따라간다 -->
-  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <svg width="0" height="0" class="pos-abs" aria-hidden="true">
     <defs>
       <symbol id="i-edit" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12.8 3.9a1.8 1.8 0 0 1 2.5 0l.8.8a1.8 1.8 0 0 1 0 2.5L7.6 15.7 3.8 16.6l.9-3.8z"/><path d="M11.3 5.4l3.3 3.3"/>

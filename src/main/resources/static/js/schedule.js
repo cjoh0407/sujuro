@@ -46,7 +46,7 @@ function schOpenView(btn) {
 
 function schDelete() {
   var title = document.getElementById('se-title').value;
-  if (window.confirm('\'' + title + '\' 일정을 삭제하시겠습니까?\n삭제하면 되돌릴 수 없고, 제안팀원에게 삭제 알림이 갑니다.')) {
+  if (window.confirm('「' + title + '」 일정을 삭제할까요?\n삭제하면 되돌릴 수 없습니다. 제안팀원에게 삭제 알림이 갑니다.')) {
     document.getElementById('se-del').requestSubmit(); // 비동기 저장(async-form.js)이 가로챌 수 있게
   }
 }

@@ -143,7 +143,7 @@
      ORDER BY A.SORT_SEQ, A.EVL_ARTCL_SN, S.CMSNR_NO
   </select>
 
-  <!-- 업체별 평가표 비교: 업체·항목마다 위원 점수 평균. 세부 항목이 있는 상위 항목은 뺀다(통계와 같은 규칙) -->
+  <!-- 업체별 평가표 비교: 업체·항목마다 위원 점수 평균. 세부 항목이 있는 상위 항목은 뺀다(사업별 결과 분석과 같은 규칙) -->
   <select id="findCompanyArticleScores" resultType="com.ojj.sujuro.result.dto.CompanyArticleScoreDTO">
     SELECT S.CO_EVL_RSLT_SN AS coEvlRsltSn, A.EVL_ARTCL_SN AS evlArtclSn, A.EVL_ARTCL_NM AS evlArtclNm,
            A.EVL_SCOR_SCR AS evlScorScr, AVG(S.EVL_SCR) AS avgScr

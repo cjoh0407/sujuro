@@ -48,7 +48,7 @@ public class SecurityConfig {
                 .antMatchers("/docs/**").hasAnyRole("MGMT", "LEADER", "MEMBER")
                 .antMatchers("/results/**").hasAnyRole("MGMT", "LEADER")
                 .antMatchers("/schedule/**").authenticated()
-                .antMatchers("/stats/**").hasAnyRole("MGMT", "LEADER")
+                .antMatchers("/bid-history/**").hasAnyRole("MGMT", "LEADER")
                 .antMatchers("/users/**").hasRole("MGMT")
 
                 // 그 밖의 화면(대시보드, 알림, 내 정보 등)은 로그인한 사용자 모두

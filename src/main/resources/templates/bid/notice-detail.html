@@ -17,6 +17,9 @@
 */-->
 <head>
   <title>공고 상세</title>
+  <th:block layout:fragment="head">
+    <link rel="stylesheet" th:href="@{/css/bid.css}">
+  </th:block>
 </head>
 <body>
 
@@ -289,7 +292,7 @@
                 </div>
               </div>
               <div class="row jc-end">
-                <button class="btn primary" type="submit"
+                <button class="btn sm primary" type="submit"
                         th:text="${notice.sprvsnTeamSn == null and !notice.returned} ? '배정' : '재배정'">배정</button>
               </div>
             </form>
@@ -301,10 +304,10 @@
                 <textarea id="as-skip" name="reason" rows="2" maxlength="1000" th:text="${closeReason}"></textarea>
               </div>
               <div class="row jc-end">
-                <button class="btn danger" type="submit"
+                <button class="btn sm danger" type="submit"
                         data-confirm="불참으로 종결하면 이 공고는 더 배정할 수 없습니다. 종결할까요?">불참 종결</button>
                 <!--/* 잘못 등록한 공고 삭제 (11/02). 팀에 한 번도 맡기지 않은 신규 공고만. 불참 종결과 한 줄에 두지만 삭제 주소로 보낸다(formaction) */-->
-                <button class="btn danger" type="submit" th:if="${notice.deletable}"
+                <button class="btn sm danger" type="submit" th:if="${notice.deletable}"
                         th:formaction="@{/notices/{sn}/delete(sn=${notice.pbancSn})}"
                         data-confirm="이 공고를 삭제합니다. 수집 이력·첨부 목록·관련 알림도 함께 지워지고 되돌릴 수 없습니다. 삭제할까요?">공고 삭제</button>
               </div>
@@ -350,10 +353,10 @@
                 <textarea id="dc-note" name="reason" rows="3" maxlength="1000" th:text="${decideReason}"></textarea>
               </div>
               <div class="row">
-                <button class="btn primary" type="submit" name="result" value="join"
+                <button class="btn sm primary" type="submit" name="result" value="join"
                         th:disabled="${notice.decideBlockReason != null or notice.canceled}"
                         data-confirm="참여를 확정합니다. 확정한 뒤에는 중도 철회로만 되돌릴 수 있습니다. 진행할까요?">참여</button>
-                <button class="btn danger" type="submit" name="result" value="decline"
+                <button class="btn sm danger" type="submit" name="result" value="decline"
                         th:disabled="${notice.decideBlockReason != null}"
                         data-confirm="불참하면 공고가 영업부로 돌아갑니다. 진행할까요?">불참</button>
               </div>
@@ -388,7 +391,7 @@
             <textarea id="wd-note" name="reason" rows="3" maxlength="1000" th:text="${withdrawReason}"></textarea>
           </div>
           <div class="row">
-            <button class="btn danger" type="submit"
+            <button class="btn sm danger" type="submit"
                     data-confirm="중도 철회하면 제안팀이 풀리고 공고가 영업부로 넘어갑니다. 진행할까요?">중도 철회 신청</button>
           </div>
         </form>

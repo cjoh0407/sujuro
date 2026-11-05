@@ -7,9 +7,9 @@
   평가·결과 입력 (FR-077~081). UI 목업 v3.5 의 rResults() 화면과 같은 구성이다.
   경영지원실: 모든 사업, 결과 가져오기(view.canImport)·평가표 올리기(view.canUpload). 점수·장단점은 읽기만.
   팀장: 자기 팀 사업만, 평가표 올리기·평가 항목·점수·장단점 입력(view.canScore). 회의 결정, 2026-11-02 반영.
-  11/04 사이드바 메뉴와 이 화면의 사업건 목록을 뺐다. 사업건은 통계의 사업 목록에서 고르고 들어온다(bid 없이 오면 통계로 보낸다).
+  11/04 사이드바 메뉴와 이 화면의 사업건 목록을 뺐다. 사업건은 사업 이력 관리의 목록에서 고르고 들어온다(bid 없이 오면 사업 이력 관리로 보낸다).
   평가표를 올릴 수 있는 사업만 제안서 관리와 같은 3:7 양식이고(proposal.css 의 .split, #upCard, .drop 을 같이 쓴다), 나머지는 오른쪽 내용만 넓게 보인다.
-    머리  : 사업명, [통계] 버튼 (통계와 같은 형식)
+    머리  : 사업명, [사업 이력] 버튼 (사업 이력 관리와 같은 형식)
     왼쪽  : 평가표 올리기(결과 등록 사업만. 업체 고르기 → 엑셀 올리기)
     오른쪽: 상태별 안내 →
     제출 완료 : 입찰 결과 카드 + [나라장터에서 결과 가져오기] (평일 오후 5시 수집도 같은 일을 한다) → 개찰 업체 점수(받아 둔 참여 업체 전체)
@@ -44,13 +44,13 @@
 
   <th:block th:if="${b}" th:with="upload=${view.canUpload and !b.manualResult and a.ourCompanyListed and view.company != null}">
 
-    <!--/* 머리 (NFR-023): 어떤 사업을 보는지 통계와 같은 형식으로 보인다. 사업명과 그 사업의 통계로 돌아가는 버튼 */-->
+    <!--/* 머리 (NFR-023): 어떤 사업을 보는지 사업 이력 관리와 같은 형식으로 보인다. 사업명과 그 사업의 이력으로 돌아가는 버튼 */-->
     <div class="page-head">
       <div>
         <h2 th:text="${b.pbancNm}">사업명</h2>
       </div>
 
-                <a class="btn sm" th:href="@{/stats(bid=${b.pbancSn})}">통계</a>
+                <a class="btn sm" th:href="@{/bid-history(bid=${b.pbancSn})}">사업 이력</a>
       
     </div>
 
@@ -86,8 +86,8 @@
               <span class="drop-hint"></span>
             </span>
           </label>
-          <div class="up-note" th:text="|엑셀(XLS · XLSX) 파일만 올릴 수 있습니다.|">엑셀 파일만 올릴 수 있습니다.</div>
-          <div class="row jc-end">
+          <div class="row">
+            <div class="up-note">엑셀(XLS · XLSX) 파일만 올릴 수 있습니다.</div>
             <button class="btn sm primary" type="submit" th:text="${cf} ? '다시 올리기' : '올리기'">올리기</button>
           </div>
         </form>
@@ -123,7 +123,7 @@
       <div class="card">
         <div class="card-head">
           <h3>입찰 결과 (직접 입력)</h3>
-          <a class="btn sm" th:if="${a != null}" th:href="@{/stats(bid=${b.pbancSn})}">사업별 결과 분석</a>
+          <a class="btn sm" th:if="${a != null}" th:href="@{/bid-history(bid=${b.pbancSn})}">사업별 결과 분석</a>
         </div>
         <!-- 경영지원실: 입력·수정. 저장에 실패해 돌아왔으면 입력하던 값을 다시 채운다 -->
         <form class="pad stack-12" method="post" th:action="@{/results/manual}" th:if="${view.canEnterResult}"
@@ -238,7 +238,7 @@
       <th:block th:unless="${b.manualResult}">
 
       <!-- FR-078·079 평가표: 왼쪽에서 고른 업체의 엑셀에서 읽어 채운 항목·배점·위원별 점수를 확인·저장한다.
-           업체마다 따로 올려 아래 '업체별 평가표 비교'에서 나란히 본다. 통계에는 우리 회사 점수만 들어간다. -->
+           업체마다 따로 올려 아래 '업체별 평가표 비교'에서 나란히 본다. 결과 분석에는 우리 회사 점수만 들어간다. -->
       <div class="card" th:with="co=${view.company}, cf=${view.companyFile}">
         <div class="card-head">
           <h3 th:text="${co != null} ? |평가 항목·배점 (평가표) · ${co.coNm}| : '평가 항목·배점 (평가표)'">평가 항목·배점 (평가표)</h3>
@@ -350,6 +350,8 @@
         </div>
       </div>
 
+      </th:block>
+
       <!-- FR-081 장단점 분석 -->
       <div class="card">
         <div class="card-head"><h3>장단점 분석</h3></div>
@@ -360,17 +362,17 @@
           <div class="grid3">
             <div class="fld">
               <label for="an-strpt">강점</label>
-              <textarea id="an-strpt" name="strptCn" rows="5" maxlength="1300" th:readonly="${!view.canScore}"
+              <textarea id="an-strpt" name="strptCn" class="analysis-input" maxlength="1300" th:readonly="${!view.canScore}"
                         th:text="${analysisForm != null} ? ${analysisForm.strptCn} : ${a.strptCn}"></textarea>
             </div>
             <div class="fld">
               <label for="an-sbpt">탈락·감점 원인</label>
-              <textarea id="an-sbpt" name="sbptCsCn" rows="5" maxlength="1300" th:readonly="${!view.canScore}"
+              <textarea id="an-sbpt" name="sbptCsCn" class="analysis-input" maxlength="1300" th:readonly="${!view.canScore}"
                         th:text="${analysisForm != null} ? ${analysisForm.sbptCsCn} : ${a.sbptCsCn}"></textarea>
             </div>
             <div class="fld">
               <label for="an-splmnt">차기 보완점</label>
-              <textarea id="an-splmnt" name="splmntCn" rows="5" maxlength="1300" th:readonly="${!view.canScore}"
+              <textarea id="an-splmnt" name="splmntCn" class="analysis-input" maxlength="1300" th:readonly="${!view.canScore}"
                         th:text="${analysisForm != null} ? ${analysisForm.splmntCn} : ${a.splmntCn}"></textarea>
             </div>
           </div>

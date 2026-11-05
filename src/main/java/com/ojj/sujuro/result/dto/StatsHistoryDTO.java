@@ -7,7 +7,7 @@ import com.ojj.sujuro.result.support.StatsFormat;
 import lombok.Getter;
 import lombok.Setter;
 
-/** 지난 사업 한 줄 (FR-087). 결과 등록·유찰 사업이고, 누르면 통계 오른쪽에 그 사업을 보여 준다. */
+/** 지난 사업 한 줄 (FR-087). 결과 등록·유찰 사업이고, 누르면 사업 이력 관리 오른쪽에 그 사업을 보여 준다. */
 @Getter
 @Setter
 public class StatsHistoryDTO {
@@ -21,9 +21,6 @@ public class StatsHistoryDTO {
     private String rsltCd;
     private String rsltNm;
 
-    /** 팀장이 확정한 최종 제안서(통합본)가 있으면 Y */
-    private String finalFileYn;
-
     public boolean isWon() {
         return ResultCode.WON.equals(rsltCd);
     }
@@ -31,10 +28,6 @@ public class StatsHistoryDTO {
     /** 목록의 알약 글자: 수주·탈락, 결과가 없으면 진행상태(유찰 등) */
     public String getPillText() {
         return rsltNm != null ? rsltNm : BidCode.progressNm(pbancSttsCd);
-    }
-
-    public boolean isFinalFileKept() {
-        return "Y".equals(finalFileYn);
     }
 
     public String getBudgetText() {

@@ -31,9 +31,9 @@
        th:href="@{/refs}" th:classappend="${#strings.startsWith(uri, '/refs')} ? 'on'">참고자료</a>
 
     <div class="grp">결과 · 운영</div>
-    <!--/* 평가·결과 입력(/results)은 메뉴에서 뺐다 (11/04). 통계의 사업 목록에서 들어가므로 그 화면에서는 통계에 불이 들어온다 */-->
+    <!--/* 평가·결과 입력(/results)은 메뉴에서 뺐다 (11/04). 사업 이력 관리의 목록에서 들어가므로 그 화면에서는 사업 이력 관리에 불이 들어온다 */-->
     <a sec:authorize="hasAnyRole('MGMT','LEADER')"
-       th:href="@{/stats}" th:classappend="${#strings.startsWith(uri, '/stats') or #strings.startsWith(uri, '/results')} ? 'on'">통계</a>
+       th:href="@{/bid-history}" th:classappend="${#strings.startsWith(uri, '/bid-history') or #strings.startsWith(uri, '/results')} ? 'on'">사업 이력 관리</a>
     <a th:href="@{/schedule}" th:classappend="${#strings.startsWith(uri, '/schedule')} ? 'on'">일정 관리</a>
     <a sec:authorize="hasRole('MGMT')"
        th:href="@{/users}" th:classappend="${#strings.startsWith(uri, '/users')} ? 'on'">사용자 관리</a>

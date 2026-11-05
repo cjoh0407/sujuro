@@ -29,7 +29,7 @@
     <div class="card" id="upCard">
       <div class="card-head">
         <h3>자료 올리기</h3>
-        <span class="faint" style="font-size:11.5px">최대 50MB</span>
+        <span class="faint fs-11_5">최대 50MB</span>
       </div>
       <form th:action="@{/refs/upload}" method="post" enctype="multipart/form-data" class="pad mp-form">
         <input type="hidden" name="se" th:value="${se}">
@@ -42,11 +42,11 @@
           </span>
         </label>
         <label class="qa-side-l">
-          <span class="row" style="justify-content:space-between"><span>설명 (선택)</span><span class="faint" id="refMemoCnt" style="font-weight:400">0 / 30</span></span>
+          <span class="row jc-between"><span>설명 (선택)</span><span class="faint fw-normal" id="refMemoCnt">0 / 30</span></span>
           <input type="text" name="memo" maxlength="30" placeholder="예: 제안서 본문용 고딕체"
                  oninput="document.getElementById('refMemoCnt').textContent = this.value.length + ' / 30'">
         </label>
-        <div class="row" style="justify-content:flex-end">
+        <div class="row jc-end">
           <button class="btn sm primary" type="submit">올리기</button>
         </div>
       </form>
@@ -80,6 +80,7 @@
           <tr class="hv" th:each="f : ${files}">
             <td class="c-pv">
               <img th:if="${f.previewable}" class="ref-thumb" th:src="@{/refs/view(refFileSn=${f.refFileSn})}" th:alt="${f.orgnlFileNm}" loading="lazy">
+              <span th:unless="${f.previewable}" class="ref-doc" aria-hidden="true"><span class="ic ic-file"></span></span>
             </td>
             <td>
               <div class="ref-nm" th:text="${f.orgnlFileNm}" th:title="${f.orgnlFileNm}">파일명.ttf</div>

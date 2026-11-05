@@ -25,25 +25,28 @@
   <div class="banner ok" th:if="${collectMessage}" th:text="${collectMessage}">지금 수집을 마쳤습니다</div>
   <div class="banner warn" th:if="${collectError}" th:text="${collectError}">방금 지금 수집을 했습니다</div>
 
-  <!-- 공고 등록 (영업부). 번호만 넣으면 나라장터 API로 내용을 가져온다. 키워드 검색은 없다. 제목과 입력을 한 줄로 줄였다 (11/04). -->
-  <div class="card regist-card" sec:authorize="hasRole('SALES')">
-    <form class="row" method="post" th:action="@{/notices/register}">
-      <h3>공고 등록</h3>
-      <span class="lbl">공고번호</span>
-      <input type="text" name="pbancNo" placeholder="R26DD… · R26BD… · R26BK…" style="width:240px;max-width:100%" required>
-      <button class="btn primary sm" type="submit">등록</button>
-    </form>
-  </div>
+  <!-- 공고 등록 블록과 탭 묶음. 폭은 탭 줄이 정해서 블록 오른쪽 끝이 마지막 탭 끝에 맞는다 (건수가 늘어도 같이 늘어난다) -->
+  <div class="regist-tabs">
+    <!-- 공고 등록 (영업부). 번호만 넣으면 나라장터 API로 내용을 가져온다. 키워드 검색은 없다. -->
+    <div class="card regist-card" sec:authorize="hasRole('SALES')">
+      <div class="card-head"><h3>공고 등록</h3></div>
+      <form class="row" method="post" th:action="@{/notices/register}">
+        <span class="lbl">공고번호</span>
+        <input type="text" name="pbancNo" placeholder="R26DD… · R26BD… · R26BK…" class="u-flex-1-min-width-180px" required>
+        <button class="btn primary sm" type="submit">등록</button>
+      </form>
+    </div>
 
-  <!-- 탭: 공고단계별 (11/03 진행상태 탭에서 바꿨다). 건수가 0인 단계도 보여 준다. 숫자는 검색어와 무관한 전체 건수다. -->
-  <div class="tabs">
-    <a class="tab" th:classappend="${search.stepCd == null} ? 'on' : ''"
-       th:href="@{/notices(searchBy=${search.searchBy}, keyword=${search.keyword}, sort=${search.sort})}"
-       th:text="|전체 ${totalAll}|">전체 0</a>
-    <a class="tab" th:each="tab : ${tabs}"
-       th:classappend="${tab.stepCd == search.stepCd} ? 'on' : ''"
-       th:href="@{/notices(stepCd=${tab.stepCd}, searchBy=${search.searchBy}, keyword=${search.keyword}, sort=${search.sort})}"
-       th:text="|${tab.tabNm} ${tab.cnt}|">발주계획 0</a>
+    <!-- 탭: 공고단계별 (11/03 진행상태 탭에서 바꿨다). 건수가 0인 단계도 보여 준다. 숫자는 검색어와 무관한 전체 건수다. -->
+    <div class="tabs">
+      <a class="tab" th:classappend="${search.stepCd == null} ? 'on' : ''"
+         th:href="@{/notices(searchBy=${search.searchBy}, keyword=${search.keyword}, sort=${search.sort})}"
+         th:text="|전체 ${totalAll}|">전체 0</a>
+      <a class="tab" th:each="tab : ${tabs}"
+         th:classappend="${tab.stepCd == search.stepCd} ? 'on' : ''"
+         th:href="@{/notices(stepCd=${tab.stepCd}, searchBy=${search.searchBy}, keyword=${search.keyword}, sort=${search.sort})}"
+         th:text="|${tab.tabNm} ${tab.cnt}|">발주계획 0</a>
+    </div>
   </div>
 
   <!-- 검색·정렬과 [지금 수집]. page 를 넘기지 않으므로 검색하면 1페이지부터 다시 본다. -->
@@ -55,7 +58,7 @@
         <option value="no" th:selected="${search.searchBy == 'no'}">공고번호</option>
         <option value="org" th:selected="${search.searchBy == 'org'}">수요기관</option>
       </select>
-      <input type="text" name="keyword" th:value="${search.keyword}" placeholder="검색어" style="width:220px">
+      <input type="text" name="keyword" th:value="${search.keyword}" placeholder="검색어" class="w-220px">
       <button class="btn sm" type="submit">검색</button>
       <select name="sort" data-auto-submit aria-label="정렬">
         <option value="deadline" th:selected="${search.sort == 'deadline'}">마감일 빠른 순</option>

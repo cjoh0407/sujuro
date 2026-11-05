@@ -36,7 +36,7 @@ function confirmDel(f) {
 
 /* 파일 삭제 사유를 한 줄 받는다. 비우면 취소. 폼에 name="reason" hidden 칸이 있어야 한다. (NFR-009: 숨김 삭제) */
 function askReason(f) {
-  var r = prompt('삭제 사유를 입력하세요. (목록에서만 숨기고 원본과 기록은 남습니다)');
+  var r = prompt('삭제 사유를 입력해 주세요. (목록에서만 숨기고 원본과 기록은 남습니다)');
   if (r === null || !r.trim()) return false;
   f.elements.reason.value = r.trim();
   return true;
@@ -47,8 +47,8 @@ function askReason(f) {
 /* 이름 바꾸기: 새 이름을 받아 hidden tocFormNm에 넣는다. 비우거나 그대로면 취소 */
 function askFormRename(btn) {
   var f = btn.form, opt = f.elements.tocFormSn.options[f.elements.tocFormSn.selectedIndex];
-  if (!f.elements.tocFormSn.value) return true; // 양식을 안 골랐으면 브라우저가 "선택하세요"를 띄운다
-  var old = opt.dataset.name || '', nm = prompt('"' + old + '" 양식의 새 이름을 입력하세요.', old);
+  if (!f.elements.tocFormSn.value) return true; // 양식을 안 골랐으면 브라우저가 "선택해 주세요"를 띄운다
+  var old = opt.dataset.name || '', nm = prompt('"' + old + '" 양식의 새 이름을 입력해 주세요.', old);
   if (nm === null || !nm.trim() || nm.trim() === old) return false;
   f.elements.tocFormNm.value = nm.trim();
   return true;
@@ -57,8 +57,8 @@ function askFormRename(btn) {
 /* 새 이름으로 복사해서 바꾸기: 고른 양식의 목차를 새 이름 양식으로 복사해 가져온다. 새 이름을 hidden tocFormNm에 넣고 import로 보낸다 */
 function askFormCopy(btn) {
   var f = btn.form, sel = f.elements.tocFormSn, opt = sel.options[sel.selectedIndex];
-  if (!sel.value) return true; // 양식을 안 골랐으면 브라우저가 "선택하세요"를 띄운다
-  var old = opt.dataset.name || '', nm = prompt('"' + old + '" 양식을 복사해서 가져옵니다. 새 양식 이름을 입력하세요.', old + ' 복사');
+  if (!sel.value) return true; // 양식을 안 골랐으면 브라우저가 "선택해 주세요"를 띄운다
+  var old = opt.dataset.name || '', nm = prompt('"' + old + '" 양식을 복사해서 가져옵니다. 새 양식 이름을 입력해 주세요.', old + ' 복사');
   if (nm === null || !nm.trim()) return false;
   if (!confirm('현재 목차와 담당자 지정이 사라지고, 연결된 요구사항은 모두 미매핑이 됩니다. "' + nm.trim() + '" 양식으로 복사해서 바꿀까요?')) return false;
   f.elements.tocFormNm.value = nm.trim();

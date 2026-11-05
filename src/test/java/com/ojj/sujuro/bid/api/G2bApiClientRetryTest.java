@@ -142,7 +142,7 @@ class G2bApiClientRetryTest {
 
         BusinessException e = assertThrows(BusinessException.class, this::callBid);
 
-        assertEquals("나라장터에서 지금 입찰공고 정보를 불러오지 못했습니다. 잠시 후 다시 시도하세요.", e.getMessage());
+        assertEquals("나라장터에서 지금 입찰공고 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.", e.getMessage());
         assertEquals(3, calls.get());
         assertTrue(output.getAll().contains("입찰공고 조회 실패"), "실패 로그가 없습니다");
         assertTrue(output.getAll().contains("ServiceKey=***"), "지운 주소가 로그에 없습니다");

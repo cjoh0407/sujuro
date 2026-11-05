@@ -27,15 +27,15 @@ import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.auth.code.Role;
 import com.ojj.sujuro.result.dto.EvaluationForm;
 import com.ojj.sujuro.result.dto.EvaluationScoreDTO;
+import com.ojj.sujuro.result.dto.ResultBidDTO;
 import com.ojj.sujuro.result.dto.StatsArchiveDTO;
 import com.ojj.sujuro.result.dto.StatsArticleDTO;
-import com.ojj.sujuro.result.dto.StatsChartDTO;
-import com.ojj.sujuro.result.dto.StatsTallyDTO;
+import com.ojj.sujuro.result.dto.StatsHistoryDTO;
 import com.ojj.sujuro.result.dto.StatsTeamDTO;
 import com.ojj.sujuro.result.dto.StatsViewDTO;
 import com.ojj.sujuro.result.mapper.StatsMapper;
 
-/** 통계 범위 규칙 (FR-016): 경영지원실은 개발팀을 골라 보고, 팀장은 자기 팀만, 그 밖은 403 */
+/** 사업 이력 범위 규칙 (FR-016): 경영지원실은 개발팀을 골라 보고, 팀장은 자기 팀만, 그 밖은 403 */
 class StatsServiceImplTest {
 
     private StatsMapper mapper;
@@ -103,13 +103,13 @@ class StatsServiceImplTest {
     void 개발팀이_아닌_팀장은_잠금_안내만() {
         StatsViewDTO v = service.build(user("9999-0001", Role.LEADER), null, null);
         assertTrue(v.isLocked());
-        verify(mapper, never()).tallyByYearTeam(any());
+        verify(mapper, never()).history(any(), any());
     }
 
     @Test
     void 영업부와_팀원은_403() {
         assertThrows(AccessDeniedException.class, () -> service.build(user("2023-0067", Role.SALES), null, null));
-        assertThrows(AccessDeniedException.class, () -> service.csv(user("2025-0001", Role.MEMBER)));
+        assertThrows(AccessDeniedException.class, () -> service.build(user("2025-0001", Role.MEMBER), null, null));
     }
 
     @Test
@@ -118,8 +118,8 @@ class StatsServiceImplTest {
         other.setTeamSn(4L);
         when(mapper.findArchive(10L)).thenReturn(other);
         assertThrows(AccessDeniedException.class, () -> service.findArchive(user("2024-0031", Role.LEADER), 10L));
-        assertThrows(AccessDeniedException.class, () -> service.findFinalFile(user("2024-0031", Role.LEADER), 10L));
-        verify(mapper, never()).findFinalFile(anyLong());
+        assertThrows(AccessDeniedException.class, () -> service.findEvaluationFile(user("2024-0031", Role.LEADER), 10L));
+        verify(mapper, never()).findEvaluationFile(anyLong());
 
         assertNotNull(service.findArchive(user("2022-0009", Role.MGMT), 10L));
         when(mapper.findArchive(11L)).thenReturn(null);
@@ -135,7 +135,6 @@ class StatsServiceImplTest {
         assertThrows(AccessDeniedException.class, () -> service.findPending(user("2024-0031", Role.LEADER), 10L));
         assertNotNull(service.findPending(user("2022-0009", Role.MGMT), 10L));
         assertNull(service.findPending(user("2022-0009", Role.MGMT), 11L));
-        verify(mapper, never()).findFinalFile(anyLong()); // 제안서 파일은 결과 전에 읽지 않는다
     }
 
     @Test
@@ -159,24 +158,19 @@ class StatsServiceImplTest {
     }
 
     @Test
-    void 요약은_고른_팀_연도의_집계이고_없으면_0() {
-        StatsTallyDTO t = StatsTallyDTO.empty("2026", 3L, "개발1팀");
-        t.setJoined(5);
-        t.setResultCnt(3);
-        t.setWon(2);
-        t.setFailed(1);
-        t.setWonAmt(1_590_000_000L);
-        when(mapper.tallyByYearTeam(any())).thenReturn(Collections.singletonList(t));
+    void 고른_사업이_없을_때_보여_줄_사업은_진행_중이_먼저이고_없으면_지난_사업이다() {
+        StatsViewDTO v = new StatsViewDTO();
+        assertNull(v.getFirstPbancSn());
 
-        StatsViewDTO v = service.build(user("2022-0009", Role.MGMT), 3L, "2026");
-        assertEquals("66.7%", v.getSummary().getRateText());
-        assertEquals("15.9억", v.getSummary().getWonAmtText());
-        assertEquals(1, v.getSummary().getLost());
+        StatsHistoryDTO past = new StatsHistoryDTO();
+        past.setPbancSn(2L);
+        v.setHistory(Collections.singletonList(past));
+        assertEquals(2L, v.getFirstPbancSn());
 
-        StatsViewDTO w = service.build(user("2022-0009", Role.MGMT), 4L, "2026");
-        assertEquals(0, w.getSummary().getJoined());
-        assertEquals("-", w.getSummary().getRateText());
-        verify(mapper).ptcpShpRates(eq(4L), anyString());
+        ResultBidDTO going = new ResultBidDTO();
+        going.setPbancSn(1L);
+        v.setInProgress(Collections.singletonList(going));
+        assertEquals(1L, v.getFirstPbancSn());
     }
 
     @Test
@@ -245,18 +239,6 @@ class StatsServiceImplTest {
     }
 
     @Test
-    void CSV는_모든_연도와_팀을_빈_칸까지_쓰고_수식은_막는다() {
-        when(mapper.tallyByYearTeam(any())).thenReturn(Collections.emptyList());
-        String csv = service.csv(user("2022-0009", Role.MGMT));
-        assertEquals(5, csv.split("\r\n").length); // 머리 1 + 2년 × 2팀
-        assertTrue(csv.contains("2025,개발2팀,0,0,0,0,0,,0,"));
-
-        assertEquals("'=1+1", StatsServiceImpl.cell("=1+1"));
-        assertEquals("-3", StatsServiceImpl.cell("-3"));
-        assertEquals("\"a,b\"", StatsServiceImpl.cell("a,b"));
-    }
-
-    @Test
     void 기술_만점은_배점_합이_100_미만일_때만_평가표에서() {
         StatsArchiveDTO a = new StatsArchiveDTO();
         assertEquals(90, a.getTechMax());
@@ -269,16 +251,6 @@ class StatsServiceImplTest {
         a.setArticles(Arrays.asList(article(70), article(30)));
         assertEquals(90, a.getTechMax());
         assertTrue(a.isTechMaxAssumed());
-    }
-
-    @Test
-    void 차트_눈금은_가장_큰_참여의_짝수_올림_최소_4() {
-        StatsTallyDTO t = StatsTallyDTO.empty("2026", 3L, "개발1팀");
-        t.setJoined(7);
-        StatsChartDTO c = StatsChartDTO.of(Arrays.asList("2025", "2026"), Collections.singletonMap("2026", t), "2026");
-        assertEquals(8, c.getGridLines().get(2).getLabel());
-        assertEquals("", c.getGroups().get(0).getBars().get(0).getPath()); // 2025 참여 0건은 막대 없이 숫자만
-        assertTrue(c.getGroups().get(1).isSelected());
     }
 
     private static String scoreText(StatsArchiveDTO a, double price) {

@@ -5,16 +5,17 @@
     scoreCard(a)      : 기술·가격·종합 점수 막대. 만점은 공고의 기술·가격 배점(비율), 없으면 90:10 으로 본다.
                         기술 원점수(차등점수제 적용 전)가 있으면 같이 보여 준다.
     evaluationFile(a) : 올린 평가표 엑셀 한 줄과 내려받기
-    articleTable(t, emptyText) : 사업별 결과 분석의 평가 항목별 점수 표 (11/03). t = result.dto.ArticleScoreTableDTO.
-                        평가표 엑셀을 올린 업체가 열이고, 항목별 점수·등수, 종합 점수·등수, 1등 업체(수주 업체)를 보여 준다.
-                        평가표 엑셀이 올라오기 전에는 비어 있고 emptyText 를 보인다. 표를 바로 넣으므로 부르는 쪽은 .pad 로 감싸지 않는다.
+    articleChart(t, emptyText) : 사업별 결과 분석의 평가 항목별 점수 그래프 (11/05, 표를 바꿨다). t = result.dto.ArticleScoreTableDTO.
+                        x축은 평가 항목, 항목마다 평가표 엑셀을 올린 업체 수만큼 막대를 그린다. 항목마다 1등 막대만 진하고 나머지는 흐리다.
+                        범례에 업체별 종합 점수·등수, 아래에 1등 업체(수주 업체)를 보여 준다. 항목별 등수는 막대에 마우스를 올리면 뜬다.
+                        평가표 엑셀이 올라오기 전에는 비어 있고 emptyText 를 보인다. 카드에 바로 넣으므로 부르는 쪽은 .pad 로 감싸지 않는다.
 */-->
 <body>
 
 <div class="card score-card" th:fragment="scoreCard(a)">
   <div class="card-head">
     <h3>점수</h3>
-    <span class="faint" style="font-size:11.5px"
+    <span class="faint fs-11_5"
           th:text="${a.scoringText != null} ? |배점 ${a.scoringText}| : '개찰 결과에서 자동으로 가져옵니다'">배점 기술 90 : 가격 10</span>
   </div>
   <div class="pad">
@@ -27,41 +28,48 @@
 </div>
 
 <div class="evl-file" th:fragment="evaluationFile(a)" th:if="${a.evaluationFile}" th:with="f=${a.evaluationFile}">
-  <span>📊</span>
   <span class="faint" th:text="|평가표 ${f.orgnlFileNm} · ${f.rgtrNm ?: '-'}${f.regDt != null ? ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm') : ''}|">평가표</span>
-  <a class="btn sm" th:href="@{/stats/bids/{sn}/evaluation-file(sn=${a.pbancSn})}">내려받기</a>
+  <a class="btn sm" th:href="@{/bid-history/bids/{sn}/evaluation-file(sn=${a.pbancSn})}">내려받기</a>
 </div>
 
-<!-- 평가 항목별 점수 표 (11/03). 업체가 열, 평가 항목(대분류)이 행. 칸은 위원 평균 점수와 그 항목 등수.
-     맨 아래 줄은 종합 점수(항목 점수 합)와 등수, 표 아래는 종합 점수 1등 업체를 수주 업체로 보여 준다 (ArticleScoreTableDTO) -->
-<th:block th:fragment="articleTable(t, emptyText)">
-  <div class="ts" th:unless="${t.empty}">
-    <table class="article-table">
-      <thead>
-        <tr>
-          <th>평가 항목 (배점)</th>
-          <th th:each="c : ${t.columns}" th:text="${c.coNm}"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr class="hv" th:each="r : ${t.rows}">
-          <td><span th:text="${r.catNm}">기술 및 기능</span> <span class="faint" th:text="|(${r.maxText})|">(30)</span></td>
-          <td class="mono" th:each="x : ${r.cells}">
-            <span th:text="${x.text}">28.2</span>
-            <span class="rank" th:if="${x.rank}" th:text="|${x.rank}등|">1등</span>
-          </td>
-        </tr>
-        <tr class="sum">
-          <td><b>종합 점수</b> <span class="faint" th:text="|(${t.maxTotalText})|">(100)</span></td>
-          <td class="mono" th:each="c : ${t.columns}">
-            <b th:text="${c.totalText}">94.6</b>
-            <span class="rank" th:if="${c.totalRank}" th:text="|${c.totalRank}등|">1등</span>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <!-- 11/03 평가표 엑셀 내려받기 자리에 수주 업체(종합 점수 1등)를 둔다. 줄 전체에 연한 초록을 칠한다 -->
+<!--/* 평가 항목별 점수 그래프 (11/05). 좌표는 ArticleScoreChartDTO 가 계산한다. viewBox 크기는 그 클래스의 WIDTH·HEIGHT 와 같다 */-->
+<th:block th:fragment="articleChart(t, emptyText)">
+  <th:block th:unless="${t.empty}" th:with="c=${t.chart}">
+    <!--/* 범례: 막대 순서대로 업체, 종합 점수(항목 점수 합)와 등수 */-->
+    <div class="co-legend">
+      <span class="co-key" th:each="k : ${c.companies}" th:classappend="${k.ours} ? 'ours'">
+        <i class="sw" th:classappend="${k.cls}"></i>
+        <b th:if="${k.ours}" th:text="${k.coNm}">우리 회사</b>
+        <span th:unless="${k.ours}" th:text="${k.coNm}">경쟁 업체</span>
+        <span class="pill accent" th:if="${k.ours}">우리 회사</span>
+        <span class="faint" th:text="|종합 ${k.totalText}점${k.totalRank != null ? ' · ' + k.totalRank + '등' : ''}|">종합 94.6점 · 1등</span>
+      </span>
+    </div>
+    <div class="pad">
+      <svg class="score-chart" viewBox="0 0 760 300" role="img" th:attr="aria-label=${c.ariaLabel}">
+        <g th:each="g : ${c.gridLines}">
+          <line class="grid" th:x1="${c.axisLeft}" th:x2="${c.axisRight}" th:y1="${g.y}" th:y2="${g.y}"></line>
+          <text class="tick" th:x="${c.tickX}" th:y="${g.y}" dy="3" text-anchor="end" th:text="${g.label}">0</text>
+        </g>
+        <g th:each="g : ${c.groups}">
+          <g class="co-bar" th:each="b : ${g.bars}" th:classappend="${b.first} ? 'first'">
+            <title th:text="${b.title}">업체 · 항목 0 / 0</title>
+            <rect class="hit" th:x="${b.hitX}" th:y="${b.hitY}" th:width="${b.hitWidth}" th:height="${b.hitHeight}"></rect>
+            <path th:unless="${#strings.isEmpty(b.path)}" th:class="${b.cls}" th:attr="d=${b.path}"></path>
+            <text class="val" th:if="${b.value}" th:x="${b.labelX}" th:y="${b.labelY}" text-anchor="middle" th:text="${b.value}">0</text>
+          </g>
+          <g>
+            <title th:text="|${g.catNm} (배점 ${g.maxText})|">항목 (배점 0)</title>
+            <text text-anchor="middle" th:y="${c.nameY}">
+              <tspan class="nm" th:each="l, st : ${g.nameLines}" th:x="${g.labelX}" th:attr="dy=${st.first} ? 0 : 14" th:text="${l}">항목</tspan>
+              <tspan class="mx" th:x="${g.labelX}" dy="14" th:text="|(${g.maxText})|">(0)</tspan>
+            </text>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </th:block>
+  <!--/* 그래프 아래 수주 업체(종합 점수 1등). 줄 전체에 연한 초록을 칠한다 */-->
   <div class="evl-win" th:if="${t.winnerNm}">
     <span class="faint">수주 업체</span>
     <b th:text="${t.winnerNm}">우리 회사</b>

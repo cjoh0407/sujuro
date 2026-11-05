@@ -34,7 +34,7 @@ public class NoticeTeamServiceImpl implements NoticeTeamService {
     /** 처리사유 컬럼은 4000자다. 앞에 붙이는 말("불참 · ")을 빼고도 넉넉하게 막는다. */
     private static final int MAX_REASON = 1000;
 
-    private static final String CHANGED_MEANWHILE = "그사이 다른 사람이 이 공고를 처리했습니다. 화면을 새로 고쳐 지금 상태를 확인하세요.";
+    private static final String CHANGED_MEANWHILE = "그사이 다른 사람이 이 공고를 처리했습니다. 화면을 새로 고쳐 지금 상태를 확인해 주세요.";
 
     private final BidNoticeMapper bidNoticeMapper;
     private final HistoryService historyService;
@@ -100,7 +100,7 @@ public class NoticeTeamServiceImpl implements NoticeTeamService {
             return "참여 형태를 바꿨습니다.";
         }
         notificationService.sendToTeamLeaders(teamSn, NotificationType.ASSIGNED, pbancSn,
-                "'" + nameOf(notice) + "' 공고가 " + team.getTeamNm() + "에 배정되었습니다. 공고 상세에서 참여 여부를 결정하세요.");
+                "'" + nameOf(notice) + "' 공고가 " + team.getTeamNm() + "에 배정되었습니다. 공고 상세에서 참여 여부를 결정해 주세요.");
         String done = (reassign ? "재배정" : "배정") + "했습니다. ";
         return team.getLeaderNm() == null
                 ? done + team.getTeamNm() + "에 팀장 계정이 없어 알림은 보내지 못했습니다."
@@ -125,7 +125,7 @@ public class NoticeTeamServiceImpl implements NoticeTeamService {
     @Transactional
     public String close(Long pbancSn, String reason, String userId) {
         NoticeDetailDTO notice = load(pbancSn);
-        String why = requireReason(reason, "불참 처리 사유를 입력하세요.");
+        String why = requireReason(reason, "불참 처리 사유를 입력해 주세요.");
         if (!notice.isClosable()) {
             throw new BusinessException("배정 전 공고만 불참으로 종결할 수 있습니다. 지금은 '" + notice.getProgressNm() + "'입니다.");
         }
@@ -150,7 +150,7 @@ public class NoticeTeamServiceImpl implements NoticeTeamService {
             throw new AccessDeniedException("이 공고에 배정된 팀의 팀장만 참여 여부를 결정할 수 있습니다.");
         }
         NoticeDetailDTO notice = load(pbancSn);
-        String why = join ? optionalReason(reason) : requireReason(reason, "불참 사유를 입력하세요.");
+        String why = join ? optionalReason(reason) : requireReason(reason, "불참 사유를 입력해 주세요.");
         if (!notice.isAwaitingDecision()) {
             throw new BusinessException("배정 완료 상태인 공고만 결정할 수 있습니다. 지금은 '" + notice.getProgressNm() + "'입니다.");
         }
@@ -173,7 +173,7 @@ public class NoticeTeamServiceImpl implements NoticeTeamService {
                     why == null ? "참여" : "참여 · " + why);
             notificationService.sendToRole(Role.SALES, NotificationType.PARTICIPATION_DECIDED, pbancSn,
                     who + "참여를 결정했습니다.");
-            return "참여를 결정했습니다. 영업부에 알렸습니다. 제안 업무 화면에서 제안팀을 구성하세요.";
+            return "참여를 결정했습니다. 영업부에 알렸습니다. 제안 업무 화면에서 제안팀을 구성해 주세요.";
         }
 
         if (bidNoticeMapper.updateReturned(pbancSn, teamSn, BidCode.STTS_ASSIGNED, BidCode.STTS_NEW,
@@ -182,7 +182,7 @@ public class NoticeTeamServiceImpl implements NoticeTeamService {
         }
         historyService.record(pbancSn, BidCode.PRCS_DECIDE, user.getEmpNo(), teamSn, "불참 · " + why + " (영업부로 돌아감)");
         notificationService.sendToRole(Role.SALES, NotificationType.PARTICIPATION_DECIDED, pbancSn,
-                who + "불참을 결정했습니다. 다른 팀에 재배정하거나 불참으로 종결하세요.");
+                who + "불참을 결정했습니다. 다른 팀에 재배정하거나 불참으로 종결해 주세요.");
         return "불참을 결정했습니다. 공고가 영업부로 돌아갑니다.";
     }
 
@@ -193,7 +193,7 @@ public class NoticeTeamServiceImpl implements NoticeTeamService {
             throw new AccessDeniedException("이 공고에 배정된 팀의 팀장만 중도 철회할 수 있습니다.");
         }
         NoticeDetailDTO notice = load(pbancSn);
-        String why = requireReason(reason, "철회 사유를 입력하세요.");
+        String why = requireReason(reason, "철회 사유를 입력해 주세요.");
         if (!notice.isWithdrawable()) {
             throw new BusinessException("제안 작성 상태인 공고만 중도 철회할 수 있습니다. 지금은 '" + notice.getProgressNm() + "'입니다.");
         }
@@ -210,7 +210,7 @@ public class NoticeTeamServiceImpl implements NoticeTeamService {
 
         historyService.record(pbancSn, BidCode.PRCS_WITHDRAW, user.getEmpNo(), teamSn, why);   // 11/05 " (영업부로 이동)" 꼬리말을 뺐다. 이력 이름(중도 철회)으로 드러난다
         notificationService.sendToRole(Role.SALES, NotificationType.WITHDRAWN, pbancSn,
-                "'" + nameOf(notice) + "' " + notice.getSprvsnTeamNm() + " 팀장이 중도 철회를 신청했습니다. 다른 팀에 재배정하거나 불참으로 종결하세요.");
+                "'" + nameOf(notice) + "' " + notice.getSprvsnTeamNm() + " 팀장이 중도 철회를 신청했습니다. 다른 팀에 재배정하거나 불참으로 종결해 주세요.");
         return "중도 철회했습니다. 공고가 영업부로 넘어갔고, 제안팀 " + members + "명의 배정이 풀렸습니다.";
     }
 

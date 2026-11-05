@@ -15,7 +15,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 사업별 결과 분석 (FR-080, 081, 087). 통계의 과거 사업 이력에서 사업명을 누르면 온다.
+ * 사업별 결과 분석 (FR-080, 081, 087). 사업 이력 관리의 왼쪽 목록에서 사업을 고르면 온다.
  * 결과가 등록된 사업만 있다. 순위·점수는 수집이 나라장터 개찰 결과에서 우리 회사 사업자번호로 가져오고,
  * 평가표(항목·배점·위원별 점수)와 장단점 분석은 경영지원실이 입력한다.
  */
@@ -63,11 +63,8 @@ public class StatsArchiveDTO {
     /** 평가 항목(대분류)별 득점률. 평가표가 없으면 빈 목록 */
     private List<StatsArticleDTO> articles = new ArrayList<>();
 
-    /** 평가 항목별 점수 표 (11/03). 평가표 엑셀을 올린 업체가 열, 항목별 등수·종합 점수 1등(수주 업체) */
+    /** 평가 항목별 점수 (11/03, 화면에는 그래프로 그린다). 평가표 엑셀을 올린 업체가 열, 항목별 등수·종합 점수 1등(수주 업체) */
     private ArticleScoreTableDTO articleTable = ArticleScoreTableDTO.of(new ArrayList<>());
-
-    /** 최종 제안서. 없으면 null */
-    private StatsFileDTO finalFile;
 
     /** 경영지원실이 마지막으로 올린 평가표 엑셀. 없으면 null */
     private EvaluationFileDTO evaluationFile;
@@ -79,7 +76,7 @@ public class StatsArchiveDTO {
     private EvaluationForm evaluationForm;
 
     /**
-     * 통계 왼쪽 목록에서 이 사업이 들어가는 연도. 입찰 마감일의 연도이고, 마감일이 아직 없는 진행 중 사업은 올해다
+     * 사업 이력 관리 왼쪽 목록에서 이 사업이 들어가는 연도. 입찰 마감일의 연도이고, 마감일이 아직 없는 진행 중 사업은 올해다
      * (StatsMapper.inProgress 와 같은 기준). 그 밖에 마감일이 없으면 null
      */
     public String getListYear() {

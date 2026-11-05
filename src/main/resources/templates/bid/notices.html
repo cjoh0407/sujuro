@@ -21,36 +21,10 @@
 
 <th:block layout:fragment="content">
 
-  <div class="banner ok" th:if="${registMessage}" th:text="${registMessage}">등록했습니다</div>
-  <div class="banner ok" th:if="${collectMessage}" th:text="${collectMessage}">지금 수집을 마쳤습니다</div>
-  <div class="banner warn" th:if="${collectError}" th:text="${collectError}">방금 지금 수집을 했습니다</div>
-
-  <!-- 공고 등록 블록과 탭 묶음. 폭은 탭 줄이 정해서 블록 오른쪽 끝이 마지막 탭 끝에 맞는다 (건수가 늘어도 같이 늘어난다) -->
-  <div class="regist-tabs">
-    <!-- 공고 등록 (영업부). 번호만 넣으면 나라장터 API로 내용을 가져온다. 키워드 검색은 없다. -->
-    <div class="card regist-card" sec:authorize="hasRole('SALES')">
-      <div class="card-head"><h3>공고 등록</h3></div>
-      <form class="row" method="post" th:action="@{/notices/register}">
-        <span class="lbl">공고번호</span>
-        <input type="text" name="pbancNo" placeholder="R26DD… · R26BD… · R26BK…" class="u-flex-1-min-width-180px" required>
-        <button class="btn primary sm" type="submit">등록</button>
-      </form>
-    </div>
-
-    <!-- 탭: 공고단계별 (11/03 진행상태 탭에서 바꿨다). 건수가 0인 단계도 보여 준다. 숫자는 검색어와 무관한 전체 건수다. -->
-    <div class="tabs">
-      <a class="tab" th:classappend="${search.stepCd == null} ? 'on' : ''"
-         th:href="@{/notices(searchBy=${search.searchBy}, keyword=${search.keyword}, sort=${search.sort})}"
-         th:text="|전체 ${totalAll}|">전체 0</a>
-      <a class="tab" th:each="tab : ${tabs}"
-         th:classappend="${tab.stepCd == search.stepCd} ? 'on' : ''"
-         th:href="@{/notices(stepCd=${tab.stepCd}, searchBy=${search.searchBy}, keyword=${search.keyword}, sort=${search.sort})}"
-         th:text="|${tab.tabNm} ${tab.cnt}|">발주계획 0</a>
-    </div>
-  </div>
-
-  <!-- 검색·정렬과 [지금 수집]. page 를 넘기지 않으므로 검색하면 1페이지부터 다시 본다. -->
+  <!-- 11/05 H2 배치: 위 한 줄(왼쪽 검색·정렬, 오른쪽 공고 등록·[지금 수집])과 목록 카드 머리의 밑줄 탭.
+       등록·수집 결과는 위쪽 안내 블록 대신 오른쪽 아래 작은 알림으로 보여 준다 (scripts) -->
   <div class="search-row">
+    <!-- 검색·정렬. page 를 넘기지 않으므로 검색하면 1페이지부터 다시 본다. -->
     <form class="row" method="get" th:action="@{/notices}">
       <input type="hidden" name="stepCd" th:value="${search.stepCd}">
       <select name="searchBy" aria-label="검색 대상">
@@ -66,17 +40,33 @@
         <option value="no" th:selected="${search.sort == 'no'}">번호 순</option>
       </select>
     </form>
-    <!-- [지금 수집] (FR-025). 오후 5시 자동 수집과 같은 일을 지금 한다. 영업부만 누른다. 검색 줄 맨 오른쪽에 둔다 (11/04).
-         나라장터를 여러 번 불러 수십 초 걸릴 수 있어, 누르면 버튼을 막고 '수집 중' 으로 바꾼다. -->
-    <form method="post" th:action="@{/notices/collect}" sec:authorize="hasRole('SALES')" data-collect-form>
-      <!-- autocomplete="off": Firefox 가 새로고침 뒤에도 막아 둔(disabled) 상태를 기억하지 않게 한다 -->
-      <button class="btn sm" type="submit" autocomplete="off">지금 수집</button>
-    </form>
+    <!-- 영업부만: 공고 등록과 [지금 수집] -->
+    <div class="nl-acts" sec:authorize="hasRole('SALES')">
+      <!-- 공고 등록. 번호만 넣으면 나라장터 API로 내용을 가져온다. 키워드 검색은 없다. -->
+      <form class="row" method="post" th:action="@{/notices/register}">
+        <input type="text" name="pbancNo" placeholder="공고번호 13자리를 입력해 주세요" title="예) R26BK01234567 · R26BD01234567 · R26DD01234567" aria-label="등록할 공고번호" class="nl-regist" required>
+        <button class="btn primary sm" type="submit">등록</button>
+      </form>
+      <!-- [지금 수집] (FR-025). 오후 5시 자동 수집과 같은 일을 지금 한다.
+           나라장터를 여러 번 불러 수십 초 걸릴 수 있어, 누르면 버튼을 막고 '수집 중' 으로 바꾼다. -->
+      <form method="post" th:action="@{/notices/collect}" data-collect-form>
+        <!-- autocomplete="off": Firefox 가 새로고침 뒤에도 막아 둔(disabled) 상태를 기억하지 않게 한다 -->
+        <button class="btn sm" type="submit" autocomplete="off">지금 수집</button>
+      </form>
+    </div>
   </div>
 
   <div class="card">
-    <div class="card-head">
-      <h3>공고 목록</h3>
+    <div class="card-head nl-head">
+      <!-- 탭: 공고단계별 (11/03 진행상태 탭에서 바꿨다). 건수가 0인 단계도 보여 준다. 숫자는 검색어와 무관한 전체 건수다.
+           11/05 목록 카드 머리의 밑줄 탭으로 옮겼다 -->
+      <nav class="ntabs" aria-label="공고 단계">
+        <a class="ntab" th:classappend="${search.stepCd == null} ? 'on' : ''"
+           th:href="@{/notices(searchBy=${search.searchBy}, keyword=${search.keyword}, sort=${search.sort})}">전체<span class="n" th:text="${totalAll}">0</span></a>
+        <a class="ntab" th:each="tab : ${tabs}"
+           th:classappend="${tab.stepCd == search.stepCd} ? 'on' : ''"
+           th:href="@{/notices(stepCd=${tab.stepCd}, searchBy=${search.searchBy}, keyword=${search.keyword}, sort=${search.sort})}"><th:block th:text="${tab.tabNm}">발주계획</th:block><span class="n" th:text="${tab.cnt}">0</span></a>
+      </nav>
       <!-- 마지막 수집 (11/04 페이지 위에서 옮겼다). 건수는 아래 페이지 번호 줄 오른쪽에 있다 -->
       <div class="faint list-info">
         <span th:if="${lastRun}"
@@ -186,6 +176,16 @@
 
 <th:block layout:fragment="scripts">
   <script th:src="@{/js/notices.js}"></script>
+  <!-- 등록·수집 결과는 오른쪽 아래 작은 알림으로 (common.js showToast). 실패(collectError)는 빨간 알림 -->
+  <script th:if="${registMessage != null or collectMessage != null or collectError != null}" th:inline="javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+      var ok = /*[[${registMessage ?: collectMessage}]]*/ null;
+      var err = /*[[${collectError}]]*/ null;
+      if (!window.showToast) return;
+      if (err) window.showToast(err, 'err');
+      else if (ok) window.showToast(ok);
+    });
+  </script>
 </th:block>
 
 </body>

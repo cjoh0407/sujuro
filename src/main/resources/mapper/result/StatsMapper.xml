@@ -146,7 +146,7 @@
   </select>
 
   <select id="findArchive" resultType="com.ojj.sujuro.result.dto.StatsArchiveDTO">
-    SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, P.ORDER_INST_NM AS orderInstNm,
+    SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, NVL(P.DMND_INST_NM, P.ORDER_INST_NM) AS instNm,
            P.SPRVSN_TEAM_SN AS teamSn, T.TEAM_NM AS teamNm, P.PTCP_SHP_CD AS ptcpShpCd, PS.CD_NM AS ptcpShpNm,
            P.BID_DDLN_DT AS bidDdlnDt,
            P.TECH_SCOR_SCR AS techScorScr, P.PRC_SCOR_SCR AS prcScorScr,
@@ -164,7 +164,7 @@
 
   <!-- 아직 결과가 없는 사업의 공고 기본 정보 (11/04). 결과가 있는 사업은 findArchive 가 먼저 찾는다 -->
   <select id="findPendingBid" resultType="com.ojj.sujuro.result.dto.StatsArchiveDTO">
-    SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, P.ORDER_INST_NM AS orderInstNm,
+    SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, NVL(P.DMND_INST_NM, P.ORDER_INST_NM) AS instNm,
            P.SPRVSN_TEAM_SN AS teamSn, T.TEAM_NM AS teamNm, P.PTCP_SHP_CD AS ptcpShpCd, PS.CD_NM AS ptcpShpNm,
            P.BID_DDLN_DT AS bidDdlnDt,
            P.PBANC_STTS_CD AS pbancSttsCd, S.CD_NM AS pbancSttsNm

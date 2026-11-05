@@ -18,6 +18,7 @@
 <head>
   <title>공고 상세</title>
   <th:block layout:fragment="head">
+    <link rel="stylesheet" th:href="@{/css/proposal.css}"><!-- 내려받기 아이콘(.ico, .ic-download)을 제안 화면과 같게 쓴다 -->
     <link rel="stylesheet" th:href="@{/css/bid.css}">
   </th:block>
 </head>
@@ -68,13 +69,10 @@
             <div class="k">진행 상태</div>
             <div class="v" th:text="${notice.progressNm}">배정 전</div>
           </div>
+          <!--/* 공고 목록과 같은 값이다. 수요기관이 없으면 발주기관을 보여 준다 (11/05) */-->
           <div>
-            <div class="k">발주기관</div>
-            <div class="v" th:text="${notice.orderInstNm ?: '-'}">발주기관</div>
-          </div>
-          <div th:if="${notice.dmndInstDifferent}">
             <div class="k">수요기관</div>
-            <div class="v" th:text="${notice.dmndInstNm}">수요기관</div>
+            <div class="v" th:text="${notice.instNm ?: '-'}">수요기관</div>
           </div>
           <div>
             <div class="k">참여 형태</div>
@@ -206,7 +204,7 @@
               </div>
             </div>
             <span class="t">
-              <a class="btn sm" th:href="${f.orgnlUrl}" target="_blank" rel="noopener noreferrer">내려받기</a>
+              <a class="ico" title="내려받기" aria-label="내려받기" th:href="${f.orgnlUrl}" target="_blank" rel="noopener noreferrer"><span class="ic ic-download"></span></a>
             </span>
           </div>
         </th:block>
@@ -222,7 +220,7 @@
               </div>
             </div>
             <span class="t">
-              <a class="btn sm" th:href="${f.orgnlUrl}" target="_blank" rel="noopener noreferrer">내려받기</a>
+              <a class="ico" title="내려받기" aria-label="내려받기" th:href="${f.orgnlUrl}" target="_blank" rel="noopener noreferrer"><span class="ic ic-download"></span></a>
             </span>
           </div>
         </th:block>

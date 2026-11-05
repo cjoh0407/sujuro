@@ -14,14 +14,14 @@
 
 <th:block th:fragment="body">
 
-  <!-- 사업 타이틀(사업명 · 발주기관 · 담당 팀 · 결과 · 평가·결과 입력 버튼)은 화면 맨 위 머리에 있다 (stats/index) -->
+  <!-- 사업 타이틀(사업명 · 평가·결과 입력 버튼)은 화면 맨 위 머리에 있다 (stats/index) -->
 
   <!--/* 컨소시엄 참여·하도급은 순위·점수·평가표를 받지 않아(11/04) 옆 칸 없이 공고 기본 정보만 넓게 보인다 */-->
   <div th:class="${archive.pending or !archive.manualResult} ? 'two even'">
     <div class="card">
       <div class="card-head"><h3>공고 기본 정보</h3></div>
       <div class="info-grid">
-        <div><div class="k">발주기관</div><div class="v" th:text="${archive.orderInstNm ?: '-'}">발주기관</div></div>
+        <div><div class="k">수요기관</div><div class="v" th:text="${archive.instNm ?: '-'}">수요기관</div></div>
         <div><div class="k">참여 형태</div><div class="v" th:text="${archive.ptcpShpNm ?: '미지정'}">주관</div></div>
         <div><div class="k">수주 금액</div><div class="v" th:text="${archive.scsbdAmtText ?: '-'}">1.2억</div></div>
         <div><div class="k">담당 팀</div><div class="v" th:text="${archive.teamNm}">개발1팀</div></div>

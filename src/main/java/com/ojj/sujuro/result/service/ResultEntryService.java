@@ -3,7 +3,6 @@ package com.ojj.sujuro.result.service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.ojj.sujuro.auth.dto.LoginUser;
-import com.ojj.sujuro.result.dto.EvaluationFileDTO;
 import com.ojj.sujuro.result.dto.EvaluationForm;
 import com.ojj.sujuro.result.dto.ManualResultForm;
 import com.ojj.sujuro.result.dto.ResultsViewDTO;
@@ -25,10 +24,10 @@ public interface ResultEntryService {
      * 화면 한 장. bid 가 목록에 없으면 첫 사업건(제출 완료가 맨 앞)을 고른다.
      * 개찰 업체 목록은 제출 완료부터 담는다(참여한 업체 전체).
      * 결과 등록 사업이면 사업별 결과 분석과 같은 값, 고른 업체(coSn)의 평가표, 업체별 비교를 같이 담는다.
-     * 팀장에게는 고른 업체의 평가표 엑셀을 읽어 입력 칸을 채워 준다(excelForm). 그 업체가 저장한 점수가 없을 때,
-     * 또는 fromFile 이면(엑셀을 새로 올렸거나 [엑셀에서 다시 불러오기]) 읽는다. 저장은 팀장이 확인한 뒤 한다.
+     * 팀장에게는 고른 업체의 평가표 엑셀을 읽어 입력 칸을 채워 준다(excelForm). 저장한 점수가 없거나, 엑셀을 새로 올리고 아직 저장하지 않았을 때 읽는다.
+     * 누가 올렸든 같다(경영지원실이 다시 올려도 팀장 화면에 채워진다). 저장은 팀장이 확인하고 [평가표 저장]으로 한다.
      */
-    ResultsViewDTO build(LoginUser user, Long bid, Long coSn, boolean fromFile);
+    ResultsViewDTO build(LoginUser user, Long bid, Long coSn);
 
     /**
      * [나라장터에서 결과 가져오기]. 제출 완료 사업 하나를 지금 확인한다(평일 오후 5시 수집을 기다리지 않고).
@@ -56,9 +55,6 @@ public interface ResultEntryService {
      * 엑셀(xls·xlsx)만 받는다. 개찰 목록에 우리 회사 행이 있어야 한다(결과가 자동 등록된 사업).
      */
     void uploadEvaluationFile(LoginUser user, Long pbancSn, Long coSn, MultipartFile file);
-
-    /** 업체(coSn)의 마지막 평가표 파일 (내려받기). 없으면 null. 경영지원실과 담당 팀 팀장만 */
-    EvaluationFileDTO findCompanyEvaluationFile(LoginUser user, Long pbancSn, Long coSn);
 
     /**
      * 평가표 저장: 엑셀에서 읽어 채운(또는 직접 적은) 평가 항목·배점·평가위원별 점수를 업체(coSn)별로 저장한다.

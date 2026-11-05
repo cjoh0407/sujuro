@@ -26,6 +26,10 @@
 
 /* 본문 버튼 크기는 대시보드의 [공고 관리](a.btn.sm, 68×30px)에 맞춘다 (11/05). 긴 문구는 잘리지 않게 폭은 최소값만 둔다.
    button 태그는 줄 높이가 달라 28px 이 되므로 물려받게 한다. 상단바 버튼은 모든 화면에서 같아야 해서 .content 로 한정한다 */
+/* 내려받기 아이콘(proposal.css 의 .ico)은 고정 남색이라 어두운 화면에서 안 보인다 (대비 1.92:1).
+   앱 색 토큰으로 칠한다. 밝은 화면은 같은 색이다 (11/05) */
+.ico:not(.danger){color:var(--accent-s)}
+
 .content .btn.sm{box-sizing:border-box;min-width:68px;justify-content:center}
 .content button.btn.sm{line-height:inherit}
 

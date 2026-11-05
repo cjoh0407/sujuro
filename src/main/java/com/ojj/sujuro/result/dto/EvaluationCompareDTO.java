@@ -13,7 +13,7 @@ import lombok.Getter;
 /**
  * 업체별 평가표 비교 (평가·결과 입력). 항목마다 업체별 위원 평균 점수와 우리 회사와의 차이를 보여 준다.
  * 평가표 점수를 저장한 업체만 열이 된다. 우리 회사가 첫 열, 나머지는 개찰 순위 순이다.
- * 차이는 "우리 − 그 업체"다 (ResultsViewDTO.Compare 와 같은 방향). 음수면 그 항목에서 우리가 뒤졌다.
+ * 차이는 "그 업체 − 우리"다 (11/05). 점수 옆에 붙으므로 그 업체가 우리보다 얼마나 높고 낮은지로 읽힌다. 양수면 그 항목에서 우리가 뒤졌다.
  */
 @Getter
 public class EvaluationCompareDTO {
@@ -28,7 +28,7 @@ public class EvaluationCompareDTO {
         private final Integer rank;
         private final boolean ours;
         private String totalText;
-        /** 합계의 우리 − 이 업체. 우리 열이나 우리 점수가 없으면 null */
+        /** 합계의 이 업체 − 우리. 우리 열이나 우리 점수가 없으면 null */
         private String totalDiff;
 
         Column(ResultCompanyDTO c) {
@@ -56,14 +56,14 @@ public class EvaluationCompareDTO {
     public static class Cell {
         /** 위원 평균. 그 업체가 이 항목 점수가 없으면 "-" */
         private final String text;
-        /** 우리 − 이 업체. 우리 열이거나 한쪽 점수가 없으면 null */
+        /** 이 업체 − 우리. 우리 열이거나 한쪽 점수가 없으면 null */
         private final String diff;
         /** 이 항목에서 우리가 뒤졌는지 */
         private final boolean behind;
 
         Cell(Double score, Double ours, boolean isOurs) {
             this.text = StatsFormat.score(score);
-            this.diff = isOurs ? null : ResultsViewDTO.Compare.diff(ours, score);
+            this.diff = isOurs ? null : ResultsViewDTO.Compare.diff(score, ours);
             this.behind = !isOurs && score != null && ours != null && ours < score;
         }
     }
@@ -108,7 +108,7 @@ public class EvaluationCompareDTO {
             Column col = new Column(c);
             Double total = sum(byCompany.get(c.getCoEvlRsltSn()));
             col.totalText = StatsFormat.score(total);
-            col.totalDiff = c.isOurs() ? null : ResultsViewDTO.Compare.diff(ourTotal, total);
+            col.totalDiff = c.isOurs() ? null : ResultsViewDTO.Compare.diff(total, ourTotal);
             v.columns.add(col);
         }
         return v;

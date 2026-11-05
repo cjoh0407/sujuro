@@ -39,9 +39,6 @@ public class NoticeDetailDTO extends BidNoticeDTO {
     private String trckSttsCd;
     private String trckSttsNm;
 
-    /** 실수요기관명. 발주기관과 다를 때만 의미가 있다. */
-    private String dmndInstNm;
-
     /** 참여형태 (PTFRM). 팀 배정 때 영업부가 정한다. */
     private String ptcpShpCd;
     private String ptcpShpNm;
@@ -242,11 +239,6 @@ public class NoticeDetailDTO extends BidNoticeDTO {
         }
         String detail = evlMthdNm.substring(evlMthdNm.indexOf('-') + 1).trim();
         return detail.isEmpty() || detail.equals(evlMthdNm.substring(0, evlMthdNm.indexOf('-'))) ? null : detail;
-    }
-
-    /** 실수요기관이 발주기관과 다른지. 같으면 화면에서 한 번만 보여 준다. */
-    public boolean isDmndInstDifferent() {
-        return dmndInstNm != null && !dmndInstNm.equals(getOrderInstNm());
     }
 
     /**

@@ -36,7 +36,7 @@
     </div>
     <div class="pad u-padding-bottom-12px">
       <form th:action="@{/users}" method="get" class="usr-filter">
-        <input type="text" name="keyword" th:value="${keyword}" placeholder="이름 또는 사번" class="w-200px">
+        <span class="sbox w-200px"><input type="text" name="keyword" th:value="${keyword}" placeholder="이름 또는 사번" aria-label="이름 또는 사번"><button class="sb-btn" type="submit" title="검색" aria-label="검색"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button></span>
         <select name="status">
           <option value="">계정 상태 전체</option>
           <option th:each="s : ${statuses}" th:value="${s.code}" th:text="${s.name}"
@@ -55,7 +55,6 @@
                     th:selected="${team != null and team.toString() == t.code}">공공사업1Div</option>
           </optgroup>
         </select>
-        <button class="btn sm" type="submit">검색</button>
         <a class="btn sm" th:href="@{/users}" th:if="${!#strings.isEmpty(keyword) or !#strings.isEmpty(status) or team != null}">초기화</a>
       </form>
     </div>

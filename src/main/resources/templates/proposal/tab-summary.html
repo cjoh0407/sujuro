@@ -33,20 +33,20 @@
               <tr th:if="${t.group}">
                 <td th:colspan="${canEdit ? cols - 1 : cols}" class="toc-group" th:style="'padding-left:' + ${t.indent} + 'px'">
                   <th:block th:replace="~{proposal/fragments/toc :: labelCell(${t}, 'sum')}"></th:block>
-                  <th:block th:replace="~{proposal/fragments/toc :: tocTools(${t})}"></th:block>
                 </td>
                 <td th:if="${canEdit}" class="toc-group-bg">
-                  <th:block th:replace="~{proposal/fragments/toc :: delBtn(${t}, 'sum')}"></th:block>
+                  <th:block th:replace="~{proposal/fragments/toc :: rowMenu(${t}, 'sum')}"></th:block>
                 </td>
               </tr>
               <tr class="hv" th:unless="${t.group}">
                 <td th:style="'padding-left:' + ${t.indent} + 'px'">
-                  <th:block th:replace="~{proposal/fragments/toc :: labelCell(${t}, 'sum')}"></th:block>
-                  <th:block th:replace="~{proposal/fragments/toc :: tocTools(${t})}"></th:block>
+                  <div class="lbl-row">
+                    <th:block th:replace="~{proposal/fragments/toc :: labelCell(${t}, 'sum')}"></th:block>
+                  </div>
                 </td>
                 <td><th:block th:replace="~{proposal/fragments/toc :: owner(${t}, 'sum')}"></th:block></td>
                 <td><span class="pill" th:classappend="${t.fileStatusPill}" th:text="${t.fileStatus}">미착수</span></td>
-                <td th:if="${canEdit}"><th:block th:replace="~{proposal/fragments/toc :: delBtn(${t}, 'sum')}"></th:block></td>
+                <td th:if="${canEdit}"><th:block th:replace="~{proposal/fragments/toc :: rowMenu(${t}, 'sum')}"></th:block></td>
               </tr>
               <th:block th:replace="~{proposal/fragments/toc :: addRow(${t}, 'sum', ${cols})}"></th:block>
             </th:block>

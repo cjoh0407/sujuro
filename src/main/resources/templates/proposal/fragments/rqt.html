@@ -4,10 +4,10 @@
   요구사항 화면 조각 (제안서 탭). q는 요구사항(RqtDto), t는 최하위 목차(TocDto)
   필요한 모델: bid, canReq, unmappedList, mapTargets, editRqt
     rqId(q, can)  : 요구사항 ID 칩 (can이면 닫기 아이콘으로 연결 해제)
-    rqInfo(q)     : 요구사항 명칭 + 수정 · 삭제 아이콘 (FR-051 v4.0: ID와 명칭만, 정의·세부내용은 수정 화면에서)
+    rqInfo(q, acts): 요구사항 명칭 (acts 가 true 면 이름이 링크: 누르면 왼쪽 칸 rqForm 에서 수정 · 삭제, 미매핑 목록에서만) (FR-051 v4.0: ID와 명칭만, 정의·세부내용은 수정 화면에서)
     rqAdd(t)      : 최하위 목차 줄의 "+ 요구사항 추가" (미매핑 요구사항 중 선택)
     rqPickToc(q)  : 미매핑 화면의 "연결할 세부 목차" (담당자가 있는 최하위 목차만, 연결 뒤 미매핑 화면으로 돌아온다)
-    rqExtract     : 제안요청서 PDF에서 요구사항 ID·명칭 추출 (FR-050-1, AI 사용 안 함) → ?view=extract 미리보기
+    rqExtract     : (왼쪽 칸) 제안요청서 PDF에서 요구사항 ID·명칭 추출 (FR-050-1, AI 사용 안 함) → ?view=extract 미리보기
     rqExtractView : 추출 미리보기. 개수 경고를 보고 고친 뒤 체크한 줄만 등록 (모델 extract)
     rqForm        : 요구사항 수기 등록·수정 (FR-050). v4.0부터 ID와 명칭만 받는다
 */-->
@@ -22,18 +22,12 @@
   </form>
 </span>
 
-<div th:fragment="rqInfo(q)" class="rq-line">
-  <span th:text="${q.rqtMttrNm}">요구사항명</span>
-  <span th:if="${canReq}" class="rq-acts u-display-inline-flex-gap-3px">
-    <a class="ico" title="수정" aria-label="수정" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped', edit=${q.rqtMttrSn})} + '#rqform'"><span class="ic ic-edit"></span></a>
-    <form th:action="@{/proposal/rqt/delete}" method="post" class="d-inline"
-          th:data-confirm="|요구사항 ${q.rqtMttrNo}을(를) 삭제할까요?|">
-      <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-      <input type="hidden" name="rqtMttrSn" th:value="${q.rqtMttrSn}">
-      <input type="hidden" name="view" value="unmapped" th:if="${unmapView}">
-      <button class="ico danger" type="submit" title="삭제" aria-label="삭제"><span class="ic ic-trash"></span></button>
-    </form>
-  </span>
+<div th:fragment="rqInfo(q, acts)" class="rq-line">
+  <!-- 미매핑 목록: 이름을 누르면 왼쪽 칸에서 고치고 지운다 (rqForm) -->
+  <a data-nav th:if="${acts and canReq}" class="rq-name" th:classappend="${editRqt != null and editRqt.rqtMttrSn == q.rqtMttrSn} ? 'on'"
+     title="눌러서 왼쪽에서 수정·삭제"
+     th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped', edit=${q.rqtMttrSn})}" th:text="${q.rqtMttrNm}">요구사항명</a>
+  <span th:unless="${acts and canReq}" th:text="${q.rqtMttrNm}">요구사항명</span>
 </div>
 
 <form th:fragment="rqAdd(t)" th:action="@{/proposal/rqt/map}" method="post">
@@ -61,18 +55,12 @@
 
 <!-- 요구사항 자동 추출 (FR-050-1, AI 사용 안 함): 제안요청서 PDF의 "요구사항 총괄표·목록표"에서 ID와 명칭만 뽑는다.
      파일은 저장하지 않고, 뽑은 결과를 미리보기로 보여 준 뒤 사람이 확인하고 등록한다 -->
-<div class="card" th:fragment="rqExtract">
+<div class="card" id="rqExtractCard" th:fragment="rqExtract">
   <div class="card-head">
     <h3>요구사항 자동 추출</h3>
-    <span class="pill neutral">AI 사용 안 함</span>
   </div>
   <div class="pad stack-8 fs-12_5">
-    <div class="steps">
-      <div class="step"><b>① PDF 올리기</b><span>요구사항 총괄표·목록표 쪽만 담은 PDF</span></div>
-      <div class="step"><b>② ID·명칭 추출</b><span>SFR 01 → SFR-001</span></div>
-      <div class="step"><b>③ 개수 검사</b><span>총괄표 개수·합계와 비교</span></div>
-      <div class="step"><b>④ 확인 후 등록</b><span>고친 뒤 등록 → 미매핑에 표시</span></div>
-    </div>
+    <span class="faint fs-11_5">요구사항 총괄표·목록표 쪽만 담은 PDF 1개 · 최대 50MB</span>
     <form th:action="@{/proposal/rqt/extract}" method="post" enctype="multipart/form-data" class="drop-row">
       <input type="hidden" name="bid" th:value="${bid.pbancSn}">
       <label class="drop">
@@ -80,7 +68,6 @@
         <span class="ic ic-upload"></span>
         <span class="drop-body">
           <span class="drop-text"><span><b>PDF 파일 선택</b> 또는 여기로 끌어 놓기</span></span>
-          <span class="drop-hint">요구사항 총괄표·목록표 쪽만 담은 PDF 1개 · 최대 50MB</span>
         </span>
       </label>
       <button class="btn sm primary" type="submit">추출해 보기</button>
@@ -148,27 +135,28 @@
 
 <div class="card" id="rqform" th:fragment="rqForm">
   <div class="card-head">
-    <h3 th:text="${editRqt != null} ? '요구사항 수정 · ' + ${editRqt.rqtMttrNo} : '요구사항 수기 등록 (등록하면 위 미매핑 목록에 나타납니다)'">요구사항 수기 등록</h3>
+    <h3 th:text="${editRqt != null} ? '요구사항 수정 · ' + ${editRqt.rqtMttrNo} : '요구사항 수기 등록'">요구사항 수기 등록</h3>
   </div>
-  <form th:action="${editRqt != null} ? @{/proposal/rqt/edit} : @{/proposal/rqt/add}" method="post"
-        class="pad stack-12">
+  <form th:action="${editRqt != null} ? @{/proposal/rqt/edit} : @{/proposal/rqt/add}" method="post" class="pad stack-12">
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
     <input type="hidden" name="rqtMttrSn" th:if="${editRqt != null}" th:value="${editRqt.rqtMttrSn}">
-    <div class="grid2">
-      <div class="fld">
-        <label for="rqtMttrNo">요구사항 ID (사업 안에서 중복 불가)</label>
-        <input id="rqtMttrNo" name="rqtMttrNo" type="text" maxlength="50" required
-               th:value="${editRqt?.rqtMttrNo}" th:disabled="${editRqt != null}">
-      </div>
-      <div class="fld">
-        <label for="rqtMttrNm">명칭</label>
-        <input id="rqtMttrNm" name="rqtMttrNm" type="text" maxlength="300" required th:value="${editRqt?.rqtMttrNm}"
-               th:autofocus="${editRqt != null}">
-      </div>
+    <input type="hidden" name="view" value="unmapped" th:if="${editRqt != null}">
+    <div class="fld">
+      <label for="rqtMttrNo">요구사항 ID</label>
+      <input id="rqtMttrNo" name="rqtMttrNo" type="text" maxlength="50" required
+             th:value="${editRqt?.rqtMttrNo}" th:disabled="${editRqt != null}">
     </div>
-    <div class="row">
+    <div class="fld">
+      <label for="rqtMttrNm">명칭</label>
+      <input id="rqtMttrNm" name="rqtMttrNm" type="text" maxlength="300" required th:value="${editRqt?.rqtMttrNm}"
+             th:autofocus="${editRqt != null}">
+    </div>
+    <div class="row jc-end">
       <button class="btn primary" type="submit" th:text="${editRqt != null} ? '수정 저장' : '등록'">등록</button>
-      <a class="btn" th:if="${editRqt != null}" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped')}">취소</a>
+      <button class="btn danger" type="submit" th:if="${editRqt != null}" formnovalidate
+              th:formaction="@{/proposal/rqt/delete}"
+              th:data-confirm="|요구사항 ${editRqt.rqtMttrNo}을(를) 삭제할까요?|">삭제</button>
+      <a data-nav class="btn" th:if="${editRqt != null}" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped')}">취소</a>
     </div>
   </form>
 </div>

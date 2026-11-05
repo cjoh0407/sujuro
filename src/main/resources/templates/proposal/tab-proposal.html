@@ -30,30 +30,8 @@
     </div>
   </div>
 
-  <!-- 분량 합계 (FR-055, 초안 기능). 제한은 주관팀 팀장이 정한다. -->
-  <div class="card pad">
-    <div class="row jc-between">
-      <b class="fs-12_5">
-        제안서 분량
-        <th:block th:if="${bid.lmtPageCnt == null}">합계 <span th:text="${totalPages}">0</span>쪽</th:block>
-      </b>
-      <form th:if="${canAssign}" th:action="@{/proposal/limit}" method="post" class="row">
-        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-        <span class="lbl">제한</span>
-        <input type="number" name="limit" min="1" max="9999" th:value="${bid.lmtPageCnt}" class="w-80px"
-               data-change-submit>
-      </form>
-    </div>
-    <div class="gauge mt-8" data-gauge="pages" th:if="${bid.lmtPageCnt != null}"
-         th:classappend="${overPages > 0} ? 'red' : (${totalPages * 100 / bid.lmtPageCnt < 20} ? 'low')">
-      <i th:style="'width:' + ${T(java.lang.Math).min(100, totalPages * 100 / bid.lmtPageCnt)} + '%'"><em th:text="|${totalPages} / ${bid.lmtPageCnt}쪽|">0 / 200쪽</em></i>
-    </div>
-  </div>
   <div class="banner err" th:if="${overPages > 0}">
     목차별 예상 쪽수의 합계(<span th:text="${totalPages}">0</span>쪽)가 제한(<span th:text="${bid.lmtPageCnt}">0</span>쪽)을 넘었습니다. 분량을 조정해 주세요.
-  </div>
-  <div class="banner warn" th:if="${!#lists.isEmpty(tocs) and rqtTotal > 0 and unmapped > 0}">
-    <span>어느 목차에도 연결되지 않은 요구사항(미매핑)이 <b th:text="${unmapped} + '건'">0건</b> 있습니다.</span>
   </div>
 
   <!-- 목차가 없으면: 팀 양식 불러오기 / 직접 목차 만들기 (FR-046, FR-047) -->
@@ -68,7 +46,7 @@
       아직 제안서 목차가 없습니다.<br><br>
       <th:block th:replace="~{proposal/fragments/toc :: emptyToc('prop')}"></th:block>
       <div class="mt-16" th:if="${canReq or rqtTotal > 0}">
-        <a class="btn sm" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped')}"
+        <a data-nav class="btn sm" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped')}"
            th:text="${rqtTotal > 0} ? '등록된 요구사항 ' + ${rqtTotal} + '건 보기 →' : '요구사항 먼저 등록하기 →'">요구사항 먼저 등록하기 →</a>
       </div>
     </div>
@@ -76,7 +54,7 @@
 
   <!-- 요구사항 추가 · 미매핑 화면 (FR-050~052 v4.0): 미매핑 목록(ID / 명칭 / 연결할 세부 목차) + PDF 추출 + 수기 등록·수정 -->
   <th:block th:if="${unmapView}">
-    <div class="row"><a class="btn sm" th:href="@{/proposal(bid=${bid.pbancSn})}">← 목차·요구사항으로 돌아가기</a></div>
+    <div class="row"><a data-nav class="btn sm" th:href="@{/proposal(bid=${bid.pbancSn})}">← 목차·요구사항으로 돌아가기</a></div>
     <div class="card">
       <div class="card-head">
         <h3 th:text="'미매핑 요구사항 ' + ${unmapped} + '건 · ' + ${bid.label}">미매핑 요구사항</h3>
@@ -100,7 +78,7 @@
           <tbody>
             <tr th:each="q : ${unmappedList}">
               <td><span class="pill danger mono" th:text="${q.rqtMttrNo}">SFR-001</span></td>
-              <td><th:block th:replace="~{proposal/fragments/rqt :: rqInfo(${q})}"></th:block></td>
+              <td><th:block th:replace="~{proposal/fragments/rqt :: rqInfo(${q}, true)}"></th:block></td>
               <td><th:block th:replace="~{proposal/fragments/rqt :: rqPickToc(${q})}"></th:block></td>
             </tr>
             <tr th:if="${#lists.isEmpty(unmappedList)}"><td colspan="3" class="empty"
@@ -110,11 +88,7 @@
       </div>
     </div>
 
-    <!-- 요구사항 추가: PDF 자동 추출(FR-050-1) · 수기 등록·수정(FR-050). 등록한 요구사항은 위 미매핑 목록에 나타난다 -->
-    <th:block th:if="${canReq}">
-      <th:block th:replace="~{proposal/fragments/rqt :: rqExtract}"></th:block>
-      <th:block th:replace="~{proposal/fragments/rqt :: rqForm}"></th:block>
-    </th:block>
+    <!-- PDF 자동 추출(FR-050-1)과 수기 등록·수정(FR-050)은 왼쪽 칸에 있다 (proposal.html) -->
   </th:block>
 
   <th:block th:unless="${(#lists.isEmpty(tocs) and curForm == null) or unmapView or extract != null}">
@@ -126,23 +100,41 @@
     <!-- 목차 · 담당자 · 요구사항 연결 (FR-047, FR-049, FR-051) -->
     <div class="card" th:with="cols=${canEdit ? 6 : 5}">
       <div class="card-head">
-        <h3 th:text="${bid.label} + ' · 제안서 목차 · 담당자 · 요구사항'">제안서 목차</h3>
+        <th:block th:replace="~{proposal/fragments/toc :: curForm}"></th:block>
         <button type="button" class="btn sm" id="tocModeBtn" th:if="${canEdit}" data-on-click="toggleTocMode">수정 모드로 바꾸기</button>
       </div>
-      <div class="pad pb-0"><th:block th:replace="~{proposal/fragments/toc :: curForm}"></th:block></div>
-      <div class="pad pb-0">
-        <div class="row jc-between">
-          <span class="faint fs-11_5">
-            요구사항 연결
-          </span>
-          <span class="row gap-8">
-            <span class="pill success" th:if="${unmapped == 0 and rqtTotal > 0}">미매핑 없음</span>
-            <a class="btn sm" th:classappend="${unmapped > 0} ? 'danger'" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped')}"
-               th:text="${unmapped > 0} ? '미매핑 ' + ${unmapped} + '건 · 요구사항 추가 →' : '요구사항 추가 →'">요구사항 추가 →</a>
-          </span>
+      <!-- 분량 합계 (FR-055, 초안 기능. 제한은 주관팀 팀장이 정한다) · 요구사항 연결: 목록 맨 위에 반반 -->
+      <div class="gauge-pair">
+        <div class="gp-cell">
+          <div class="row jc-between">
+            <b class="fs-12_5">
+              제안서 분량
+              <th:block th:if="${bid.lmtPageCnt == null}">합계 <span th:text="${totalPages}">0</span>쪽</th:block>
+            </b>
+            <form th:if="${canAssign}" th:action="@{/proposal/limit}" method="post" class="row">
+              <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+              <span class="lbl">제한</span>
+              <input type="number" name="limit" min="1" max="9999" th:value="${bid.lmtPageCnt}" class="w-80px"
+                     data-change-submit>
+            </form>
+          </div>
+          <div class="gauge mt-8" data-gauge="pages" th:if="${bid.lmtPageCnt != null}"
+               th:classappend="${overPages > 0} ? 'red' : (${totalPages * 100 / bid.lmtPageCnt < 20} ? 'low')">
+            <i th:style="'width:' + ${T(java.lang.Math).min(100, totalPages * 100 / bid.lmtPageCnt)} + '%'"><em th:text="|${totalPages} / ${bid.lmtPageCnt}쪽|">0 / 200쪽</em></i>
+          </div>
         </div>
-        <div class="gauge mt-8" data-gauge="rqt" th:classappend="${progress >= 100} ? 'ok' : (${progress < 20} ? 'low')">
-          <i th:style="'width:' + ${progress} + '%'"><em th:text="|${progress}% · ${rqtTotal - unmapped}/${rqtTotal}|">0% · 0/0</em></i>
+        <div class="gp-cell">
+          <div class="row jc-between">
+            <b class="fs-12_5">요구사항 연결</b>
+            <span class="row gap-8">
+              <span class="pill success" th:if="${unmapped == 0 and rqtTotal > 0}">미매핑 없음</span>
+              <a data-nav class="btn sm" th:classappend="${unmapped > 0} ? 'danger'" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped')}"
+                 th:text="${unmapped > 0} ? '미매핑 ' + ${unmapped} + '건 · 요구사항 추가 →' : '요구사항 추가 →'">요구사항 추가 →</a>
+            </span>
+          </div>
+          <div class="gauge mt-8" data-gauge="rqt" th:classappend="${progress >= 100} ? 'ok' : (${progress < 20} ? 'low')">
+            <i th:style="'width:' + ${progress} + '%'"><em th:text="|${progress}% · ${rqtTotal - unmapped}/${rqtTotal}|">0% · 0/0</em></i>
+          </div>
         </div>
       </div>
       <div class="ts">
@@ -158,7 +150,7 @@
               <!-- 목차가 하나도 없으면 안내 대신 바로 첫 1단계 목차를 적게 한다 (만든 목차는 현재 양식에 바로 저장) -->
               <td th:colspan="${cols}" class="empty" th:unless="${canEdit}">아직 목차가 없습니다.</td>
               <td th:colspan="${cols}" th:if="${canEdit}" class="u-padding-16px-12px">
-                <form th:action="@{/proposal/toc/add}" method="post" class="row jc-center">
+                <form th:action="@{/proposal/toc/add}" method="post" class="row f-inline jc-center">
                   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                   <input type="hidden" name="tab" value="prop">
                   <span class="faint">아직 목차가 없습니다. 첫 1단계 목차를 적어 주세요.</span>
@@ -173,10 +165,9 @@
               <tr th:if="${t.group}">
                 <td th:colspan="${canEdit ? cols - 1 : cols}" class="toc-group" th:style="'padding-left:' + ${t.indent} + 'px'">
                   <th:block th:replace="~{proposal/fragments/toc :: labelCell(${t}, 'prop')}"></th:block>
-                  <th:block th:replace="~{proposal/fragments/toc :: tocTools(${t})}"></th:block>
                 </td>
                 <td th:if="${canEdit}" class="toc-group-bg col-edit">
-                  <th:block th:replace="~{proposal/fragments/toc :: delBtn(${t}, 'prop')}"></th:block>
+                  <th:block th:replace="~{proposal/fragments/toc :: rowMenu(${t}, 'prop')}"></th:block>
                 </td>
               </tr>
 
@@ -187,8 +178,9 @@
                                  mc=${#lists.size(mine)}, nn=${mc + (addable ? 1 : 0)}, n=${nn == 0 ? 1 : nn}">
                 <tr th:each="i : ${#numbers.sequence(0, n - 1)}" th:classappend="${addable and i == mc} ? 'rq-add-row'">
                   <td th:if="${i == 0}" th:rowspan="${n}" class="vtop" th:style="'padding-left:' + ${t.indent} + 'px'">
-                    <th:block th:replace="~{proposal/fragments/toc :: labelCell(${t}, 'prop')}"></th:block>
-                    <div th:if="${canEdit}"><th:block th:replace="~{proposal/fragments/toc :: tocTools(${t})}"></th:block></div>
+                    <div class="lbl-row">
+                      <th:block th:replace="~{proposal/fragments/toc :: labelCell(${t}, 'prop')}"></th:block>
+                    </div>
                   </td>
                   <td th:if="${i == 0}" th:rowspan="${n}" class="vtop">
                     <th:block th:replace="~{proposal/fragments/toc :: owner(${t}, 'prop')}"></th:block>
@@ -196,7 +188,7 @@
 
                   <th:block th:if="${i lt mc}" th:with="q=${mine[i]}">
                     <td><th:block th:replace="~{proposal/fragments/rqt :: rqId(${q}, ${can})}"></th:block></td>
-                    <td><th:block th:replace="~{proposal/fragments/rqt :: rqInfo(${q})}"></th:block></td>
+                    <td><th:block th:replace="~{proposal/fragments/rqt :: rqInfo(${q}, false)}"></th:block></td>
                   </th:block>
 
                   <td colspan="2" th:if="${addable and i == mc}">
@@ -209,7 +201,7 @@
                     <th:block th:replace="~{proposal/fragments/toc :: pages(${t})}"></th:block>
                   </td>
                   <td th:if="${i == 0 and canEdit}" th:rowspan="${n}" class="vtop col-edit">
-                    <th:block th:replace="~{proposal/fragments/toc :: delBtn(${t}, 'prop')}"></th:block>
+                    <th:block th:replace="~{proposal/fragments/toc :: rowMenu(${t}, 'prop')}"></th:block>
                   </td>
                 </tr>
               </th:block>

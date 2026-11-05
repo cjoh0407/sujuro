@@ -13,7 +13,7 @@
     labelCell(t, k)    : 번호 포함 이름 (Enter 또는 칸을 벗어나면 바로 저장)
     tocTools(t)        : 하위 목차 추가 / 같은 단계 목차 추가 (아이콘, proposal.css .ic-child·.ic-sibling)
     addRow(t, k, cols) : 하위 / 같은 단계 입력 줄 (proposal.js가 열고 닫는다)
-    delBtn(t, k)       : 삭제 아이콘 (묶음은 하위 포함)
+    rowMenu(t, k)      : 줄 끝 "…" 메뉴 (하위 추가 · 같은 단계 추가 · 삭제)
     owner(t, k)        : 최하위 목차 담당자 - 제안팀원 또는 외부 회사 (주관팀 팀장만 지정, FR-049·FR-043-1)
     pages(t)           : 최하위 목차 예상 쪽수
 */-->
@@ -36,12 +36,12 @@
         <input type="hidden" name="tab" th:value="${k}">
         <select name="tocFormSn" required>
           <option value="" disabled selected>목차 양식 고르기</option>
-          <option th:each="f : ${forms}" th:value="${f.tocFormSn}" th:text="${f.labelFor(me)}">양식</option>
+          <option th:each="f : ${forms}" th:value="${f.tocFormSn}" th:text="${f.tocFormNm}">양식</option>
         </select>
         <input type="text" name="tocFormNm" placeholder="새 이름 (비우면 그대로 불러오기)" maxlength="100" class="w-220px" autocomplete="off">
         <button class="btn primary" type="submit">팀 양식 불러오기</button>
       </form>
-      <form th:action="@{/proposal/toc/form/new}" method="post" class="row">
+      <form th:action="@{/proposal/toc/form/new}" method="post" class="row f-inline">
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
         <input type="text" name="tocFormNm" placeholder="새 목차 양식 이름" maxlength="100" required class="w-200px" autocomplete="off">
         <button class="btn" th:classappend="${#lists.isEmpty(forms)} ? 'primary'" type="submit"
@@ -50,7 +50,7 @@
     </div>
   </th:block>
   <!-- 요약서이거나, 제안서에서 양식을 다룰 수 없는 제안팀원(참여팀 등): 이 사업건에서만 쓰는 목차를 첫 목차부터 만든다 -->
-  <form th:if="${canEdit and (k == 'sum' or !canLoad)}" th:action="@{/proposal/toc/start-blank}" method="post" class="row jc-center">
+  <form th:if="${canEdit and (k == 'sum' or !canLoad)}" th:action="@{/proposal/toc/start-blank}" method="post" class="row f-inline jc-center">
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
     <input type="hidden" name="tab" th:value="${k}">
     <input type="text" name="label" placeholder="첫 목차 이름 (번호 포함)" maxlength="250" required class="w-240px">
@@ -60,10 +60,8 @@
 
 <!-- 현재 목차 양식: 마지막으로 불러오거나 저장한 주관팀 양식 (TB_BID_PBANC.TOC_FORM_SN) -->
 <div th:fragment="curForm" class="cur-form">
-  <span class="faint">현재 목차 양식</span>
   <th:block th:if="${curForm != null}">
     <b th:text="${curForm.tocFormNm}">양식 이름</b>
-    <span class="faint" th:if="${curForm.inUse and curForm.rgtrNm != null}" th:text="'· ' + ${curForm.rgtrNm} + ' 저장'"></span>
     <span class="pill neutral" th:unless="${curForm.inUse}">삭제된 양식</span>
   </th:block>
   <span th:if="${curForm == null}">직접 만든 목차 <span class="faint">(양식 없음)</span></span>
@@ -91,20 +89,24 @@
                   th:data-name="${f.tocFormNm}"
                   th:selected="${curForm != null and f.tocFormSn == curForm.tocFormSn}">양식</option>
         </select>
-        <button class="btn sm" type="submit"
-                th:data-msg="${k == 'sum'} ? '현재 목차와 담당자 지정이 사라집니다. 선택한 양식으로 바꿀까요?' : '현재 목차와 담당자 지정이 사라지고, 연결된 요구사항은 모두 미매핑이 됩니다. 선택한 양식으로 바꿀까요?'"
-                data-on-click="confirmFormChange">다른 양식으로 바꾸기</button>
-        <button class="btn sm" type="submit" data-on-click="askFormCopy">새 이름으로 복사해서 바꾸기</button>
-        <button class="btn sm" type="submit" th:formaction="@{/proposal/toc/form/rename}"
-                data-on-click="askFormRename">이름 바꾸기</button>
-        <button class="btn sm danger" type="submit" th:formaction="@{/proposal/toc/form/delete}"
-                data-on-click="confirmFormDelete">양식 삭제</button>
+        <span class="fb-acts">
+          <button class="ico" type="submit" title="다른 양식으로 바꾸기" aria-label="다른 양식으로 바꾸기"
+                  th:data-msg="${k == 'sum'} ? '현재 목차와 담당자 지정이 사라집니다. 선택한 양식으로 바꿀까요?' : '현재 목차와 담당자 지정이 사라지고, 연결된 요구사항은 모두 미매핑이 됩니다. 선택한 양식으로 바꿀까요?'"
+                  data-on-click="confirmFormChange"><span class="ic ic-swap"></span></button>
+          <button class="ico" type="submit" title="새 이름으로 복사해서 바꾸기" aria-label="새 이름으로 복사해서 바꾸기"
+                  data-on-click="askFormCopy"><span class="ic ic-copy"></span></button>
+          <button class="ico" type="submit" th:formaction="@{/proposal/toc/form/rename}" title="이름 바꾸기" aria-label="이름 바꾸기"
+                  data-on-click="askFormRename"><span class="ic ic-edit"></span></button>
+          <span class="fb-sep" aria-hidden="true"></span>
+          <button class="ico danger" type="submit" th:formaction="@{/proposal/toc/form/delete}" title="양식 삭제" aria-label="양식 삭제"
+                  data-on-click="confirmFormDelete"><span class="ic ic-trash"></span></button>
+        </span>
       </th:block>
       <span class="faint" th:if="${#lists.isEmpty(forms)}">저장된 양식 없음</span>
     </form>
     <!-- 지금 목차를 양식으로 저장: 같은 이름이면 그 양식을 덮어쓰고, 다른 이름이면 새 양식이 생긴다 -->
     <!-- 현재 양식이 있으면 목차를 고칠 때마다 그 양식에 저장되고 이름은 [이름 바꾸기]로 바꾸므로 저장 칸은 숨긴다. 양식 없이 만든 목차(제안서)와 제안요약서에서만 보인다 -->
-    <form th:if="${k == 'sum' or curForm == null or !curForm.inUse}" th:action="@{/proposal/toc/form}" method="post" class="row form-save" data-on-submit="confirmFormSave">
+    <form th:if="${k == 'sum' or curForm == null or !curForm.inUse}" th:action="@{/proposal/toc/form}" method="post" class="row f-inline form-save" data-on-submit="confirmFormSave">
       <input type="hidden" name="bid" th:value="${bid.pbancSn}">
       <input type="hidden" name="tab" th:value="${k}">
       <input type="text" name="tocFormNm" placeholder="새 양식 이름" maxlength="100" required class="w-190px" autocomplete="off">
@@ -113,7 +115,7 @@
   </div>
 </div>
 
-<form th:fragment="addTop(k)" th:if="${canEdit}" th:action="@{/proposal/toc/add}" method="post" class="row">
+<form th:fragment="addTop(k)" th:if="${canEdit}" th:action="@{/proposal/toc/add}" method="post" class="row f-inline">
   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
   <input type="hidden" name="tab" th:value="${k}">
   <input type="text" name="label" placeholder="새 1단계 목차 이름" maxlength="250" required data-track class="w-160px">
@@ -143,7 +145,7 @@
 
 <tr th:fragment="addRow(t, k, cols)" th:if="${canEdit}" class="addrow" th:id="'add-' + ${t.tocSn}" hidden>
   <td th:colspan="${cols}">
-    <form th:action="@{/proposal/toc/add-near}" method="post" class="row" data-on-submit="confirmAdd"
+    <form th:action="@{/proposal/toc/add-near}" method="post" class="row f-inline" data-on-submit="confirmAdd"
           th:data-label="${t.label}" th:data-leaf="${t.leaf}" th:data-rqts="${t.rqtCnt}" th:data-pic="${t.picId != null}">
       <input type="hidden" name="bid" th:value="${bid.pbancSn}">
       <input type="hidden" name="tab" th:value="${k}">
@@ -157,15 +159,26 @@
   </td>
 </tr>
 
-<form th:fragment="delBtn(t, k)" th:action="@{/proposal/toc/delete}" method="post" class="d-inline"
-      th:data-label="${t.label}" th:data-group="${t.group}" th:data-rqts="${t.group ? t.subRqtCnt : t.rqtCnt}"
-      data-on-submit="confirmDel">
-  <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-  <input type="hidden" name="tab" th:value="${k}">
-  <input type="hidden" name="tocSn" th:value="${t.tocSn}">
-  <button class="ico danger" type="submit" th:title="${t.group} ? '삭제 (하위 목차 포함)' : '삭제'"
-          th:aria-label="${t.group} ? '삭제 (하위 목차 포함)' : '삭제'"><span class="ic ic-trash"></span></button>
-</form>
+<!--/* 줄 오른쪽 끝 "…" 메뉴: 하위 목차 추가 · 아래에 같은 단계 추가 · 삭제 (묶음은 하위 포함). 열고 닫기는 proposal.js toggleRowMenu */-->
+<div th:fragment="rowMenu(t, k)" th:if="${canEdit}" class="row-menu">
+  <button type="button" class="ico kebab" data-on-click="toggleRowMenu" title="더보기" aria-label="더보기"
+          aria-haspopup="menu" aria-expanded="false"><span class="ic ic-more"></span></button>
+  <div class="menu-pop" role="menu" hidden>
+    <button type="button" role="menuitem" data-m="d" data-on-click="openAdd"
+            th:data-t="${t.tocSn}" th:data-label="${t.label}" th:data-depth="${t.depth}"><span class="ic ic-child"></span>하위 목차 추가</button>
+    <button type="button" role="menuitem" data-m="s" data-on-click="openAdd"
+            th:data-t="${t.tocSn}" th:data-label="${t.label}" th:data-depth="${t.depth}"><span class="ic ic-sibling"></span>아래에 같은 단계 추가</button>
+    <hr>
+    <form th:action="@{/proposal/toc/delete}" method="post"
+          th:data-label="${t.label}" th:data-group="${t.group}" th:data-rqts="${t.group ? t.subRqtCnt : t.rqtCnt}"
+          data-on-submit="confirmDel">
+      <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+      <input type="hidden" name="tab" th:value="${k}">
+      <input type="hidden" name="tocSn" th:value="${t.tocSn}">
+      <button type="submit" role="menuitem" class="danger"><span class="ic ic-trash"></span>삭제</button>
+    </form>
+  </div>
+</div>
 
 <!--/* 담당자: 제안팀원을 고르거나, 외부 회사를 고르거나 직접 적는다 (외부 회사는 계정 없이 회사명만, FR-043-1)
        선택칸 값: "" 미지정 / 사번 / "co:회사명"(이미 쓴 회사) / "co-new"(왼쪽 아래 "외부 회사 입력" 칸을 연다) */-->

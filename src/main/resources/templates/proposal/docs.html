@@ -37,7 +37,7 @@
       <!-- 파일 올리기: 경영지원실이 만든 체크리스트에서 서류를 고르고 올린다 (제안서 파일 관리의 올리기 칸과 같은 박스). 나라장터 등록 뒤에는 닫힌다 -->
       <div class="card" id="upCard" th:if="${open}">
         <div class="card-head">
-          <h3>서류 파일 올리기</h3>
+          <h3>서류 파일 등록</h3>
           <span class="faint fs-11_5">최대 50MB</span>
         </div>
         <form th:action="@{/docs/upload}" method="post" enctype="multipart/form-data" class="pad mp-form">
@@ -45,7 +45,7 @@
           <select name="dcmntSn" required>
             <option value="" disabled selected th:text="${#lists.isEmpty(docs)} ? '체크리스트가 비어 있습니다' : '서류 고르기'">서류 고르기</option>
             <option th:each="d : ${docs}" th:value="${d.dcmntSn}"
-                    th:text="${d.dcmntNm + (d.essential ? ' (필수)' : '') + (d.fileSn != null ? ' · 올림' : '')}">최종 제안서 (필수)</option>
+                    th:text="${d.dcmntNm + (d.essential ? ' (필수)' : '') + (d.fileSn != null ? ' · 등록됨' : '')}">최종 제안서 (필수)</option>
           </select>
           <label class="drop">
             <input type="file" name="file" required data-max-mb="50">
@@ -56,7 +56,7 @@
             </span>
           </label>
           <div class="row jc-end">
-            <button class="btn sm primary" type="submit">올리기</button>
+            <button class="btn sm primary" type="submit">등록</button>
           </div>
         </form>
       </div>
@@ -67,7 +67,7 @@
     <!-- 준비 현황 (FR-070, NFR-013: 저장된 데이터로 계산) -->
     <div class="stats">
       <div class="stat">
-        <div class="l">준비 완료</div>
+        <div class="l">완료</div>
         <div class="v" th:text="${readyCnt} + ' / ' + ${#lists.size(docs)}">0 / 0</div>
       </div>
       <div class="stat">
@@ -76,7 +76,7 @@
       </div>
       <div class="stat">
         <div class="l">최종 제안서</div>
-        <div class="v" th:text="${finalDoc == null} ? '-' : ${finalDoc.statusNm}">미준비</div>
+        <div class="v" th:text="${finalDoc == null} ? '-' : ${finalDoc.statusNm}">미완료</div>
         <div class="h" th:if="${finalDoc != null and finalDoc.fileSn != null}" th:text="${finalDoc.orgnlFileNm}"></div>
       </div>
       <div class="stat">
@@ -95,7 +95,7 @@
         <table th:classappend="${admin and open} ? '' : 'no-x'">
           <thead>
             <tr>
-              <th>서류명</th><th>필수</th><th>준비 담당</th><th>준비 상태</th><th>제출 기한</th><th>파일</th>
+              <th>서류명</th><th>필수</th><th>담당</th><th>상태</th><th>제출 기한</th><th>파일</th>
               <th th:if="${admin and open}"></th>
             </tr>
           </thead>
@@ -112,12 +112,12 @@
                   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                   <input type="hidden" name="dcmntSn" th:value="${d.dcmntSn}">
                   <select name="prgrsSttsCd" data-change-submit>
-                    <option value="DS010" th:selected="${d.prgrsSttsCd == 'DS010'}">미준비</option>
-                    <option value="DS020" th:selected="${d.prgrsSttsCd == 'DS020'}">준비 중</option>
-                    <option value="DS030" th:selected="${d.prgrsSttsCd == 'DS030'}">준비 완료</option>
+                    <!--/* 11/06 화면에는 완료·미완료 두 가지만. 코드는 셋 그대로(DS010 미준비·DS020 파일 올라옴·DS030 완료)이고 DS010·DS020 은 미완료로 보인다 */-->
+                    <option value="DS010" th:selected="${d.prgrsSttsCd != 'DS030'}">미완료</option>
+                    <option value="DS030" th:selected="${d.prgrsSttsCd == 'DS030'}">완료</option>
                   </select>
                 </form>
-                <span th:unless="${canSt}" class="pill" th:classappend="${d.statusPill}" th:text="${d.statusNm}">미준비</span>
+                <span th:unless="${canSt}" class="pill" th:classappend="${d.statusPill}" th:text="${d.statusNm}">미완료</span>
               </td>
               <td class="mono">
                 <form th:if="${admin and open}" th:action="@{/docs/due}" method="post">
@@ -133,7 +133,7 @@
                 <div th:if="${d.fileSn != null}" class="file-info">
                   <span th:text="${d.orgnlFileNm}">파일명</span>
                   <span class="faint fs-11_5"
-                        th:text="${(d.fileRgtrNm ?: '') + ' · ' + #dates.format(d.fileRegDt, 'yyyy-MM-dd HH:mm') + ' · ' + d.sizeLabel + (d.fileCnt > 1 ? ' · v' + d.fileCnt : '')}">올린 사람 · 일시</span>
+                        th:text="${(d.fileRgtrNm ?: '') + ' · ' + #dates.format(d.fileRegDt, 'yyyy-MM-dd HH:mm') + ' · ' + d.sizeLabel + (d.fileCnt > 1 ? ' · v' + d.fileCnt : '')}">등록자 · 일시</span>
                 </div>
                 <span class="faint" th:if="${d.fileSn == null}">없음</span>
                 <div class="row file-acts">
@@ -250,13 +250,13 @@
       </div>
       <div class="ts">
         <table>
-          <thead><tr><th>서류</th><th>파일</th><th>버전</th><th>올린 사람</th><th>삭제한 사람 · 일시</th><th>삭제 사유</th><th class="c-end"></th></tr></thead>
+          <thead><tr><th>서류</th><th>파일</th><th>버전</th><th>등록자</th><th>삭제한 사람 · 일시</th><th>삭제 사유</th><th class="c-end"></th></tr></thead>
           <tbody>
             <tr class="hv" th:each="f : ${deletedFiles}">
               <td th:text="${f.targetNm ?: '-'}">최종 제안서</td>
               <td th:text="${f.orgnlFileNm}">파일명</td>
               <td class="mono" th:text="'v' + ${f.verNo}">v1</td>
-              <td th:text="${(f.rgtrNm ?: f.rgtrId) + ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm')}">올린 사람</td>
+              <td th:text="${(f.rgtrNm ?: f.rgtrId) + ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm')}">등록자</td>
               <td th:text="${(f.dltrNm ?: f.dltrId) + ' · ' + #dates.format(f.delDt, 'yyyy-MM-dd HH:mm')}">삭제한 사람</td>
               <td th:text="${f.delRsn}">사유</td>
               <td class="c-end"><a class="ico" title="내려받기" aria-label="내려받기" th:href="@{/docs/download(bid=${bid.pbancSn}, fileSn=${f.fileSn})}"><span class="ic ic-download"></span></a></td>

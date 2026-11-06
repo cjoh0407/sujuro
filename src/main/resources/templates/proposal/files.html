@@ -60,13 +60,13 @@
       </div>
       <div class="ts">
         <table>
-          <thead><tr><th>대상</th><th>파일</th><th>버전</th><th>올린 사람</th><th>삭제한 사람 · 일시</th><th>삭제 사유</th><th class="c-end"></th></tr></thead>
+          <thead><tr><th>대상</th><th>파일</th><th>버전</th><th>등록자</th><th>삭제한 사람 · 일시</th><th>삭제 사유</th><th class="c-end"></th></tr></thead>
           <tbody>
             <tr class="hv" th:each="f : ${deletedFiles}">
               <td th:text="${f.targetNm ?: '-'}">1.1 목차</td>
               <td th:text="${f.orgnlFileNm}">파일명</td>
               <td class="mono" th:text="${f.intgCycl != null} ? ${f.intgCycl} + '차' : 'v' + ${f.verNo}">v1</td>
-              <td th:text="${(f.rgtrNm ?: f.rgtrId) + ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm')}">올린 사람</td>
+              <td th:text="${(f.rgtrNm ?: f.rgtrId) + ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm')}">등록자</td>
               <td th:text="${(f.dltrNm ?: f.dltrId) + ' · ' + #dates.format(f.delDt, 'yyyy-MM-dd HH:mm')}">삭제한 사람</td>
               <td th:text="${f.delRsn}">사유</td>
               <td class="c-end"><a class="ico" title="내려받기" aria-label="내려받기" th:href="@{/files/download(bid=${bid.pbancSn}, fileSn=${f.fileSn})}"><span class="ic ic-download"></span></a></td>
@@ -128,7 +128,7 @@
          고를 수 있는 목차: 주관팀 팀장은 전부, 그 밖에는 자기가 담당인 목차만 (서버에서도 다시 검사) -->
     <div class="card" id="upCard" th:fragment="upCard">
       <div class="card-head">
-        <h3 th:text="${tab == 'full'} ? '통합본 올리기' : '파일 올리기'">파일 올리기</h3>
+        <h3 th:text="${tab == 'full'} ? '통합본 등록' : '파일 등록'">파일 등록</h3>
         <span class="faint fs-11_5" th:text="${tab == 'full'} ? '최대 300MB' : '최대 50MB'">최대 50MB</span>
       </div>
       <form th:action="@{/files/upload}" method="post" enctype="multipart/form-data" class="pad mp-form">
@@ -152,7 +152,7 @@
         </label>
         <div class="row">
           <div class="up-note">PDF · PPT(PPTX) 파일만 올릴 수 있습니다.</div>
-          <button class="btn sm primary" type="submit">올리기</button>
+          <button class="btn sm primary" type="submit">등록</button>
         </div>
       </form>
     </div>
@@ -181,7 +181,7 @@
       <div class="minw-0">
         <b th:text="${f.orgnlFileNm}">파일명</b>
         <div class="faint fs-11_5"
-             th:text="${(f.rgtrNm ?: f.rgtrId) + ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm') + ' · ' + f.sizeLabel}">올린 사람 · 일시 · 크기</div>
+             th:text="${(f.rgtrNm ?: f.rgtrId) + ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm') + ' · ' + f.sizeLabel}">등록자 · 일시 · 크기</div>
       </div>
       <span class="fmt" th:if="${!#strings.isEmpty(f.fmt)}" th:classappend="${f.fmt == 'PDF'} ? 'pdf' : 'ppt'" th:text="${f.fmt}">PDF</span>
       <span class="pill accent" th:if="${f.intgCycl == null}" th:text="'v' + ${f.verNo}">v1</span>

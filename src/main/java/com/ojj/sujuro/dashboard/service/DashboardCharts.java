@@ -122,7 +122,7 @@ final class DashboardCharts {
         // 위쪽 요약
         c.getKpis().add(new Kpi("제출", String.valueOf(cur.getSubmitted()), "건", null, true));
         c.getKpis().add(new Kpi("수주", String.valueOf(cur.getWon()), "건", null, true));
-        c.getKpis().add(new Kpi("탈락", String.valueOf(cur.getLost()), "건", null, true));
+        c.getKpis().add(new Kpi("실주", String.valueOf(cur.getLost()), "건", null, true));
         c.getKpis().add(new Kpi("유찰", String.valueOf(cur.getFailed()), "건", null, true));
         Integer rate = cur.getRate();
         String rateChip = null;

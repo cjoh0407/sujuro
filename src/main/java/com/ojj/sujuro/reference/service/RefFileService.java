@@ -172,7 +172,7 @@ public class RefFileService {
     public void delete(Long teamSn, Long refFileSn, String userId, boolean leader) {
         RefFileDto f = open(teamSn, refFileSn);
         if (!canDelete(f, userId, leader)) {
-            throw new BusinessException("올린 사람과 팀장만 삭제할 수 있습니다.");
+            throw new BusinessException("등록자와 팀장만 삭제할 수 있습니다.");
         }
         mapper.markDeleted(refFileSn, userId);
     }

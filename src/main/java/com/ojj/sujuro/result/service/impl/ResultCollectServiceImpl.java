@@ -130,7 +130,7 @@ public class ResultCollectServiceImpl implements ResultCollectService {
             return ResultOutcomeDTO.waiting();
         }
 
-        String text = (won ? "수주" : "탈락") + (result.getEvlRnk() == null ? "" : " · " + result.getEvlRnk() + "위");
+        String text = (won ? "수주" : "실주") + (result.getEvlRnk() == null ? "" : " · " + result.getEvlRnk() + "위");
         requestEvaluationTable(target, text);
         return ResultOutcomeDTO.registered("결과 등록: " + text);
     }

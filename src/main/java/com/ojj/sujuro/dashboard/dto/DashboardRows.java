@@ -410,7 +410,7 @@ public final class DashboardRows {
         public String getTitle() { return ((tocNo == null ? "" : tocNo + " ") + (tocNm == null ? "" : tocNm)).trim(); }
         public String getFileLabel() { return fileCnt != null && fileCnt > 0 ? "파일 " + fileCnt + "건 올림" : "파일 없음"; }
         /** 검토 완료면 목차를 보러, 아니면 파일을 올리러 간다 */
-        public String getActionLabel() { return isDone() ? "목차 보기" : "파일 올리기"; }
+        public String getActionLabel() { return isDone() ? "목차 보기" : "파일 등록"; }
         public String getActionHref() { return (isDone() ? "/proposal?bid=" : "/files?bid=") + pbancSn; }
     }
 

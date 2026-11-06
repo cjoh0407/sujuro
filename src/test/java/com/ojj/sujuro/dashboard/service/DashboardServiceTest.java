@@ -226,7 +226,7 @@ class DashboardServiceTest {
     }
 
     @Test
-    void 팀원_내_할_일_버튼은_검토_완료면_목차_보기_아니면_파일_올리기() {
+    void 팀원_내_할_일_버튼은_검토_완료면_목차_보기_아니면_파일_등록() {
         MyToc done = new MyToc();
         done.setPbancSn(5L);
         done.setTocStatusCd("TS030");
@@ -236,7 +236,7 @@ class DashboardServiceTest {
 
         assertEquals("목차 보기", done.getActionLabel());
         assertEquals("/proposal?bid=5", done.getActionHref());
-        assertEquals("파일 올리기", doing.getActionLabel());
+        assertEquals("파일 등록", doing.getActionLabel());
         assertEquals("/files?bid=5", doing.getActionHref());
     }
 

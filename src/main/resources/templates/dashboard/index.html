@@ -62,7 +62,7 @@
           <div class="card-head"><h3>처리할 공고</h3></div>
           <div class="dash-empty" th:if="${#lists.isEmpty(view.todoBids)}">처리할 공고가 없습니다.</div>
           <div class="lt-head" th:unless="${#lists.isEmpty(view.todoBids)}"><span class="f">공고</span><span class="w84 tc">상태</span><span class="w96">담당팀</span><span class="w76 tr">마감</span></div>
-          <div class="dash-scroll" style="--scroll-h:330px" th:unless="${#lists.isEmpty(view.todoBids)}">
+          <div class="dash-scroll sh-330" th:unless="${#lists.isEmpty(view.todoBids)}">
             <a class="lt-row" th:each="b : ${view.todoBids}" th:href="@{/notices/{sn}(sn=${b.pbancSn})}">
               <span class="f" th:text="${b.pbancNm}" th:title="${b.pbancNm}">공고명</span>
               <span class="w84 tc"><span class="pill danger" th:if="${b.returnNm != null}" th:text="|${b.returnNm} 반환|">불참 반환</span><span class="pill" th:unless="${b.returnNm != null}" th:classappend="${b.statusPill}" th:text="${b.statusNm}">신규</span></span>
@@ -89,7 +89,7 @@
           <div class="dash-empty" th:if="${#lists.isEmpty(view.attention)}">주의가 필요한 항목이 없습니다.</div>
           <th:block th:unless="${#lists.isEmpty(view.attention)}">
             <div class="lt-head"><span class="w84">구분</span><span class="f">사업</span><span class="w52 tr">기한</span></div>
-            <div class="dash-scroll" style="--scroll-h:420px">
+            <div class="dash-scroll sh-420">
               <a class="lt-row" th:each="a : ${view.attention}" th:classappend="${a.tone}" th:href="@{${a.href}}">
                 <span class="w84 k" th:text="${a.title}">서류 2건 누락</span>
                 <span class="f" th:text="${a.pbancNm}" th:title="|${a.pbancNm}${a.teamNm != null ? ' · ' + a.teamNm : ''}|">사업명</span>
@@ -105,7 +105,7 @@
         <div class="dash-empty" th:if="${#lists.isEmpty(view.wins)}">올해 수주한 사업이 아직 없습니다.</div>
         <th:block th:unless="${#lists.isEmpty(view.wins)}">
           <div class="lt-head"><span class="f2">사업명</span><span class="g">발주기관</span><span class="g">수요기관</span><span class="g">담당팀</span><span class="w64 tc">유형</span><span class="w96 tc">낙찰금액</span><span class="w80 tc">낙찰률</span><span class="w110 tc">경쟁</span></div>
-          <div class="dash-scroll" style="--scroll-h:340px">
+          <div class="dash-scroll sh-340">
             <a class="lt-row" th:each="w : ${view.wins}" th:href="@{/results(bid=${w.pbancSn})}">
               <span class="f2" th:text="${w.pbancNm}" th:title="${w.pbancNm}">사업명</span>
               <span class="g s" th:text="${w.orderInstNm}" th:title="${w.orderInstNm}">발주기관</span>
@@ -126,7 +126,7 @@
           <div class="card-head"><h3>제출서류 준비 현황</h3></div>
           <div class="dash-empty" th:if="${#lists.isEmpty(view.docRows)}">준비 중인 사업건이 없습니다.</div>
           <div class="lt-head" th:unless="${#lists.isEmpty(view.docRows)}"><span class="f">사업</span><span class="w88">담당팀</span><span class="w44 tr">서류</span><span class="w76">누락</span><span class="w72 tc">상태</span></div>
-          <div class="dash-scroll" style="--scroll-h:330px" th:unless="${#lists.isEmpty(view.docRows)}">
+          <div class="dash-scroll sh-330" th:unless="${#lists.isEmpty(view.docRows)}">
             <a class="lt-row" th:each="r : ${view.docRows}" th:href="@{/docs(bid=${r.pbancSn})}">
               <span class="f" th:text="${r.pbancNm}" th:title="${r.pbancNm}">사업건</span>
               <span class="w88 s" th:text="${r.teamNm != null} ? ${r.teamNm} : '-'">공공사업1Div</span>
@@ -154,7 +154,7 @@
             <div class="cols"><span>목차 작성</span><span>요구사항</span><span>제출서류</span></div>
             <div class="fin">최종본</div>
           </div>
-          <div class="dash-scroll" style="--scroll-h:480px">
+          <div class="dash-scroll sh-480">
             <a class="prog-row" th:each="p : ${view.leaderProjects}" th:href="@{/proposal(bid=${p.pbancSn})}">
               <div class="prog-main">
                 <div class="prog-name"><span class="t" th:text="${p.pbancNm}" th:title="${p.pbancNm}">사업명</span><span class="dd-chip" th:if="${p.dday != null}" th:classappend="|t-${p.tone}|" th:text="${p.ddayChip}">D-9</span></div>
@@ -182,7 +182,7 @@
         <div class="card dash-list wide">
           <div class="card-head"><h3>처리할 일</h3></div>
           <div class="dash-empty" th:if="${#lists.isEmpty(view.todos)}">처리할 일이 없습니다.</div>
-          <div class="dash-scroll" style="--scroll-h:360px" th:unless="${#lists.isEmpty(view.todos)}">
+          <div class="dash-scroll sh-360" th:unless="${#lists.isEmpty(view.todos)}">
             <div class="todo-row" th:each="t : ${view.todos}">
               <div class="todo-type"><span class="pill" th:classappend="${t.typePill}" th:text="${t.typeLabel}">참여 결정</span></div>
               <div class="todo-main">
@@ -209,7 +209,7 @@
             <div class="du">제출 마감</div>
             <div class="cols"><span>내 목차</span><span>내 파일</span><span>전체 목차</span></div>
           </div>
-          <div class="dash-scroll" style="--scroll-h:480px">
+          <div class="dash-scroll sh-480">
             <a class="prog-row" th:each="p : ${view.memberProjects}" th:href="@{/proposal(bid=${p.pbancSn})}">
               <div class="prog-main">
                 <div class="prog-name"><span class="t" th:text="${p.pbancNm}" th:title="${p.pbancNm}">사업명</span><span class="dd-chip" th:if="${p.dday != null}" th:classappend="|t-${p.tone}|" th:text="${p.ddayChip}">D-2</span></div>
@@ -230,7 +230,7 @@
         <div class="card dash-list wide">
           <div class="card-head"><h3>내 할 일</h3></div>
           <div class="dash-empty" th:if="${#lists.isEmpty(view.myTocs)}">담당 목차가 없습니다.</div>
-          <div class="dash-scroll" style="--scroll-h:360px" th:unless="${#lists.isEmpty(view.myTocs)}">
+          <div class="dash-scroll sh-360" th:unless="${#lists.isEmpty(view.myTocs)}">
             <div class="todo-row" th:each="t : ${view.myTocs}">
               <div class="todo-type sm"><span class="pill" th:classappend="${t.statePill}" th:text="${t.tocStatusNm}">작성 중</span></div>
               <div class="todo-main">

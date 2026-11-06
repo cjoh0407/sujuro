@@ -174,7 +174,7 @@ public class QnaServiceImpl implements QnaService {
     private void clean(Long pbancSn, QnaDto in) {
         String qstn = trim(in.getQstnCn());
         if (qstn == null) {
-            throw new BusinessException("질문을 입력하세요.");
+            throw new BusinessException("질문을 입력해 주세요.");
         }
         String ans = trim(in.getAnsCn());
         if (qstn.length() > MAX_TEXT || (ans != null && ans.length() > MAX_TEXT)) {

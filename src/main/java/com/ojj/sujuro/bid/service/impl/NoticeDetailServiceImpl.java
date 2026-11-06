@@ -71,6 +71,7 @@ public class NoticeDetailServiceImpl implements NoticeDetailService {
      * 발주계획의 규격내용·비고내용(specCntnts·rmrkCntnts)은 물품·공사용이라 용역 235건에서 모두 비어 있었다 (10/28).
      * 그 내용은 첨부된 과업지시서·제안요청서에 있다.
      * SW사업 여부는 10/28 사용자 요청으로 뺐다. 평가 방식의 "(SW사업)" 과 기술:가격 90:10 으로 드러난다.
+     * 사업 기간(BIZ_PRD_CN)은 11/05 뺐다. API 에 없어 수집으로는 채워지지 않고 테스트 데이터에만 있었다.
      * 기관 공고번호(refNo)도 10/28 뺐다. 기관 내부 문서번호·"1" 같은 값이 섞여 오고 업무에 쓰지 않는다.
      */
     private static List<InfoItemDTO> bizInfosOf(NoticeDetailDTO detail, JsonNode plan, JsonNode spec, JsonNode bid) {
@@ -78,7 +79,6 @@ public class NoticeDetailServiceImpl implements NoticeDetailService {
         // 공공조달분류. 대분류 끝에 공백이 붙어 오기도 한다. 예) "연구조사서비스 › 시장 및 여론조사"
         add(infos, "사업 분야", joinNonNull(" › ", text(bid, "pubPrcrmntLrgClsfcNm"), text(bid, "pubPrcrmntMidClsfcNm")));
         add(infos, "사업 구분", text(plan, "bsnsTyNm"));                      // 신규(단기), 계속 …
-        add(infos, "사업 기간", detail.getBizPrdCn());
         add(infos, "납품 기한", dateOf(text(spec, "dlvrTmlmtDt")));           // "2027-03-31 00:00:00"
         String presmpt = NoticeDetailDTO.wonOf(G2bResponse.amountOf(bid, "presmptPrce"));
         add(infos, "추정가격", presmpt == null ? null : presmpt + " (부가세 별도)");

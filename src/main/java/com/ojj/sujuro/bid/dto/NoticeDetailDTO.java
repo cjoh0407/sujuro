@@ -112,7 +112,7 @@ public class NoticeDetailDTO extends BidNoticeDTO {
     /** 상태는 배정할 수 있는데 공고가 끝나 배정하면 안 되는 이유. 없으면 null */
     public String getAssignBlockReason() {
         if (isCanceled()) {
-            return "취소된 공고라 배정할 수 없습니다. 불참으로 종결하세요.";
+            return "취소된 공고라 배정할 수 없습니다. 불참으로 종결해 주세요.";
         }
         if (isOpenedOrLater()) {
             return "개찰이 끝난 공고라 배정할 수 없습니다.";

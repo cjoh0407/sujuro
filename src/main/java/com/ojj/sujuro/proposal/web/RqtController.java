@@ -47,7 +47,7 @@ public class RqtController {
         ra.addAttribute("view", ProposalController.VIEW_UNMAPPED); // 등록·수정은 "요구사항 추가 · 미매핑" 화면에서 한다
         return runReq(user, bid, ra, () -> {
             rqtService.register(bid, rqt, user.getEmpNo());
-            return "요구사항을 등록했습니다. 위 미매핑 목록에서 세부 목차에 연결하세요.";
+            return "요구사항을 등록했습니다. 위 미매핑 목록에서 세부 목차에 연결해 주세요.";
         });
     }
 
@@ -105,7 +105,7 @@ public class RqtController {
                 throw new BusinessException("요구사항 전체 삭제는 주관팀 팀장만 할 수 있습니다.");
             }
             int n = rqtService.deleteAll(bid);
-            return "요구사항 " + n + "건을 모두 삭제했습니다. 제안요청서 PDF를 다시 추출하거나 수기로 등록하세요.";
+            return "요구사항 " + n + "건을 모두 삭제했습니다. 제안요청서 PDF를 다시 추출하거나 수기로 등록해 주세요.";
         });
     }
 
@@ -136,7 +136,7 @@ public class RqtController {
             }
             session.setAttribute(EXTRACT_KEY, r);
             return "요구사항 " + r.getFoundCount() + "개를 읽었습니다."
-                    + (r.getWarnings().isEmpty() ? " 확인한 뒤 등록하세요." : " 확인이 필요한 내용이 있습니다. 아래 경고를 보고 원본과 비교해 주세요.");
+                    + (r.getWarnings().isEmpty() ? " 확인한 뒤 등록해 주세요." : " 확인이 필요한 내용이 있습니다. 아래 경고를 보고 원본과 비교해 주세요.");
         });
     }
 
@@ -163,7 +163,7 @@ public class RqtController {
             int[] r = rqtService.registerAll(bid, pickNos, pickNms, user.getEmpNo());
             session.removeAttribute(EXTRACT_KEY);
             return "요구사항 " + r[0] + "건을 등록했습니다." + (r[1] > 0 ? " (이미 있거나 비어 있는 " + r[1] + "건은 건너뜀)" : "")
-                    + " 세부 목차에 연결하세요.";
+                    + " 세부 목차에 연결해 주세요.";
         });
     }
 

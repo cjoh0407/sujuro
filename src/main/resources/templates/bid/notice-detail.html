@@ -5,9 +5,11 @@
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       layout:decorate="~{layout/default}">
 <!--/*
-  공고 상세 (FR-026, 035, 035-1, 036, 037~041). UI 목업 v3.2 의 rNotice() 화면과 같은 구성이다.
-  왼쪽은 공고 정보, 오른쪽은 담당 팀(영업부 배정), 참여 결정(팀장), 중도 철회(팀장), 배정·결정 이력이다.
-  참여 결정·중도 철회 카드는 팀 단위 화면이라 배정된 팀의 팀장에게만 보인다.
+  공고 상세 (FR-026, 035, 035-1, 036, 037~041). 11/05 시안 F·G1~G4 로 화면을 다시 짰다. 처리 규칙·폼 주소·입력 이름은 그대로다.
+  위: 머리 카드(배지·공고번호·공고명) → 상태 안내 줄(역할·상태마다 하나)
+  왼쪽: 공고 정보(공문서식 표, 사업 내용 포함) · 제안팀(칩) · 변경 내용 · 첨부파일
+  오른쪽: 지금 할 일 카드(영업부 배정 / 팀장 참여 결정, 하나만) · 이력(위 진행 이력 · 아래 단계 이력) · 중도 철회(접힘)
+  참여 결정·중도 철회는 팀 단위 화면이라 배정된 팀의 팀장에게만 보인다.
 
   모델: notice (NoticeDetailDTO), histories (history.HistoryDto 목록, 오래된 순)
         teamOptions·ptcpShpOptions (영업부이고 배정할 수 있을 때만), assignedLeader (이 공고에 배정된 팀의 팀장이면 true)
@@ -28,74 +30,83 @@
 
 <th:block layout:fragment="content">
 
-  <div class="crumb"><a class="link" th:href="@{/notices}">공고 관리</a> / 공고 상세</div>
+  <!--/* joinedAfter: 참여 확정 뒤(제안 작성 중·제출 완료·결과 등록 포함) */-->
+  <th:block th:with="joinedAfter=${!(notice.assignable or notice.closedDeclined or notice.failedBid)},
+                     pno=${notice.bidPbancNo ?: (notice.bfSpecRgstNo ?: notice.orderPlanNo)}">
 
-  <!-- 사업 타이틀 (NFR-023). 어떤 사업을 보고 있는지 항상 위에 보인다. -->
-  <div class="page-head">
-    <div>
+  <!-- 머리 카드 (NFR-023). 어떤 사업을 보고 있는지 항상 위에 보인다. -->
+  <section class="card nd-head">
+    <!-- 공고 관리 목록으로 돌아가기 (11/05 경로 표시 대신) -->
+    <a class="nd-back" th:href="@{/notices}" title="공고 관리로 돌아가기" aria-label="공고 관리로 돌아가기">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <!-- 공고명 오른쪽에 배지·공고번호를 붙인다. 좁으면 아래로 내려간다 (11/05 발주기관 등 부가 설명은 뺐다) -->
+    <div class="nd-head-main">
       <h2 th:text="${notice.pbancNm ?: '공고명 미수집'}">공고명</h2>
+      <div class="row">
+        <span class="pill" th:classappend="${notice.stepPillClass}"
+              th:text="${notice.pbancStepNm} + (${notice.correctionCnt > 0} ? ' · 정정 ' + ${notice.correctionCnt} + '회' : '')">입찰공고</span>
+        <span class="pill" th:classappend="${joinedAfter} ? 'accent' : 'neutral'" th:text="${notice.progressNm}">배정 전</span>
+        <span class="pill warning" th:if="${notice.bidDdlnDt != null and notice.ddlnDdayText != null}"
+              th:text="${#strings.startsWith(notice.ddlnDdayText, 'D')} ? |마감 ${notice.ddlnDdayText}| : ${notice.ddlnDdayText}">마감 D-21</span>
+        <span class="nd-no" th:if="${pno}" th:text="${pno}">R26BK8000404</span>
+      </div>
     </div>
-    <div class="row">
-      <span class="pill" th:classappend="${notice.stepPillClass}" th:text="${notice.pbancStepNm}">입찰공고</span>
-      <a class="btn sm" th:if="${notice.sourceUrl}" th:href="${notice.sourceUrl}"
-         target="_blank" rel="noopener noreferrer">나라장터 원문</a>
+    <div class="nd-head-acts">
+      <!-- 참여 확정 뒤 제안팀원(결정한 팀장 포함)은 바로 제안 업무로 넘어간다 -->
+      <a class="btn primary" th:if="${joinedAfter and @accessChecker.isProposalMember(notice.pbancSn, #authentication.principal)}"
+         th:href="@{/proposal(bid=${notice.pbancSn})}">제안 업무 열기</a>
+      <a class="btn" th:if="${notice.sourceUrl}" th:href="${notice.sourceUrl}"
+         target="_blank" rel="noopener noreferrer">나라장터 공고 보기</a>
     </div>
-  </div>
+  </section>
 
-  <!-- 배정·결정 결과 -->
-  <div class="banner ok" th:if="${teamMessage}" th:text="${teamMessage}">배정했습니다</div>
-  <div class="banner warn" th:if="${teamError}" th:text="${teamError}">주관 팀을 고르세요</div>
+  <!-- 11/05 안내 블록(색 띠)을 모두 없앴다. 상태는 머리 카드 진행 상태 배지로(돌아온 공고 배지도 11/05 뺐다), 처리 결과·실패 이유는 오른쪽 아래 작은 알림(scripts)으로,
+       [제안 업무 열기]는 머리 카드 오른쪽으로 옮겼다. 돌아온 사유·누가 했는지는 진행 이력에 있다. -->
 
-  <div class="two">
+  <!-- nd-page: 이 화면 카드 제목 아래 2px 회색 줄 (bid.css) -->
+  <div class="two nd-page">
     <div class="col">
 
-      <!-- 공고 정보 (FR-035) -->
-      <div class="card">
-        <div class="card-head"><h3>공고 정보</h3></div>
-        <div class="info-grid">
-          <div>
-            <div class="k">공고 단계</div>
-            <div class="v" th:text="${notice.pbancStepNm} + (${notice.correctionCnt > 0} ? ' · 정정 ' + ${notice.correctionCnt} + '회' : '')">입찰공고</div>
-          </div>
-          <div th:if="${notice.trckSttsNm != null and !notice.bidNoticeOrLater}">
-            <div class="k">추적 상태</div>
-            <div class="v" th:text="${notice.trckSttsNm}">입찰공고 대기</div>
-          </div>
-          <div>
-            <div class="k">공고 종류</div>
-            <div class="v" th:text="${notice.pbancTypeNm ?: '-'}">일반공고</div>
-          </div>
-          <div>
-            <div class="k">진행 상태</div>
-            <div class="v" th:text="${notice.progressNm}">배정 전</div>
-          </div>
+      <!-- 공고 정보 (FR-035). 공문서식 표 모양. 있을 때만 나오는 칸이 있어 표 대신 4칸 격자(항목·값·항목·값)다 -->
+      <section class="card nd-info-card">
+        <div class="nd-title">공고 정보</div>
+        <div class="nd-info">
           <!--/* 공고 목록과 같은 값이다. 수요기관이 없으면 발주기관을 보여 준다 (11/05) */-->
           <div>
             <div class="k">수요기관</div>
             <div class="v" th:text="${notice.instNm ?: '-'}">수요기관</div>
           </div>
           <div>
-            <div class="k">참여 형태</div>
-            <div class="v" th:text="${notice.ptcpShpNm ?: '미지정'}">주관</div>
+            <div class="k">진행 상태</div>
+            <div class="v" th:text="${notice.progressNm}">배정 전</div>
+          </div>
+          <div th:if="${notice.trckSttsNm != null and !notice.bidNoticeOrLater}">
+            <div class="k">추적 상태</div>
+            <div class="v" th:text="${notice.trckSttsNm}">입찰공고 대기</div>
           </div>
           <div>
             <div class="k">사업 예산</div>
-            <div class="v mono" th:text="${notice.budgetWonText}">0원</div>
+            <div class="v b" th:text="${notice.budgetWonText}">0원</div>
+          </div>
+          <div>
+            <div class="k">공고 종류</div>
+            <div class="v" th:text="${notice.pbancTypeNm ?: '-'}">일반공고</div>
           </div>
           <!--/* 의견등록 마감은 사전규격 단계에서만 보인다. 입찰공고부터는 제출 마감만 보인다 (11/04). DB 값은 그대로 둔다 */-->
           <div class="key" th:if="${notice.preSpec and notice.opnnDdlnDt != null}">
             <div class="k">의견등록 마감</div>
-            <div class="v mono" th:text="|${#dates.format(notice.opnnDdlnDt, 'yyyy-MM-dd HH:mm')} (${notice.keyDdlnDdayText})|">2026-10-20 18:00 (D-3)</div>
+            <div class="v" th:text="|${#dates.format(notice.opnnDdlnDt, 'yyyy-MM-dd HH:mm')} (${notice.keyDdlnDdayText})|">2026-10-20 18:00 (D-3)</div>
           </div>
           <div th:classappend="${notice.keyDdlnDt != null and !notice.preSpec} ? 'key'">
             <div class="k">제출 마감</div>
-            <div class="v mono" th:if="${notice.bidDdlnDt}"
+            <div class="v b" th:if="${notice.bidDdlnDt}"
                  th:text="|${#dates.format(notice.bidDdlnDt, 'yyyy-MM-dd HH:mm')} (${notice.ddlnDdayText})|">2026-11-05 10:00 (D-9)</div>
             <div class="v" th:unless="${notice.bidDdlnDt}">-</div>
           </div>
           <div th:if="${notice.opengDt}">
-            <div class="k">개찰일시</div>
-            <div class="v mono" th:text="${#dates.format(notice.opengDt, 'yyyy-MM-dd HH:mm')}">2026-11-05 11:00</div>
+            <div class="k">개찰 일시</div>
+            <div class="v" th:text="${#dates.format(notice.opengDt, 'yyyy-MM-dd HH:mm')}">2026-11-05 11:00</div>
           </div>
           <!-- 평가 방식 = API 낙찰방법(sucsfbidMthdNm). 협상에 의한 계약이면 기술:가격 비율을 붙인다. -->
           <div>
@@ -107,34 +118,60 @@
             <div class="v" th:text="|${notice.lmtPageCnt}쪽|">150쪽</div>
           </div>
           <div>
+            <div class="k">주관 팀 · 참여 형태</div>
+            <div class="v b" th:if="${notice.sprvsnTeamNm}"
+                 th:text="${notice.sprvsnTeamNm} + (${notice.ptcpShpNm} != null ? ' · ' + ${notice.ptcpShpNm} : '')">공공사업1Div · 주관</div>
+            <div class="v faint" th:unless="${notice.sprvsnTeamNm}">미배정</div>
+          </div>
+          <div>
             <div class="k">등록</div>
             <div class="v" th:text="|${notice.rgtrNm ?: '-'} · ${#dates.format(notice.regDt, 'yyyy-MM-dd')}|">박서연 · 2026-10-01</div>
           </div>
-        </div>
-      </div>
-
-      <!-- 사업 내용. 나라장터 API 가 주는 사업 설명 항목 중 값이 있는 것만 보여 준다.
-           사업 목적·과업 범위 같은 서술은 API 에 없어 첨부 문서(과업지시서·제안요청서)로 안내한다. -->
-      <div class="card">
-        <div class="card-head"><h3>사업 내용</h3></div>
-        <div class="info-grid" th:unless="${#lists.isEmpty(notice.bizInfos)}">
+          <!-- 사업 내용 (11/05 공고 정보에 합침). 나라장터 API 가 주는 사업 설명 항목 중 값이 있는 것만 이어 붙인다.
+               사업 목적·과업 범위 같은 서술은 API 에 없어 첨부 문서(과업지시서·제안요청서)로 안내한다. -->
           <div th:each="info : ${notice.bizInfos}">
             <div class="k" th:text="${info.label}">사업 분야</div>
             <div class="v" th:text="${info.value}">연구조사서비스</div>
           </div>
         </div>
-        <div class="empty" th:if="${#lists.isEmpty(notice.bizInfos)}">나라장터에서 받은 사업 정보가 없습니다.</div>
-      </div>
+      </section>
+
+      <!-- 제안팀 (11/03). 참여 팀·제안팀원은 제안 업무의 제안팀 구성에서 정한다. 하나라도 정해진 뒤에만 보인다. 읽기 전용.
+           제안팀원은 '이름 · 팀' 이 쉼표로 이어진 글자라 나눠서 칩으로 보여 준다. 동명이인이 있어 팀을 같이 쓴다 -->
+      <section class="card" th:if="${notice.proposalTeamFormed}">
+        <div class="card-head">
+          <h3>제안팀</h3>
+        </div>
+        <div class="pad nd-team">
+          <div th:if="${notice.joinTeamNms}">
+            <div class="lbl">참여 팀</div>
+            <div class="nd-team-v" th:text="${notice.joinTeamNms}">개발2팀</div>
+          </div>
+          <div th:if="${notice.prpTmmbrNms}">
+            <ul class="nd-chips">
+              <li th:each="m : ${#strings.arraySplit(notice.prpTmmbrNms, ',')}" th:with="m=${#strings.trim(m)}">
+                <th:block th:if="${#strings.contains(m, ' · ')}">
+                  <b th:text="${#strings.substringBefore(m, ' · ')}">김가희</b>
+                  <span th:text="${#strings.substringAfter(m, ' · ')}">공공사업1Div</span>
+                </th:block>
+                <b th:unless="${#strings.contains(m, ' · ')}" th:text="${m}">김가희</b>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
 
       <!-- 단계 전환·정정 때 바뀐 값 (FR-035-1). 수집이 두 번 이상이어야 나온다. -->
-      <div class="card" th:if="${notice.stageChange}" th:with="chg=${notice.stageChange}">
+      <section class="card" th:if="${notice.stageChange}" th:with="chg=${notice.stageChange}">
         <div class="card-head">
           <h3>변경 내용</h3>
-          <span class="faint" style="font-size:11.5px"
+          <span class="faint fs-11_5"
                 th:text="${chg.changedCnt > 0} ? |바뀐 항목 ${chg.changedCnt}개| : '바뀐 값 없음'">바뀐 항목 1개</span>
         </div>
+        <!-- 공고 정보와 같은 표 모양 (11/05). 항목 칸·머리 줄은 회색 바탕, 칸 사이 세로선 -->
         <div class="ts">
-          <table>
+          <table class="nd-chg">
+            <colgroup><col class="c-item"><col><col><col class="c-tag"></colgroup>
             <thead>
               <tr>
                 <th>항목</th>
@@ -153,7 +190,7 @@
             </thead>
             <tbody>
               <tr th:each="item : ${chg.items}">
-                <td class="muted" th:text="${item.itemNm}">예산</td>
+                <th scope="row" th:text="${item.itemNm}">예산</th>
                 <td th:classappend="${item.changed} ? '' : 'muted'" th:text="${item.before ?: '-'}">700,000,000원</td>
                 <td>
                   <b th:if="${item.changed}" th:text="${item.after}">760,000,000원</b>
@@ -165,65 +202,38 @@
             </tbody>
           </table>
         </div>
-      </div>
-
-      <!-- 단계 이력 (FR-035). 공고수집이력 오래된 순. 첫 줄은 등록할 때 받은 값이다. -->
-      <div class="card">
-        <div class="card-head"><h3>단계 이력</h3></div>
-        <div class="tl" th:unless="${#lists.isEmpty(notice.stageHistories)}">
-          <div class="it" th:each="h, st : ${notice.stageHistories}">
-            <span class="at" th:text="${h.clctDt != null} ? ${#temporals.format(h.clctDt, 'MM-dd HH:mm')} : '-'">10-16 08:09</span>
-            <span>
-              <b th:text="${h.pbancStepNm}">입찰공고</b>
-              <span class="mono" th:text="${h.pbancNo}">R26BK00000000</span>
-              <span th:if="${h.bidPbancCycl != null and h.bidPbancCycl > 0}" th:text="|· ${h.bidPbancCycl}차|">· 1차</span>
-              <span th:if="${h.pbancTypeNm}" th:text="|· ${h.pbancTypeNm}|">· 일반공고</span>
-              <span class="faint" th:text="${st.first} ? '· 등록' : '· 수집'">· 수집</span>
-            </span>
-          </div>
-        </div>
-        <div class="empty" th:if="${#lists.isEmpty(notice.stageHistories)}">수집 이력이 없습니다.</div>
-      </div>
+      </section>
 
       <!-- 제안요청서 · 첨부파일 (FR-036). 등록·단계 전환 때 받아 둔 TB_ATCH_FILE 목록이다.
            파일은 받아 두지 않고 나라장터 내려받기 주소로 바로 보낸다. 파싱하지 않는다.
            입찰공고 첨부(공고서·과업지시서·e발주 첨부)와 사전규격 규격서를 나눠 보여 준다. -->
-      <div class="card">
-        <div class="card-head">
-          <h3>첨부파일</h3>
+      <section class="card">
+        <div class="card-head"><h3>첨부파일</h3></div>
+
+        <div class="item nd-file" th:each="f : ${notice.bidFiles}">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4"/></svg>
+          <div class="nd-file-txt">
+            <b th:text="${f.orgnlFileNm}">[제안요청서] 사업.hwpx</b>
+            <div class="faint fs-11_5">
+              <span th:text="${f.format} + (${f.sizeText} != null ? ' · ' + ${f.sizeText} : '')">HWPX · 417KB</span>
+              <span class="pill accent" th:if="${f.rfp}">제안요청서</span>
+            </div>
+          </div>
+          <a class="ico" title="내려받기" aria-label="내려받기" th:href="${f.orgnlUrl}" target="_blank" rel="noopener noreferrer"><span class="ic ic-download"></span></a>
         </div>
 
-        <th:block th:unless="${#lists.isEmpty(notice.bidFiles)}">
-          
-          <div class="item" th:each="f : ${notice.bidFiles}">
-            <div>
-              <b th:text="${f.orgnlFileNm}">[제안요청서] 사업.hwpx</b>
-              <div class="faint" style="font-size:11.5px">
-                <span th:text="${f.format} + (${f.sizeText} != null ? ' · ' + ${f.sizeText} : '')">HWPX · 417KB</span>
-                <span class="pill accent" th:if="${f.rfp}">제안요청서</span>
-              </div>
-            </div>
-            <span class="t">
-              <a class="ico" title="내려받기" aria-label="내려받기" th:href="${f.orgnlUrl}" target="_blank" rel="noopener noreferrer"><span class="ic ic-download"></span></a>
-            </span>
-          </div>
-        </th:block>
-
         <!-- 사전규격 규격서. 제안요청서 초안이 들어 있는 경우가 많다(실측 21건 중 17건). 입찰공고 때 바뀔 수 있다. -->
-        <th:block th:unless="${#lists.isEmpty(notice.preSpecFiles)}">
-          <div class="item" th:each="f : ${notice.preSpecFiles}">
-            <div>
-              <b th:text="${f.orgnlFileNm}">제안요청서(안).hwpx</b>
-              <div class="faint" style="font-size:11.5px">
-                <span th:text="${f.format} + (${f.sizeText} != null ? ' · ' + ${f.sizeText} : '')">HWPX · 3.3MB</span>
-                <span class="pill neutral" th:if="${f.rfp}">제안요청서 초안</span>
-              </div>
+        <div class="item nd-file" th:each="f : ${notice.preSpecFiles}">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4"/></svg>
+          <div class="nd-file-txt">
+            <b th:text="${f.orgnlFileNm}">제안요청서(안).hwpx</b>
+            <div class="faint fs-11_5">
+              <span th:text="${f.format} + (${f.sizeText} != null ? ' · ' + ${f.sizeText} : '')">HWPX · 3.3MB</span>
+              <span class="pill neutral" th:if="${f.rfp}">제안요청서 초안</span>
             </div>
-            <span class="t">
-              <a class="ico" title="내려받기" aria-label="내려받기" th:href="${f.orgnlUrl}" target="_blank" rel="noopener noreferrer"><span class="ic ic-download"></span></a>
-            </span>
           </div>
-        </th:block>
+          <a class="ico" title="내려받기" aria-label="내려받기" th:href="${f.orgnlUrl}" target="_blank" rel="noopener noreferrer"><span class="ic ic-download"></span></a>
+        </div>
 
         <div class="empty" th:if="${#lists.isEmpty(notice.atchFiles)}"
              th:switch="${notice.pbancStepCd != null ? notice.pbancStepCd.trim() : ''}">
@@ -239,187 +249,193 @@
           <th:block th:case="*">
             첨부파일 정보가 없습니다.
             <th:block th:if="${notice.sourceUrl}">
-              <a class="link" th:href="${notice.sourceUrl}" target="_blank" rel="noopener noreferrer">나라장터 원문</a>에서 확인하세요.
+              <a class="link" th:href="${notice.sourceUrl}" target="_blank" rel="noopener noreferrer">나라장터 원문</a>에서 확인해 주세요.
             </th:block>
           </th:block>
         </div>
-      </div>
+      </section>
 
     </div>
 
     <div class="col">
 
-      <!-- 담당 팀 (FR-037, FR-024). 영업부는 이 카드에서 주관 팀과 참여 형태를 정한다. 배정하는 곳은 공고 상세 한 곳뿐이다.
-           참여 팀은 제안팀 구성에서 정하므로 이 카드에서 뺐다 (11/03). 정해지면 아래 제안팀 카드에 나온다. -->
-      <div class="card">
-        <div class="card-head"><h3>담당 팀</h3></div>
-        <div class="info-grid">
-          <div>
-            <div class="k">주관 팀</div>
-            <div class="v" th:if="${notice.sprvsnTeamNm}" th:text="${notice.sprvsnTeamNm}">개발1팀</div>
-            <div class="v faint" th:unless="${notice.sprvsnTeamNm}">미배정</div>
+      <!-- 영업부: 배정·재배정 (FR-037, FR-024). 배정하는 곳은 공고 상세 한 곳뿐이다. 신규·배정 완료일 때만.
+           참여 팀은 제안팀 구성에서 정한다 (11/03). -->
+      <th:block sec:authorize="hasRole('SALES')">
+        <section class="card nd-act" th:if="${notice.assignable}">
+          <div class="card-head">
+            <h3 th:text="${notice.sprvsnTeamSn == null and !notice.returned} ? '팀 배정' : '재배정'">팀 배정</h3>
           </div>
-        </div>
-        <div class="pad" style="padding-top:0" th:if="${notice.returned}">
-          <!-- 팀이 불참하거나 중도 철회해 영업부로 돌아온 공고. 진행상태는 배정 전이고, 왜 돌아왔는지만 알려 준다 (11/03 '반환' 표현은 뺐다) -->
-          <div class="banner warn" th:text="|담당 팀이 ${notice.rtrnSeNm}해 영업부로 돌아온 공고입니다. 다른 팀에 재배정하거나 불참으로 종결합니다.|">담당 팀이 불참해 영업부로 돌아온 공고입니다.</div>
-        </div>
-
-        <!-- 영업부: 배정·재배정 (신규·배정 완료일 때만). 팀장이 결정한 뒤에는 바꿀 수 없다. -->
-        <th:block sec:authorize="hasRole('SALES')">
-          <div class="pad" style="padding-top:0;display:flex;flex-direction:column;gap:12px" th:if="${notice.assignable}">
-            <div class="banner warn" th:if="${notice.assignBlockReason}" th:text="${notice.assignBlockReason}">취소된 공고라 배정할 수 없습니다.</div>
+          <div class="pad nd-act-body">
+            <p class="nd-block" th:if="${notice.assignBlockReason}" th:text="${notice.assignBlockReason}">취소된 공고라 배정할 수 없습니다.</p>
             <form method="post" th:action="@{/notices/{sn}/assign(sn=${notice.pbancSn})}" th:unless="${notice.assignBlockReason}"
-                  style="display:flex;flex-direction:column;gap:10px">
-              <div class="grid2">
-                <div class="fld">
-                  <label for="as-team">주관 팀</label>
-                  <select id="as-team" name="teamSn" required>
-                    <option value="">선택</option>
-                    <option th:each="t : ${teamOptions}" th:value="${t.teamSn}" th:text="${t.label}"
-                            th:selected="${t.teamSn == notice.sprvsnTeamSn}">개발1팀 (팀장 김가희)</option>
-                  </select>
-                </div>
-                <div class="fld">
-                  <label for="as-part">참여 형태</label>
-                  <select id="as-part" name="ptcpShpCd">
-                    <option value="">미지정</option>
-                    <option th:each="c : ${ptcpShpOptions}" th:value="${c.cd}" th:text="${c.cdNm}"
-                            th:selected="${notice.ptcpShpCd != null and c.cd == notice.ptcpShpCd}">주관</option>
-                  </select>
-                </div>
-              </div>
-              <div class="row" style="justify-content:flex-end">
-                <button class="btn sm primary" type="submit"
-                        th:text="${notice.sprvsnTeamSn == null and !notice.returned} ? '배정' : '재배정'">배정</button>
-              </div>
-            </form>
-            <!-- 다른 팀에도 맡기지 않을 때. 신규 공고만이다. -->
-            <form method="post" th:action="@{/notices/{sn}/close(sn=${notice.pbancSn})}" th:if="${notice.closable}"
-                  style="display:flex;flex-direction:column;gap:10px">
+                  class="nd-act-body">
               <div class="fld">
-                <label for="as-skip">불참 처리 사유 (다른 팀에도 맡기지 않을 때)</label>
+                <label for="as-team">주관 팀 <span class="nd-req">*</span></label>
+                <select id="as-team" name="teamSn" required>
+                  <option value="">선택</option>
+                  <option th:each="t : ${teamOptions}" th:value="${t.teamSn}" th:text="${t.label}"
+                          th:selected="${t.teamSn == notice.sprvsnTeamSn}">개발1팀 (팀장 김가희)</option>
+                </select>
+              </div>
+              <div class="fld">
+                <label for="as-part">참여 형태</label>
+                <select id="as-part" name="ptcpShpCd">
+                  <option value="">미지정</option>
+                  <option th:each="c : ${ptcpShpOptions}" th:value="${c.cd}" th:text="${c.cdNm}"
+                          th:selected="${notice.ptcpShpCd != null and c.cd == notice.ptcpShpCd}">주관</option>
+                </select>
+              </div>
+              <p class="nd-hint">배정하면 그 팀 팀장에게 알림이 가고, 팀장이 참여 여부를 결정합니다.</p>
+              <button class="btn primary nd-big" type="submit"
+                      th:text="${notice.sprvsnTeamSn == null and !notice.returned} ? '배정' : '재배정'">배정</button>
+            </form>
+          </div>
+          <!-- 다른 팀에도 맡기지 않을 때. 신규 공고만이다. 실수로 누르지 않게 접어 둔다 -->
+          <details class="nd-fold" th:if="${notice.closable}" th:open="${closeReason != null}">
+            <summary th:text="${notice.deletable} ? '어느 팀에도 맡기지 않기 · 공고 삭제' : '맡을 팀이 없으면 · 불참으로 종결'">어느 팀에도 맡기지 않기</summary>
+            <form method="post" th:action="@{/notices/{sn}/close(sn=${notice.pbancSn})}" class="nd-act-body">
+              <div class="fld">
+                <label for="as-skip">불참 처리 사유 <span class="nd-req">*</span></label>
                 <textarea id="as-skip" name="reason" rows="2" maxlength="1000" th:text="${closeReason}"></textarea>
               </div>
-              <div class="row" style="justify-content:flex-end">
-                <button class="btn sm danger" type="submit"
+              <div class="row jc-end">
+                <button class="btn danger" type="submit"
                         data-confirm="불참으로 종결하면 이 공고는 더 배정할 수 없습니다. 종결할까요?">불참 종결</button>
                 <!--/* 잘못 등록한 공고 삭제 (11/02). 팀에 한 번도 맡기지 않은 신규 공고만. 불참 종결과 한 줄에 두지만 삭제 주소로 보낸다(formaction) */-->
-                <button class="btn sm danger" type="submit" th:if="${notice.deletable}"
+                <button class="btn danger" type="submit" th:if="${notice.deletable}"
                         th:formaction="@{/notices/{sn}/delete(sn=${notice.pbancSn})}"
                         data-confirm="이 공고를 삭제합니다. 수집 이력·첨부 목록·관련 알림도 함께 지워지고 되돌릴 수 없습니다. 삭제할까요?">공고 삭제</button>
               </div>
             </form>
+          </details>
+        </section>
+      </th:block>
 
-          </div>
-          <div class="pad faint" style="padding-top:0;font-size:11.5px" th:unless="${notice.assignable}"
-               th:text="|${notice.progressNm} 상태에서는 배정을 바꿀 수 없습니다. 팀에서 철회하면 영업부로 돌아옵니다.|">제안 작성 상태에서는 배정을 바꿀 수 없습니다.</div>
-        </th:block>
-      </div>
-
-      <!-- 제안팀 (11/03). 참여 팀·제안팀원은 제안 업무의 제안팀 구성에서 정한다. 하나라도 정해진 뒤에만 보인다. 읽기 전용. -->
-      <div class="card" th:if="${notice.proposalTeamFormed}">
+      <!-- 참여 결정 (FR-038~040). 팀 단위 화면이라 배정된 팀의 팀장에게만, 결정 대기일 때만 보인다 (FR-039).
+           결정한 뒤의 결과(참여 확정·불참 종결·유찰)는 머리 카드 진행 상태 배지에 나온다. -->
+      <section class="card nd-act" th:if="${canDecide}">
         <div class="card-head">
-          <h3>제안팀</h3>
-          <span class="faint" style="font-size:11.5px">제안팀 구성에서 정합니다</span>
+          <h3>참여 결정</h3>
         </div>
-        <div class="info-grid">
-          <div th:if="${notice.joinTeamNms}" style="grid-column:1 / -1">
-            <div class="k">참여 팀</div>
-            <div class="v" th:text="${notice.joinTeamNms}">개발2팀</div>
-          </div>
-          <div th:if="${notice.prpTmmbrNms}" style="grid-column:1 / -1">
-            <div class="k">제안팀원</div>
-            <div class="v" th:text="${notice.prpTmmbrNms}">김가희 · 개발1팀, 이도윤 · 개발2팀</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 참여 결정 (FR-038~040). 팀 단위 화면이라 배정된 팀의 팀장에게만 보인다 (FR-039).
-           영업부·경영지원실·다른 팀 팀장에게는 카드가 없고, 머리의 상태 표시와 담당 팀 카드로 진행을 본다.
-           팀이 배정되지 않은 공고(배정 전)는 배정된 팀이 없으니 아무에게도 보이지 않는다. -->
-      <div class="card" th:if="${assignedLeader}">
-        <div class="card-head"><h3>참여 결정 (팀장)</h3></div>
-        <div class="pad" style="display:flex;flex-direction:column;gap:10px">
-          <th:block th:if="${canDecide}">
-            <div class="banner warn" th:if="${notice.decideBlockReason}" th:text="${notice.decideBlockReason}">아직 사전규격 단계입니다.</div>
-            <div class="banner warn" th:if="${notice.decideBlockReason == null and notice.canceled}">취소된 공고라 참여할 수 없습니다. 불참으로 영업부에 돌려주세요.</div>
-            <form method="post" th:action="@{/notices/{sn}/decision(sn=${notice.pbancSn})}"
-                  style="display:flex;flex-direction:column;gap:10px">
-              <div class="fld">
-                <label for="dc-note">결정 사유 (불참 시 필수)</label>
-                <textarea id="dc-note" name="reason" rows="3" maxlength="1000" th:text="${decideReason}"></textarea>
-              </div>
-              <div class="row">
-                <button class="btn sm primary" type="submit" name="result" value="join"
-                        th:disabled="${notice.decideBlockReason != null or notice.canceled}"
-                        data-confirm="참여를 확정합니다. 확정한 뒤에는 중도 철회로만 되돌릴 수 있습니다. 진행할까요?">참여</button>
-                <button class="btn sm danger" type="submit" name="result" value="decline"
-                        th:disabled="${notice.decideBlockReason != null}"
-                        data-confirm="불참하면 공고가 영업부로 돌아갑니다. 진행할까요?">불참</button>
-              </div>
-            </form>
-          </th:block>
-          <div class="banner warn" th:if="${notice.closedDeclined}">불참으로 종결된 공고입니다.</div>
-          <div class="banner warn" th:if="${notice.failedBid}"
-               th:text="'유찰된 공고입니다.' + (${notice.sprvsnTeamNm} != null ? ' 담당 팀 ' + ${notice.sprvsnTeamNm} : '')">유찰된 공고입니다.</div>
-          <!-- 참여 확정 뒤(제안 작성 중·제출 완료·결과 등록 포함) -->
-          <th:block th:unless="${notice.assignable or notice.closedDeclined or notice.failedBid}">
-            <div class="banner ok" th:text="|참여 확정 · 담당 팀 ${notice.sprvsnTeamNm ?: '-'}|">참여 확정 · 담당 팀 개발1팀</div>
-            <!-- 제안팀원(결정한 팀장 포함)은 바로 제안 업무로 넘어간다 -->
-            <div class="row" th:if="${@accessChecker.isProposalMember(notice.pbancSn, #authentication.principal)}">
-              <a class="btn sm" th:href="@{/proposal(bid=${notice.pbancSn})}">제안 업무 열기</a>
-              <span class="faint" style="font-size:11.5px">제안팀 구성·목차·요구사항</span>
+        <div class="pad nd-act-body">
+          <p class="nd-block" th:if="${notice.decideBlockReason}" th:text="${notice.decideBlockReason}">개찰이 끝난 공고라 결정할 수 없습니다.</p>
+          <p class="nd-block" th:if="${notice.decideBlockReason == null and notice.canceled}">취소된 공고라 참여할 수 없습니다. 불참으로 영업부에 돌려주세요.</p>
+          <form method="post" th:action="@{/notices/{sn}/decision(sn=${notice.pbancSn})}" class="nd-act-body">
+            <div class="fld">
+              <label for="dc-note">결정 사유 <span class="faint nd-opt">(불참이면 필수)</span></label>
+              <textarea id="dc-note" name="reason" rows="4" maxlength="1000" th:text="${decideReason}"
+                        placeholder="예) 유사 사업 수행 경험이 있고 인력 투입이 가능함"></textarea>
             </div>
-          </th:block>
+            <div class="nd-2btn">
+              <button class="btn danger nd-big nd-out" type="submit" name="result" value="decline"
+                      th:disabled="${notice.decideBlockReason != null}"
+                      data-confirm="불참하면 공고가 영업부로 돌아갑니다. 진행할까요?">불참</button>
+              <button class="btn primary nd-big" type="submit" name="result" value="join"
+                      th:disabled="${notice.decideBlockReason != null or notice.canceled}"
+                      data-confirm="참여를 확정합니다. 확정한 뒤에는 중도 철회로만 되돌릴 수 있습니다. 진행할까요?">참여</button>
+            </div>
+          </form>
         </div>
-      </div>
+      </section>
 
-      <!-- 중도 철회 (FR-042). 참여 확정·제안 작성 중일 때 배정된 팀의 팀장에게만 보인다. -->
-      <div class="card" th:if="${canWithdraw}">
-        <div class="card-head"><h3>중도 철회</h3></div>
-        <form class="pad" method="post" th:action="@{/notices/{sn}/withdraw(sn=${notice.pbancSn})}"
-              style="display:flex;flex-direction:column;gap:10px">
-          <div class="faint" style="font-size:11.5px">
-            철회하면 공고가 영업부로 넘어갑니다. 영업부가 확인 후 다른 팀에 재배정하거나 불참으로 종결합니다.
-            제안팀 인원·참여팀·목차 담당자 지정은 풀리고, 목차·요구사항·올린 파일은 남습니다.
-          </div>
+      <!-- 이력 (11/05 한 블록). 위: 진행 이력, 아래: 단계 이력
+           진행 이력 (FR-041) = 우리 회사 안의 처리. 배정·결정·철회를 누가·언제·어떤 사유로 했는지 시간순. 등록도 여기에 남는다.
+           맨 아래 점선 칸은 지금 누가 무엇을 할 차례인지 보여 준다 -->
+      <section class="card">
+        <div class="card-head"><h3>이력</h3></div>
+        <div class="nd-sub">진행 이력</div>
+        <ol class="nd-tl nd-scroll">
+          <li th:each="h : ${histories}"
+              th:classappend="${h.prcsSeNm != null and (#strings.contains(h.prcsSeNm, '불참') or #strings.contains(h.prcsSeNm, '철회'))} ? 'warn'">
+            <span class="nd-dot"></span>
+            <div>
+              <span class="at" th:text="${#dates.format(h.prcsDt, 'yyyy-MM-dd HH:mm')}">2026-11-02 08:10</span>
+              <b th:text="${h.prcsSeNm} + (${h.trgtTeamNm} != null ? ' · ' + ${h.trgtTeamNm} : '')">배정 · 공공사업1Div</b>
+              <span class="who">
+                <span th:text="${h.prcrNm ?: h.prcrId}">박서연</span><span th:if="${h.prcsRsn}" th:text="| · “${h.prcsRsn}”|"> · 사유</span>
+              </span>
+            </div>
+          </li>
+          <li class="next" th:if="${notice.awaitingDecision}">
+            <span class="nd-dot"></span>
+            <div><b>다음: 참여 결정</b><span class="who" th:text="|${notice.sprvsnTeamNm ?: '배정된 팀'} 팀장|">공공사업1Div 팀장</span></div>
+          </li>
+          <li class="next" th:if="${notice.assignable and !notice.awaitingDecision}">
+            <span class="nd-dot"></span>
+            <div>
+              <b th:text="${notice.returned} ? '다음: 재배정 또는 종결' : '다음: 팀 배정'">다음: 팀 배정</b>
+              <span class="who">영업부가 주관 팀을 정합니다</span>
+            </div>
+          </li>
+          <li class="next" th:if="${notice.withdrawable}">
+            <span class="nd-dot"></span>
+            <div>
+              <b>다음: 제안서 제출</b>
+              <span class="who" th:if="${notice.bidDdlnDt}" th:text="|마감 ${#dates.format(notice.bidDdlnDt, 'yyyy-MM-dd HH:mm')}|">마감 2026-11-26 10:00</span>
+            </div>
+          </li>
+        </ol>
+        <div class="empty" th:if="${#lists.isEmpty(histories) and !notice.assignable and !notice.withdrawable}">이력이 없습니다.</div>
+
+        <!-- 단계 이력 (FR-035) = 나라장터 쪽 공고 단계. 공고수집이력 오래된 순. 첫 줄은 등록할 때 받은 값이다. -->
+        <div class="nd-sub nd-sub-line">단계 이력</div>
+        <ol class="nd-tl nd-scroll" th:unless="${#lists.isEmpty(notice.stageHistories)}">
+          <li class="stage" th:each="h, st : ${notice.stageHistories}">
+            <span class="nd-dot"></span>
+            <div>
+              <span class="at" th:text="${h.clctDt != null} ? ${#temporals.format(h.clctDt, 'yyyy-MM-dd HH:mm')} : '-'">2026-10-16 08:09</span>
+              <b th:text="${h.pbancStepNm} + (${h.bidPbancCycl != null and h.bidPbancCycl > 0} ? ' · ' + ${h.bidPbancCycl} + '차' : '')">입찰공고 · 1차</b>
+              <span class="who">
+                <span th:text="${h.pbancNo}">R26BK00000000</span><span th:if="${h.pbancTypeNm}" th:text="| · ${h.pbancTypeNm}|"> · 일반공고</span><span th:text="${st.first} ? ' · 등록' : ' · 수집'"> · 수집</span>
+              </span>
+            </div>
+          </li>
+        </ol>
+        <div class="empty" th:if="${#lists.isEmpty(notice.stageHistories)}">수집 이력이 없습니다.</div>
+      </section>
+
+      <!-- 중도 철회 (FR-042). 참여 확정·제안 작성 중일 때 배정된 팀의 팀장에게만 보인다. 실수로 누르지 않게 접어 둔다 -->
+      <details class="card nd-fold nd-withdraw" th:if="${canWithdraw}" th:open="${withdrawReason != null}">
+        <summary>중도 철회</summary>
+        <form method="post" th:action="@{/notices/{sn}/withdraw(sn=${notice.pbancSn})}" class="nd-act-body">
           <div class="fld">
-            <label for="wd-note">철회 사유 (필수)</label>
+            <label for="wd-note">철회 사유 <span class="nd-req">*</span></label>
             <textarea id="wd-note" name="reason" rows="3" maxlength="1000" th:text="${withdrawReason}"></textarea>
           </div>
-          <div class="row">
-            <button class="btn sm danger" type="submit"
+          <div class="row jc-end">
+            <button class="btn danger" type="submit"
                     data-confirm="중도 철회하면 제안팀이 풀리고 공고가 영업부로 넘어갑니다. 진행할까요?">중도 철회 신청</button>
           </div>
         </form>
-      </div>
-
-      <!-- 배정·결정 이력 (FR-041). 누가·언제·어떤 사유로 했는지 시간순. 등록도 여기에 남는다. -->
-      <div class="card">
-        <div class="card-head"><h3>배정·결정 이력</h3></div>
-        <div class="tl" th:unless="${#lists.isEmpty(histories)}">
-          <div class="it" th:each="h : ${histories}">
-            <span class="at" th:text="${#dates.format(h.prcsDt, 'MM-dd HH:mm')}">10-16 08:09</span>
-            <span>
-              <b th:text="${h.prcsSeNm}">배정</b>
-              <span th:text="|· ${h.prcrNm ?: h.prcrId}|">· 박서연</span>
-              <span th:if="${h.trgtTeamNm}" th:text="|· ${h.trgtTeamNm}|">· 개발1팀</span>
-              <span class="muted" th:if="${h.prcsRsn}" th:text="|· ${h.prcsRsn}|">· 사유</span>
-            </span>
-          </div>
-        </div>
-        <div class="empty" th:if="${#lists.isEmpty(histories)}">이력이 없습니다.</div>
-      </div>
+      </details>
 
     </div>
   </div>
 
+  </th:block>
+
 </th:block>
 
 <th:block layout:fragment="scripts">
+  <!-- 배정·결정·철회 결과는 오른쪽 아래 작은 알림으로 (common.js showToast). 실패(teamError)는 빨간 알림으로 조금 더 오래 -->
+  <script th:if="${teamMessage != null or teamError != null}" th:inline="javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+      var ok = /*[[${teamMessage}]]*/ null;
+      var err = /*[[${teamError}]]*/ null;
+      if (!window.showToast) return;
+      if (err) window.showToast(err, 'err');
+      else if (ok) window.showToast(ok);
+    });
+  </script>
   <script>
-    // 되돌리기 어려운 처리(불참 종결·공고 삭제·참여·불참)는 한 번 더 묻는다.
+    // 이력은 오래된 순이라 최신·다음 할 일이 맨 아래다. 길어서 스크롤이 생기면 처음에 맨 아래를 보여 준다 (11/05)
+    document.querySelectorAll('.nd-scroll').forEach(function (el) {
+      el.scrollTop = el.scrollHeight;
+    });
+  </script>
+  <script>
+    // 되돌리기 어려운 처리(불참 종결·공고 삭제·참여·불참·중도 철회)는 한 번 더 묻는다.
     document.querySelectorAll('[data-confirm]').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         if (!window.confirm(btn.getAttribute('data-confirm'))) {

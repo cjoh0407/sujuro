@@ -91,7 +91,7 @@ public class DocServiceImpl implements DocService {
         requireOpen(pbancSn);
         String nm = name == null ? "" : name.trim();
         if (nm.isEmpty()) {
-            throw new BusinessException("서류명을 입력하세요.");
+            throw new BusinessException("서류명을 입력해 주세요.");
         }
         if (nm.length() > 100) {
             throw new BusinessException("서류명은 100자까지 입력할 수 있습니다.");
@@ -171,7 +171,7 @@ public class DocServiceImpl implements DocService {
         requireOpen(pbancSn);
         String nm = name == null ? "" : name.trim();
         if (nm.isEmpty()) {
-            throw new BusinessException("평가 항목 이름을 입력하세요.");
+            throw new BusinessException("평가 항목 이름을 입력해 주세요.");
         }
         if (nm.length() > ARTICLE_NAME_MAX) {
             throw new BusinessException("평가 항목 이름은 " + ARTICLE_NAME_MAX + "자까지 입력할 수 있습니다.");
@@ -180,10 +180,10 @@ public class DocServiceImpl implements DocService {
         try {
             scr = new BigDecimal(score == null ? "" : score.trim());
         } catch (NumberFormatException e) {
-            throw new BusinessException("배점은 숫자로 입력하세요.");
+            throw new BusinessException("배점은 숫자로 입력해 주세요.");
         }
         if (scr.signum() <= 0 || scr.compareTo(HUNDRED) > 0) {
-            throw new BusinessException("배점은 0보다 크고 100 이하로 입력하세요.");
+            throw new BusinessException("배점은 0보다 크고 100 이하로 입력해 주세요.");
         }
         if (scr.scale() > 3) {
             throw new BusinessException("배점은 소수점 아래 세 자리까지 입력할 수 있습니다.");
@@ -269,7 +269,7 @@ public class DocServiceImpl implements DocService {
             throw new BusinessException("준비되지 않은 필수 서류가 있습니다: " + String.join(", ", missing));
         }
         if (mapper.updateSubmitted(pbancSn, userId) == 0) {
-            throw new BusinessException("등록 완료 처리하지 못했습니다. 화면을 새로 고쳐 상태를 확인하세요.");
+            throw new BusinessException("등록 완료 처리하지 못했습니다. 화면을 새로 고쳐 상태를 확인해 주세요.");
         }
         historyService.record(pbancSn, ProcessType.REGISTERED_NARAJANGTER, userId);
         ProposalBidDto b = mapper.findBid(pbancSn);

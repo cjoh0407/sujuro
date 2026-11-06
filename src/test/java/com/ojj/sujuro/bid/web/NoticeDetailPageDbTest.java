@@ -125,10 +125,10 @@ class NoticeDetailPageDbTest {
         MockHttpSession sales = login(SALES);
         String form = closeForm(page(sales, sn), sn);
 
-        assertEquals(2, count(form, "class=\"btn sm danger\""), form);
-        assertTrue(form.matches("(?s).*<button class=\"btn sm danger\"[^>]*formaction=\"/notices/" + sn + "/delete\"[^>]*>공고 삭제</button>.*"), form);
+        assertEquals(2, count(form, "class=\"btn danger\""), form);
+        assertTrue(form.matches("(?s).*<button class=\"btn danger\"[^>]*formaction=\"/notices/" + sn + "/delete\"[^>]*>공고 삭제</button>.*"), form);
         // [불참 종결]은 폼 주소(/close)로 그대로 간다
-        assertTrue(form.matches("(?s).*<button class=\"btn sm danger\" type=\"submit\"\\s+data-confirm=\"[^\"]*\">불참 종결</button>.*"), form);
+        assertTrue(form.matches("(?s).*<button class=\"btn danger\" type=\"submit\"\\s+data-confirm=\"[^\"]*\">불참 종결</button>.*"), form);
 
         // 버튼이 보내는 주소로 보내면 정말 지워지고 불참으로 종결되지 않는다
         mvc.perform(post("/notices/" + sn + "/delete").session(sales).with(csrf()).param("reason", "입력돼 있던 사유"))

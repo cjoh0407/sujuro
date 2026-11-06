@@ -18,13 +18,13 @@
 <div class="usr">
 
   <!-- 초기 비밀번호 메일을 보내지 못했을 때만 비밀번호를 한 번 보여 준다. (FR-004, FR-008) 새로고침하면 사라진다. -->
-  <div class="banner err" th:if="${issued != null}" style="flex-direction:column;align-items:flex-start;gap:4px;margin-bottom:12px">
+  <div class="banner err gap-4 mb-12 u-flex-direction-column-align-items-flex-s" th:if="${issued != null}">
     <b th:text="|${issued.title} 이메일을 보내지 못했습니다.|">초기 비밀번호를 발급했습니다. 이메일을 보내지 못했습니다.</b>
     <span>사번 <b class="mono" th:text="${issued.empNo}">2026-0001</b> · 초기 비밀번호 <b class="mono" th:text="${issued.password}">Tmp!xxxx</b> · 계정 상태 "초기 비밀번호"</span>
-    <span style="font-size:11.5px">이 비밀번호를 직원에게 직접 전달해 주세요. 이 화면을 벗어나면 다시 볼 수 없습니다. 직원은 처음 로그인할 때 비밀번호를 바꿔야 합니다.</span>
+    <span class="fs-11_5">이 비밀번호를 직원에게 직접 전달해 주세요. 이 화면을 벗어나면 다시 볼 수 없습니다. 직원은 처음 로그인할 때 비밀번호를 바꿔야 합니다.</span>
   </div>
-  <div class="banner ok" th:if="${message != null}" th:text="${message}" style="margin-bottom:12px">처리했습니다.</div>
-  <div class="banner err" th:if="${error != null}" th:text="${error}" style="margin-bottom:12px">오류</div>
+  <div class="banner ok mb-12" th:if="${message != null}" th:text="${message}">처리했습니다.</div>
+  <div class="banner err mb-12" th:if="${error != null}" th:text="${error}">오류</div>
 
   <!-- 직원 목록 (FR-003). 페이지를 넘기지 않고 표 안에서 스크롤한다 -->
   <div class="card">
@@ -34,9 +34,9 @@
       </h3>
       <button class="btn sm primary" type="button" onclick="usrCreate()">+ 직원 등록</button>
     </div>
-    <div class="pad" style="padding-bottom:12px">
+    <div class="pad u-padding-bottom-12px">
       <form th:action="@{/users}" method="get" class="usr-filter">
-        <input type="text" name="keyword" th:value="${keyword}" placeholder="이름 또는 사번" style="width:200px">
+        <input type="text" name="keyword" th:value="${keyword}" placeholder="이름 또는 사번" class="w-200px">
         <select name="status">
           <option value="">계정 상태 전체</option>
           <option th:each="s : ${statuses}" th:value="${s.code}" th:text="${s.name}"
@@ -80,7 +80,7 @@
                     th:classappend="${u.active} ? 'success' : (${u.initial} ? 'warning' : (${u.inactive} ? 'neutral' : 'danger'))"
                     th:text="${u.acntSttsNm}">활성</span>
             </td>
-            <td class="muted" style="font-size:12px" th:text="${u.emlAddr ?: '-'}">name@company.com</td>
+            <td class="muted fs-12_5" th:text="${u.emlAddr ?: '-'}">name@company.com</td>
             <td>
               <div class="row">
                 <button class="btn sm" type="button" onclick="usrEdit(this)"
@@ -156,7 +156,7 @@
               </select>
             </div>
             <div class="fld" id="jbgdBox">
-              <label for="jbgdCd">직급 <span class="faint" style="font-weight:400">(영업부·경영지원실은 없음)</span></label>
+              <label for="jbgdCd">직급 <span class="faint fw-normal">(영업부·경영지원실은 없음)</span></label>
               <select id="jbgdCd" name="jbgdCd" required>
                 <option value="">선택</option>
                 <option th:each="r : ${ranks}" th:value="${r.code}" th:text="${r.name}"
@@ -171,7 +171,7 @@
               <input id="telno" name="telno" type="text" maxlength="13" placeholder="010-1234-5678" th:value="${form.telno}">
             </div>
             <div class="fld">
-              <label for="emlAddr">이메일 <span style="color:#d93025" title="필수">*</span></label>
+              <label for="emlAddr">이메일 <span class="c-danger" title="필수">*</span></label>
               <input id="emlAddr" name="emlAddr" type="email" maxlength="320" required placeholder="name@company.com" th:value="${form.emlAddr}">
             </div>
           </div>
@@ -208,7 +208,7 @@
         <h3 id="usrConfirmTitle" th:text="${pendingKind == 'move'} ? |${pendingUser.userNm} 님의 소속 팀을 바꿉니다| : |${pendingUser.userNm} 님을 비활성으로 바꿉니다|">확인</h3>
         <button type="button" class="icon-x" aria-label="닫기" onclick="usrClose(this)">×</button>
       </div>
-      <div class="pad" style="display:flex;flex-direction:column;gap:10px;font-size:12.5px">
+      <div class="pad stack-12 fs-12_5">
         <div>
           이 직원은 진행 중인 사업 <b th:text="${#lists.size(pendingProjects)}">2</b>건의 제안팀에 들어가 있습니다.
           <span th:text="${pendingKind == 'move'} ? '다른 팀으로 옮긴 뒤에도 이 사업들을 계속 맡게 둘지 정해 주세요.' : '퇴사한 직원이 담당자로 남지 않게 같이 빼는 것을 권합니다.'"></span>

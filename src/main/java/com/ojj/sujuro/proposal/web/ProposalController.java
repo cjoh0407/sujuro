@@ -175,10 +175,10 @@ public class ProposalController {
         return run(user, bid, tab, ra, accessChecker::requireLeadTeamMember, b -> () -> {
             if (tocFormNm != null && !tocFormNm.trim().isEmpty()) { // 새 이름을 줬으면 고른 양식을 그 이름으로 복사해서 가져온다
                 tocService.importFormAs(bid, se(tab), tocFormSn, tocFormNm, b.getSprvsnTeamSn(), user.getEmpNo());
-                return "'" + tocFormNm.trim().replaceAll("\\s+", " ") + "' 양식으로 복사해서 불러왔습니다. 이번 사업에 맞게 달라진 부분만 수정하세요.";
+                return "'" + tocFormNm.trim().replaceAll("\\s+", " ") + "' 양식으로 복사해서 불러왔습니다. 이번 사업에 맞게 달라진 부분만 수정해 주세요.";
             }
             tocService.importForm(bid, se(tab), tocFormSn, b.getSprvsnTeamSn());
-            return "목차 양식을 불러왔습니다. 이번 사업에 맞게 달라진 부분만 수정하세요. (목차 단계 제한 없음)";
+            return "목차 양식을 불러왔습니다. 이번 사업에 맞게 달라진 부분만 수정해 주세요. (목차 단계 제한 없음)";
         });
     }
 
@@ -233,7 +233,7 @@ public class ProposalController {
     public String resetSummary(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid, RedirectAttributes ra) {
         return run(user, bid, TAB_SUMMARY, ra, accessChecker::requireLeadTeamMember, b -> () -> {
             tocService.applySummaryDefault(bid, true);
-            return "제안요약서 목차를 기본 목차로 되돌렸습니다. 담당자는 다시 지정하세요.";
+            return "제안요약서 목차를 기본 목차로 되돌렸습니다. 담당자는 다시 지정해 주세요.";
         });
     }
 

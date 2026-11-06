@@ -497,12 +497,12 @@ class ResultEntryServiceImplTest {
 
     @Test
     void 평가표_입력이_틀리면_아무것도_지우지_않고_안내한다() {
-        assertEquals("평가위원 수는 1~20명으로 입력하세요.",
+        assertEquals("평가위원 수는 1~20명으로 입력해 주세요.",
                 message(() -> service.saveEvaluation(leader, 8L, null, form("0", row("전략", "15", "14")))));
-        assertEquals("평가 항목을 한 줄 이상 입력하세요.",
+        assertEquals("평가 항목을 한 줄 이상 입력해 주세요.",
                 message(() -> service.saveEvaluation(leader, 8L, null, form("1", row("", "", "")))));
         assertTrue(message(() -> service.saveEvaluation(leader, 8L, null, form("1", row("전략", "15", "16"))))
-                .endsWith("평가위원1 점수는 0~15(배점) 사이로 입력하세요."));
+                .endsWith("평가위원1 점수는 0~15(배점) 사이로 입력해 주세요."));
         assertTrue(message(() -> service.saveEvaluation(leader, 8L, null, form("2", row("전략", "15", "14", " "))))
                 .endsWith("평가위원2 점수 칸이 비었습니다."));
         assertEquals("같은 평가 항목 이름이 두 번 있습니다: 전략",

@@ -97,7 +97,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr class="hv" th:each="row : ${result.rows}">
+          <tr class="hv" th:each="row : ${result.rows}" data-row-link title="눌러서 공고 상세 보기">
             <!-- 번호: 공고 PK(PBANC_SN). 상세 주소 /notices/{번호} 와 같은 값이다. 옆의 공고번호는 나라장터 번호 -->
             <td class="mono faint" th:text="${row.pbancSn}">1</td>
             <td class="mono faint" th:text="${row.pbancNo}">R26BK00000000</td>

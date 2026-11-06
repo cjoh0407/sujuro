@@ -223,3 +223,30 @@
     if (el && el.form) { el.form.requestSubmit(); }
   });
 })();
+
+/* ---------- 표 줄 전체 클릭 (data-row-link) ----------
+   <tr data-row-link> 줄의 아무 데나 누르면 그 줄 안 첫 링크로 간다. 값을 주면 그 선택자의 링크 (예: data-row-link="a.sl").
+   줄 안의 버튼·입력칸·선택칸·링크를 직접 누른 경우와 글자를 드래그로 고른 경우는 건드리지 않는다.
+   Ctrl·Cmd·가운데 버튼은 새 탭으로 연다. */
+(function () {
+  function target(e) {
+    var row = e.target.closest && e.target.closest('tr[data-row-link]');
+    if (!row) return null;
+    if (e.target.closest('a, button, input, select, textarea, label, form')) return null;
+    var sel = window.getSelection && String(window.getSelection());
+    if (sel) return null;
+    return row.querySelector(row.getAttribute('data-row-link') || 'a[href]');
+  }
+  document.addEventListener('click', function (e) {
+    if (e.button !== 0) return;
+    var a = target(e);
+    if (!a) return;
+    if (e.ctrlKey || e.metaKey || e.shiftKey) { window.open(a.href, '_blank'); return; }
+    a.click();
+  });
+  document.addEventListener('auxclick', function (e) {
+    if (e.button !== 1) return;
+    var a = target(e);
+    if (a) window.open(a.href, '_blank');
+  });
+})();

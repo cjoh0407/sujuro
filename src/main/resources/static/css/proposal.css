@@ -291,12 +291,30 @@ main.content table.ref-table th.c-act{text-align:center}
 .menu-pop button.danger{color:var(--danger)}
 .menu-pop .ic{width:15px;height:15px}
 
-/* 미매핑 목록의 요구사항 이름: 누르면 왼쪽 칸에서 수정·삭제 */
-.rq-name{color:inherit;text-decoration:none;padding:3px 8px;border-radius:6px}
-.rq-name:hover,.rq-name:focus-visible{background:var(--alt);text-decoration:underline dotted;text-underline-offset:3px;outline:0}
-.rq-name.on{background:var(--accent-soft);color:var(--accent-s);font-weight:600}
+/* 미매핑 목록: 줄 전체를 누르면 왼쪽 칸에서 수정·삭제. 고른 줄은 파란 배경 */
+.rq-name{color:inherit;text-decoration:none}
+tr.rq-row{cursor:pointer}
+tr.rq-row.on>td{background:var(--accent-soft)}
 
 /* 왼쪽 칸의 요구사항 자동 추출: 업로드 칸 아래에 버튼을 오른쪽으로 */
 #rqExtractCard .drop-row{flex-direction:column;align-items:stretch}
 #rqExtractCard .drop-row>.drop:not(.sm){flex:none;width:100%}
 #rqExtractCard .drop-row>.btn{align-self:flex-end}
+
+/* 질의응답 왼쪽 칸: 보기 모드 (목록 줄을 누르면) */
+#qaView .qa-full{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--alt);font-size:12.5px;font-weight:400;color:var(--text);min-height:36px}
+#qaView .qa-grow .qa-full{flex:1;min-height:80px;max-height:none}
+#qaView .qa-full.faint{color:var(--faint)}
+#qaViewAct[hidden],#qaViewEmpty[hidden],#qaFormCancel[hidden],#qaClose[hidden],#qaDel[hidden]{display:none !important}
+#qaViewAct{gap:6px}
+.qa-row.on>td{background:var(--accent-soft)}
+
+/* 왼쪽 칸(인원 추가·파일 올리기·질의응답·요구사항) 머리글 높이를 같게: 오른쪽 버튼(닫기 등)이 있어도 바뀌지 않는다 */
+.split-l .card-head{height:50px;padding-top:0;padding-bottom:0;box-sizing:border-box;flex-wrap:nowrap}
+.split-l .card-head h3{font-size:13.5px;line-height:1.4}
+
+/* 게이지 위 제목 옆 숫자 (막대 안 글자 대신) */
+.gp-title{display:inline-flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.gp-num{font-size:12.5px;color:var(--muted)}
+.gp-num b{font-size:15px;font-weight:700;color:var(--text)}
+.gp-num.red b{color:var(--danger)}

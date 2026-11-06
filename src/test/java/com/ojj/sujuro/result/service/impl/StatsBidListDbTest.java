@@ -226,8 +226,8 @@ class StatsBidListDbTest {
         int info = page.indexOf("<h3>공고 기본 정보</h3>");
         int score = page.indexOf("<h3>점수</h3>");
         int article = page.indexOf("<h3>평가 항목별 점수</h3>");
-        int analysis = page.indexOf("<h3>장단점 분석</h3>");
-        assertTrue(info >= 0 && info < score && score < article && article < analysis, "공고 기본 정보, 점수, 평가 항목별 점수, 장단점 분석 순서입니다");
+        int analysis = page.indexOf("<h3>분석 기록</h3>");
+        assertTrue(info >= 0 && info < score && score < article && article < analysis, "공고 기본 정보, 점수, 평가 항목별 점수, 분석 기록 순서입니다");
         assertEquals(1, count(page, "class=\"two even\""));
         assertTrue(page.indexOf("class=\"two even\"") < info, "위 줄만 두 칸입니다");
         assertFalse(page.contains("제출 산출물"));
@@ -290,7 +290,7 @@ class StatsBidListDbTest {
     void 컨소시엄_참여는_점수가_없어_공고_기본_정보를_넓게_쓴다() throws Exception {
         String page = page(mgmt, "/bid-history?bid=" + won); // 가상 공고는 컨소시엄 참여다
         assertTrue(page.contains("<h3>공고 기본 정보</h3>"));
-        assertTrue(page.contains("<h3>장단점 분석</h3>"));
+        assertTrue(page.contains("<h3>분석 기록</h3>"));
         assertFalse(page.contains("<h3>점수</h3>"));
         assertFalse(page.contains("<h3>평가 항목별 점수</h3>"));
         assertFalse(page.contains("class=\"two even\""));

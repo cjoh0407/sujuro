@@ -318,8 +318,8 @@ class ResultEntryServiceImplTest {
     void 결과와_금액이_틀리면_저장하지_않는다() {
         when(resultMapper.findResultBid(5L)).thenReturn(manualBid(5L, "PS050", "PF020", "컨소시엄 참여"));
 
-        assertTrue(message(() -> service.saveManualResult(mgmt, 5L, manual("", null))).startsWith("결과를 수주나 탈락"));
-        assertTrue(message(() -> service.saveManualResult(mgmt, 5L, manual("BR099", null))).startsWith("결과를 수주나 탈락"));
+        assertTrue(message(() -> service.saveManualResult(mgmt, 5L, manual("", null))).startsWith("결과를 수주나 실주"));
+        assertTrue(message(() -> service.saveManualResult(mgmt, 5L, manual("BR099", null))).startsWith("결과를 수주나 실주"));
         assertTrue(message(() -> service.saveManualResult(mgmt, 5L, manual(ResultCode.WON, " "))).startsWith("수주하면 우리 회사가 받는 금액"));
         assertTrue(message(() -> service.saveManualResult(mgmt, 5L, manual(ResultCode.WON, "1.2억"))).startsWith("수주 금액은 원 단위"));
         assertTrue(message(() -> service.saveManualResult(mgmt, 5L, manual(ResultCode.WON, "0"))).startsWith("수주 금액은 원 단위"));
@@ -405,7 +405,7 @@ class ResultEntryServiceImplTest {
         service.saveAnalysis(leader, 8L, analysis(ok, null, null));
         verify(resultMapper).updateAnalysis(8L, ok, null, null, "2024-0031");
 
-        assertEquals("탈락·감점 원인은 한글 기준 1,300자까지 입력할 수 있습니다.",
+        assertEquals("실주·감점 원인은 한글 기준 1,300자까지 입력할 수 있습니다.",
                 message(() -> service.saveAnalysis(leader, 8L, analysis(null, repeat("가", 1334), null))));
     }
 

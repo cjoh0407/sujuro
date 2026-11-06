@@ -128,10 +128,10 @@ class ResultCollectServiceImplTest {
     }
 
     @Test
-    void 낙찰자가_다른_업체면_탈락이고_낙찰금액은_비운다() {
+    void 낙찰자가_다른_업체면_실주이고_낙찰금액은_비운다() {
         ResultOutcomeDTO out = service("3148187147").register(target());
 
-        assertEquals("결과 등록: 탈락 · 2위", out.getMessage());
+        assertEquals("결과 등록: 실주 · 2위", out.getMessage());
         BidRsltDTO r = captureResult();
         assertEquals("BR020", r.getBidRsltCd());
         assertEquals(2, r.getEvlRnk());

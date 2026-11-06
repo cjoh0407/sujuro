@@ -53,6 +53,7 @@ public class NoticeDetailServiceImpl implements NoticeDetailService {
         detail.setStageHistories(histories);
         detail.setStageChange(compareLastTwo(histories));
         detail.setAtchFiles(attachmentService.findFiles(pbancSn));
+        detail.setProposalMembers(bidNoticeMapper.findProposalMembers(pbancSn));
 
         JsonNode plan = latestItemOf(histories, BidCode.STEP_ORDER_PLAN);
         JsonNode spec = latestItemOf(histories, BidCode.STEP_PRE_SPEC);

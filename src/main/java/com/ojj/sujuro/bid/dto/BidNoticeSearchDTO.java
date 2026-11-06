@@ -5,9 +5,9 @@ import lombok.Setter;
 
 /**
  * 공고 목록의 검색 조건 (FR-017 ~ 020). 화면의 쿼리스트링을 그대로 받는다.
- * 예: /notices?stepCd=PP030&amp;searchBy=org&amp;keyword=행정안전부&amp;sort=recent&amp;page=2
+ * 예: /notices?stepCd=PP030&amp;searchBy=org&amp;keyword=행정안전부&amp;assign=unassigned&amp;page=2
  *
- * 정렬·검색 대상은 {@link #normalize()} 에서 허용된 값만 남긴다.
+ * 주관팀 배정 필터·검색 대상은 {@link #normalize()} 에서 허용된 값만 남긴다.
  * SQL 에서는 전부 #{} 로 넘기므로 값이 쿼리에 직접 끼어들지 않는다.
  */
 @Getter
@@ -22,16 +22,16 @@ public class BidNoticeSearchDTO {
     public static final String BY_NO = "no";     // 공고번호 (입찰공고번호 + 사전규격번호)
     public static final String BY_ORG = "org";   // 수요기관 (없으면 발주기관, 목록의 수요기관 칸과 같은 값)
 
-    /** 정렬 */
-    public static final String SORT_DEADLINE = "deadline"; // 마감일 빠른 순
-    public static final String SORT_RECENT = "recent";     // 최신 순 (등록 역순)
-    public static final String SORT_NO = "no";             // 번호 순 (PBANC_SN 오름차순, 목록의 번호 칸)
+    /** 주관팀 배정 필터 (11/06 정렬 드롭다운을 없애고 넣었다). 목록은 항상 최신 등록 순이다 */
+    public static final String ASSIGNED = "assigned";     // 주관팀 배정
+    public static final String UNASSIGNED = "unassigned"; // 미배정
 
     /** 공고단계코드 (PBSTP). 비어 있으면 전체 탭. 11/03 탭을 진행상태에서 공고단계로 바꿨다 */
     private String stepCd;
     private String searchBy = BY_NAME;
     private String keyword;
-    private String sort = SORT_DEADLINE;
+    /** 비어 있으면 전체 */
+    private String assign;
     private int page = 1;
 
     /** 허용되지 않는 값이 들어오면 기본값으로 되돌린다. 조회 전에 한 번 부른다. */
@@ -47,8 +47,8 @@ public class BidNoticeSearchDTO {
         if (!BY_NO.equals(searchBy) && !BY_ORG.equals(searchBy)) {
             searchBy = BY_NAME;
         }
-        if (!SORT_RECENT.equals(sort) && !SORT_NO.equals(sort)) {
-            sort = SORT_DEADLINE;
+        if (!ASSIGNED.equals(assign) && !UNASSIGNED.equals(assign)) {
+            assign = null;
         }
         if (page < 1) {
             page = 1;

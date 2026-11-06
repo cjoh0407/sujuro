@@ -14,6 +14,7 @@ import com.ojj.sujuro.bid.dto.CollectHistoryDTO;
 import com.ojj.sujuro.bid.dto.CollectLogDTO;
 import com.ojj.sujuro.bid.dto.CollectRunDTO;
 import com.ojj.sujuro.bid.dto.NoticeDetailDTO;
+import com.ojj.sujuro.bid.dto.NoticeMemberDTO;
 import com.ojj.sujuro.bid.dto.NoticeRegisterDTO;
 import com.ojj.sujuro.bid.dto.PreSpecLinkDTO;
 import com.ojj.sujuro.bid.dto.ProcessHistoryDTO;
@@ -40,6 +41,9 @@ public interface BidNoticeMapper {
 
     /** 공고 상세 한 건 (FR-035). 없으면 null */
     NoticeDetailDTO findDetail(Long pbancSn);
+
+    /** 공고 상세의 제안팀원. 주관팀 인원 먼저, 비활성 계정은 뺀다 */
+    List<NoticeMemberDTO> findProposalMembers(Long pbancSn);
 
     /** 공고수집이력, 오래된 순 (FR-035 단계 이력, FR-035-1 변경 비교). API 원문도 같이 읽는다. */
     List<CollectHistoryDTO> findCollectHistories(Long pbancSn);

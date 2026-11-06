@@ -8,10 +8,7 @@
   권한: MGMT 경영지원실 / SALES 영업부 / LEADER 팀장 / MEMBER 팀원
 */-->
 <aside class="sidebar" th:fragment="sidebar">
-  <a class="brand" th:href="@{/dashboard}">
-    <svg class="brand-logo" viewBox="0 0 64 64" width="32" height="32" aria-hidden="true"><path d="M46 14C22 8 18 29 32 32C46 35 42 56 18 50" fill="none" stroke="var(--logo-n)" stroke-width="8" stroke-linecap="round"/><circle cx="46" cy="14" r="6.5" fill="var(--logo-r)"/><circle cx="18" cy="50" r="6.5" fill="var(--logo-g)"/></svg>
-    <div><b>수주로</b></div>
-  </a>
+  <!--/* 로고는 11/06 멘토링에 따라 헤더(layout/default.html)로 옮겼다 */-->
 
   <nav class="nav" th:with="uri=${#httpServletRequest.requestURI}">
     <a th:href="@{/dashboard}" th:classappend="${#strings.startsWith(uri, '/dashboard')} ? 'on'">대시보드</a>

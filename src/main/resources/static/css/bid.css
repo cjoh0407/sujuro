@@ -7,7 +7,7 @@
    칸 너비 = 그 열 글자 너비 + --gap (11/04). 남는 너비를 열 수로 똑같이 나눠서 화면 너비와 상관없이 글자 사이 간격이 일정하다.
    글자 너비 합이 863px, 열이 10개다. 열을 바꾸면 --gap 과 min-width(863 + 28×10) 도 같이 바꾼다.
    모든 칸은 한 줄이고 넘치면 말줄임(…)한다. 공고명·수요기관·주관팀은 마우스를 올리면 전체가 보인다.
-   화면이 좁으면 표가 옆으로 넘어간다(.ts). 모든 열은 가운데 정렬이다 (11/04). */
+   화면이 좁으면 표가 옆으로 넘어간다(.ts). 공고명만 왼쪽, 나머지 열은 가운데 정렬이다 (11/04, 11/06). */
 .notice-wrap{container-type:inline-size}
 .notice-table{table-layout:fixed;min-width:1143px;--gap:max(28px,calc((100cqw - 863px) / 10))}
 .notice-table col.w-sn{width:calc(28px + var(--gap))}
@@ -23,6 +23,8 @@
 .notice-table th,.notice-table td{text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 공통 표는 마지막 줄 아래 선을 지우는데(common.css), 공고 목록은 아래에 페이지 번호 줄이 있어 선을 둔다 (11/04) */
 .notice-table tbody tr:last-child td{border-bottom:1px solid var(--border)}
+/* 공고명 칸은 왼쪽에 붙인다 (11/06) */
+.notice-table .c-name{text-align:left}
 
 /* 본문 버튼 크기는 대시보드의 [공고 관리](a.btn.sm, 68×30px)에 맞춘다 (11/05). 긴 문구는 잘리지 않게 폭은 최소값만 둔다.
    button 태그는 줄 높이가 달라 28px 이 되므로 물려받게 한다. 상단바 버튼은 모든 화면에서 같아야 해서 .content 로 한정한다 */
@@ -37,20 +39,21 @@
 .nl-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:auto}
 .nl-regist{width:260px;max-width:100%}
 
-/* 공고 목록 카드 머리의 밑줄 탭 (11/05). 고른 탭은 파란 글자 + 밑줄, 숫자는 작게 */
+/* 공고 목록 카드 머리의 밑줄 탭 (11/05). 고른 탭은 포인트 색 바탕 + 파란 글자 + 밑줄 (11/06 바탕 추가), 숫자는 작게.
+   바탕을 칠하려고 좌우 여백을 늘렸다. 글자 사이 간격(24px)은 그대로이고, 첫 탭 글자는 다른 카드 제목과 같은 위치다 */
 .nl-head{padding-top:0;padding-bottom:0}
-.ntabs{display:flex;flex-wrap:wrap;gap:0 20px}
-.ntab{display:inline-flex;align-items:baseline;gap:4px;padding:13px 2px 11px;margin-bottom:-1px;border-bottom:2px solid transparent;color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap}
+.ntabs{display:flex;flex-wrap:wrap;gap:0 4px;margin-left:-10px}
+.ntab{display:inline-flex;align-items:baseline;gap:4px;padding:13px 10px 11px;margin-bottom:-1px;border-bottom:2px solid transparent;color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap}
 .ntab .n{font-size:11.5px;color:var(--faint)}
-.ntab:hover{color:var(--text)}
-.ntab.on{color:var(--accent-s);border-bottom-color:var(--accent);font-weight:700}
+.ntab:hover{color:var(--text);background:var(--alt)}
+.ntab.on,.ntab.on:hover{color:var(--accent-s);background:var(--accent-soft);border-bottom-color:var(--accent);font-weight:700}
 .ntab.on .n{color:var(--accent-s)}
 
 /* 공고 목록 머리글 오른쪽의 마지막 수집. 줄이 좁아 아래로 내려가도 오른쪽에 붙는다 */
 .list-info{margin-left:auto;font-size:11.5px}
-/* 검색 줄: 왼쪽에 검색·정렬, 오른쪽에 공고 등록·[지금 수집] (영업부만) */
+/* 검색 줄: 왼쪽에 검색·필터, 오른쪽에 공고 등록·[지금 수집] (영업부만) */
 .search-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0}
-/* 검색 대상·검색어·정렬 칸은 옆 버튼과 같은 30px 이다. 기본 위아래 여백(7px)을 두면 글자가 잘려서 뺀다 */
+/* 검색 대상·검색어·필터 칸은 옆 버튼과 같은 30px 이다. 기본 위아래 여백(7px)을 두면 글자가 잘려서 뺀다 */
 .search-row select,.search-row input[type=text]{box-sizing:border-box;height:30px;padding-top:0;padding-bottom:0}
 
 /* 페이지 번호 줄: 번호는 가운데, 건수는 맨 오른쪽. 양옆 칸 너비가 같아서 건수가 있어도 번호가 치우치지 않는다.
@@ -119,8 +122,12 @@
 .nd-team-v{font-weight:600;font-size:13px}
 .nd-chips{list-style:none;margin:0;padding:0;display:flex;gap:6px;flex-wrap:wrap}
 .nd-chips li{display:flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border);border-radius:999px;font-size:13px}
-.nd-chips li b{font-weight:700}
+.nd-chips li b{font-weight:700;padding:1px 6px;border-radius:4px}
 .nd-chips li span{font-size:12px;color:var(--muted)}
+/* 제안팀 칩: 직급이 팀장인 사람은 이름에만 바탕색 (11/06). 이름 여백은 위의 .nd-chips li b 에 있어 모든 칩의 간격이 같다.
+   제목 줄 오른쪽 끝의 동그라미가 같은 색이다. 바탕색이 옅어 동그라미만으로는 카드 바탕과 구분되지 않아 테두리를 안쪽에 그린다 */
+.nd-chips li b.nd-leader{background:var(--accent-soft);color:var(--accent-s)}
+.nd-leader-dot{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent-s)}
 
 /* 첨부파일 한 줄: 아이콘 · 이름 · [내려받기] */
 /* 아이콘 자리는 참고자료(refs.css .ref-doc)와 같은 40×40, 가운데 정렬 */

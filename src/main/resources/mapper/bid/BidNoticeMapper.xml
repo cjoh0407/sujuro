@@ -17,6 +17,13 @@
       <if test="stepCd != null">
         AND P.PBANC_STEP_CD = #{stepCd}
       </if>
+      <!-- 주관팀 배정 필터 (11/06). 목록의 주관팀 칸과 같은 기준이다 -->
+      <if test="assign == 'assigned'">
+        AND P.SPRVSN_TEAM_SN IS NOT NULL
+      </if>
+      <if test="assign == 'unassigned'">
+        AND P.SPRVSN_TEAM_SN IS NULL
+      </if>
       <if test="keyword != null">
         <choose>
           <when test="searchBy == 'no'">
@@ -75,19 +82,8 @@
       FROM TB_BID_PBANC P
     <include refid="noticeJoins"/>
     <include refid="searchWhere"/>
-    <choose>
-      <!-- 최신 순은 등록 역순이다. 수집일시(CLCT_DT)는 정정이 날 때마다 바뀌어 목록 순서가 흔들린다. -->
-      <when test="sort == 'recent'">
-        ORDER BY P.REG_DT DESC, P.PBANC_SN DESC
-      </when>
-      <when test="sort == 'no'">
-        ORDER BY P.PBANC_SN ASC
-      </when>
-      <otherwise>
-        <!-- 사전규격은 아직 마감일이 없으므로 뒤로 보낸다. -->
-        ORDER BY P.BID_DDLN_DT ASC NULLS LAST, P.PBANC_SN ASC
-      </otherwise>
-    </choose>
+    <!-- 항상 최신 등록 순이다 (11/06 정렬 드롭다운을 없앴다). 수집일시(CLCT_DT)는 정정이 날 때마다 바뀌어 목록 순서가 흔들린다. -->
+    ORDER BY P.REG_DT DESC, P.PBANC_SN DESC
     OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
   </select>
 
@@ -132,23 +128,29 @@
            P.PBANC_DTL_URL                           AS pbancDtlUrl,
            P.SPRVSN_TEAM_SN                          AS sprvsnTeamSn,
            RGTR.USER_NM                              AS rgtrNm,
-           P.REG_DT                                  AS regDt,
+           P.REG_DT                                 AS regDt,
            P.CLCT_DT                                 AS clctDt,
-           P.LAST_CFMTN_DT                           AS lastCfmtnDt,
-           <!-- 제안팀원 (11/03). 제안 업무의 제안팀 구성에서 정한 인원. 주관팀 인원 먼저, 비활성(AS050) 계정은 뺀다 -->
-           ( SELECT LISTAGG(MU.USER_NM || NVL2(MT.TEAM_NM, ' · ' || MT.TEAM_NM, NULL), ', ')
-                      WITHIN GROUP (ORDER BY M.PTCP_SE_CD, MT.TEAM_NM, MU.USER_NM)
-               FROM TB_PRP_TMMBR M
-               JOIN TB_USER MU ON MU.USER_ID = M.USER_ID
-               LEFT JOIN TB_TEAM MT ON MT.TEAM_SN = MU.TEAM_SN
-              WHERE M.PBANC_SN = P.PBANC_SN
-                AND MU.ACNT_STTS_CD &lt;&gt; 'AS050' )  AS prpTmmbrNms
+           P.LAST_CFMTN_DT                           AS lastCfmtnDt
       FROM TB_BID_PBANC P
     <include refid="noticeJoins"/>
       LEFT JOIN TB_COM_CD TRCK ON TRCK.GROUP_CD = 'TRSTS' AND TRCK.CD = P.TRCK_STTS_CD
       LEFT JOIN TB_COM_CD PTFM ON PTFM.GROUP_CD = 'PTFRM' AND PTFM.CD = P.PTCP_SHP_CD
       LEFT JOIN TB_USER   RGTR ON RGTR.USER_ID = P.RGTR_ID
      WHERE P.PBANC_SN = #{pbancSn}
+  </select>
+
+  <!-- 제안팀원 (11/03). 제안 업무의 제안팀 구성에서 정한 인원. 주관팀 인원 먼저, 비활성(AS050) 계정은 뺀다.
+       leader: 직급이 팀장(JG020)이면 화면에서 이름에 바탕색을 칠한다 (11/06) -->
+  <select id="findProposalMembers" parameterType="long" resultType="com.ojj.sujuro.bid.dto.NoticeMemberDTO">
+    SELECT MU.USER_NM AS userNm,
+           MT.TEAM_NM AS teamNm,
+           CASE WHEN MU.JBGD_CD = 'JG020' THEN 1 ELSE 0 END AS leader
+      FROM TB_PRP_TMMBR M
+      JOIN TB_USER MU ON MU.USER_ID = M.USER_ID
+      LEFT JOIN TB_TEAM MT ON MT.TEAM_SN = MU.TEAM_SN
+     WHERE M.PBANC_SN = #{pbancSn}
+       AND MU.ACNT_STTS_CD &lt;&gt; 'AS050'
+     ORDER BY M.PTCP_SE_CD, MT.TEAM_NM, MU.USER_NM
   </select>
 
   <!--

@@ -35,4 +35,9 @@ public class BidNoticePageDTO {
     public boolean isHasNext() {
         return page < totalPages;
     }
+
+    /** 목록의 번호 칸 (11/06). 전체 누적 순번이다. 1페이지 1~10, 2페이지 11~20. index 는 이 페이지에서 0부터 센다 */
+    public int rowNo(int index) {
+        return (page - 1) * BidNoticeSearchDTO.PAGE_SIZE + index + 1;
+    }
 }

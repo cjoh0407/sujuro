@@ -1,6 +1,6 @@
 /* 공고 목록(bid/notices.html): [지금 수집] 중복 클릭 방지
  * 화면 안에 있던 스크립트를 옮긴 파일이다. 화면에서는 같은 자리에서 <script th:src> 로 불러온다. */
-// 정렬을 고르면 바로 검색 폼을 보내는 동작은 공통(common.js)의 data-change-submit 이 맡는다.
+// 주관팀 필터를 고르면 바로 검색 폼을 보내는 동작은 공통(common.js)의 data-change-submit 이 맡는다.
 
 // [지금 수집] 은 끝날 때까지 수십 초 걸릴 수 있다. 두 번 눌리지 않게 막고 진행 중임을 보여 준다.
 document.querySelectorAll('[data-collect-form]').forEach(function (form) {

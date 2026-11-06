@@ -138,7 +138,7 @@ class ManualResultDbTest {
         String leaderAfter = page(leader, "/results?bid=" + sn);
         assertFalse(leaderAfter.contains("action=\"/results/manual\""));
         assertTrue(leaderAfter.contains("1.2억"));
-        assertTrue(leaderAfter.contains("장단점 저장"));
+        assertTrue(leaderAfter.contains("action=\"/results/analysis\""), "장단점 저장 폼이 있습니다");
         assertEquals(3, leaderAfter.split("class=\"analysis-input\"", -1).length - 1, "세 칸 모두 높이가 고정이고 넘치면 칸 안에서 스크롤합니다");
 
         // 사업별 결과 분석: 수주 금액이 보이고 점수·평가표 칸은 없다. 왼쪽 목록에 이 사업이 있다

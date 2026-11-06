@@ -82,6 +82,42 @@ class NoticeDetailPageDbTest {
                 .andExpect(r -> assertEquals("https://example.invalid/rfp", r.getResponse().getRedirectedUrl()));
     }
 
+    /** 팀장 직급(JG020)은 제안팀 칩의 이름에만 바탕색을 칠하고, 제목 줄 오른쪽 끝에 그 색의 범례를 둔다. 사람은 모두 테스트 계정이다 */
+    @Test
+    void 팀장_표시는_제안팀_칩에만_있고_제목_줄에_범례가_있다() throws Exception {
+        Long sn = insertNotice("R26BK99990059", "PP030");
+        String leaderId = jdbc.queryForObject(
+                "SELECT USER_ID FROM TB_USER WHERE JBGD_CD = 'JG020' AND ACNT_STTS_CD <> 'AS050' ORDER BY USER_ID FETCH FIRST 1 ROWS ONLY", String.class);
+        String leaderNm = jdbc.queryForObject("SELECT USER_NM FROM TB_USER WHERE USER_ID = ?", String.class, leaderId);
+        String memberId = jdbc.queryForObject(
+                "SELECT USER_ID FROM TB_USER WHERE JBGD_CD = 'JG010' AND ACNT_STTS_CD <> 'AS050' AND USER_NM <> ? ORDER BY USER_ID FETCH FIRST 1 ROWS ONLY", String.class, leaderNm);
+        String memberNm = jdbc.queryForObject("SELECT USER_NM FROM TB_USER WHERE USER_ID = ?", String.class, memberId);
+        String legend = "<span class=\"dot nd-leader-dot\"></span>팀장</span>";
+
+        // 제안팀에 사원만 있으면 칠할 이름도 범례도 없다
+        Long membersOnly = insertNotice("R26BK99990060", "PP030");
+        jdbc.update("INSERT INTO TB_PRP_TMMBR (PBANC_SN, USER_ID, PTCP_SE_CD) VALUES (?, ?, 'PT010')", membersOnly, memberId);
+        MockHttpSession session = login(MGMT);
+        String plain = page(session, membersOnly);
+        assertTrue(plain.contains("<h3>제안팀</h3>"));
+        assertTrue(plain.contains("<b>" + memberNm + "</b>"));
+        assertFalse(plain.contains(legend), "팀장이 없으면 범례도 없습니다");
+
+        // 등록자도 팀장으로 하고, 제안팀에 팀장·사원을, 이력에 팀장 처리를 넣는다. 칠하는 곳은 제안팀 칩뿐이다
+        jdbc.update("UPDATE TB_BID_PBANC SET RGTR_ID = ? WHERE PBANC_SN = ?", leaderId, sn);
+        jdbc.update("INSERT INTO TB_PRP_TMMBR (PBANC_SN, USER_ID, PTCP_SE_CD) VALUES (?, ?, 'PT010')", sn, leaderId);
+        jdbc.update("INSERT INTO TB_PRP_TMMBR (PBANC_SN, USER_ID, PTCP_SE_CD) VALUES (?, ?, 'PT010')", sn, memberId);
+        jdbc.update("INSERT INTO TB_PBANC_PRCS_HSTRY (PBANC_SN, PRCS_SE_CD, PRCR_ID) VALUES (?, 'PC010', ?)", sn, leaderId);
+
+        String page = page(session, sn);
+        assertEquals(1, count(page, "class=\"nd-leader\""), "제안팀 칩 한 곳뿐입니다. 등록·진행 이력은 칠하지 않습니다");
+        assertTrue(page.contains("<b class=\"nd-leader\" title=\"팀장\">" + leaderNm + "</b>"), "팀장 칩");
+        assertTrue(page.contains("<b>" + memberNm + "</b>"), "사원은 칠하지 않습니다");
+        assertTrue(page.contains("<span>" + leaderNm + "</span>"), "진행 이력의 이름은 그냥 글자입니다");
+        assertTrue(page.contains(leaderNm + " · "), "등록의 이름도 그냥 글자입니다");
+        assertTrue(page.matches("(?s).*<h3>제안팀</h3>\\s*<span class=\"fs-12_5\">" + java.util.regex.Pattern.quote(legend) + ".*"), "제안팀 제목 바로 옆(오른쪽 끝)에 범례가 있습니다");
+    }
+
     /** 시드(db/05)의 공고 첨부처럼 서버에만 있고 나라장터 주소(ORGNL_URL)가 없는 파일도 아이콘으로 받는다 */
     @Test
     void 주소_없이_서버에만_저장한_첨부도_아이콘으로_내려받는다() throws Exception {

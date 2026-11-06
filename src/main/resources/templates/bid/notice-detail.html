@@ -139,24 +139,23 @@
       </section>
 
       <!-- 제안팀 (11/03). 참여 팀·제안팀원은 제안 업무의 제안팀 구성에서 정한다. 하나라도 정해진 뒤에만 보인다. 읽기 전용.
-           제안팀원은 '이름 · 팀' 이 쉼표로 이어진 글자라 나눠서 칩으로 보여 준다. 동명이인이 있어 팀을 같이 쓴다 -->
+           제안팀원은 이름과 팀을 칩으로 보여 준다. 동명이인이 있어 팀을 같이 쓴다 -->
       <section class="card" th:if="${notice.proposalTeamFormed}">
         <div class="card-head">
           <h3>제안팀</h3>
+          <!--/* 직급이 팀장인 사람은 칩의 이름에만 바탕색이고, 그 색을 오른쪽 끝에서 알려 준다 (11/06). 제안팀에 팀장이 있을 때만 */-->
+          <span class="fs-12_5" th:unless="${#lists.isEmpty(notice.proposalMembers.?[leader])}"><span class="dot nd-leader-dot"></span>팀장</span>
         </div>
         <div class="pad nd-team">
           <div th:if="${notice.joinTeamNms}">
             <div class="lbl">참여 팀</div>
             <div class="nd-team-v" th:text="${notice.joinTeamNms}">개발2팀</div>
           </div>
-          <div th:if="${notice.prpTmmbrNms}">
+          <div th:unless="${#lists.isEmpty(notice.proposalMembers)}">
             <ul class="nd-chips">
-              <li th:each="m : ${#strings.arraySplit(notice.prpTmmbrNms, ',')}" th:with="m=${#strings.trim(m)}">
-                <th:block th:if="${#strings.contains(m, ' · ')}">
-                  <b th:text="${#strings.substringBefore(m, ' · ')}">김가희</b>
-                  <span th:text="${#strings.substringAfter(m, ' · ')}">공공사업1Div</span>
-                </th:block>
-                <b th:unless="${#strings.contains(m, ' · ')}" th:text="${m}">김가희</b>
+              <li th:each="m : ${notice.proposalMembers}">
+                <b th:class="${m.leader} ? 'nd-leader'" th:title="${m.leader} ? '팀장'" th:text="${m.userNm}">김가희</b>
+                <span th:if="${m.teamNm}" th:text="${m.teamNm}">공공사업1Div</span>
               </li>
             </ul>
           </div>

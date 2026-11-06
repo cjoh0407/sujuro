@@ -88,7 +88,7 @@
           </label>
           <div class="row">
             <div class="up-note">엑셀(XLS · XLSX) 파일만 올릴 수 있습니다.</div>
-            <button class="btn sm primary" type="submit">올리기</button>
+            <button class="btn sm primary" type="submit">등록</button>
           </div>
         </form>
       </div>
@@ -250,7 +250,7 @@
 
           <th:block th:if="${a.ourCompanyListed and co != null}">
             <div class="evl-file mt-0 pt-0 u-border-top-0" th:if="${cf}">
-              <span class="faint" th:text="|업로드 파일명 : ${cf.orgnlFileNm}|">업로드 파일명</span>
+              <span class="faint" th:title="${cf.orgnlFileNm}" th:text="|업로드 파일명 : ${cf.orgnlFileNm}|">업로드 파일명</span>
             </div>
 
             <div class="empty" th:unless="${cf}"
@@ -309,7 +309,7 @@
                 </table>
               </div>
               <div class="row">
-                <button class="btn primary sm" type="submit">평가표 저장</button>
+                <button class="btn primary sm" type="submit">저장</button>
               </div>
             </form>
           </th:block>
@@ -384,7 +384,7 @@
             </div>
           </div>
           <div class="row" th:if="${view.canScore}">
-            <button class="btn primary sm" type="submit">장단점 저장</button>
+            <button class="btn primary sm" type="submit">저장</button>
             <span class="faint fs-11_5">빈 칸으로 저장하면 그 내용을 지웁니다.</span>
           </div>
           <div class="faint fs-11_5" th:unless="${view.canScore}">장단점은 담당 팀 팀장이 입력합니다.</div>

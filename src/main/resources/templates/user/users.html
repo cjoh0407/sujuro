@@ -32,11 +32,11 @@
       <h3>직원 목록
         <span class="usr-count" th:text="${!#strings.isEmpty(keyword) or !#strings.isEmpty(status) or team != null} ? |${#lists.size(users)}명 / 전체 ${totalCount}명| : |${totalCount}명|">52명</span>
       </h3>
-      <button class="btn sm primary" type="button" onclick="usrCreate()">+ 직원 등록</button>
+      <button class="btn sm primary" type="button" data-on-click="usrCreate">+ 직원 등록</button>
     </div>
     <div class="pad u-padding-bottom-12px">
       <form th:action="@{/users}" method="get" class="usr-filter">
-        <input type="text" name="keyword" th:value="${keyword}" placeholder="이름 또는 사번" class="w-200px">
+        <span class="sbox w-200px"><input type="text" name="keyword" th:value="${keyword}" placeholder="이름 또는 사번" aria-label="이름 또는 사번"><button class="sb-btn" type="submit" title="검색" aria-label="검색"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button></span>
         <select name="status">
           <option value="">계정 상태 전체</option>
           <option th:each="s : ${statuses}" th:value="${s.code}" th:text="${s.name}"
@@ -55,7 +55,6 @@
                     th:selected="${team != null and team.toString() == t.code}">공공사업1Div</option>
           </optgroup>
         </select>
-        <button class="btn sm" type="submit">검색</button>
         <a class="btn sm" th:href="@{/users}" th:if="${!#strings.isEmpty(keyword) or !#strings.isEmpty(status) or team != null}">초기화</a>
       </form>
     </div>
@@ -83,21 +82,19 @@
             <td class="muted fs-12_5" th:text="${u.emlAddr ?: '-'}">name@company.com</td>
             <td>
               <div class="row">
-                <button class="btn sm" type="button" onclick="usrEdit(this)"
+                <button class="btn sm" type="button" data-on-click="usrEdit"
                         th:data-id="${u.userId}" th:data-nm="${u.userNm}" th:data-team="${u.teamSn}"
                         th:data-jbgd="${u.jbgdCd != null} ? ${#strings.trim(u.jbgdCd)} : ''"
                         th:data-tel="${u.telno}" th:data-eml="${u.emlAddr}">수정</button>
                 <form th:if="${u.userId != myId}" th:action="@{/users/{id}/reset(id=${u.userId})}" method="post"
-                      th:data-name="${u.userNm}" th:data-inactive="${u.inactive}"
-                      onsubmit="return confirm(this.dataset.name + (this.dataset.inactive === 'true' ? ' 님의 계정을 복구하고 새 초기 비밀번호를 이메일로 보낼까요?' : ' 님의 비밀번호를 초기화하고 새 초기 비밀번호를 이메일로 보낼까요? 잠금도 함께 풀립니다.'));">
+                      th:data-confirm="${u.inactive} ? |${u.userNm} 님의 계정을 복구하고 새 초기 비밀번호를 이메일로 보낼까요?| : |${u.userNm} 님의 비밀번호를 초기화하고 새 초기 비밀번호를 이메일로 보낼까요? 잠금도 함께 풀립니다.|">
                   <input type="hidden" name="keyword" th:value="${keyword}">
                   <input type="hidden" name="status" th:value="${status}">
                   <input type="hidden" name="team" th:value="${team}">
                   <button class="btn sm" type="submit" th:text="${u.inactive} ? '계정 복구' : '비밀번호 초기화'">비밀번호 초기화</button>
                 </form>
                 <form th:if="${u.userId != myId and !u.inactive}" th:action="@{/users/{id}/deactivate(id=${u.userId})}" method="post"
-                      th:data-name="${u.userNm}"
-                      onsubmit="return confirm(this.dataset.name + ' 님의 계정을 비활성으로 바꿀까요? 업무 이력은 그대로 남습니다.');">
+                      th:data-confirm="|${u.userNm} 님의 계정을 비활성으로 바꿀까요? 업무 이력은 그대로 남습니다.|">
                   <input type="hidden" name="keyword" th:value="${keyword}">
                   <input type="hidden" name="status" th:value="${status}">
                   <input type="hidden" name="team" th:value="${team}">
@@ -120,7 +117,7 @@
     <div class="box">
       <div class="card-head">
         <h3 id="usrFormTitle" th:text="${openModal == 'edit'} ? '직원 정보 수정' : '직원 등록'">직원 등록</h3>
-        <button type="button" class="icon-x" aria-label="닫기" onclick="usrClose(this)">×</button>
+        <button type="button" class="icon-x" aria-label="닫기" data-on-click="usrClose">×</button>
       </div>
       <div class="pad">
         <form id="usrForm" method="post" class="usr-form"
@@ -191,7 +188,7 @@
           </div>
 
           <div class="usr-actions">
-            <button class="btn" type="button" onclick="usrClose(this)">취소</button>
+            <button class="btn" type="button" data-on-click="usrClose">취소</button>
             <button class="btn primary" type="submit" id="usrSubmit"
                     th:text="${openModal == 'edit'} ? '수정 저장' : '등록 · 초기 비밀번호 메일 발송'">등록 · 초기 비밀번호 메일 발송</button>
           </div>
@@ -206,7 +203,7 @@
     <div class="box wide">
       <div class="card-head">
         <h3 id="usrConfirmTitle" th:text="${pendingKind == 'move'} ? |${pendingUser.userNm} 님의 소속 팀을 바꿉니다| : |${pendingUser.userNm} 님을 비활성으로 바꿉니다|">확인</h3>
-        <button type="button" class="icon-x" aria-label="닫기" onclick="usrClose(this)">×</button>
+        <button type="button" class="icon-x" aria-label="닫기" data-on-click="usrClose">×</button>
       </div>
       <div class="pad stack-12 fs-12_5">
         <div>
@@ -254,70 +251,7 @@
 </th:block>
 
 <th:block layout:fragment="scripts">
-  <script>
-    (function () {
-      var modal = document.getElementById('usrFormModal');
-      var form = document.getElementById('usrForm');
-      var team = document.getElementById('teamSn');
-      var box = document.getElementById('jbgdBox');
-      var rank = document.getElementById('jbgdCd');
-      if (!modal || !form) { return; }
-
-      // 경영지원실(DP010)·영업부(DP020)를 고르면 직급 칸을 숨기고 비운다. 서버도 같은 기준으로 직급을 비운다.
-      function syncRank() {
-        var opt = team.options[team.selectedIndex];
-        var dept = opt ? opt.getAttribute('data-dept') : null;
-        var none = dept === 'DP010' || dept === 'DP020';
-        box.style.display = none ? 'none' : '';
-        rank.disabled = none;
-        rank.required = !none;
-        if (none) { rank.value = ''; }
-      }
-      team.addEventListener('change', syncRank);
-
-      function open(m) { m.hidden = false; var f = m.querySelector('input:not([type=hidden]):not([readonly]), select'); if (f) { f.focus(); } }
-      window.usrClose = function (el) { el.closest('.modal').hidden = true; };
-
-      // 등록·수정을 한 모달로 쓴다. 서버에 다시 묻지 않고 목록 줄의 값으로 채운다.
-      function setMode(edit, d) {
-        var errs = document.getElementById('usrErrors');
-        if (errs) { errs.hidden = true; }
-        var uid = document.getElementById('userId');
-        document.getElementById('usrFormTitle').textContent = edit ? '직원 정보 수정 · ' + d.nm : '직원 등록';
-        document.getElementById('usrSubmit').textContent = edit ? '수정 저장' : '등록 · 초기 비밀번호 메일 발송';
-        document.getElementById('usrHelpCreate').hidden = edit;
-        document.getElementById('usrHelpEdit').hidden = !edit;
-        form.action = edit ? modal.dataset.base + '/' + encodeURIComponent(d.id) + '/update' : modal.dataset.base;
-        uid.readOnly = edit;
-        uid.required = !edit;
-        uid.value = d.id || '';
-        document.getElementById('userNm').value = d.nm || '';
-        team.value = d.team || '';
-        rank.value = d.jbgd || '';
-        document.getElementById('telno').value = d.tel || '';
-        document.getElementById('emlAddr').value = d.eml || '';
-        syncRank();
-        open(modal);
-      }
-      window.usrCreate = function () { setMode(false, {}); };
-      window.usrEdit = function (btn) { setMode(true, btn.dataset); };
-
-      // 닫기: 바깥 배경 클릭, Esc
-      Array.prototype.forEach.call(document.querySelectorAll('.usr .modal'), function (m) {
-        m.addEventListener('click', function (e) { if (e.target === m) { m.hidden = true; } });
-      });
-      document.addEventListener('keydown', function (e) {
-        if (e.key !== 'Escape') { return; }
-        Array.prototype.forEach.call(document.querySelectorAll('.usr .modal'), function (m) { m.hidden = true; });
-      });
-
-      // 서버가 다시 그린 화면: 입력 오류면 등록·수정 모달을, 팀 이동·비활성 확인이면 확인 모달을 연다
-      syncRank();
-      if (modal.dataset.open) { open(modal); }
-      var confirmModal = document.getElementById('usrConfirmModal');
-      if (confirmModal) { confirmModal.hidden = false; }
-    })();
-  </script>
+  <script th:src="@{/js/users.js}"></script>
 </th:block>
 
 </body>

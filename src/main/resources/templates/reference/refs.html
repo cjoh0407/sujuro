@@ -44,7 +44,7 @@
         <label class="qa-side-l">
           <span class="row jc-between"><span>설명 (선택)</span><span class="faint fw-normal" id="refMemoCnt">0 / 30</span></span>
           <input type="text" name="memo" maxlength="30" placeholder="예: 제안서 본문용 고딕체"
-                 oninput="document.getElementById('refMemoCnt').textContent = this.value.length + ' / 30'">
+                 data-on-input="refMemoCount">
         </label>
         <div class="row jc-end">
           <button class="btn sm primary" type="submit">올리기</button>
@@ -65,8 +65,7 @@
       </div>
       <form class="ref-search" th:action="@{/refs}" method="get">
         <input type="hidden" name="se" th:value="${se}">
-        <input type="search" name="q" th:value="${q}" placeholder="파일 이름·설명 검색" aria-label="파일 이름·설명 검색">
-        <button class="btn sm" type="submit">검색</button>
+        <span class="sbox"><input type="search" name="q" th:value="${q}" placeholder="파일 이름·설명 검색" aria-label="파일 이름·설명 검색"><button class="sb-btn" type="submit" title="검색" aria-label="검색"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button></span>
       </form>
     </div>
 
@@ -80,7 +79,7 @@
           <tr class="hv" th:each="f : ${files}">
             <td class="c-pv">
               <img th:if="${f.previewable}" class="ref-thumb" th:src="@{/refs/view(refFileSn=${f.refFileSn})}" th:alt="${f.orgnlFileNm}" loading="lazy">
-              <span th:unless="${f.previewable}" class="ref-doc" aria-hidden="true"><span class="ic ic-file"></span></span>
+              <span th:unless="${f.previewable}" class="ref-doc" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4"/></svg></span>
             </td>
             <td>
               <div class="ref-nm" th:text="${f.orgnlFileNm}" th:title="${f.orgnlFileNm}">파일명.ttf</div>
@@ -90,10 +89,10 @@
             <td class="c-sz" th:text="${f.sizeText}">120KB</td>
             <td class="c-who" th:text="${f.rgtrNm != null ? f.rgtrNm : f.rgtrId}">홍길동</td>
             <td class="c-dt" th:text="${#dates.format(f.regDt, 'yyyy-MM-dd')}">2026-11-03</td>
-            <td class="c-act">
+            <td class="c-act c-end">
               <a class="ico" title="내려받기" aria-label="내려받기" th:href="@{/refs/download(refFileSn=${f.refFileSn})}"><span class="ic ic-download"></span></a>
               <form class="inl" th:if="${leader or f.rgtrId == me}" th:action="@{/refs/delete}" method="post"
-                    onsubmit="return confirm('이 자료를 삭제할까요?');">
+                    data-confirm="이 자료를 삭제할까요?">
                 <input type="hidden" name="refFileSn" th:value="${f.refFileSn}">
                 <input type="hidden" name="se" th:value="${se}">
                 <button class="ico danger" type="submit" title="삭제" aria-label="삭제"><span class="ic ic-trash"></span></button>

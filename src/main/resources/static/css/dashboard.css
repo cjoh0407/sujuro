@@ -257,3 +257,23 @@
 /* 나란히 놓인 블록의 머리 높이를 같게 (버튼이 있는 블록과 없는 블록의 내용 시작선이 같아진다) */
 .dash .card{overflow:hidden}
 .dash .card-head{min-height:56px;box-sizing:border-box}
+
+/* ===== 화면을 열 때 차트가 차오르는 효과 (11/05) =====
+   화면이 그려질 때(비동기로 바뀐 뒤 포함) 한 번 실행된다. 움직임을 줄이는 설정이면 끈다. */
+@keyframes dash-grow{from{transform:scale(0)}to{transform:scale(1)}}
+@keyframes dash-fade{from{opacity:0}to{opacity:1}}
+@keyframes dash-draw{from{stroke-dashoffset:1.01}to{stroke-dashoffset:0}}
+@keyframes dash-rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes dash-arc{from{stroke-dasharray:0 100}}
+.rd-shape{transform-box:view-box;transform-origin:210px 150px;animation:dash-grow .8s cubic-bezier(.2,.8,.2,1) both}
+.rd-dot,.rd-name,.rd-val{animation:dash-fade .4s ease .6s both}
+.ln-rate,.ln-amt{stroke-dasharray:1.01;animation:dash-draw 1s ease-out .1s both}
+.ln-dot,.ln-val{animation:dash-fade .4s ease .9s both}
+.dash-ring .arc{animation:dash-arc .9s cubic-bezier(.2,.8,.2,1) both}
+.dash-stat,.dash-tile,.lt-row,.dash-kpi{animation:dash-rise .45s ease both}
+.dash-stat:nth-child(2),.dash-tile:nth-child(2),.dash-kpi:nth-child(2){animation-delay:.06s}
+.dash-stat:nth-child(3),.dash-tile:nth-child(3),.dash-kpi:nth-child(3){animation-delay:.12s}
+.dash-stat:nth-child(4),.dash-tile:nth-child(4),.dash-kpi:nth-child(4){animation-delay:.18s}
+@media (prefers-reduced-motion:reduce){
+  .rd-shape,.rd-dot,.rd-name,.rd-val,.ln-rate,.ln-amt,.ln-dot,.ln-val,.dash-ring .arc,.dash-stat,.dash-tile,.lt-row,.dash-kpi{animation:none !important}
+}

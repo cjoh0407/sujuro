@@ -60,7 +60,7 @@
       </div>
       <div class="ts">
         <table>
-          <thead><tr><th>대상</th><th>파일</th><th>버전</th><th>올린 사람</th><th>삭제한 사람 · 일시</th><th>삭제 사유</th><th></th></tr></thead>
+          <thead><tr><th>대상</th><th>파일</th><th>버전</th><th>올린 사람</th><th>삭제한 사람 · 일시</th><th>삭제 사유</th><th class="c-end"></th></tr></thead>
           <tbody>
             <tr class="hv" th:each="f : ${deletedFiles}">
               <td th:text="${f.targetNm ?: '-'}">1.1 목차</td>
@@ -69,7 +69,7 @@
               <td th:text="${(f.rgtrNm ?: f.rgtrId) + ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm')}">올린 사람</td>
               <td th:text="${(f.dltrNm ?: f.dltrId) + ' · ' + #dates.format(f.delDt, 'yyyy-MM-dd HH:mm')}">삭제한 사람</td>
               <td th:text="${f.delRsn}">사유</td>
-              <td><a class="ico" title="내려받기" aria-label="내려받기" th:href="@{/files/download(bid=${bid.pbancSn}, fileSn=${f.fileSn})}"><span class="ic ic-download"></span></a></td>
+              <td class="c-end"><a class="ico" title="내려받기" aria-label="내려받기" th:href="@{/files/download(bid=${bid.pbancSn}, fileSn=${f.fileSn})}"><span class="ic ic-download"></span></a></td>
             </tr>
           </tbody>
         </table>
@@ -190,14 +190,14 @@
             th:title="${'확정: ' + (f.dcsmkrNm ?: '') + ' ' + (f.cfmtnDt != null ? #dates.format(f.cfmtnDt, 'yyyy-MM-dd HH:mm') : '')}">최종본</span>
       <span class="t">
         <form th:if="${first and f.intgCycl != null and canAssign and !f.last}" th:action="@{/files/final}" method="post" class="d-inline"
-              th:data-cycl="${f.intgCycl}" onsubmit="return confirm(this.dataset.cycl + '차 통합본을 최종본으로 확정할까요? 이전 최종본 표시는 풀립니다.')">
+              th:data-confirm="|${f.intgCycl}차 통합본을 최종본으로 확정할까요? 이전 최종본 표시는 풀립니다.|">
           <input type="hidden" name="bid" th:value="${bid.pbancSn}">
           <input type="hidden" name="fileSn" th:value="${f.fileSn}">
           <button class="btn sm" type="submit">최종본 확정</button>
         </form>
         <a class="ico" title="내려받기" aria-label="내려받기" th:href="@{/files/download(bid=${bid.pbancSn}, fileSn=${f.fileSn})}"><span class="ic ic-download"></span></a>
         <form th:if="${#sets.contains(deletable, f.fileSn)}" th:action="@{/files/delete}" method="post" class="d-inline"
-              onsubmit="return askReason(this)">
+              data-on-submit="askReason">
           <input type="hidden" name="bid" th:value="${bid.pbancSn}">
           <input type="hidden" name="tab" th:value="${tab}">
           <input type="hidden" name="fileSn" th:value="${f.fileSn}">

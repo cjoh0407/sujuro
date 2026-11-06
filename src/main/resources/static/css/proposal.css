@@ -66,7 +66,7 @@
 /* 서류 삭제(X) 칸이 없을 때(제안팀 화면): 파일 칸에서 내려받기·삭제 버튼을 오른쪽 끝으로 밀고, 파일 없음 표시는 가운데로 */
 .no-x .file-line{flex-wrap:nowrap}
 .no-x .file-line>.file-info{flex:1 1 140px;min-width:140px;align-items:center}
-.no-x .file-line>.file-acts{margin-left:auto;flex:none}
+.no-x .file-line>.file-acts{margin-left:auto;margin-right:4px;flex:none} /* 칸 안쪽 14px + 4px = 18px: 다른 목록과 같은 오른쪽 끝 */
 .no-x .file-line>.faint{flex:1;text-align:center}
 .drop-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .drop-row>.drop:not(.sm){flex:1 1 320px}
@@ -248,3 +248,73 @@ main.content table.qa-grid td{text-align:left}
 /* 참고자료 표: 머리글은 가운데, 파일 칸(이름·설명)만 왼쪽, 나머지 칸은 가운데 */
 main.content table.ref-table td:nth-child(2){text-align:left}
 main.content table.ref-table th.c-act{text-align:center}
+
+/* 이전 사업 Q&A 고르는 칸: 글자가 잘리지 않게 최소 너비를 주고, 화면보다 넓어지지는 않게 한다 */
+.qa-past{min-width:240px;max-width:100%}
+
+/* 양식 바꾸기·복사·이름 바꾸기 아이콘 */
+.ic-swap{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 7h12'/%3E%3Cpath d='M12.5 4l3 3-3 3'/%3E%3Cpath d='M16.5 13h-12'/%3E%3Cpath d='M7.5 10l-3 3 3 3'/%3E%3C/svg%3E")}
+.ic-copy{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='7' y='7' width='9.5' height='9.5' rx='1.5'/%3E%3Cpath d='M13 7V5a1.5 1.5 0 0 0-1.5-1.5H5A1.5 1.5 0 0 0 3.5 5v6.5A1.5 1.5 0 0 0 5 13h2'/%3E%3C/svg%3E")}
+/* 주관팀 목차 양식 줄: 선택칸 · 저장한 사람 · 아이콘 버튼(테두리 없음)을 한 줄에 */
+.form-bar{flex-wrap:nowrap;gap:10px}
+.form-bar select{min-width:220px;max-width:340px}
+.fb-acts{display:inline-flex;align-items:center;gap:2px}
+.fb-sep{width:1px;height:16px;background:var(--border);margin:0 6px}
+/* 입력칸 + 추가 버튼은 줄이 바뀌지 않고 입력칸 오른쪽에 붙는다 */
+.f-inline{flex-wrap:nowrap}
+.f-inline input[type=text]{min-width:0}
+/* 현재 목차 양식(카드 머리글): 이름을 제목처럼 */
+.card-head .cur-form b{font-size:13.5px}
+
+/* 제안서 분량 · 요구사항 연결 게이지: 목록 카드 맨 위에 반반 (요구사항 추가 화면에서는 단계만 보인다) */
+.gauge-pair{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:16px 18px;border-bottom:1px solid var(--border)}
+@media (max-width:900px){.gauge-pair{grid-template-columns:1fr}}
+/* 목차 이름 입력칸 오른쪽 옆에 하위·같은 단계 추가 아이콘 */
+.lbl-row{display:flex;align-items:center;gap:8px}
+.lbl-row>form{flex:1;min-width:0;max-width:340px}
+.lbl-row .lbl-in{min-width:0}
+/* 주관팀 목차 양식 줄: 아이콘 버튼은 오른쪽 끝으로 */
+.form-bar{flex:1}
+.form-bar .fb-acts{margin-left:auto}
+
+/* 줄 끝 "…" 메뉴 */
+.ic-more{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='black'%3E%3Ccircle cx='4.5' cy='10' r='1.6'/%3E%3Ccircle cx='10' cy='10' r='1.6'/%3E%3Ccircle cx='15.5' cy='10' r='1.6'/%3E%3C/svg%3E")}
+.row-menu{display:inline-block}
+.row-menu .kebab{width:28px;height:28px;color:var(--muted)}
+.row-menu .kebab:hover,.row-menu .kebab[aria-expanded="true"]{background:var(--alt);color:var(--text)}
+.menu-pop{position:fixed;z-index:60;min-width:200px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow-pop);text-align:left}
+.menu-pop[hidden]{display:none}
+.menu-pop hr{border:0;border-top:1px solid var(--border);margin:6px 4px}
+.menu-pop form{margin:0}
+.menu-pop button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:0;border-radius:8px;background:none;font:inherit;font-size:13px;color:var(--accent-s);cursor:pointer;text-align:left;white-space:nowrap}
+.menu-pop button:hover,.menu-pop button:focus-visible{background:var(--alt);outline:0}
+.menu-pop button.danger{color:var(--danger)}
+.menu-pop .ic{width:15px;height:15px}
+
+/* 미매핑 목록: 줄 전체를 누르면 왼쪽 칸에서 수정·삭제. 고른 줄은 파란 배경 */
+.rq-name{color:inherit;text-decoration:none}
+tr.rq-row{cursor:pointer}
+tr.rq-row.on>td{background:var(--accent-soft)}
+
+/* 왼쪽 칸의 요구사항 자동 추출: 업로드 칸 아래에 버튼을 오른쪽으로 */
+#rqExtractCard .drop-row{flex-direction:column;align-items:stretch}
+#rqExtractCard .drop-row>.drop:not(.sm){flex:none;width:100%}
+#rqExtractCard .drop-row>.btn{align-self:flex-end}
+
+/* 질의응답 왼쪽 칸: 보기 모드 (목록 줄을 누르면) */
+#qaView .qa-full{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--alt);font-size:12.5px;font-weight:400;color:var(--text);min-height:36px}
+#qaView .qa-grow .qa-full{flex:1;min-height:80px;max-height:none}
+#qaView .qa-full.faint{color:var(--faint)}
+#qaViewAct[hidden],#qaViewEmpty[hidden],#qaFormCancel[hidden],#qaClose[hidden],#qaDel[hidden]{display:none !important}
+#qaViewAct{gap:6px}
+.qa-row.on>td{background:var(--accent-soft)}
+
+/* 왼쪽 칸(인원 추가·파일 올리기·질의응답·요구사항) 머리글 높이를 같게: 오른쪽 버튼(닫기 등)이 있어도 바뀌지 않는다 */
+.split-l .card-head{height:50px;padding-top:0;padding-bottom:0;box-sizing:border-box;flex-wrap:nowrap}
+.split-l .card-head h3{font-size:13.5px;line-height:1.4}
+
+/* 게이지 위 제목 옆 숫자 (막대 안 글자 대신) */
+.gp-title{display:inline-flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.gp-num{font-size:12.5px;color:var(--muted)}
+.gp-num b{font-size:15px;font-weight:700;color:var(--text)}
+.gp-num.red b{color:var(--danger)}

@@ -68,11 +68,13 @@
   <div class="two nd-page">
     <div class="col">
 
+
+
+
       <!-- 공고 정보 (FR-035). 공문서식 표 모양. 있을 때만 나오는 칸이 있어 표 대신 4칸 격자(항목·값·항목·값)다 -->
       <section class="card nd-info-card">
         <div class="nd-title">공고 정보</div>
         <div class="nd-info">
-          <!--/* 공고 목록과 같은 값이다. 수요기관이 없으면 발주기관을 보여 준다 (11/05) */-->
           <div>
             <div class="k">수요기관</div>
             <div class="v" th:text="${notice.instNm ?: '-'}">수요기관</div>
@@ -205,34 +207,32 @@
       </section>
 
       <!-- 제안요청서 · 첨부파일 (FR-036). 등록·단계 전환 때 받아 둔 TB_ATCH_FILE 목록이다.
-           파일은 받아 두지 않고 나라장터 내려받기 주소로 바로 보낸다. 파싱하지 않는다.
+           내려받기는 /notices/{sn}/files/{fileSn} (11/05): 서버에 저장한 파일은 바로, 아니면 나라장터 주소로 보낸다. 파싱하지 않는다.
            입찰공고 첨부(공고서·과업지시서·e발주 첨부)와 사전규격 규격서를 나눠 보여 준다. -->
       <section class="card">
         <div class="card-head"><h3>첨부파일</h3></div>
 
         <div class="item nd-file" th:each="f : ${notice.bidFiles}">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4"/></svg>
+          <!-- 파일 이름 오른쪽에 확장자·용량 (11/05 태그는 뺐다) -->
           <div class="nd-file-txt">
             <b th:text="${f.orgnlFileNm}">[제안요청서] 사업.hwpx</b>
-            <div class="faint fs-11_5">
-              <span th:text="${f.format} + (${f.sizeText} != null ? ' · ' + ${f.sizeText} : '')">HWPX · 417KB</span>
-              <span class="pill accent" th:if="${f.rfp}">제안요청서</span>
-            </div>
+            <span class="faint fs-11_5" th:text="${f.format} + (${f.sizeText} != null ? ' · ' + ${f.sizeText} : '')">HWPX · 417KB</span>
           </div>
-          <a class="ico" title="내려받기" aria-label="내려받기" th:href="${f.orgnlUrl}" target="_blank" rel="noopener noreferrer"><span class="ic ic-download"></span></a>
+          <!-- 내려받기는 아이콘 하나 (11/05). 줄 오른쪽 끝 -->
+          <a class="ico" title="내려받기" aria-label="내려받기" th:href="@{/notices/{sn}/files/{fs}(sn=${notice.pbancSn}, fs=${f.fileSn})}"><span class="ic ic-download"></span></a>
         </div>
 
         <!-- 사전규격 규격서. 제안요청서 초안이 들어 있는 경우가 많다(실측 21건 중 17건). 입찰공고 때 바뀔 수 있다. -->
         <div class="item nd-file" th:each="f : ${notice.preSpecFiles}">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4"/></svg>
+          <!-- 파일 이름 오른쪽에 확장자·용량 (11/05 태그는 뺐다) -->
           <div class="nd-file-txt">
             <b th:text="${f.orgnlFileNm}">제안요청서(안).hwpx</b>
-            <div class="faint fs-11_5">
-              <span th:text="${f.format} + (${f.sizeText} != null ? ' · ' + ${f.sizeText} : '')">HWPX · 3.3MB</span>
-              <span class="pill neutral" th:if="${f.rfp}">제안요청서 초안</span>
-            </div>
+            <span class="faint fs-11_5" th:text="${f.format} + (${f.sizeText} != null ? ' · ' + ${f.sizeText} : '')">HWPX · 3.3MB</span>
           </div>
-          <a class="ico" title="내려받기" aria-label="내려받기" th:href="${f.orgnlUrl}" target="_blank" rel="noopener noreferrer"><span class="ic ic-download"></span></a>
+          <!-- 내려받기는 아이콘 하나 (11/05). 줄 오른쪽 끝 -->
+          <a class="ico" title="내려받기" aria-label="내려받기" th:href="@{/notices/{sn}/files/{fs}(sn=${notice.pbancSn}, fs=${f.fileSn})}"><span class="ic ic-download"></span></a>
         </div>
 
         <div class="empty" th:if="${#lists.isEmpty(notice.atchFiles)}"
@@ -418,32 +418,9 @@
 </th:block>
 
 <th:block layout:fragment="scripts">
-  <!-- 배정·결정·철회 결과는 오른쪽 아래 작은 알림으로 (common.js showToast). 실패(teamError)는 빨간 알림으로 조금 더 오래 -->
-  <script th:if="${teamMessage != null or teamError != null}" th:inline="javascript">
-    document.addEventListener('DOMContentLoaded', function () {
-      var ok = /*[[${teamMessage}]]*/ null;
-      var err = /*[[${teamError}]]*/ null;
-      if (!window.showToast) return;
-      if (err) window.showToast(err, 'err');
-      else if (ok) window.showToast(ok);
-    });
-  </script>
-  <script>
-    // 이력은 오래된 순이라 최신·다음 할 일이 맨 아래다. 길어서 스크롤이 생기면 처음에 맨 아래를 보여 준다 (11/05)
-    document.querySelectorAll('.nd-scroll').forEach(function (el) {
-      el.scrollTop = el.scrollHeight;
-    });
-  </script>
-  <script>
-    // 되돌리기 어려운 처리(불참 종결·공고 삭제·참여·불참·중도 철회)는 한 번 더 묻는다.
-    document.querySelectorAll('[data-confirm]').forEach(function (btn) {
-      btn.addEventListener('click', function (e) {
-        if (!window.confirm(btn.getAttribute('data-confirm'))) {
-          e.preventDefault();
-        }
-      });
-    });
-  </script>
+  <!-- 배정·결정·철회 결과는 오른쪽 아래 작은 알림으로 (common.js showToast). 실패(teamError)는 빨간 알림으로 조금 더 오래. 읽어서 띄우는 곳은 notice-detail.js -->
+  <div id="teamFlash" hidden th:if="${teamMessage != null or teamError != null}" th:data-ok="${teamMessage}" th:data-err="${teamError}"></div>
+  <script th:src="@{/js/notice-detail.js}"></script>
 </th:block>
 
 </body>

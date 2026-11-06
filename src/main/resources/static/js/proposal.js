@@ -65,6 +65,11 @@ function askFormCopy(btn) {
   return true;
 }
 
+/* [다른 양식으로 바꾸기]: 양식을 골랐을 때만 확인창을 띄운다 (안 골랐으면 브라우저가 선택해 달라고 한다) */
+function confirmFormChange(btn) {
+  return !btn.form.elements.tocFormSn.value || confirm(btn.dataset.msg);
+}
+
 function confirmFormDelete(btn) {
   var sel = btn.form.elements.tocFormSn, opt = sel.options[sel.selectedIndex];
   if (!sel.value) return true;
@@ -189,6 +194,14 @@ onPageReady(function () { coSel = null; closeOwnPanel(); initOwnerPickers(); });
 /* 폼을 보내는 중이면 경고하지 않는다.
    requestSubmit()은 submit 이벤트를 일으켜 비동기 저장(async-form.js)이 가로챌 수 있다. (submit()은 이벤트가 없다) */
 var saving = false;
+/* 입력 칸이 바뀌면 그 칸이 든 폼을 저장한다 (data-on-change="saveNowOf") */
+function saveNowOf(el) { saveNow(el.form); }
+
+/* 참고자료 설명 글자 수 (data-on-input="refMemoCount") */
+function refMemoCount(el) {
+  document.getElementById('refMemoCnt').textContent = el.value.length + ' / 30';
+}
+
 function saveNow(f) { saving = true; if (f.requestSubmit) f.requestSubmit(); else f.submit(); }
 onPageReady(function () { saving = false; }); // 비동기 저장이 끝나 새 내용이 오면 다시 경고 대상
 document.addEventListener('submit', function (e) { if (!e.defaultPrevented) saving = true; });
@@ -327,54 +340,49 @@ function toggleExtract(all) {
   document.querySelectorAll('.ex-pick').forEach(function (c) { c.checked = all.checked; });
 }
 
-/* ---------- 질의응답 팝업 (qa.html): 보기 · 추가 · 수정 ---------- */
-
-var qaRow = null; // 지금 팝업에 띄운 목록 줄 (추가 중이면 null)
+/* ---------- 질의응답 왼쪽 칸 (qa.html #qaCard): 추가 · 보기 · 수정 ---------- */
+var qaRow = null; // 지금 왼쪽 칸에 띄운 목록 줄 (추가 중이면 null)
 
 function qaEl(id) { return document.getElementById(id); }
 
-/* 보기(view)와 입력(form) 중 하나만 보이게 하고 팝업을 연다 */
-function qaShow(form, title) {
-  qaEl('qaView').hidden = form;
-  qaEl('qaForm').hidden = !form;
-  qaEl('qaPopTitle').textContent = title;
-  qaEl('qaPop').hidden = false;
-  if (form) qaEl('qaFormQ').focus();
+/* 왼쪽 칸 모드: 'add' 빈 입력 칸, 'view' 보기, 'edit' 수정 입력 칸 */
+function qaMode(mode, title) {
+  var card = qaEl('qaCard');
+  if (!card) return;
+  var form = qaEl('qaForm');
+  qaEl('qaView').hidden = mode !== 'view';
+  if (form) form.hidden = mode === 'view';
+  qaEl('qaClose').hidden = mode === 'add';
+  if (qaEl('qaFormCancel')) qaEl('qaFormCancel').hidden = mode !== 'edit';
+  qaEl('qaCardTitle').textContent = title;
+  document.querySelectorAll('.qa-row.on').forEach(function (r) { r.classList.remove('on'); });
+  if (mode !== 'add' && qaRow) qaRow.classList.add('on');
+  if (mode === 'edit') qaEl('qaFormQ').focus();
 }
 
-/* 목록 줄을 누르면 전체 질문·답변 보기. 현재 사업 Q&A(data-sn 있음)면 수정·삭제 버튼 */
+/* 목록 줄을 누르면 왼쪽 칸에 전체 질문·답변 보기. 현재 사업 Q&A(data-sn 있음)면 수정·삭제 버튼 */
 function openQa(row, e) {
   if (e && e.target.closest('a, button, form, input, select, textarea')) return;
-  if (!qaEl('qaPop')) return;
+  if (!qaEl('qaCard')) return;
   qaRow = row;
-  qaEl('qaPopQ').textContent = row.dataset.q || '';
+  qaEl('qaViewQ').textContent = row.dataset.q || '';
   var a = row.dataset.a;
-  qaEl('qaPopA').textContent = a ? a : '답변을 아직 적지 않았습니다.';
-  qaEl('qaPopA').classList.toggle('faint', !a);
+  qaEl('qaViewA').textContent = a ? a : '답변을 아직 적지 않았습니다.';
+  qaEl('qaViewA').classList.toggle('faint', !a);
   var r = row.dataset.r;
-  qaEl('qaPopR').textContent = r ? r : '-';
-  qaEl('qaPopR').classList.toggle('faint', !r);
-  var mine = !!row.dataset.sn;
+  qaEl('qaViewR').textContent = r ? r : '-';
+  qaEl('qaViewR').classList.toggle('faint', !r);
+  if (qaEl('qaViewEmpty')) qaEl('qaViewEmpty').hidden = true;
+  var mine = !!row.dataset.sn && !!qaEl('qaForm');
   qaEl('qaViewAct').hidden = !mine;
   if (mine) {
     qaEl('qaDelSn').value = row.dataset.sn;
-    qaEl('qaPopDel').hidden = row.dataset.del !== 'true';
+    qaEl('qaDel').hidden = row.dataset.del !== 'true';
   }
-  qaShow(false, '질의응답 상세');
+  qaMode('view', row.dataset.sn ? '질의응답 상세' : '이전 사업 질의응답');
 }
 
-/* [+ 추가] 버튼: 빈 입력 칸 */
-function addQa() {
-  qaRow = null;
-  var f = qaEl('qaForm');
-  f.reset();
-  f.action = f.dataset.add;
-  qaEl('qaFormSn').disabled = true;
-  qaEl('qaFormSubmit').textContent = '등록';
-  qaShow(true, qaEl('qaPop').dataset.addTitle || '질의응답 추가');
-}
-
-/* 보기에서 [수정]: 같은 팝업에서 입력 칸으로 */
+/* 보기에서 [수정]: 같은 칸이 입력 칸으로 바뀐다 */
 function editQa() {
   if (!qaRow) return;
   var f = qaEl('qaForm');
@@ -386,22 +394,38 @@ function editQa() {
   qaEl('qaFormA').value = qaRow.dataset.a || '';
   qaEl('qaFormR').value = qaRow.dataset.rsn || '';
   qaEl('qaFormSubmit').textContent = '저장';
-  qaShow(true, '질의응답 수정');
+  qaMode('edit', '질의응답 수정');
 }
 
-/* 입력 중 [취소]: 수정이면 보기로 돌아가고, 추가면 닫는다 */
+/* 수정 중 [취소]: 보기로 돌아간다 */
 function cancelQaForm() {
   if (qaRow) openQa(qaRow);
   else closeQa();
 }
 
+/* [닫기]: 다시 빈 추가 칸으로 (쓸 수 없는 사람은 안내만) */
 function closeQa() {
-  var pop = qaEl('qaPop');
-  if (pop) pop.hidden = true;
+  var card = qaEl('qaCard');
+  if (!card) return;
+  qaRow = null;
+  var f = qaEl('qaForm');
+  if (f) {
+    f.reset();
+    f.action = f.dataset.add;
+    qaEl('qaFormSn').disabled = true;
+    qaEl('qaFormSubmit').textContent = '등록';
+    qaMode('add', card.dataset.addTitle || '질의응답 추가');
+  } else {
+    qaMode('view', '질의응답 보기');
+    ['qaViewQ', 'qaViewA', 'qaViewR'].forEach(function (id) { qaEl(id).textContent = ''; });
+    qaEl('qaViewAct').hidden = true;
+    if (qaEl('qaViewEmpty')) qaEl('qaViewEmpty').hidden = false;
+    qaEl('qaClose').hidden = true;
+  }
 }
 
 document.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape') closeQa();
+  if (e.key === 'Escape' && qaRow) closeQa();
 });
 
 /* ---------- 파일 첨부 영역 (.drop): 눌러서 고르기 + 끌어 놓기 ---------- */
@@ -543,3 +567,53 @@ onPageReady(function () {
   try { saved = sessionStorage.getItem(tocModeKey(w)); } catch (e) { /* 무시 */ }
   setTocMode(saved ? saved === 'view' : w.dataset.done === 'true');
 });
+
+/* 줄 끝 "…" 메뉴. 표를 감싼 칸(.ts)이 넘치는 부분을 가리므로 화면 기준(fixed)으로 버튼 아래 오른쪽 맞춤에 띄운다 */
+function closeRowMenus() {
+  document.querySelectorAll('.row-menu .menu-pop').forEach(function (p) {
+    p.hidden = true;
+    var b = p.parentNode.querySelector('.kebab');
+    if (b) b.setAttribute('aria-expanded', 'false');
+  });
+}
+
+function toggleRowMenu(btn) {
+  var pop = btn.parentNode.querySelector('.menu-pop');
+  var opening = pop.hidden;
+  closeRowMenus();
+  if (!opening) return;
+  pop.hidden = false;
+  var r = btn.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+  var top = r.bottom + 4;
+  if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 4); // 아래가 모자라면 위로
+  pop.style.top = top + 'px';
+  pop.style.left = Math.max(8, r.right - w) + 'px';
+  btn.setAttribute('aria-expanded', 'true');
+}
+
+(function () {
+  document.addEventListener('click', function (e) {
+    var inPop = e.target.closest && e.target.closest('.menu-pop');
+    if (inPop) { if (e.target.closest('[data-on-click]')) closeRowMenus(); return; }  // 메뉴 항목을 누르면 닫는다
+    if (!(e.target.closest && e.target.closest('.row-menu'))) closeRowMenus();       // 바깥을 누르면 닫는다
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeRowMenus(); });
+  window.addEventListener('scroll', closeRowMenus, true);
+  window.addEventListener('resize', closeRowMenus);
+})();
+
+/* 요구사항 수정 칸(왼쪽)이 열리면 명칭 입력칸에 커서를 둔다. 화면 일부만 바뀌는 비동기 이동 뒤에는 autofocus 가 듣지 않는다 */
+window.onPageReady(function () {
+  var f = document.querySelector('#rqform form');
+  if (f && f.elements.rqtMttrSn && f.elements.rqtMttrNm) {
+    f.elements.rqtMttrNm.focus();
+    f.elements.rqtMttrNm.select();
+  }
+});
+
+/* 미매핑 목록: 줄을 누르면 그 줄의 이름 링크(data-nav)를 대신 눌러 왼쪽 칸을 수정 모드로 연다. 목차 선택칸·버튼은 제외 */
+function openRqt(row, e) {
+  if (e && e.target.closest('a, button, form, input, select, textarea')) return;
+  var a = row.querySelector('a.rq-name');
+  if (a) a.click();
+}

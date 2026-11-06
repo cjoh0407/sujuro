@@ -59,15 +59,14 @@
           <div class="bp-foot faint" id="bpFoot">불러오는 중…</div>
         </div>
         <div class="who">
-          <div class="avatar" th:text="${#strings.substring(#authentication.principal.name, 0, 1)}">나</div>
           <div>
             <b sec:authentication="principal.name">이름</b>
             <span th:text="${#authentication.principal.roleLabel + ' · ' + #authentication.principal.team}">권한 · 소속</span>
           </div>
         </div>
-        <a class="btn sm" th:href="@{/profile}">내 정보</a>
+        <a class="btn sm hd-ico" th:href="@{/profile}" title="내 정보" aria-label="내 정보"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.8"/><path d="M4.5 20.5c.6-4 3.8-6.2 7.5-6.2s6.9 2.2 7.5 6.2"/></svg></a>
         <form class="logout-form" th:action="@{/logout}" method="post">
-          <button class="btn sm" type="submit">로그아웃</button>
+          <button class="btn sm hd-ico" type="submit" title="로그아웃" aria-label="로그아웃"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 4.5H6a1.5 1.5 0 0 0-1.5 1.5v12A1.5 1.5 0 0 0 6 19.5h3.5"/><path d="M14 8l4 4-4 4"/><path d="M18 12H9.5"/></svg></button>
         </form>
       </div>
     </header>

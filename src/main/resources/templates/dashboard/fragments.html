@@ -76,8 +76,8 @@
     <div class="ln-legend"><span class="a">수주율(%)</span><span class="b">수주 금액(억)</span></div>
     <svg viewBox="0 0 480 270" role="img" th:attr="aria-label=${c.aria}">
       <line class="ln-guide" th:each="p : ${c.points}" th:attr="x1=${p.x},x2=${p.x}" y1="24" y2="234"></line>
-      <polyline class="ln-amt" th:if="${!#strings.isEmpty(c.amtPoints)}" th:attr="points=${c.amtPoints}"></polyline>
-      <polyline class="ln-rate" th:if="${!#strings.isEmpty(c.ratePoints)}" th:attr="points=${c.ratePoints}"></polyline>
+      <polyline class="ln-amt" pathLength="1" th:if="${!#strings.isEmpty(c.amtPoints)}" th:attr="points=${c.amtPoints}"></polyline>
+      <polyline class="ln-rate" pathLength="1" th:if="${!#strings.isEmpty(c.ratePoints)}" th:attr="points=${c.ratePoints}"></polyline>
       <g th:each="p : ${c.points}" th:classappend="${p.current} ? 'cur'">
         <th:block th:if="${p.hasAmt}">
           <circle class="ln-dot amt" th:attr="cx=${p.x},cy=${p.amtY}" r="5"></circle>

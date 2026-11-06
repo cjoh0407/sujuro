@@ -52,7 +52,11 @@
   function ctx() {
     var ev = window.event;
     if (!ev) return null;
-    var el = ev.currentTarget || ev.target;
+    var el = ev.currentTarget;
+    if (!el || el === document || el === window) {
+      // document 에서 받은 동작(data-confirm 등): 실제로 누른 폼·버튼·링크를 다시 실행한다
+      el = ev.target && ev.target.closest ? (ev.target.closest('form, button, a, [data-confirm], [data-on-click]') || ev.target) : ev.target;
+    }
     if (!el || !(ev.type === 'submit' || ev.type === 'click') || !el.nodeType) return null;
     return { ev: ev, el: el, submitter: ev.submitter || null };
   }
@@ -168,4 +172,81 @@
     if (!document.body) return;
     if (!busy) show('alert', msg);
   };
+})();
+
+/* ===== 화면의 동작 연결 (인라인 onclick/onsubmit 대신 data- 속성을 쓴다) =====
+ * 이벤트는 document 에서 받으므로 비동기로 화면이 통째로 바뀌어도 다시 연결할 필요가 없다.
+ *   data-confirm="문구"        폼이면 보낼 때, 버튼·링크면 누를 때 확인창을 띄운다. 취소하면 멈춘다.
+ *   data-on-click="함수이름"   누르면 window.함수이름(요소, 이벤트) 를 부른다. false 를 돌려주면 기본 동작을 막는다.
+ *   data-on-submit / data-on-change / data-on-input   위와 같고 이벤트만 다르다.
+ *   data-self-click="함수이름"  요소 자신(바깥 배경 등)을 눌렀을 때만 부른다.
+ *   data-arg="값"              있으면 함수의 첫 번째 인자로 요소 대신 이 값을 넘긴다.
+ *   data-change-submit         값이 바뀌면 그 폼을 바로 보낸다.
+ * 캡처 단계에서 받아 async-form.js 의 제출 처리보다 먼저 실행된다. */
+(function () {
+  function run(el, name, e) {
+    var fn = window[name];
+    if (typeof fn !== 'function') { return undefined; }
+    var arg = el.getAttribute('data-arg');
+    return fn.call(el, arg !== null ? arg : el, e, el);
+  }
+  function target(e, attr) {
+    return e.target && e.target.closest ? e.target.closest('[' + attr + ']') : null;
+  }
+
+  ['click', 'submit', 'change', 'input'].forEach(function (type) {
+    document.addEventListener(type, function (e) {
+      var el = target(e, 'data-on-' + type);
+      if (el && run(el, el.getAttribute('data-on-' + type), e) === false) { e.preventDefault(); }
+    }, true);
+  });
+
+  document.addEventListener('click', function (e) {
+    var el = target(e, 'data-self-click');
+    if (el && e.target === el) { run(el, el.getAttribute('data-self-click'), e); }
+  }, true);
+
+  function confirmed(e, el) {
+    if (!window.confirm(el.getAttribute('data-confirm'))) { e.preventDefault(); e.stopPropagation(); }
+  }
+  document.addEventListener('submit', function (e) {
+    var el = e.target;
+    if (el && el.hasAttribute && el.hasAttribute('data-confirm')) { confirmed(e, el); }
+  }, true);
+  document.addEventListener('click', function (e) {
+    var el = target(e, 'data-confirm');
+    if (el && !(el instanceof HTMLFormElement)) { confirmed(e, el); }
+  }, true);
+
+  document.addEventListener('change', function (e) {
+    var el = target(e, 'data-change-submit');
+    if (el && el.form) { el.form.requestSubmit(); }
+  });
+})();
+
+/* ---------- 표 줄 전체 클릭 (data-row-link) ----------
+   <tr data-row-link> 줄의 아무 데나 누르면 그 줄 안 첫 링크로 간다. 값을 주면 그 선택자의 링크 (예: data-row-link="a.sl").
+   줄 안의 버튼·입력칸·선택칸·링크를 직접 누른 경우와 글자를 드래그로 고른 경우는 건드리지 않는다.
+   Ctrl·Cmd·가운데 버튼은 새 탭으로 연다. */
+(function () {
+  function target(e) {
+    var row = e.target.closest && e.target.closest('tr[data-row-link]');
+    if (!row) return null;
+    if (e.target.closest('a, button, input, select, textarea, label, form')) return null;
+    var sel = window.getSelection && String(window.getSelection());
+    if (sel) return null;
+    return row.querySelector(row.getAttribute('data-row-link') || 'a[href]');
+  }
+  document.addEventListener('click', function (e) {
+    if (e.button !== 0) return;
+    var a = target(e);
+    if (!a) return;
+    if (e.ctrlKey || e.metaKey || e.shiftKey) { window.open(a.href, '_blank'); return; }
+    a.click();
+  });
+  document.addEventListener('auxclick', function (e) {
+    if (e.button !== 1) return;
+    var a = target(e);
+    if (a) window.open(a.href, '_blank');
+  });
 })();

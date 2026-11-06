@@ -24,8 +24,7 @@
 
 <div th:fragment="rqInfo(q, acts)" class="rq-line">
   <!-- 미매핑 목록: 이름을 누르면 왼쪽 칸에서 고치고 지운다 (rqForm) -->
-  <a data-nav th:if="${acts and canReq}" class="rq-name" th:classappend="${editRqt != null and editRqt.rqtMttrSn == q.rqtMttrSn} ? 'on'"
-     title="눌러서 왼쪽에서 수정·삭제"
+  <a data-nav th:if="${acts and canReq}" class="rq-name"
      th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped', edit=${q.rqtMttrSn})}" th:text="${q.rqtMttrNm}">요구사항명</a>
   <span th:unless="${acts and canReq}" th:text="${q.rqtMttrNm}">요구사항명</span>
 </div>
@@ -152,11 +151,11 @@
              th:autofocus="${editRqt != null}">
     </div>
     <div class="row jc-end">
-      <button class="btn primary" type="submit" th:text="${editRqt != null} ? '수정 저장' : '등록'">등록</button>
-      <button class="btn danger" type="submit" th:if="${editRqt != null}" formnovalidate
+      <button class="btn sm primary" type="submit" th:text="${editRqt != null} ? '수정 저장' : '등록'">등록</button>
+      <button class="btn sm danger" type="submit" th:if="${editRqt != null}" formnovalidate
               th:formaction="@{/proposal/rqt/delete}"
               th:data-confirm="|요구사항 ${editRqt.rqtMttrNo}을(를) 삭제할까요?|">삭제</button>
-      <a data-nav class="btn" th:if="${editRqt != null}" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped')}">취소</a>
+      <a data-nav class="btn sm" th:if="${editRqt != null}" th:href="@{/proposal(bid=${bid.pbancSn}, view='unmapped')}">취소</a>
     </div>
   </form>
 </div>

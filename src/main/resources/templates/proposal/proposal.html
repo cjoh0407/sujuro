@@ -35,11 +35,11 @@
     <div class="split">
     <aside class="split-l">
       <th:block th:replace="~{proposal/fragments/bid-header :: bidList('/proposal')}"></th:block>
-      <!-- 요구사항 추가 화면(미매핑)에서는 인원 추가 대신 요구사항 자동 추출 · 등록·수정 칸을 둔다 -->
-      <th:block th:if="${canAssign and !unmapView and extract == null}"><th:block th:replace="~{proposal/fragments/bid-header :: memPicker}"></th:block></th:block>
-      <th:block th:if="${canAssign and !unmapView and extract == null}"><th:block th:replace="~{proposal/fragments/bid-header :: coPanel}"></th:block></th:block>
-      <th:block th:if="${canReq and unmapView}"><th:block th:replace="~{proposal/fragments/rqt :: rqExtract}"></th:block></th:block>
-      <th:block th:if="${canReq and unmapView}"><th:block th:replace="~{proposal/fragments/rqt :: rqForm}"></th:block></th:block>
+      <!-- 제안요약서 탭은 unmapView 를 넣지 않으므로(null) == true / != true 로 비교한다. 요구사항 추가 화면(미매핑)에서는 인원 추가 대신 요구사항 자동 추출 · 등록·수정 칸을 둔다 -->
+      <th:block th:if="${canAssign and unmapView != true and extract == null}"><th:block th:replace="~{proposal/fragments/bid-header :: memPicker}"></th:block></th:block>
+      <th:block th:if="${canAssign and unmapView != true and extract == null}"><th:block th:replace="~{proposal/fragments/bid-header :: coPanel}"></th:block></th:block>
+      <th:block th:if="${canReq and unmapView == true}"><th:block th:replace="~{proposal/fragments/rqt :: rqExtract}"></th:block></th:block>
+      <th:block th:if="${canReq and unmapView == true}"><th:block th:replace="~{proposal/fragments/rqt :: rqForm}"></th:block></th:block>
     </aside>
     <div class="split-r">
     <th:block th:replace="~{proposal/fragments/bid-header :: bizHead}"></th:block>

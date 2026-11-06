@@ -47,7 +47,8 @@
     <div class="lock"><b th:text="${view.lockMessage}">사업 이력은 개발팀 단위로 제공됩니다.</b></div>
   </div>
 
-  <div class="split" th:unless="${view.locked}">
+  <!--/* hist-view: 이 화면에서만 열 때 효과를 준다 (stats.css). 같은 조각을 쓰는 평가·결과 입력 화면은 움직이지 않는다 */-->
+  <div class="split hist-view" th:unless="${view.locked}">
 
   <!-- 왼쪽 3: 볼 사업 고르기. 제안 화면의 사업건 목록과 같은 블록이다. 누르면 오른쪽이 바뀐다 -->
   <aside class="split-l">

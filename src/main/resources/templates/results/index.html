@@ -361,10 +361,10 @@
 
       <!-- FR-081 장단점 분석 -->
       <div class="card">
-        <div class="card-head"><h3>장단점 분석</h3></div>
+        <div class="card-head"><h3>분석 기록</h3></div>
         <form class="pad stack-12" method="post" th:action="@{/results/analysis}">
           <input type="hidden" name="bid" th:value="${b.pbancSn}">
-          <div class="banner ok" th:if="${analysisMessage}" th:text="${analysisMessage}">장단점 분석을 저장했습니다.</div>
+          <div class="banner ok" th:if="${analysisMessage}" th:text="${analysisMessage}">분석 기록을 저장했습니다.</div>
           <div class="banner warn" th:if="${analysisError}" th:text="${analysisError}">강점은 한글 기준 1,300자까지 입력할 수 있습니다.</div>
           <div class="grid3">
             <div class="fld">

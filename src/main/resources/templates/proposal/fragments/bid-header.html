@@ -73,7 +73,7 @@
           <input type="hidden" name="bid" th:value="${bid.pbancSn}">
           <input type="hidden" name="tab" th:value="${tab}">
           <input type="hidden" name="coNm" th:value="${c}">
-          <button type="submit" class="x-btn" title="외부 회사 지우기" aria-label="외부 회사 지우기"><span class="ic ic-close"></span></button>
+          <button type="submit" class="x-btn" title="외부 회사 삭제" aria-label="외부 회사 삭제"><span class="ic ic-close"></span></button>
         </form>
       </span>
       <span class="faint" th:if="${#lists.isEmpty(members) and #lists.isEmpty(coNames)}">제안팀원이 없습니다.</span>

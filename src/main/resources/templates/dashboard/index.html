@@ -123,8 +123,8 @@
 
       <div class="dash-blocks">
         <div class="card dash-list wide">
-          <div class="card-head"><h3>제출서류 준비 현황</h3></div>
-          <div class="dash-empty" th:if="${#lists.isEmpty(view.docRows)}">준비 중인 사업건이 없습니다.</div>
+          <div class="card-head"><h3>제출서류 현황</h3></div>
+          <div class="dash-empty" th:if="${#lists.isEmpty(view.docRows)}">진행 중인 사업건이 없습니다.</div>
           <div class="lt-head" th:unless="${#lists.isEmpty(view.docRows)}"><span class="f">사업</span><span class="w88">담당팀</span><span class="w44 tr">서류</span><span class="w76">누락</span><span class="w72 tc">상태</span></div>
           <div class="dash-scroll sh-330" th:unless="${#lists.isEmpty(view.docRows)}">
             <a class="lt-row" th:each="r : ${view.docRows}" th:href="@{/docs(bid=${r.pbancSn})}">
@@ -237,7 +237,7 @@
                 <div class="todo-nm"><span class="t" th:text="${t.title}" th:title="${t.title}">2. 사업 이해</span><span class="dd-chip" th:if="${t.dday != null}" th:classappend="|t-${t.tone}|" th:text="${t.ddayChip}">D-2</span></div>
                 <div class="todo-sub" th:text="${t.pbancNm}" th:title="|${t.pbancNm} · ${t.fileLabel}|">사업명</div>
               </div>
-              <a class="todo-btn" th:href="@{${t.actionHref}}"><span th:text="${t.actionLabel}">파일 올리기</span> <i>›</i></a>
+              <a class="todo-btn" th:href="@{${t.actionHref}}"><span th:text="${t.actionLabel}">파일 등록</span> <i>›</i></a>
             </div>
           </div>
         </div>

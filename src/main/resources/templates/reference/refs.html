@@ -28,7 +28,7 @@
   <aside class="split-l">
     <div class="card" id="upCard">
       <div class="card-head">
-        <h3>자료 올리기</h3>
+        <h3>자료 등록</h3>
         <span class="faint fs-11_5">최대 50MB</span>
       </div>
       <form th:action="@{/refs/upload}" method="post" enctype="multipart/form-data" class="pad mp-form">
@@ -47,7 +47,7 @@
                  data-on-input="refMemoCount">
         </label>
         <div class="row jc-end">
-          <button class="btn sm primary" type="submit">올리기</button>
+          <button class="btn sm primary" type="submit">등록</button>
         </div>
       </form>
     </div>
@@ -74,7 +74,7 @@
 
     <div class="ts" th:unless="${#lists.isEmpty(files)}">
       <table class="ref-table">
-        <thead><tr><th class="c-pv"></th><th>파일</th><th class="c-se">구분</th><th class="c-sz">크기</th><th class="c-who">올린 사람</th><th class="c-dt">올린 날</th><th class="c-act"></th></tr></thead>
+        <thead><tr><th class="c-pv"></th><th>파일</th><th class="c-se">구분</th><th class="c-sz">크기</th><th class="c-who">등록자</th><th class="c-dt">등록일</th><th class="c-act"></th></tr></thead>
         <tbody>
           <tr class="hv" th:each="f : ${files}">
             <td class="c-pv">

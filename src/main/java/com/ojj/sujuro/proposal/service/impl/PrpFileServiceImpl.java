@@ -158,7 +158,7 @@ public class PrpFileServiceImpl implements PrpFileService {
             }
         }
         if (!lead && !userId.equals(f.getRgtrId())) {
-            throw new BusinessException("파일은 올린 사람과 주관팀 팀장만 삭제할 수 있습니다.");
+            throw new BusinessException("파일은 등록자와 주관팀 팀장만 삭제할 수 있습니다.");
         }
         String r = reason == null ? "" : reason.trim();
         if (r.isEmpty()) {

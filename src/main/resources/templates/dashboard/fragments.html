@@ -80,8 +80,8 @@
   </div>
   <div class="dash-line">
     <div class="ln-legend"><span class="a">수주율(%)</span><span class="b">수주 금액(억)</span></div>
-    <svg viewBox="0 0 480 270" role="img" th:attr="aria-label=${c.aria}">
-      <line class="ln-guide" th:each="p : ${c.points}" th:attr="x1=${p.x},x2=${p.x}" y1="24" y2="234"></line>
+    <svg viewBox="0 0 560 240" role="img" th:attr="aria-label=${c.aria}"><!--/* 크기는 DashboardCharts.LINE_W·LINE_H 와 같다 */-->
+      <line class="ln-guide" th:each="p : ${c.points}" th:attr="x1=${p.x},x2=${p.x}" y1="20" y2="204"></line>
       <polyline class="ln-amt" pathLength="1" th:if="${!#strings.isEmpty(c.amtPoints)}" th:attr="points=${c.amtPoints}"></polyline>
       <polyline class="ln-rate" pathLength="1" th:if="${!#strings.isEmpty(c.ratePoints)}" th:attr="points=${c.ratePoints}"></polyline>
       <g th:each="p : ${c.points}" th:classappend="${p.current} ? 'cur'">

@@ -13,7 +13,6 @@ import java.util.Locale;
 import org.springframework.stereotype.Service;
 
 import com.ojj.sujuro.auth.dto.LoginUser;
-import com.ojj.sujuro.dashboard.dto.DashboardRows;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.Bid;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.DocRow;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.LeaderCounts;
@@ -22,7 +21,6 @@ import com.ojj.sujuro.dashboard.dto.DashboardRows.MyToc;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.ResultWait;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.SalesCounts;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.TodoItem;
-import com.ojj.sujuro.dashboard.dto.DashboardRows.Win;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.YearStat;
 import com.ojj.sujuro.dashboard.dto.DashboardView.Stat;
 import com.ojj.sujuro.notification.dto.NotificationDto;
@@ -37,7 +35,7 @@ import lombok.RequiredArgsConstructor;
  *   영업부     카드 3: 배정 대기 · 팀장 응답 대기 · 마감 3일 이내 미배정
  *              블록: 팀별 진행 현황(레이더) · 곧 마감되는 공고 3건 · 처리할 공고
  *   경영지원실 카드 4: 필수 서류 누락 · 나라장터 등록 대기 · 결과 가져오기 대기 · 제출 마감 임박
- *              블록: 연도별 성과(버블) · 주의가 필요한 항목 · 올해 수주한 사업 · 제출서류 준비 현황
+ *              블록: 연도별 성과(꺾은선) · 제출서류 준비 현황 (11/07 올해 수주한 사업·주의가 필요한 항목 블록 제거)
  *   팀장       카드 4: 참여 결정 대기 · 진행 중 사업 · 미매핑 요구사항 · 마감 7일 이내
  *              블록: 사업별 제안서 진행 현황(작은 원 3개) · 처리할 일
  *   팀원       카드 4: 내 담당 목차 · 작성 중 · 검토 완료 · 마감 7일 이내
@@ -132,14 +130,6 @@ public class DashboardService {
 
         List<YearStat> years = mapper.yearStats();
         v.setMainChart(DashboardCharts.yearLine(years));
-        v.setAttention(mapper.mgmtAlerts());
-        List<Win> wins = mapper.yearWins();
-        v.setWins(wins);
-        if (!wins.isEmpty()) {
-            YearStat cur = years == null || years.isEmpty() ? null : years.get(years.size() - 1);
-            long total = cur != null && cur.getWonAmt() > 0 ? cur.getWonAmt() : sumAmt(wins);
-            v.setWinTotal("합계 " + DashboardRows.eok(total));
-        }
         v.setDocRows(rows);
     }
 
@@ -183,14 +173,6 @@ public class DashboardService {
 
     private List<NotificationDto> recentAlerts(String userId) {
         return inboxMapper.findPage(userId, 0, ALERT_LIMIT);
-    }
-
-    private static long sumAmt(List<Win> wins) {
-        long s = 0;
-        for (Win w : wins) {
-            s += w.getScsbdAmt();
-        }
-        return s;
     }
 
 

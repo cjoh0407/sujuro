@@ -25,12 +25,13 @@ import com.ojj.sujuro.schedule.dto.ScheduleView;
  */
 final class DashboardCharts {
 
-    // 꺾은선(경영지원실 '연도별 성과'): 480×270. 수주율은 0~110%, 수주 금액은 가장 큰 해의 1.2배까지를 각각 자기 크기에 맞춘다
-    private static final double LINE_W = 480;
-    private static final double LINE_H = 270;
-    private static final double LINE_L = 60;
-    private static final double LINE_R = 60;
-    private static final double LINE_T = 34;
+    // 꺾은선(경영지원실 '연도별 성과'): 560×240 (11/07 가로로 넓혀 칸 폭을 채운다. fragments.html 의 viewBox 와 같아야 한다).
+    // 수주율은 0~110%, 수주 금액은 가장 큰 해의 1.2배까지를 각각 자기 크기에 맞춘다
+    private static final double LINE_W = 560;
+    private static final double LINE_H = 240;
+    private static final double LINE_L = 64;
+    private static final double LINE_R = 64;
+    private static final double LINE_T = 30;
     private static final double LINE_B = 36;
 
     private DashboardCharts() {
@@ -71,13 +72,13 @@ final class DashboardCharts {
     static Chart yearLine(List<YearStat> years) {
         Chart c = new Chart();
         c.setKind("line");
-        c.setTitle("연도별 성과");
+        c.setTitle("최근 3년 성과");
         c.setEmptyText("연도별 결과가 아직 없습니다.");
         if (years == null || years.isEmpty()) {
             return c;
         }
-        // 11/06 멘토링: 기간을 제목에 적는다. 예) 연도별 성과 · 최근 3년 (2024~2026)
-        c.setTitle("연도별 성과 · 최근 " + years.size() + "년 (" + years.get(0).getYearNo() + "~" + years.get(years.size() - 1).getYearNo() + ")");
+        // 11/07: 제목은 '최근 N년 성과' (연도는 그래프 아래에 이미 적혀 있다)
+        c.setTitle("최근 " + years.size() + "년 성과");
         boolean any = false;
         for (YearStat y : years) {
             any = any || y.getSubmitted() > 0 || y.getWon() > 0 || y.getLost() > 0 || y.getFailed() > 0;

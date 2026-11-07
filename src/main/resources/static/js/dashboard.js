@@ -121,3 +121,4 @@
     document.querySelectorAll('.dash-stat .v > span, .dash-kpi .v > span').forEach(countUp);
   });
 })();
+

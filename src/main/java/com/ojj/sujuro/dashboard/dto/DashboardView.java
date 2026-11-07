@@ -7,10 +7,8 @@ import com.ojj.sujuro.dashboard.dto.DashboardRows.Bid;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.DocRow;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.LeaderProject;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.MemberProject;
-import com.ojj.sujuro.dashboard.dto.DashboardRows.MgmtAlert;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.MyToc;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.TodoItem;
-import com.ojj.sujuro.dashboard.dto.DashboardRows.Win;
 import com.ojj.sujuro.notification.dto.NotificationDto;
 import com.ojj.sujuro.schedule.dto.ScheduleView;
 import lombok.Getter;
@@ -185,9 +183,6 @@ public class DashboardView {
     // 목록은 마감이 가까운 순으로 불러오고, 칸 안에서 스크롤한다. 불러오는 건수는 쿼리가 막는다(최대 30건).
     private TeamLoad teamLoad = new TeamLoad();               // 영업부: 팀별 진행 현황 (도넛 + 팀별 막대)
     private List<Bid> todoBids = new ArrayList<>();           // 영업부: 처리할 공고
-    private List<MgmtAlert> attention = new ArrayList<>();    // 경영지원실: 주의가 필요한 항목
-    private List<Win> wins = new ArrayList<>();               // 경영지원실: 올해 수주한 사업
-    private String winTotal;                                  // 합계 38.2억
     private List<DocRow> docRows = new ArrayList<>();         // 경영지원실: 제출서류 준비 현황
     private List<LeaderProject> leaderProjects = new ArrayList<>(); // 팀장: 사업별 제안서 진행 현황
     private List<TodoItem> todos = new ArrayList<>();               // 팀장: 처리할 일

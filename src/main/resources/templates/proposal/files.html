@@ -6,7 +6,7 @@
 <!--/*
   제안서 관리 (FR-057~066, 화면 설계 v3.2). 사업건 단위, 그 사업건 제안팀만 연다.
   탭 full: 전체 제안서(통합본) / part: 제안서 파트별 파일 / sum: 제안요약서(목차별)
-  사업건 선택·사업명 줄은 fragments/bid-header, 파일 한 줄·올리기 칸은 아래 조각(fileRow, upCard)
+  사업건 고르기·사업명 줄은 fragments/bid-header (bidSelect, bizHead), 파일 한 줄·등록 칸은 아래 조각(fileRow, upStrip)
 */-->
 <head>
   <title>제안서 관리</title>
@@ -30,59 +30,28 @@
     <div class="banner ok" data-flash="done" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
     <div class="banner err" data-flash="error" th:if="${error != null}" th:text="${error}">오류 안내</div>
 
-    <!-- 3:7 화면: 왼쪽에 사업건 목록, 오른쪽에 업무 화면 -->
-    <div class="split">
-    <aside class="split-l">
-      <th:block th:replace="~{proposal/fragments/bid-header :: bidList('/files')}"></th:block>
-      <!-- 파일 올리기: 목차를 고르고 올린다 (통합본 탭은 목차 없이). 올릴 수 있는 사람(주관팀 팀장, 목차 담당자)에게만 보인다 -->
-      <th:block th:if="${tab == 'full' ? canAssign : (canAssign or @prpFileView.hasLeafOf(leaves, me))}">
-        <th:block th:replace="~{proposal/files :: upCard}"></th:block>
-      </th:block>
-    </aside>
-    <div class="split-r">
-    <th:block th:replace="~{proposal/fragments/bid-header :: bizHead}"></th:block>
-
-    <div class="tabs">
-      <a class="tab" th:classappend="${tab == 'full'} ? 'on'" th:href="@{/files(bid=${bid.pbancSn}, tab='full')}">전체 제안서 (통합본)</a>
-      <a class="tab" th:classappend="${tab == 'part'} ? 'on'" th:href="@{/files(bid=${bid.pbancSn}, tab='part')}">제안서 파트별 파일</a>
-      <a class="tab" th:classappend="${tab == 'sum'} ? 'on'" th:href="@{/files(bid=${bid.pbancSn}, tab='sum')}">제안요약서 (목차별)</a>
-    </div>
-
-    <!-- 삭제된 파일 보기 (원본·이력 보관, NFR-009) -->
-    <div class="row jc-end" th:if="${deletedCnt > 0}">
-      <a class="link" th:unless="${showDeleted}" th:href="@{/files(bid=${bid.pbancSn}, tab=${tab}, deleted=true)}"
-         th:text="'삭제된 파일 보기 (' + ${deletedCnt} + ')'">삭제된 파일 보기 (0)</a>
-      <a class="link" th:if="${showDeleted}" th:href="@{/files(bid=${bid.pbancSn}, tab=${tab})}">삭제된 파일 닫기</a>
-    </div>
-    <div class="card" th:if="${showDeleted}">
-      <div class="card-head">
-        <h3 th:text="'삭제된 파일 (' + ${deletedCnt} + ')'">삭제된 파일</h3>
+    <!-- 위: 사업명·탭(왼쪽)과 사업건 고르기(오른쪽). 처음에는 스토리보드 관리 등에서 보던 사업건이 열린다 (CurrentBid) -->
+    <div class="page-head">
+      <div class="page-head-l">
+        <th:block th:replace="~{proposal/fragments/bid-header :: bizHead}"></th:block>
+        <div class="tabs">
+          <a class="tab" th:classappend="${tab == 'full'} ? 'on'" th:href="@{/files(bid=${bid.pbancSn}, tab='full')}">전체 제안서 (통합본)</a>
+          <a class="tab" th:classappend="${tab == 'part'} ? 'on'" th:href="@{/files(bid=${bid.pbancSn}, tab='part')}">제안서 파트별 파일</a>
+          <a class="tab" th:classappend="${tab == 'sum'} ? 'on'" th:href="@{/files(bid=${bid.pbancSn}, tab='sum')}">제안요약서 (목차별)</a>
+        </div>
       </div>
-      <div class="ts">
-        <table>
-          <thead><tr><th>대상</th><th>파일</th><th>버전</th><th>등록자</th><th>삭제한 사람 · 일시</th><th>삭제 사유</th><th class="c-end"></th></tr></thead>
-          <tbody>
-            <tr class="hv" th:each="f : ${deletedFiles}">
-              <td th:text="${f.targetNm ?: '-'}">1.1 목차</td>
-              <td th:text="${f.orgnlFileNm}">파일명</td>
-              <td class="mono" th:text="${f.intgCycl != null} ? ${f.intgCycl} + '차' : 'v' + ${f.verNo}">v1</td>
-              <td th:text="${(f.rgtrNm ?: f.rgtrId) + ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm')}">등록자</td>
-              <td th:text="${(f.dltrNm ?: f.dltrId) + ' · ' + #dates.format(f.delDt, 'yyyy-MM-dd HH:mm')}">삭제한 사람</td>
-              <td th:text="${f.delRsn}">사유</td>
-              <td class="c-end"><a class="ico" title="내려받기" aria-label="내려받기" th:href="@{/files/download(bid=${bid.pbancSn}, fileSn=${f.fileSn})}"><span class="ic ic-download"></span></a></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <th:block th:replace="~{proposal/fragments/bid-header :: bidSelect('/files')}"></th:block>
     </div>
 
     <!-- ===== 통합본 (FR-060, FR-064): 주관팀 팀장이 올리고 최종본을 확정한다 ===== -->
     <div class="card" th:if="${tab == 'full'}">
       <div class="card-head">
         <h3 th:text="'통합본 버전 (' + ${#lists.size(fullFiles)} + ')'">통합본 버전 (0)</h3>
+        <!-- 통합본 올리기: 주관팀 팀장만 (최대 300MB) -->
+        <th:block th:if="${canAssign}"><th:block th:replace="~{proposal/files :: upStrip(null, true)}"></th:block></th:block>
       </div>
       <th:block th:if="${!#lists.isEmpty(fullFiles)}"><th:block th:replace="~{proposal/files :: versionList(${fullFiles})}"></th:block></th:block>
-      <div class="empty" th:if="${#lists.isEmpty(fullFiles)}">아직 올린 통합본이 없습니다. 파트별 파일을 합친 전체 제안서를 1차, 2차처럼 올리세요.</div>
+      <div class="empty" th:if="${#lists.isEmpty(fullFiles)}">아직 등록한 통합본이 없습니다. 파트별 파일을 합친 전체 제안서를 1차, 2차처럼 올려 주세요.</div>
     </div>
 
     <!-- ===== 목차별 파일 (FR-058, FR-059, FR-063, FR-066): 최하위 목차마다 담당자가 올린다 ===== -->
@@ -91,71 +60,122 @@
         <div class="empty" th:text="${tab == 'sum'} ? '제안요약서 목차가 아직 없습니다. 스토리보드 관리 화면의 &quot;제안요약서 목차&quot; 탭에서 목차를 만드세요.' : '목차가 아직 없습니다. 먼저 스토리보드 관리 화면에서 목차를 만드세요.'">목차가 아직 없습니다.</div>
       </div>
 
-      <div class="card" th:each="t : ${leaves}"
-           th:with="arr=${filesByToc[t.tocSn]}, canUp=${canAssign or t.picId == me}">
+      <!-- 스토리보드 관리와 같은 표: 묶음 목차는 회색 줄, 최하위 목차마다 담당자 · 파일 · 상태 · 올리기 -->
+      <div class="card" th:unless="${#lists.isEmpty(leaves)}">
         <div class="card-head">
-          <h3>
-            <span th:text="${t.label}">1.1 목차</span>
-            <span class="faint fw-normal" th:text="'· 담당 ' + ${t.ownerLabel ?: '미지정'}">· 담당 미지정</span>
-            <span class="pill" th:classappend="${t.fileStatusPill}" th:text="${t.fileStatus}">미착수</span>
-          </h3>
-          <span class="row">
-            <form th:if="${canAssign and t.fileCnt > 0}" th:action="@{/files/review}" method="post" class="d-inline">
-              <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-              <input type="hidden" name="tab" th:value="${tab}">
-              <input type="hidden" name="tocSn" th:value="${t.tocSn}">
-              <input type="hidden" name="done" th:value="${t.fileStatus != '검토 완료'}">
-              <button type="submit" class="rv-btn" th:classappend="${t.fileStatus == '검토 완료'} ? 'on'"
-                      th:title="${t.fileStatus == '검토 완료'} ? '검토 완료를 취소합니다' : '검토를 마쳤으면 눌러 주세요'">
-                <span class="ic ic-check"></span>검토 완료
-              </button>
-            </form>
-          </span>
+          <h3 th:text="${tab == 'sum'} ? '제안요약서 목차별 파일' : '제안서 파트별 파일'">제안서 파트별 파일</h3>
+          <span class="faint fs-11_5" th:text="|목차 ${#lists.size(leaves)}개 · 파일 등록한 목차 ${#lists.size(leaves.?[fileCnt > 0])}개|">목차 0개</span>
         </div>
-        <th:block th:if="${arr != null}"><th:block th:replace="~{proposal/files :: versionList(${arr})}"></th:block></th:block>
-        <div class="empty u-padding-12px" th:if="${arr == null}"
-             th:text="${canUp} ? '업로드된 파일이 없습니다.' : '업로드된 파일이 없습니다. (담당자가 올립니다)'">업로드된 파일이 없습니다.</div>
+        <div class="ts">
+          <table class="pf-table">
+            <colgroup><col class="w-26p"><col class="w-120px"><col><col class="w-90px"><col class="pf-act-col"></colgroup>
+            <thead><tr><th>세부 목차</th><th>담당자</th><th>파일</th><th>상태</th><th></th></tr></thead>
+            <tbody>
+              <th:block th:each="t : ${tocs}">
+                <tr th:if="${t.group}">
+                  <td colspan="5" class="toc-group" th:style="'padding-left:' + ${t.indent} + 'px'" th:text="${t.label}">1 제안 개요</td>
+                </tr>
+                <tr th:unless="${t.group}" th:with="arr=${filesByToc[t.tocSn]}, canUp=${canAssign or t.picId == me}">
+                  <td class="pf-label" th:style="'padding-left:' + ${t.indent} + 'px'" th:text="${t.label}">1.1 목차</td>
+                  <td th:classappend="${t.ownerLabel == null} ? 'faint'" th:text="${t.ownerLabel ?: '미지정'}">미지정</td>
+                  <td class="pf-files">
+                    <!-- 최신 파일 한 줄 + 시계 아이콘. 누르면 화면 가운데 창에 버전 이력 (proposal.js openVerPop) -->
+                    <div class="pf-cell" th:if="${arr != null}" th:with="f=${arr[0]}">
+                      <span class="pill accent" th:text="'v' + ${f.verNo}">v1</span>
+                      <a class="pf-nm dl-name" th:href="@{/files/download(bid=${bid.pbancSn}, fileSn=${f.fileSn})}" title="눌러서 내려받기" th:text="${f.orgnlFileNm}">파일명.pdf</a>
+                      <span class="faint fs-11_5 nowrap" th:text="${(f.rgtrNm ?: f.rgtrId) + ' · ' + #dates.format(f.regDt, 'MM-dd HH:mm')}">정다은 · 11-06 22:03</span>
+                      <button type="button" class="ico pf-hist" data-on-click="openVerPop"
+                              th:title="|버전 이력 (${#lists.size(arr)})|" th:aria-label="|버전 이력 (${#lists.size(arr)})|"><span class="ic ic-clock"></span></button>
+                      <!-- 창에 옮겨 넣을 버전 줄 (화면에는 안 보인다) -->
+                      <table class="ver-src" hidden th:data-title="${t.label}" th:data-count="${#lists.size(arr)}"><tbody>
+                        <tr th:each="v : ${arr}">
+                          <td><span class="pill accent" th:text="'v' + ${v.verNo}">v1</span></td>
+                          <td class="vp-nm"><a class="dl-name" title="눌러서 내려받기" th:href="@{/files/download(bid=${bid.pbancSn}, fileSn=${v.fileSn})}" th:text="${v.orgnlFileNm}">파일명</a><span class="pill success" th:if="${v.last}">최종본</span></td>
+                          <td th:text="${v.rgtrNm ?: v.rgtrId}">등록자</td>
+                          <td class="mono" th:text="${#dates.format(v.regDt, 'yyyy-MM-dd HH:mm')}">2026-11-06 22:03</td>
+                          <td class="mono" th:text="${v.sizeLabel}">143KB</td>
+                          <td class="vp-act">
+                            <form th:if="${#sets.contains(deletable, v.fileSn)}" th:action="@{/files/delete}" method="post" class="d-inline"
+                                  data-on-submit="askReason">
+                              <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                              <input type="hidden" name="tab" th:value="${tab}">
+                              <input type="hidden" name="fileSn" th:value="${v.fileSn}">
+                              <input type="hidden" name="reason">
+                              <button class="ico danger" type="submit" title="삭제" aria-label="삭제"><span class="ic ic-trash"></span></button>
+                            </form>
+                          </td>
+                        </tr>
+                      </tbody></table>
+                    </div>
+                    <span class="pf-need" th:if="${arr == null and !t.assigned}">담당자를 먼저 지정해 주세요.</span>
+                    <span class="faint" th:if="${arr == null and t.assigned}" th:text="${canUp} ? '등록된 파일 없음' : '등록된 파일 없음 (담당자가 등록합니다)'">올린 파일 없음</span>
+                  </td>
+                  <td><span class="pill" th:classappend="${t.fileStatusPill}" th:text="${t.fileStatus}">미착수</span></td>
+                  <td class="pf-act"><div class="pf-act-in">
+                    <!-- 이 목차에 파일 올리기: 주관팀 팀장 또는 이 목차 담당자 (서버에서도 다시 검사) -->
+                    <!-- 담당자가 없는 목차는 올리기 전에 담당자 지정 안내부터 띄운다 (proposal.js needOwner) -->
+                    <th:block th:if="${canUp and t.assigned}"><th:block th:replace="~{proposal/files :: upStrip(${t.tocSn}, false)}"></th:block></th:block>
+                    <span class="up-strip" th:if="${canUp and !t.assigned}">
+                      <button type="button" class="drop sm need-owner" data-on-click="needOwner" th:data-arg="${t.label}"
+                              title="담당자를 먼저 지정해 주세요"><span class="ic ic-upload"></span><span class="drop-body"><span class="drop-text"><span><b>파일 등록</b></span></span></span></button>
+                    </span>
+                    <form th:if="${canAssign and t.fileCnt > 0}" th:action="@{/files/review}" method="post" class="d-inline">
+                      <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                      <input type="hidden" name="tab" th:value="${tab}">
+                      <input type="hidden" name="tocSn" th:value="${t.tocSn}">
+                      <input type="hidden" name="done" th:value="${t.fileStatus != '검토 완료'}">
+                      <button type="submit" class="rv-btn" th:classappend="${t.fileStatus == '검토 완료'} ? 'on'"
+                              th:title="${t.fileStatus == '검토 완료'} ? '검토 완료를 취소합니다' : '검토를 마쳤으면 눌러 주세요'">
+                        <span class="ic ic-check"></span>검토 완료
+                      </button>
+                    </form>
+                  </div></td>
+                </tr>
+              </th:block>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 버전 이력 창: 줄의 시계 아이콘을 누르면 그 목차의 버전 줄(.ver-src)을 옮겨 와 보여 준다 -->
+      <div class="modal" id="verPop" hidden data-self-click="closeVerPop">
+        <div class="box ver-box" role="dialog" aria-modal="true" aria-labelledby="verPopTitle">
+          <div class="card-head">
+            <div>
+              <div class="faint fs-11_5" id="verPopToc">1.1 목차</div>
+              <h3 id="verPopTitle">버전 이력</h3>
+            </div>
+            <button class="ico" type="button" title="닫기" aria-label="닫기" data-on-click="closeVerPop"><span class="ic ic-close"></span></button>
+          </div>
+          <div class="ts">
+            <table class="ver-table">
+              <thead><tr><th>버전</th><th>파일명</th><th>등록자</th><th>등록일</th><th>용량</th><th></th></tr></thead>
+              <tbody id="verPopRows"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </th:block>
-    </div>
-    </div>
   </th:block>
 
   <!-- ===== 화면 조각 (위에서 th:replace로 가져다 쓴다. 이 자리에는 그려지지 않는다) ===== -->
   <th:block th:if="${false}">
 
-    <!-- 파일 올리기 칸(왼쪽 아래 칸, 제안팀 인원 추가와 같은 박스). 통합본 탭은 목차 없이 통합본으로, 파트별·요약서 탭은 목차를 골라 올린다.
-         고를 수 있는 목차: 주관팀 팀장은 전부, 그 밖에는 자기가 담당인 목차만 (서버에서도 다시 검사) -->
-    <div class="card" id="upCard" th:fragment="upCard">
-      <div class="card-head">
-        <h3 th:text="${tab == 'full'} ? '통합본 등록' : '파일 등록'">파일 등록</h3>
-        <span class="faint fs-11_5" th:text="${tab == 'full'} ? '최대 300MB' : '최대 50MB'">최대 50MB</span>
-      </div>
-      <form th:action="@{/files/upload}" method="post" enctype="multipart/form-data" class="pad mp-form">
-        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-        <input type="hidden" name="tab" th:value="${tab}">
-        <select name="tocSn" required th:unless="${tab == 'full'}">
-          <option value="" disabled selected>목차 고르기</option>
-          <th:block th:each="t : ${leaves}">
-            <option th:if="${canAssign or t.picId == me}" th:value="${t.tocSn}"
-                    th:text="${t.label + ' · ' + (t.ownerLabel ?: '미지정')}">1.1 목차</option>
-          </th:block>
-        </select>
-        <div class="up-top" th:if="${tab == 'full'}">전체 제안서 통합본</div>
-        <label class="drop">
-          <input type="file" name="file" required accept=".pdf,.ppt,.pptx" th:data-max-mb="${tab == 'full'} ? 300 : 50">
-          <span class="ic ic-upload"></span>
-          <span class="drop-body">
-            <span class="drop-text"><span><b>파일 선택</b> · 끌어 놓기</span></span>
-            <span class="drop-hint"></span>
-          </span>
-        </label>
-        <div class="row">
-          <div class="up-note">PDF · PPT(PPTX) 파일만 올릴 수 있습니다.</div>
-          <button class="btn sm primary" type="submit">등록</button>
-        </div>
-      </form>
-    </div>
+    <!-- 파일 올리기 (각 목차 카드 머리글 / 통합본 카드 머리글). 파일을 고르거나 끌어 놓으면 형식·용량을 확인한 뒤 바로 올린다
+         (proposal.js: data-auto-upload). tocSn 이 없으면 통합본 -->
+    <form th:fragment="upStrip(tocSn, full)" th:action="@{/files/upload}" method="post" enctype="multipart/form-data" class="up-strip">
+      <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+      <input type="hidden" name="tab" th:value="${tab}">
+      <input type="hidden" name="tocSn" th:if="${tocSn != null}" th:value="${tocSn}">
+      <label class="drop sm" th:title="${full} ? 'PDF · PPT(PPTX) · 최대 300MB. 눌러서 고르거나 끌어 놓아 주세요.' : 'PDF · PPT(PPTX) · 최대 50MB. 눌러서 고르거나 끌어 놓아 주세요.'">
+        <input type="file" name="file" required accept=".pdf,.ppt,.pptx" th:data-max-mb="${full} ? 300 : 50" data-auto-upload>
+        <span class="ic ic-upload"></span>
+        <span class="drop-body">
+          <span class="drop-text"><span><b th:text="${full} ? '통합본 등록' : '파일 등록'">파일 등록</b><th:block th:if="${full}"> · 끌어 놓기</th:block></span></span>
+          <span class="drop-hint"></span>
+        </span>
+      </label>
+    </form>
 
     <!-- 버전 목록: 최신 1개(최종본이 따로 있으면 그것도)만 보이고 나머지는 "이전 버전 N개 보기"로 접는다. list는 최신순, 비어 있지 않아야 한다 -->
     <th:block th:fragment="versionList(list)"
@@ -179,7 +199,7 @@
     <!-- 파일 한 줄: 이름 · 올린 사람 · 일시 · 크기 · 버전 (FR-061) -->
     <div class="item" th:fragment="fileRow(f, first)">
       <div class="minw-0">
-        <b th:text="${f.orgnlFileNm}">파일명</b>
+        <a class="dl-name" title="눌러서 내려받기" th:href="@{/files/download(bid=${bid.pbancSn}, fileSn=${f.fileSn})}" th:text="${f.orgnlFileNm}">파일명</a>
         <div class="faint fs-11_5"
              th:text="${(f.rgtrNm ?: f.rgtrId) + ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm') + ' · ' + f.sizeLabel}">등록자 · 일시 · 크기</div>
       </div>
@@ -195,7 +215,6 @@
           <input type="hidden" name="fileSn" th:value="${f.fileSn}">
           <button class="btn sm" type="submit">최종본 확정</button>
         </form>
-        <a class="ico" title="내려받기" aria-label="내려받기" th:href="@{/files/download(bid=${bid.pbancSn}, fileSn=${f.fileSn})}"><span class="ic ic-download"></span></a>
         <form th:if="${#sets.contains(deletable, f.fileSn)}" th:action="@{/files/delete}" method="post" class="d-inline"
               data-on-submit="askReason">
           <input type="hidden" name="bid" th:value="${bid.pbancSn}">

@@ -20,7 +20,7 @@
 <head>
   <title>공고 상세</title>
   <th:block layout:fragment="head">
-    <link rel="stylesheet" th:href="@{/css/proposal.css}"><!-- 내려받기 아이콘(.ico, .ic-download)을 제안 화면과 같게 쓴다 -->
+    <link rel="stylesheet" th:href="@{/css/proposal.css}"><!-- 파일 칸·아이콘 모양을 제안 화면과 같게 쓴다 -->
     <link rel="stylesheet" th:href="@{/css/bid.css}">
   </th:block>
 </head>
@@ -214,11 +214,9 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4"/></svg>
           <!-- 파일 이름 오른쪽에 확장자·용량 (11/05 태그는 뺐다) -->
           <div class="nd-file-txt">
-            <b th:text="${f.orgnlFileNm}">[제안요청서] 사업.hwpx</b>
+            <a class="dl-name" title="눌러서 내려받기" th:href="@{/notices/{sn}/files/{fs}(sn=${notice.pbancSn}, fs=${f.fileSn})}" th:text="${f.orgnlFileNm}">[제안요청서] 사업.hwpx</a>
             <span class="faint fs-11_5" th:text="${f.format} + (${f.sizeText} != null ? ' · ' + ${f.sizeText} : '')">HWPX · 417KB</span>
           </div>
-          <!-- 내려받기는 아이콘 하나 (11/05). 줄 오른쪽 끝 -->
-          <a class="ico" title="내려받기" aria-label="내려받기" th:href="@{/notices/{sn}/files/{fs}(sn=${notice.pbancSn}, fs=${f.fileSn})}"><span class="ic ic-download"></span></a>
         </div>
 
         <!-- 사전규격 규격서. 제안요청서 초안이 들어 있는 경우가 많다(실측 21건 중 17건). 입찰공고 때 바뀔 수 있다. -->
@@ -226,11 +224,9 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4"/></svg>
           <!-- 파일 이름 오른쪽에 확장자·용량 (11/05 태그는 뺐다) -->
           <div class="nd-file-txt">
-            <b th:text="${f.orgnlFileNm}">제안요청서(안).hwpx</b>
+            <a class="dl-name" title="눌러서 내려받기" th:href="@{/notices/{sn}/files/{fs}(sn=${notice.pbancSn}, fs=${f.fileSn})}" th:text="${f.orgnlFileNm}">제안요청서(안).hwpx</a>
             <span class="faint fs-11_5" th:text="${f.format} + (${f.sizeText} != null ? ' · ' + ${f.sizeText} : '')">HWPX · 3.3MB</span>
           </div>
-          <!-- 내려받기는 아이콘 하나 (11/05). 줄 오른쪽 끝 -->
-          <a class="ico" title="내려받기" aria-label="내려받기" th:href="@{/notices/{sn}/files/{fs}(sn=${notice.pbancSn}, fs=${f.fileSn})}"><span class="ic ic-download"></span></a>
         </div>
 
         <div class="empty" th:if="${#lists.isEmpty(notice.atchFiles)}"

@@ -35,10 +35,11 @@
     VALUES (#{pbancSn}, #{rqtMttrNo}, #{rqtMttrNm}, #{rgtrId})
   </insert>
 
-  <!-- 명칭만 고친다 (v4.0: 요구사항은 ID·명칭만, 번호와 연결 목차는 그대로) -->
+  <!-- 명칭을 고친다. ID는 대문자로만 맞추고 (11/07) 연결 목차는 그대로 (v4.0: 요구사항은 ID·명칭만) -->
   <update id="update">
     UPDATE TB_RQT_MTTR
-       SET RQT_MTTR_NM = #{rqtMttrNm}
+       SET RQT_MTTR_NM = #{rqtMttrNm},
+           RQT_MTTR_NO = UPPER(RQT_MTTR_NO) <!-- 예전에 소문자로 등록한 ID도 수정 저장하면 대문자로 (11/07) -->
      WHERE RQT_MTTR_SN = #{rqtMttrSn}
   </update>
 

@@ -63,7 +63,7 @@ class NoticeDetailPageDbTest {
     @MockBean private FileStorage storage;
 
     @Test
-    void 첨부파일_내려받기는_아이콘_하나이고_나라장터_첨부는_원래_주소로_보낸다() throws Exception {
+    void 첨부파일_내려받기는_파일_이름_링크이고_나라장터_첨부는_원래_주소로_보낸다() throws Exception {
         Long sn = insertNotice("R26BK99990055", "PP030");
         Long bidFile = insertUrlFile(sn, "FL010", "(가상) 제안요청서.hwpx", "https://example.invalid/rfp");
         Long preSpecFile = insertUrlFile(sn, "FL080", "(가상) 제안요청서(안).hwpx", "https://example.invalid/pre");
@@ -71,11 +71,12 @@ class NoticeDetailPageDbTest {
 
         String page = page(session, sn);
         assertTrue(page.contains("(가상) 제안요청서.hwpx"));
-        assertTrue(page.contains(downloadIcon(sn, bidFile)), "입찰공고 첨부 아이콘 링크여야 합니다");
-        assertTrue(page.contains(downloadIcon(sn, preSpecFile)), "사전규격 규격서 아이콘 링크여야 합니다");
+        assertTrue(page.contains(downloadIcon(sn, bidFile)), "입찰공고 첨부는 파일 이름이 내려받기 링크여야 합니다");
+        assertTrue(page.contains(downloadIcon(sn, preSpecFile)), "사전규격 규격서도 파일 이름이 내려받기 링크여야 합니다");
         assertFalse(page.contains(">내려받기</a>"), "글자 버튼은 없습니다");
+        assertFalse(page.contains("ic-download"), "내려받기 아이콘은 없습니다 (11/07: 파일 이름을 누른다)");
         assertFalse(page.contains(">제안요청서 초안</span>"), "사전규격 규격서도 입찰공고 첨부처럼 태그가 없습니다");
-        assertTrue(page.contains("/css/proposal.css"), "아이콘 모양은 proposal.css 에 있습니다");
+        assertTrue(page.contains("/css/proposal.css"), "파일 칸 모양은 proposal.css 에 있습니다");
 
         mvc.perform(get("/notices/" + sn + "/files/" + bidFile).session(session))
                 .andExpect(r -> assertEquals(302, r.getResponse().getStatus()))
@@ -226,10 +227,9 @@ class NoticeDetailPageDbTest {
         return page.split(java.util.regex.Pattern.quote(text), -1).length - 1;
     }
 
-    /** 첨부 한 줄의 내려받기 아이콘 */
+    /** 첨부 한 줄의 파일 이름 = 내려받기 링크 (11/07: 아이콘 대신 이름을 누른다) */
     private static String downloadIcon(Long sn, Long fileSn) {
-        return "<a class=\"ico\" title=\"내려받기\" aria-label=\"내려받기\" href=\"/notices/" + sn + "/files/" + fileSn + "\">"
-                + "<span class=\"ic ic-download\"></span></a>";
+        return "<a class=\"dl-name\" title=\"눌러서 내려받기\" href=\"/notices/" + sn + "/files/" + fileSn + "\">";
     }
 
     /** 나라장터 주소만 있고 서버에 저장하지 않은 가상 첨부 */

@@ -149,6 +149,10 @@
     DELETE FROM TB_EVL_ARTCL WHERE EVL_ARTCL_SN = #{evlArtclSn}
   </delete>
 
+  <update id="updateArticle">
+    UPDATE TB_EVL_ARTCL SET EVL_ARTCL_NM = #{evlArtclNm}, EVL_SCOR_SCR = #{evlScorScr} WHERE EVL_ARTCL_SN = #{evlArtclSn}
+  </update>
+
   <update id="updateArticlePage">
     UPDATE TB_EVL_ARTCL SET PAGE_NO = #{pageNo, jdbcType=VARCHAR} WHERE EVL_ARTCL_SN = #{evlArtclSn}
   </update>

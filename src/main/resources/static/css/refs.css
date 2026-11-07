@@ -32,3 +32,12 @@
 .inl{display:inline;margin:0}
 .c-act .btn+.inl .btn{margin-left:4px}
 @media (max-width:760px){.ref-table .c-dt,.ref-table .c-who{display:none}}
+
+/* 자료 올리기 칸: 요구사항 자동 추출과 같은 크기의 파일 칸 + 아래 설명 + 올리기 (11/07) */
+#refUpCard .mp-form{gap:12px}
+#refUpCard .drop{width:100%;box-sizing:border-box}
+#refUpCard .qa-side-l input[type=text]{height:36px;box-sizing:border-box}
+
+
+/* 파일 이름은 최대 2줄까지만 보이고 넘치면 … (전체 이름은 마우스를 올리면 보인다). 줄 높이가 들쭉날쭉하지 않게 (11/07) */
+.ref-nm{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;line-height:1.4;max-height:2.8em}

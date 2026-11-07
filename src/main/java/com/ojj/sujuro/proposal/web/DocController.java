@@ -1,5 +1,7 @@
 package com.ojj.sujuro.proposal.web;
 
+import javax.servlet.http.HttpSession;
+
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -63,14 +65,16 @@ public class DocController {
     @GetMapping("/docs")
     public String index(@AuthenticationPrincipal LoginUser user,
                         @RequestParam(value = "bid", required = false) Long bid,
-                        @RequestParam(value = "deleted", defaultValue = "false") boolean showDeleted, Model model) {
+                        @RequestParam(value = "deleted", defaultValue = "false") boolean showDeleted,
+                        HttpSession session, Model model) {
         boolean admin = isMgmt(user);
-        List<ProposalBidDto> bids = admin ? docService.bidsForMgmt() : proposalService.myBids(user.getEmpNo());
+        boolean sales = isSales(user); // 영업부: 경영지원실과 같은 사업건을 보고 체크리스트에 서류를 추가할 수 있다 (11/07)
+        List<ProposalBidDto> bids = admin || sales ? docService.bidsForMgmt() : proposalService.myBids(user.getEmpNo());
         model.addAttribute("bids", bids);
         if (bids.isEmpty()) {
             return "proposal/docs";
         }
-        Long pbancSn = bid != null ? bid : ProposalBidDto.defaultPbancSn(bids);
+        Long pbancSn = CurrentBid.pick(bids, bid, session); // 다른 제안 화면에서 고른 사업건을 이어서 연다
         requireViewer(pbancSn, user);
 
         SubmissionDto sub = docService.submission(pbancSn);
@@ -87,7 +91,9 @@ public class DocController {
 
         model.addAttribute("bid", docService.bid(pbancSn));
         model.addAttribute("admin", admin);
-        model.addAttribute("team", !admin);
+        model.addAttribute("sales", sales);
+        model.addAttribute("team", !admin && !sales);
+        model.addAttribute("canAddDoc", admin || sales);
         model.addAttribute("sub", sub);
         model.addAttribute("open", !sub.isSubmitted());
         model.addAttribute("docs", docs);
@@ -141,7 +147,7 @@ public class DocController {
         return "proposal/docs";
     }
 
-    /* ---------- 체크리스트 (경영지원실) ---------- */
+    /* ---------- 체크리스트 (경영지원실. 서류 추가는 영업부도) ---------- */
 
     @PostMapping("/docs/add")
     public String addDoc(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
@@ -149,7 +155,7 @@ public class DocController {
                          @RequestParam(value = "esntlYn", defaultValue = "Y") String esntlYn,
                          @RequestParam(value = "tkcgSeCd", required = false) String tkcgSeCd,
                          @RequestParam(value = "due", required = false) String due, RedirectAttributes ra) {
-        requireMgmt(bid, user);
+        requireMgmtOrSales(bid, user);
         return FlashRedirect.run(ra, PATH, bid, null, "서류 항목을 추가했습니다.", () -> docService.addDoc(bid, name, "Y".equals(esntlYn), tkcgSeCd, due));
     }
 
@@ -175,6 +181,9 @@ public class DocController {
                                @RequestParam("dcmntSn") Long dcmntSn,
                                @RequestParam("prgrsSttsCd") String status, RedirectAttributes ra) {
         requireViewer(bid, user);
+        if (isSales(user)) {
+            throw new AccessDeniedException("준비 상태는 경영지원실과 제안팀이 바꿉니다.");
+        }
         return FlashRedirect.run(ra, PATH, bid, null, () -> { // 선택한 상태가 화면에 바로 보이므로 완료 문구는 띄우지 않는다
             docService.changeStatus(bid, dcmntSn, status, isMgmt(user));
             return null;
@@ -186,6 +195,9 @@ public class DocController {
                             @RequestParam(value = "dcmntSn", required = false) Long dcmntSn,
                             @RequestParam(value = "file", required = false) MultipartFile file, RedirectAttributes ra) {
         requireViewer(bid, user);
+        if (isSales(user)) {
+            throw new AccessDeniedException("서류 파일은 경영지원실과 제안팀이 올립니다.");
+        }
         if (dcmntSn == null) { // 체크리스트를 고르지 않았거나 체크리스트가 비어 있을 때 400 대신 안내
             ra.addFlashAttribute("error", "파일을 올릴 서류를 먼저 선택해 주세요. 목록이 비어 있으면 필요 서류 체크리스트를 먼저 등록해 주세요.");
             return FlashRedirect.to(ra, PATH, bid, null);
@@ -239,6 +251,31 @@ public class DocController {
         });
     }
 
+    /** 조견표 편집 창 [저장] (11/07): 경영지원실은 항목·배점(추가·삭제 포함), 제안팀은 쪽번호를 한 번에 저장한다 */
+    @PostMapping("/docs/article/save")
+    public String saveArticles(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
+                               javax.servlet.http.HttpServletRequest req, RedirectAttributes ra) {
+        // 칸 값은 요청에서 그대로 꺼낸다. @RequestParam List 로 받으면 값이 하나뿐일 때 쉼표로 쪼개지거나
+        // 빈 값이 빠져서 줄 수가 어긋난다 ("항목 수가 맞지 않습니다" 오류의 원인, 11/07)
+        List<Long> sns = longs(req.getParameterValues("evlArtclSn"));
+        List<String> names = strings(req.getParameterValues("evlArtclNm"));
+        List<String> scores = strings(req.getParameterValues("evlScorScr"));
+        List<String> pages = strings(req.getParameterValues("pageNo"));
+        List<Long> delSns = longs(req.getParameterValues("delSn"));
+        List<String> newNames = strings(req.getParameterValues("newNm"));
+        List<String> newScores = strings(req.getParameterValues("newScr"));
+        boolean admin = isMgmt(user);
+        if (admin) {
+            requireMgmt(bid, user);
+        } else if (isSales(user)) {
+            throw new AccessDeniedException("조견표는 경영지원실과 제안팀이 고칩니다.");
+        } else {
+            accessChecker.requireProposalMember(bid, user);
+        }
+        return FlashRedirect.run(ra, PATH, bid, null, "조견표를 저장했습니다.",
+                () -> docService.saveArticles(bid, admin, sns, names, scores, pages, delSns, newNames, newScores));
+    }
+
     /* ---------- 나라장터 등록 완료 (경영지원실) (FR-073) ---------- */
 
     @PostMapping("/docs/register")
@@ -268,14 +305,41 @@ public class DocController {
         return user.getRole() == Role.MGMT;
     }
 
-    /** 이 사업건을 볼 수 있는 사람: 경영지원실(참여 확정 이후 사업건) 또는 제안팀원. 아니면 403 */
+    private static List<String> strings(String[] v) {
+        return v == null ? new ArrayList<>() : new ArrayList<>(java.util.Arrays.asList(v));
+    }
+
+    private static List<Long> longs(String[] v) {
+        List<Long> r = new ArrayList<>();
+        if (v != null) {
+            for (String x : v) {
+                if (x != null && !x.trim().isEmpty()) {
+                    r.add(Long.valueOf(x.trim()));
+                }
+            }
+        }
+        return r;
+    }
+
+    private boolean isSales(LoginUser user) {
+        return user.getRole() == Role.SALES;
+    }
+
+    /** 이 사업건을 볼 수 있는 사람: 경영지원실·영업부(참여 확정 이후 사업건) 또는 제안팀원. 아니면 403 */
     private void requireViewer(Long bid, LoginUser user) {
-        if (isMgmt(user)) {
+        if (isMgmt(user) || isSales(user)) {
             if (!docService.isMgmtVisible(bid)) {
                 throw new AccessDeniedException("참여 확정 이후의 사업건만 볼 수 있습니다.");
             }
         } else {
             accessChecker.requireProposalMember(bid, user);
+        }
+    }
+
+    /** 체크리스트 서류 추가: 경영지원실 또는 영업부 (참여 확정 이후 사업건). 아니면 403 */
+    private void requireMgmtOrSales(Long bid, LoginUser user) {
+        if (!(isMgmt(user) || isSales(user)) || !docService.isMgmtVisible(bid)) {
+            throw new AccessDeniedException("경영지원실과 영업부만 서류를 추가할 수 있습니다.");
         }
     }
 

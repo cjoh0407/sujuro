@@ -12,7 +12,7 @@
  *   2) 서버는 지금처럼 처리하고 redirect 한다. fetch 가 redirect 를 따라가 결과 화면 HTML 을 받는다.
  *      (완료·오류 문구는 flash 로 그 화면에 들어 있다)
  *   3) 받은 HTML 에서 <main> 내용만 꺼내 지금 <main> 과 바꾼다. 페이지 스크롤과 표 안 스크롤은 그대로 둔다.
- *   4) 완료·오류 안내 띠(data-flash)는 화면 맨 위 대신 토스트로 보여 준다.
+ *   4) 완료·오류 안내 띠(data-flash)는 화면 맨 위에 보이지 않게 뺀다. 오류만 빨간 토스트로 보여 주고 완료 문구는 띄우지 않는다.
  *   5) onPageReady 로 등록한 함수를 다시 불러 새 내용에 이벤트를 붙인다.
  *   결과가 다른 주소(로그인 만료, 다른 화면으로 이동)면 그 화면으로 그냥 이동한다.
  *   스크립트가 꺼져 있거나 오래된 브라우저면 원래대로 새로고침 방식으로 동작한다.
@@ -131,7 +131,8 @@
       if (f && f.focus) f.focus({ preventScroll: true });
     }
     if (window.runPageReady) window.runPageReady();
-    flashes.forEach(function (m) { showToast(m.text, m.err ? 'err' : null); });
+    // 저장·삭제 완료 문구는 화면이 바뀐 것으로 충분해서 띄우지 않고, 막힌 경우(오류)만 빨간 토스트로 알린다 (11/07)
+    flashes.forEach(function (m) { if (m.err) showToast(m.text, 'err'); });
   }
 
   /* 진행 게이지: 바뀌기 전 너비를 기억했다가 새 화면에서 그 너비부터 새 값까지 차오르게 한다 (처음 열 때는 0부터) */

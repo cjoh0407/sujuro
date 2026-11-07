@@ -19,7 +19,6 @@
       <div class="card-head">
         <h3 th:text="${bid.label} + ' · 제안요약서 목차 · 담당자'">제안요약서 목차</h3>
         <div class="row">
-          <th:block th:replace="~{proposal/fragments/toc :: addTop('sum')}"></th:block>
           <th:block th:replace="~{proposal/fragments/toc :: summaryReset}"></th:block>
         </div>
       </div>

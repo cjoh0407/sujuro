@@ -20,7 +20,7 @@
        th:href="@{/proposal}" th:classappend="${#strings.startsWith(uri, '/proposal')} ? 'on'">스토리보드 관리</a>
     <a sec:authorize="hasAnyRole('LEADER','MEMBER')"
        th:href="@{/files}" th:classappend="${#strings.startsWith(uri, '/files')} ? 'on'">제안서 관리</a>
-    <a sec:authorize="hasAnyRole('MGMT','LEADER','MEMBER')"
+    <a sec:authorize="hasAnyRole('MGMT','SALES','LEADER','MEMBER')"
        th:href="@{/docs}" th:classappend="${#strings.startsWith(uri, '/docs')} ? 'on'">제출서류 · 조견표</a>
     <a sec:authorize="hasAnyRole('SALES','MGMT','LEADER','MEMBER')"
        th:href="@{/qa}" th:classappend="${#strings.startsWith(uri, '/qa')} ? 'on'">질의응답 기록</a>

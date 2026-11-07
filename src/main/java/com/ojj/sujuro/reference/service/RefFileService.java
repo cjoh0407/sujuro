@@ -135,9 +135,9 @@ public class RefFileService {
         return m;
     }
 
-    /** 올리기. 용량·실행 파일 검사는 FileStorage 와 같다 (파일당 50MB) */
+    /** 올리기. 참고자료는 크기 제한을 두지 않는다 (11/06). 빈 파일·실행 파일 검사는 FileStorage 와 같다 */
     public void upload(Long teamSn, MultipartFile file, String memo, String userId) {
-        String name = FileStorage.checkUpload(file);
+        String name = FileStorage.checkUpload(file, Long.MAX_VALUE);
         String ext = FileStorage.extension(name);
         RefFileDto f = new RefFileDto();
         f.setTeamSn(teamSn);

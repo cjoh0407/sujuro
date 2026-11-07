@@ -75,7 +75,7 @@ public class ProposalController {
         if (bids.isEmpty()) {
             return "proposal/proposal";
         }
-        Long pbancSn = bid != null ? bid : ProposalBidDto.defaultPbancSn(bids);
+        Long pbancSn = CurrentBid.pick(bids, bid, session); // 다른 제안 화면에서 고른 사업건을 이어서 연다
         accessChecker.requireProposalMember(pbancSn, user);
         ProposalBidDto current = proposalService.openBid(pbancSn, me);
         String tk = TAB_SUMMARY.equals(tab) ? TAB_SUMMARY : TAB_PROPOSAL;

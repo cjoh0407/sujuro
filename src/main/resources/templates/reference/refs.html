@@ -26,15 +26,15 @@
   <!-- 3:7 화면: 왼쪽에 자료 올리기 카드(제안 화면들과 같은 박스), 오른쪽에 자료 목록 -->
   <div class="split">
   <aside class="split-l">
-    <div class="card" id="upCard">
+    <!-- 크기는 요구사항 자동 추출 칸과 같게 (내용만큼 높이, 파일 칸은 한 줄) -->
+    <div class="card" id="refUpCard">
       <div class="card-head">
         <h3>자료 등록</h3>
-        <span class="faint fs-11_5">최대 50MB</span>
       </div>
       <form th:action="@{/refs/upload}" method="post" enctype="multipart/form-data" class="pad mp-form">
         <input type="hidden" name="se" th:value="${se}">
         <label class="drop">
-          <input type="file" name="file" required data-max-mb="50">
+          <input type="file" name="file" required>
           <span class="ic ic-upload"></span>
           <span class="drop-body">
             <span class="drop-text"><span><b>파일 선택</b> · 끌어 놓기</span></span>
@@ -72,6 +72,7 @@
     <div class="empty" th:if="${#lists.isEmpty(files)}"
          th:text="${total == 0} ? '아직 올린 자료가 없습니다. 위에서 첫 자료를 올려 보세요.' : '조건에 맞는 자료가 없습니다.'">자료가 없습니다.</div>
 
+    <!-- 한 쪽에 10개씩 (아래 쪽 번호로 넘긴다). 표 안 스크롤은 두지 않는다 -->
     <div class="ts" th:unless="${#lists.isEmpty(files)}">
       <table class="ref-table">
         <thead><tr><th class="c-pv"></th><th>파일</th><th class="c-se">구분</th><th class="c-sz">크기</th><th class="c-who">등록자</th><th class="c-dt">등록일</th><th class="c-act"></th></tr></thead>
@@ -82,7 +83,7 @@
               <span th:unless="${f.previewable}" class="ref-doc" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4"/></svg></span>
             </td>
             <td>
-              <div class="ref-nm" th:text="${f.orgnlFileNm}" th:title="${f.orgnlFileNm}">파일명.ttf</div>
+              <a class="ref-nm dl-name" th:href="@{/refs/download(refFileSn=${f.refFileSn})}" th:text="${f.orgnlFileNm}" th:title="|${f.orgnlFileNm} (눌러서 내려받기)|">파일명.ttf</a>
               <div class="ref-memo" th:if="${f.memoCn != null}" th:text="${f.memoCn}" th:title="${f.memoCn}">설명</div>
             </td>
             <td class="c-se"><span class="pill" th:text="${f.seNm}">폰트</span></td>
@@ -90,7 +91,6 @@
             <td class="c-who" th:text="${f.rgtrNm != null ? f.rgtrNm : f.rgtrId}">홍길동</td>
             <td class="c-dt" th:text="${#dates.format(f.regDt, 'yyyy-MM-dd')}">2026-11-03</td>
             <td class="c-act c-end">
-              <a class="ico" title="내려받기" aria-label="내려받기" th:href="@{/refs/download(refFileSn=${f.refFileSn})}"><span class="ic ic-download"></span></a>
               <form class="inl" th:if="${leader or f.rgtrId == me}" th:action="@{/refs/delete}" method="post"
                     data-confirm="이 자료를 삭제할까요?">
                 <input type="hidden" name="refFileSn" th:value="${f.refFileSn}">

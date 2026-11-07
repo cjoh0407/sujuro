@@ -4,10 +4,10 @@
 <!--
   대시보드 조각 (dashboard/index.html 이 불러 쓴다)
   statCard(s)    : 맨 위 아이콘 카드 (이름 + 숫자, 링크 없음). 색은 s.tone (accent, warning, danger, info, success)
-  radarChart(r)  : 영업부 '팀별 진행 현황' 레이더. 좌표는 서버(DashboardCharts)가 계산해 둔다
+  teamLoad(t)    : 영업부 '팀별 진행 현황'. 왼쪽 도넛(배정/미배정) + 오른쪽 팀별 막대. 작업 중인 공고만 센다
   lineChart(c)   : 경영지원실 '연도별 성과' 위쪽 요약 + 꺾은선(수주율·수주 금액)
   ring(r, soft)  : 작은 원 하나. r.text(2/9) 가운데 글자, r.percent 채움. soft 가 true 면 밝은 파랑
-  miniCal(m)     : 미니 캘린더. 일정이 있는 날은 팀 색 점(영업부·경영지원실은 건수 숫자), 오늘은 동그라미. 아래에 다가오는 일정 3건.
+  miniCal(m)     : 미니 캘린더. 일정이 있는 날은 팀 색 점(영업부·경영지원실은 건수 숫자), 오늘은 동그라미. 화살표로 이전·다음 달.
 -->
 
 <!-- 아이콘 카드: 이름과 숫자만. 눌러서 이동하지 않는다 -->
@@ -42,25 +42,31 @@
   </div>
 </th:block>
 
-<!-- 레이더: 꼭짓점 = 팀, 값 = 참여 중인 사업 수. 4겹 눈금, 점선 축, 연한 그라데이션 면 -->
-<div class="dash-radar" th:fragment="radarChart(r)">
-  <svg viewBox="0 0 420 300" role="img" th:attr="aria-label=${r.aria}">
-    <defs>
-      <linearGradient id="rdFill" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" style="stop-color:var(--accent);stop-opacity:.34"></stop>
-        <stop offset="1" style="stop-color:var(--accent);stop-opacity:.10"></stop>
-      </linearGradient>
-    </defs>
-    <polygon th:each="p, st : ${r.rings}" class="rd-ring" th:classappend="${st.last} ? 'out'" th:attr="points=${p}"></polygon>
-    <line th:each="sp : ${r.spokes}" class="rd-spoke" x1="210" y1="150" th:attr="x2=${sp[0]},y2=${sp[1]}"></line>
-    <text th:each="g : ${r.ringLabels}" class="rd-tick" x="214" th:attr="y=${g.y}" dy="-2" th:text="${g.label}">2</text>
-    <polygon class="rd-shape" th:attr="points=${r.shape}"></polygon>
-    <th:block th:each="pt : ${r.points}">
-      <circle class="rd-dot" th:classappend="${pt.top} ? 'top'" th:attr="cx=${pt.cx},cy=${pt.cy},r=${pt.top ? 5.5 : 4}"></circle>
-      <text class="rd-name" th:attr="x=${pt.lx},y=${pt.nameY},text-anchor=${pt.anchor}" th:text="${pt.name}">공공사업1Div</text>
-      <text class="rd-val" th:attr="x=${pt.lx},y=${pt.valueY},text-anchor=${pt.anchor}" th:text="${pt.valueText}">5건</text>
-    </th:block>
-  </svg>
+<!-- 팀별 진행 현황 (11/07): 도넛 = 작업 중인 공고 전체 중 배정(파랑)과 미배정(회색). 막대 = 팀마다 맡아 작업 중인 공고 수 -->
+<div class="dash-load" th:fragment="teamLoad(t)">
+  <div class="ld-side">
+    <svg class="ld-donut" viewBox="0 0 150 150" role="img"
+         th:attr="aria-label=|작업 중인 공고 ${t.total}건 중 배정 ${t.assigned}건, 미배정 ${t.unassigned}건|">
+      <circle class="ld-trk" th:classappend="${t.unassigned > 0} ? 'un'" cx="75" cy="75" r="52"></circle>
+      <circle class="ld-arc" th:if="${t.assignedPct > 0}" cx="75" cy="75" r="52" pathLength="100" transform="rotate(-90 75 75)"
+              th:attr="stroke-dasharray=|${t.assignedPct} 100|"></circle>
+      <text class="ld-num" x="75" y="74" text-anchor="middle" th:text="${t.total}">18</text>
+      <text class="ld-cap" x="75" y="94" text-anchor="middle">작업 중 공고</text>
+    </svg>
+    <ul class="ld-legend">
+      <li><i class="sw a"></i>배정 <b th:text="|${t.assigned}건|">14건</b></li>
+      <li><i class="sw u"></i>미배정 <b th:text="|${t.unassigned}건|">4건</b></li>
+    </ul>
+  </div>
+  <div class="ld-teams">
+    <div class="ld-head">팀별 배정</div>
+    <div class="ld-row" th:each="b, st : ${t.teams}" th:style="|--i:${st.index}|">
+      <span class="nm" th:text="${b.name}" th:title="${b.name}">공공사업1Div</span>
+      <span class="bar"><span th:style="|width:${b.pct}%|"></span></span>
+      <b th:text="${b.count}">3</b>
+    </div>
+    <div class="dash-empty" th:if="${#lists.isEmpty(t.teams)}">등록된 팀이 없습니다.</div>
+  </div>
 </div>
 
 <!-- 연도별 성과: 위쪽 올해 요약 + 3년 버블 (높이 = 수주율, 크기 = 수주 금액) -->
@@ -103,12 +109,30 @@
   </svg>
 </div>
 
-<div class="card dash-cal" th:fragment="miniCal(m)">
-  <div class="card-head"><h3 th:text="${m.title}">11월 일정</h3><a class="btn sm" th:href="@{/schedule}">일정 관리</a></div>
+<div class="card dash-cal" th:fragment="miniCal(m)" th:data-ym="${m.ym}">
+  <!-- 머리: ‹ 2026년 11월 › · [오늘](다른 달을 볼 때만) · [일정 관리](보는 달로 연다).
+       화살표·[오늘]은 /dashboard?ym= 을 비동기로 불러 이 캘린더만 바꾼다 (dashboard.js). 스크립트가 없으면 그 주소로 이동한다 -->
+  <div class="card-head">
+    <div class="cal-nav">
+      <a class="cal-arr" th:href="@{/dashboard(ym=${m.prevYm})}" data-cal-nav title="이전 달" aria-label="이전 달">&lsaquo;</a>
+      <h3 th:text="${m.title}" aria-live="polite">2026년 11월</h3>
+      <a class="cal-arr" th:href="@{/dashboard(ym=${m.nextYm})}" data-cal-nav title="다음 달" aria-label="다음 달">&rsaquo;</a>
+    </div>
+    <div class="row">
+      <a class="btn sm" th:unless="${m.current}" th:href="@{/dashboard}" data-cal-nav>오늘</a>
+      <a class="btn sm" th:href="@{/schedule(ym=${m.ym})}">일정 관리</a>
+    </div>
+  </div>
   <div class="dash-cal-body">
     <div class="dash-cal-dow"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
     <div class="dash-cal-grid">
-      <span th:each="c : ${m.cells}" class="dash-cal-cell" th:classappend="${c.today} ? 'today'">
+      <!--/* 일정이 있는 날은 눌러서(또는 Enter) 그날 일정을 팝업으로 본다 (11/07, dashboard.js). 팝업 내용은 칸 안의 숨은 목록(.cal-src)에서 만든다 */-->
+      <span th:each="c : ${m.cells}" class="dash-cal-cell"
+            th:classappend="${(c.today ? 'today ' : '') + (!c.blank and !#lists.isEmpty(c.events) ? 'has' : '')}"
+            th:attr="tabindex=${!c.blank and !#lists.isEmpty(c.events)} ? 0 : null,
+                     role=${!c.blank and !#lists.isEmpty(c.events)} ? 'button' : null,
+                     data-day=${c.blank} ? null : ${c.day},
+                     aria-label=${!c.blank and !#lists.isEmpty(c.events)} ? |${c.day}일 일정 ${#lists.size(c.events)}건 보기| : null">
         <th:block th:unless="${c.blank}">
           <b th:text="${c.day}">1</b>
           <span class="dots" th:if="${!m.countMode and !#lists.isEmpty(c.events)}">
@@ -116,15 +140,21 @@
           </span>
           <span class="cnt" th:if="${m.countMode and !#lists.isEmpty(c.events)}" th:text="${#lists.size(c.events)}"
                 th:title="|일정 ${#lists.size(c.events)}건|">2</span>
+          <ul class="cal-src" hidden th:unless="${#lists.isEmpty(c.events)}">
+            <li th:each="e : ${c.events}" th:data-team="${e.teamNo}" th:data-auto="${e.auto}">
+              <i th:class="|dot tm${e.teamNo}|"></i>
+              <span class="ev-t">
+                <b><span class="pill danger" th:if="${e.auto}">마감</span> <th:block th:text="${e.title}">일정 이름</th:block></b>
+                <span class="ev-s" th:text="${e.pbancNm} + (${m.countMode and e.teamNm != null} ? ' · ' + ${e.teamNm} : '')">사업 이름</span>
+              </span>
+              <span class="ev-tm" th:text="${e.timeText ?: '종일'}">10:00</span>
+            </li>
+          </ul>
         </th:block>
       </span>
     </div>
   </div>
-  <div class="dash-upcoming">
-    <span class="h">다가오는 일정</span>
-    <span class="faint" th:if="${#lists.isEmpty(m.upcoming)}">이번 달과 다음 달에 남은 일정이 없습니다.</span>
-    <span class="u" th:each="u : ${m.upcoming}"><b th:text="${u.date}">11/12</b><i th:class="|dot tm${u.teamNo}|"></i><span class="t" th:text="${u.label}" th:title="${u.label}">[마감] 10:00 사업명</span></span>
-  </div>
+  <!--/* 다가오는 일정 목록은 11/07 캘린더를 배너 옆으로 옮기며 뺐다 (자리가 좁다) */-->
 </div>
 
 </body>

@@ -19,7 +19,6 @@ public class ScheduleEvent {
     private Long teamSn;       // 일정을 맡은 팀 (자동 일정은 주관팀)
     private boolean editable;  // 보는 사람이 눌러서 관리(수정·삭제)할 수 있는 내부 일정인가 (등록한 팀의 팀장)
     private boolean changeable; // 그중 내용까지 고칠 수 있는가. 지난 일정이거나 사업이 끝났으면 false (삭제만 된다)
-    private String lockReason;  // changeable 이 false 인 이유 (화면 안내)
 
     /** 팀 색 번호 1~6 (common.css 의 .ev.tm1 ~ .tm6). 팀이 없으면 0 */
     public int getTeamNo() {

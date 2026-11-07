@@ -7,7 +7,6 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -53,8 +52,6 @@ import lombok.RequiredArgsConstructor;
 public class DashboardService {
 
     private static final int ALERT_LIMIT = 8;
-    /** 곧 마감되는 공고 타일 수 (영업부) */
-    static final int DUE_TILES = 3;
     /** '제출 마감 임박' 기준 일수 (경영지원실) */
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
     private static final DateTimeFormatter TODAY = DateTimeFormatter.ofPattern("yyyy년 M월 d일 EEEE", Locale.KOREAN);
@@ -64,6 +61,13 @@ public class DashboardService {
     private final ScheduleService scheduleService;
 
     public DashboardView build(LoginUser user) {
+        return build(user, null);
+    }
+
+    /**
+     * calYm: 미니 캘린더로 볼 달(2026-12). 없거나 형식이 틀리면 이번 달. (11/07 캘린더 화살표)
+     */
+    public DashboardView build(LoginUser user, String calYm) {
         DashboardView v = new DashboardView();
         LocalDate today = LocalDate.now(SEOUL);
         v.setTodayText(today.format(TODAY));
@@ -82,8 +86,9 @@ public class DashboardService {
                 break;
         }
         boolean allTeams = "SALES".equals(v.getRoleKey()) || "MGMT".equals(v.getRoleKey());
-        v.setMiniCal(DashboardCharts.miniCal(scheduleService.month(user, null, null, null, null),
-                scheduleService.month(user, YearMonth.from(today).plusMonths(1).toString(), null, null, null), today, allTeams));
+        YearMonth calMonth = parseYm(calYm, YearMonth.from(today));
+        v.setMiniCal(DashboardCharts.miniCal(scheduleService.month(user, calMonth.toString(), null, null, null),
+                scheduleService.month(user, calMonth.plusMonths(1).toString(), null, null, null), today, allTeams));
         v.setAlerts(recentAlerts(user.getEmpNo()));
         return v;
     }
@@ -95,16 +100,8 @@ public class DashboardService {
         v.getStats().add(new Stat("팀장 응답 대기", c.getAwaitingTeam(), "hour", "warning"));
         v.getStats().add(new Stat("마감 3일 이내 미배정", c.getDueSoon(), "alarm", "danger"));
 
-        List<Bid> todo = mapper.salesTodo();
-        v.setTodoBids(todo);
-        List<Bid> due = new ArrayList<>();
-        for (Bid b : todo) { // 쿼리가 마감 빠른 순으로 주므로 마감이 지나지 않은 앞의 3건
-            if (b.getDday() != null && b.getDday() >= 0 && due.size() < DUE_TILES) {
-                due.add(b);
-            }
-        }
-        v.setDueBids(due);
-        v.setRadar(DashboardCharts.radar(mapper.teamStats(null, false)));
+        v.setTodoBids(mapper.salesTodo());
+        v.setTeamLoad(DashboardCharts.teamLoad(mapper.teamStats(null, false), c.getAssignWait()));
     }
 
     private void buildMgmt(DashboardView v) {
@@ -196,4 +193,16 @@ public class DashboardService {
         return s;
     }
 
+
+    /** "2026-12" → YearMonth. 비었거나 틀리면 기본값 */
+    private static YearMonth parseYm(String ym, YearMonth fallback) {
+        if (ym == null || ym.trim().isEmpty()) {
+            return fallback;
+        }
+        try {
+            return YearMonth.parse(ym.trim());
+        } catch (java.time.format.DateTimeParseException e) {
+            return fallback;
+        }
+    }
 }

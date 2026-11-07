@@ -72,12 +72,13 @@ class DashboardServiceTest {
         assertEquals(2, v.getStats().get(0).getValue());
         assertEquals(4, v.getStats().get(2).getValue());
         verify(mapper).teamStats(null, false); // 전체 팀
-        assertTrue(v.getRadar().isBlank()); // 팀 현황 데이터가 없으면 빈 목록
+        assertTrue(v.getTeamLoad().getTeams().isEmpty()); // 팀 현황 데이터가 없으면 팀 막대 없음
+        assertEquals(2, v.getTeamLoad().getUnassigned());   // 도넛의 미배정 = 배정 대기 카드 숫자
         assertTrue(v.getMiniCal().isCountMode()); // 모든 팀 일정이라 점 대신 건수
     }
 
     @Test
-    void 영업부_곧_마감은_마감이_지나지_않은_앞의_3건만() {
+    void 영업부_처리할_공고는_쿼리가_준_목록_전체() {
         SalesCounts c = new SalesCounts();
         when(mapper.salesCounts()).thenReturn(c);
         List<Bid> bids = new ArrayList<>();
@@ -91,8 +92,6 @@ class DashboardServiceTest {
 
         DashboardView v = service.build(user("S1", Role.SALES));
 
-        assertEquals(3, v.getDueBids().size());
-        assertEquals(Integer.valueOf(0), v.getDueBids().get(0).getDday());
         assertEquals(6, v.getTodoBids().size()); // 목록 전체는 스크롤로 보여 준다
     }
 

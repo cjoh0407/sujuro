@@ -215,12 +215,12 @@ public class ResultEntryServiceImpl implements ResultEntryService {
 
         boolean won = ResultCode.WON.equals(form.getBidRsltCd());
         if (!won && !ResultCode.LOST.equals(form.getBidRsltCd())) {
-            throw new BusinessException("결과를 수주나 탈락 중에서 고르세요.");
+            throw new BusinessException("결과를 수주나 실주 중에서 고르세요.");
         }
         Long amount = won ? wonAmount(form.getScsbdAmt()) : null;
 
         resultMapper.mergeManualBidRslt(pbancSn, form.getBidRsltCd(), amount, user.getEmpNo());
-        String text = won ? "수주" : "탈락";
+        String text = won ? "수주" : "실주";
         if (bid.isResulted()) {
             return "결과를 고쳤습니다: " + text;
         }
@@ -253,7 +253,7 @@ public class ResultEntryServiceImpl implements ResultEntryService {
         requireTeamLeader(user, pbancSn);
         resultMapper.updateAnalysis(pbancSn,
                 note(form.getStrptCn(), "강점"),
-                note(form.getSbptCsCn(), "탈락·감점 원인"),
+                note(form.getSbptCsCn(), "실주·감점 원인"),
                 note(form.getSplmntCn(), "차기 보완점"),
                 user.getEmpNo());
     }

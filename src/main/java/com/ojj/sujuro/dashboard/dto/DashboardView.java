@@ -7,10 +7,8 @@ import com.ojj.sujuro.dashboard.dto.DashboardRows.Bid;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.DocRow;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.LeaderProject;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.MemberProject;
-import com.ojj.sujuro.dashboard.dto.DashboardRows.MgmtAlert;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.MyToc;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.TodoItem;
-import com.ojj.sujuro.dashboard.dto.DashboardRows.Win;
 import com.ojj.sujuro.notification.dto.NotificationDto;
 import com.ojj.sujuro.schedule.dto.ScheduleView;
 import lombok.Getter;
@@ -53,48 +51,37 @@ public class DashboardView {
         }
     }
 
-    /** 레이더 차트의 한 꼭짓점 (팀 하나) */
+    /**
+     * 영업부 '팀별 진행 현황' (11/07): 왼쪽 도넛(배정/미배정) + 오른쪽 팀별 막대.
+     * 지금 작업 중인 공고만 센다: 미배정(배정 대기), 배정(팀장 결정 대기·참여 확정·제안 작성 중).
+     * 제출이 끝났거나 결과가 나온 공고, 불참·철회로 끝난 공고는 넣지 않는다.
+     */
     @Getter
-    public static class RadarPoint {
-        private final String cx;        // 값 점 위치
-        private final String cy;
-        private final String name;
-        private final String valueText; // 4건
-        private final String lx;        // 글자 기준 x
-        private final String nameY;
-        private final String valueY;
-        private final String anchor;    // start, middle, end
-        private final boolean top;      // 가장 많은 팀(점을 크게)
+    @Setter
+    public static class TeamLoad {
+        private int assigned;     // 팀에 배정돼 작업 중인 공고 (모든 팀 합)
+        private int unassigned;   // 아직 팀에 배정하지 않은 공고
+        private int assignedPct;  // 도넛에서 배정이 차지하는 비율 (0~100)
+        private final List<TeamBar> teams = new ArrayList<>();
 
-        public RadarPoint(String cx, String cy, String name, String valueText, String lx, String nameY, String valueY,
-                String anchor, boolean top) {
-            this.cx = cx;
-            this.cy = cy;
-            this.name = name;
-            this.valueText = valueText;
-            this.lx = lx;
-            this.nameY = nameY;
-            this.valueY = valueY;
-            this.anchor = anchor;
-            this.top = top;
-        }
+        public int getTotal() { return assigned + unassigned; }
+
+        /** 팀도 없고 공고도 없으면 그래프 대신 안내 문구 */
+        public boolean isBlank() { return teams.isEmpty() && getTotal() == 0; }
     }
 
-    /** 영업부 '팀별 진행 현황' 레이더. 좌표는 서버(DashboardCharts)가 계산한다 */
+    /** 팀별 막대 한 줄. pct 는 가장 많은 팀을 100으로 본 막대 길이 */
     @Getter
-    public static class Radar {
-        private final List<String> rings = new ArrayList<>();       // 겹친 다각형 꼭짓점들 (안쪽부터)
-        private final List<String[]> spokes = new ArrayList<>();    // 중심에서 꼭짓점으로 가는 선 {x2, y2}
-        private final List<GridLine> ringLabels = new ArrayList<>(); // 눈금 숫자 (y 위치, 글자)
-        private String shape;                                       // 값 다각형
-        private final List<RadarPoint> points = new ArrayList<>();
-        private String aria;
+    public static class TeamBar {
+        private final String name;
+        private final int count;
+        private final int pct;
 
-        public void setShape(String shape) { this.shape = shape; }
-
-        public void setAria(String aria) { this.aria = aria; }
-
-        public boolean isBlank() { return points.isEmpty(); }
+        public TeamBar(String name, int count, int pct) {
+            this.name = name;
+            this.count = count;
+            this.pct = pct;
+        }
     }
 
     /** 연도별 성과 꺾은선의 한 해. 좌표는 서버(DashboardCharts)가 계산한다 */
@@ -114,18 +101,6 @@ public class DashboardView {
         private String amtY;
         private String amtText;       // 49.3억
         private String amtLabelY;
-    }
-
-    /** 눈금 한 줄(레이더 눈금 숫자) */
-    @Getter
-    public static class GridLine {
-        private final String y;
-        private final String label;
-
-        public GridLine(String y, String label) {
-            this.y = y;
-            this.label = label;
-        }
     }
 
     /** 연도별 성과 위쪽 요약 한 칸 */
@@ -189,7 +164,11 @@ public class DashboardView {
     @Getter
     @Setter
     public static class MiniCal {
-        private String title;   // 11월 일정
+        private String title;   // 2026년 11월
+        private String ym;      // 보는 달 2026-11
+        private String prevYm;  // 화살표: 이전 달
+        private String nextYm;  // 화살표: 다음 달
+        private boolean current; // 보는 달이 이번 달이면 true ([오늘] 버튼을 숨긴다)
         private boolean countMode; // 영업부·경영지원실: 모든 팀 일정이 보여 팀 색 점 대신 날짜마다 건수 숫자를 쓴다
         private final List<ScheduleView.Cell> cells = new ArrayList<>();
         private final List<Upcoming> upcoming = new ArrayList<>();
@@ -198,16 +177,12 @@ public class DashboardView {
     private String roleKey;     // SALES, LEADER, MEMBER, MGMT
     private String todayText;   // 2026년 11월 3일 화요일
     private final List<Stat> stats = new ArrayList<>();
-    private Chart mainChart;    // 영업부: 팀별 진행 현황 레이더, 경영지원실: 연도별 성과 버블
+    private Chart mainChart;    // 경영지원실: 연도별 성과
     private MiniCal miniCal;
 
     // 목록은 마감이 가까운 순으로 불러오고, 칸 안에서 스크롤한다. 불러오는 건수는 쿼리가 막는다(최대 30건).
-    private Radar radar = new Radar();                        // 영업부: 팀별 진행 현황 레이더
-    private List<Bid> dueBids = new ArrayList<>();            // 영업부: 곧 마감되는 공고 3건
+    private TeamLoad teamLoad = new TeamLoad();               // 영업부: 팀별 진행 현황 (도넛 + 팀별 막대)
     private List<Bid> todoBids = new ArrayList<>();           // 영업부: 처리할 공고
-    private List<MgmtAlert> attention = new ArrayList<>();    // 경영지원실: 주의가 필요한 항목
-    private List<Win> wins = new ArrayList<>();               // 경영지원실: 올해 수주한 사업
-    private String winTotal;                                  // 합계 38.2억
     private List<DocRow> docRows = new ArrayList<>();         // 경영지원실: 제출서류 준비 현황
     private List<LeaderProject> leaderProjects = new ArrayList<>(); // 팀장: 사업별 제안서 진행 현황
     private List<TodoItem> todos = new ArrayList<>();               // 팀장: 처리할 일

@@ -122,12 +122,13 @@
 .nd-team-v{font-weight:600;font-size:13px}
 .nd-chips{list-style:none;margin:0;padding:0;display:flex;gap:6px;flex-wrap:wrap}
 .nd-chips li{display:flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border);border-radius:999px;font-size:13px}
-.nd-chips li b{font-weight:700;padding:1px 6px;border-radius:4px}
+.nd-chips li b{font-weight:700}
 .nd-chips li span{font-size:12px;color:var(--muted)}
-/* 제안팀 칩: 직급이 팀장인 사람은 이름에만 바탕색 (11/06). 이름 여백은 위의 .nd-chips li b 에 있어 모든 칩의 간격이 같다.
-   제목 줄 오른쪽 끝의 동그라미가 같은 색이다. 바탕색이 옅어 동그라미만으로는 카드 바탕과 구분되지 않아 테두리를 안쪽에 그린다 */
-.nd-chips li b.nd-leader{background:var(--accent-soft);color:var(--accent-s)}
-.nd-leader-dot{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent-s)}
+/* 제안팀 칩: 직급이 팀장인 사람은 칩 전체를 연한 파랑 바탕 + 파란 테두리로 (11/07).
+   테두리가 0.5px 두꺼운 만큼 안쪽 여백을 줄여 칩 크기는 같다. 팀 이름도 파란 계열로 맞춘다 */
+.nd-chips li.nd-leader{border:1.5px solid var(--accent);padding:5.5px 11.5px;background:var(--accent-soft)}
+.nd-chips li.nd-leader b{color:var(--accent-s)}
+.nd-chips li.nd-leader span{color:var(--accent)}
 
 /* 첨부파일 한 줄: 아이콘 · 이름 · [내려받기] */
 /* 아이콘 자리는 참고자료(refs.css .ref-doc)와 같은 40×40, 가운데 정렬 */

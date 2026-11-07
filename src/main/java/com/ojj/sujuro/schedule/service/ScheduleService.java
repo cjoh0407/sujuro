@@ -91,6 +91,7 @@ public class ScheduleService {
             List<CodeOption> mine = mapper.findMyPbancs(memberId);
             v.setProjects(mine);
             pbancSn = validOption(mine, pbancParam);
+            v.setPickProjects(pickProjects(mapper.findMyActivePbancs(memberId), mine, pbancSn));
             v.setScopeText("내가 참여하는 사업 일정");
         }
         v.setSelectedTeamSn(scopeTeamSn);
@@ -203,11 +204,9 @@ public class ScheduleService {
 
     // ===== 내부 =====
 
-    /** 눌러서 관리할 수 있는 일정에, 내용까지 고칠 수 있는지와 그 이유를 적는다 */
+    /** 눌러서 관리할 수 있는 일정에, 내용까지 고칠 수 있는지 적는다. 못 고치면 창에서 [저장]이 숨고 [삭제]만 남는다 (11/07 안내 문구는 뺐다) */
     private void markChangeable(ScheduleEvent e, List<CodeOption> editable) {
-        String reason = lockReason(e, editable);
-        e.setChangeable(reason == null);
-        e.setLockReason(reason);
+        e.setChangeable(lockReason(e, editable) == null);
     }
 
     /** 고칠 수 없는 이유. 고칠 수 있으면 null. 지난 일정과 끝난 사업의 일정은 삭제만 된다 */
@@ -345,6 +344,21 @@ public class ScheduleService {
     }
 
     /** 목록에 있는 번호만 인정한다(팀 탭, 사업별 보기). 그 밖의 값은 전체로 본다. */
+    /**
+     * 사업 고르기 드롭다운 목록 (11/07): 진행 중인 사업만. 끝난 사업은 빼고 일정 이력은 캘린더에 남긴다.
+     * 알림 링크 등으로 끝난 사업이 골라진 채 들어오면, 무엇을 보는지 알 수 있게 그 사업 하나를 '(지난 사업)'으로 붙인다.
+     */
+    static List<CodeOption> pickProjects(List<CodeOption> active, List<CodeOption> mine, Long selected) {
+        List<CodeOption> list = new ArrayList<>(active == null ? new ArrayList<CodeOption>() : active);
+        if (selected != null && validOption(list, selected) == null) {
+            CodeOption past = new CodeOption();
+            past.setCode(String.valueOf(selected));
+            past.setName(optionName(mine, selected) + " (지난 사업)");
+            list.add(past);
+        }
+        return list;
+    }
+
     private static Long validOption(List<CodeOption> options, Long param) {
         if (param == null) {
             return null;

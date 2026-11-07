@@ -6,7 +6,7 @@
 <!--/*
   제안서 관리 (FR-057~066, 화면 설계 v3.2). 사업건 단위, 그 사업건 제안팀만 연다.
   탭 full: 전체 제안서(통합본) / part: 제안서 파트별 파일 / sum: 제안요약서(목차별)
-  사업건 고르기·사업명 줄은 fragments/bid-header (bidSelect, bizHead), 파일 한 줄·올리기 칸은 아래 조각(fileRow, upStrip)
+  사업건 고르기·사업명 줄은 fragments/bid-header (bidSelect, bizHead), 파일 한 줄·등록 칸은 아래 조각(fileRow, upStrip)
 */-->
 <head>
   <title>제안서 관리</title>
@@ -51,7 +51,7 @@
         <th:block th:if="${canAssign}"><th:block th:replace="~{proposal/files :: upStrip(null, true)}"></th:block></th:block>
       </div>
       <th:block th:if="${!#lists.isEmpty(fullFiles)}"><th:block th:replace="~{proposal/files :: versionList(${fullFiles})}"></th:block></th:block>
-      <div class="empty" th:if="${#lists.isEmpty(fullFiles)}">아직 올린 통합본이 없습니다. 파트별 파일을 합친 전체 제안서를 1차, 2차처럼 올려 주세요.</div>
+      <div class="empty" th:if="${#lists.isEmpty(fullFiles)}">아직 등록한 통합본이 없습니다. 파트별 파일을 합친 전체 제안서를 1차, 2차처럼 올려 주세요.</div>
     </div>
 
     <!-- ===== 목차별 파일 (FR-058, FR-059, FR-063, FR-066): 최하위 목차마다 담당자가 올린다 ===== -->
@@ -64,7 +64,7 @@
       <div class="card" th:unless="${#lists.isEmpty(leaves)}">
         <div class="card-head">
           <h3 th:text="${tab == 'sum'} ? '제안요약서 목차별 파일' : '제안서 파트별 파일'">제안서 파트별 파일</h3>
-          <span class="faint fs-11_5" th:text="|목차 ${#lists.size(leaves)}개 · 파일 올린 목차 ${#lists.size(leaves.?[fileCnt > 0])}개|">목차 0개</span>
+          <span class="faint fs-11_5" th:text="|목차 ${#lists.size(leaves)}개 · 파일 등록한 목차 ${#lists.size(leaves.?[fileCnt > 0])}개|">목차 0개</span>
         </div>
         <div class="ts">
           <table class="pf-table">
@@ -108,7 +108,7 @@
                       </tbody></table>
                     </div>
                     <span class="pf-need" th:if="${arr == null and !t.assigned}">담당자를 먼저 지정해 주세요.</span>
-                    <span class="faint" th:if="${arr == null and t.assigned}" th:text="${canUp} ? '올린 파일 없음' : '올린 파일 없음 (담당자가 올립니다)'">올린 파일 없음</span>
+                    <span class="faint" th:if="${arr == null and t.assigned}" th:text="${canUp} ? '등록된 파일 없음' : '등록된 파일 없음 (담당자가 등록합니다)'">올린 파일 없음</span>
                   </td>
                   <td><span class="pill" th:classappend="${t.fileStatusPill}" th:text="${t.fileStatus}">미착수</span></td>
                   <td class="pf-act"><div class="pf-act-in">
@@ -117,7 +117,7 @@
                     <th:block th:if="${canUp and t.assigned}"><th:block th:replace="~{proposal/files :: upStrip(${t.tocSn}, false)}"></th:block></th:block>
                     <span class="up-strip" th:if="${canUp and !t.assigned}">
                       <button type="button" class="drop sm need-owner" data-on-click="needOwner" th:data-arg="${t.label}"
-                              title="담당자를 먼저 지정해 주세요"><span class="ic ic-upload"></span><span class="drop-body"><span class="drop-text"><span><b>파일 올리기</b></span></span></span></button>
+                              title="담당자를 먼저 지정해 주세요"><span class="ic ic-upload"></span><span class="drop-body"><span class="drop-text"><span><b>파일 등록</b></span></span></span></button>
                     </span>
                     <form th:if="${canAssign and t.fileCnt > 0}" th:action="@{/files/review}" method="post" class="d-inline">
                       <input type="hidden" name="bid" th:value="${bid.pbancSn}">
@@ -171,7 +171,7 @@
         <input type="file" name="file" required accept=".pdf,.ppt,.pptx" th:data-max-mb="${full} ? 300 : 50" data-auto-upload>
         <span class="ic ic-upload"></span>
         <span class="drop-body">
-          <span class="drop-text"><span><b th:text="${full} ? '통합본 올리기' : '파일 올리기'">파일 올리기</b><th:block th:if="${full}"> · 끌어 놓기</th:block></span></span>
+          <span class="drop-text"><span><b th:text="${full} ? '통합본 등록' : '파일 등록'">파일 등록</b><th:block th:if="${full}"> · 끌어 놓기</th:block></span></span>
           <span class="drop-hint"></span>
         </span>
       </label>
@@ -201,7 +201,7 @@
       <div class="minw-0">
         <a class="dl-name" title="눌러서 내려받기" th:href="@{/files/download(bid=${bid.pbancSn}, fileSn=${f.fileSn})}" th:text="${f.orgnlFileNm}">파일명</a>
         <div class="faint fs-11_5"
-             th:text="${(f.rgtrNm ?: f.rgtrId) + ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm') + ' · ' + f.sizeLabel}">올린 사람 · 일시 · 크기</div>
+             th:text="${(f.rgtrNm ?: f.rgtrId) + ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm') + ' · ' + f.sizeLabel}">등록자 · 일시 · 크기</div>
       </div>
       <span class="fmt" th:if="${!#strings.isEmpty(f.fmt)}" th:classappend="${f.fmt == 'PDF'} ? 'pdf' : 'ppt'" th:text="${f.fmt}">PDF</span>
       <span class="pill accent" th:if="${f.intgCycl == null}" th:text="'v' + ${f.verNo}">v1</span>

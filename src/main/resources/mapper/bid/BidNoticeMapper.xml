@@ -140,7 +140,7 @@
   </select>
 
   <!-- 제안팀원 (11/03). 제안 업무의 제안팀 구성에서 정한 인원. 주관팀 인원 먼저, 비활성(AS050) 계정은 뺀다.
-       leader: 직급이 팀장(JG020)이면 화면에서 이름에 바탕색을 칠한다 (11/06) -->
+       leader: 직급이 팀장(JG020)이면 화면에서 칩 테두리를 파랗게 한다. 팀마다 팀장을 그 팀의 맨 앞에 둔다 (11/07) -->
   <select id="findProposalMembers" parameterType="long" resultType="com.ojj.sujuro.bid.dto.NoticeMemberDTO">
     SELECT MU.USER_NM AS userNm,
            MT.TEAM_NM AS teamNm,
@@ -150,7 +150,7 @@
       LEFT JOIN TB_TEAM MT ON MT.TEAM_SN = MU.TEAM_SN
      WHERE M.PBANC_SN = #{pbancSn}
        AND MU.ACNT_STTS_CD &lt;&gt; 'AS050'
-     ORDER BY M.PTCP_SE_CD, MT.TEAM_NM, MU.USER_NM
+     ORDER BY M.PTCP_SE_CD, MT.TEAM_NM, CASE WHEN MU.JBGD_CD = 'JG020' THEN 0 ELSE 1 END, MU.USER_NM
   </select>
 
   <!--

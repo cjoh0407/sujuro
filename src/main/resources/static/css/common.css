@@ -17,9 +17,10 @@ html{scrollbar-gutter:stable}
 body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif;font-size:14px;line-height:1.55}
 h1,h2,h3{margin:0}
 button{font-family:inherit}
-.app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+/* 뼈대 (11/07): 1줄 헤더(가로 전체) / 2줄 사이드바 | 내용. 헤더 높이는 --hd-h 하나로 맞춘다 */
+.app{--hd-h:60px;display:grid;grid-template-columns:220px minmax(0,1fr);grid-template-rows:auto 1fr;min-height:100vh}
 .app.hide{display:none}
-.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:20px 12px;display:flex;flex-direction:column;gap:18px;position:sticky;top:0;height:100vh;align-self:start;overflow-y:auto}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:20px 12px;display:flex;flex-direction:column;gap:18px;position:sticky;top:var(--hd-h);height:calc(100vh - var(--hd-h));box-sizing:border-box;align-self:start;overflow-y:auto}
 .brand{display:flex;align-items:center;gap:10px;padding:2px 8px}
 :root{--logo-n:#1D4B7E;--logo-r:#A4292F;--logo-g:#929497}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--logo-n:#4F86C0;--logo-r:#D4575E}}
@@ -34,13 +35,22 @@ button{font-family:inherit}
 .nav button.on{background:var(--accent-soft);color:var(--accent-s);font-weight:700}
 .nav .grp{font-size:11.5px;font-weight:600;color:var(--muted);padding:16px 10px 4px;margin-top:14px;border-top:1px solid var(--border);letter-spacing:.02em}
 .main{min-width:0;display:flex;flex-direction:column}
-.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 26px;background:var(--surface);border-bottom:1px solid var(--border);position:relative}
+/* 헤더는 스크롤해도 위에 남는다 (11/06). 알림 팝업(.bellpanel)은 헤더 안에 있어 같이 따라온다 */
+.topbar{grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;gap:12px;height:var(--hd-h);box-sizing:border-box;padding:0 26px 0 0;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40}
+/* 헤더 왼쪽: 로고 칸(사이드바와 같은 너비, 오른쪽 세로선이 사이드바 테두리와 이어진다) | 화면 제목(내용과 같은 시작선) */
+.topbar .left{display:flex;align-items:center;align-self:stretch;min-width:0}
+/* 로고: 사이드바(220px) 폭 안에서 가운데 (11/07) */
+.topbar .brand{flex:none;width:220px;box-sizing:border-box;align-self:stretch;padding:0 20px;justify-content:center}
+.topbar .brand b{font-size:15px;font-weight:700}
+.topbar .left h1{padding-left:26px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .topbar h1{font-size:19px}
 .right{display:flex;align-items:center;gap:12px}
 .avatar{width:32px;height:32px;border-radius:50%;background:var(--accent-soft);color:var(--accent-s);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12.5px}
 .who{display:flex;gap:8px;align-items:center;line-height:1.3}
-.who b{font-size:12.5px;display:block}
-.who span{font-size:11px;color:var(--faint)}
+/* 이름 오른쪽에 권한·팀을 한 줄로 (11/07). 글자 아래선을 맞춘다 */
+.who>div{display:flex;align-items:baseline;gap:8px;white-space:nowrap}
+.who b{font-size:13px}
+.who span{font-size:11.5px;color:var(--faint)}
 .bellbtn{position:relative;width:34px;height:34px;border-radius:8px;border:0;background:var(--surface);cursor:pointer;font-size:15px}
 .bellbtn .badge{position:absolute;top:-5px;right:-5px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;border-radius:999px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 3px}
 .bellbtn{display:flex;align-items:center;justify-content:center;color:#E5A100}
@@ -221,6 +231,8 @@ form[aria-busy="true"]{opacity:.55;pointer-events:none;transition:opacity .15s}
 .two,.grid2,.grid3{grid-template-columns:1fr}
 }
 @media (max-width:860px){.app{grid-template-columns:1fr}
+.topbar .brand{width:auto;padding:0 14px 0 16px;justify-content:flex-start}
+.topbar .left h1{padding-left:14px}
 .sidebar{flex-direction:row;overflow-x:auto;overflow-y:visible;position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}
 .nav{flex-direction:row}
 .nav .grp{margin-top:0;padding:9px 10px;border-top:0;border-left:1px solid var(--border)}

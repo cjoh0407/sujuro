@@ -144,63 +144,6 @@
      ORDER BY Y.YR
   </select>
 
-  <!--
-    주의가 필요한 항목 (급한 순, sortKey 가 작을수록 급함)
-      DOC_MISSING  제출 마감 전인데 필수 서류가 빠진 사업
-      PAST_DUE     제출 마감이 지났는데 필수 서류가 빠진 채 나라장터에 등록하지 못한 사업
-      RESULT_WAIT  개찰이 지났는데 결과를 아직 가져오지 못한 사업 (제출 완료 상태)
-  -->
-  <sql id="missingDocs">
-    (SELECT D.PBANC_SN, COUNT(*) AS MISSING FROM TB_SBMSN_DCMNT D
-      WHERE D.ESNTL_YN = 'Y' AND D.PRGRS_STTS_CD &lt;&gt; 'DS030' GROUP BY D.PBANC_SN)
-  </sql>
-  <select id="mgmtAlerts" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$MgmtAlert">
-    SELECT A.* FROM (
-      SELECT 'DOC_MISSING' AS kind, P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, TM.TEAM_NM AS teamNm,
-             MD.MISSING AS missing, TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE) AS dday, CAST(NULL AS NUMBER) AS passedDays,
-             TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE) AS sortKey
-        FROM TB_BID_PBANC P
-        JOIN <include refid="missingDocs"/> MD ON MD.PBANC_SN = P.PBANC_SN
-        LEFT JOIN TB_TEAM TM ON TM.TEAM_SN = P.SPRVSN_TEAM_SN
-       WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040') AND P.SBMSN_DT IS NULL
-         AND (P.BID_DDLN_DT IS NULL OR TRUNC(P.BID_DDLN_DT) &gt;= TRUNC(SYSDATE))
-      UNION ALL
-      SELECT 'PAST_DUE' AS kind, P.PBANC_SN, P.PBANC_NM, TM.TEAM_NM,
-             MD.MISSING, TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE), CAST(NULL AS NUMBER),
-             TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE)
-        FROM TB_BID_PBANC P
-        JOIN <include refid="missingDocs"/> MD ON MD.PBANC_SN = P.PBANC_SN
-        LEFT JOIN TB_TEAM TM ON TM.TEAM_SN = P.SPRVSN_TEAM_SN
-       WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040') AND P.SBMSN_DT IS NULL
-         AND P.BID_DDLN_DT IS NOT NULL AND TRUNC(P.BID_DDLN_DT) &lt; TRUNC(SYSDATE)
-      UNION ALL
-      SELECT 'RESULT_WAIT' AS kind, P.PBANC_SN, P.PBANC_NM, TM.TEAM_NM,
-             0, CAST(NULL AS NUMBER), TRUNC(SYSDATE) - TRUNC(P.OPENG_DT),
-             TRUNC(P.OPENG_DT) - TRUNC(SYSDATE)
-        FROM TB_BID_PBANC P
-        LEFT JOIN TB_TEAM TM ON TM.TEAM_SN = P.SPRVSN_TEAM_SN
-       WHERE P.PBANC_STTS_CD = 'PS050' AND P.OPENG_DT IS NOT NULL AND TRUNC(P.OPENG_DT) &lt; TRUNC(SYSDATE)
-    ) A
-     ORDER BY A.sortKey, A.pbancSn
-     FETCH FIRST 30 ROWS ONLY
-  </select>
-
-  <!-- 올해 수주한 사업. 경쟁(참여 업체 수·순위)은 개찰 결과를 가져온 건만 값이 있다 -->
-  <select id="yearWins" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$Win">
-    SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, P.ORDER_INST_NM AS orderInstNm, P.DMND_INST_NM AS dmndInstNm, TM.TEAM_NM AS teamNm,
-           BT.CD_NM AS bizTypeNm, NVL(R.SCSBD_AMT, 0) AS scsbdAmt, NVL(P.ALTMNT_BGT_AMT, 0) AS budgetAmt,
-           (SELECT COUNT(*) FROM TB_CO_EVL_RSLT C WHERE C.PBANC_SN = P.PBANC_SN) AS rivalCnt,
-           R.EVL_RNK AS evlRank
-      FROM TB_BID_RSLT R
-      JOIN TB_BID_PBANC P ON P.PBANC_SN = R.PBANC_SN
-      LEFT JOIN TB_TEAM TM ON TM.TEAM_SN = P.SPRVSN_TEAM_SN
-      LEFT JOIN TB_COM_CD BT ON BT.GROUP_CD = 'BZTYP' AND BT.CD = P.BIZ_TYPE_CD
-     WHERE R.BID_RSLT_CD = 'BR010'
-       AND EXTRACT(YEAR FROM NVL(P.BID_DDLN_DT, P.OPENG_DT)) = EXTRACT(YEAR FROM SYSDATE)
-     ORDER BY NVL(R.MDFCN_DT, R.CLCT_DT) DESC NULLS LAST, P.PBANC_SN DESC
-     FETCH FIRST 30 ROWS ONLY
-  </select>
-
   <!-- ===== 팀장 ===== -->
   <select id="leaderCounts" resultType="com.ojj.sujuro.dashboard.dto.DashboardRows$LeaderCounts">
     SELECT (SELECT COUNT(*) FROM TB_BID_PBANC P

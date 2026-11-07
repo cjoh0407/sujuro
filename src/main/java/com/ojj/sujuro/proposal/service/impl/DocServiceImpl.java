@@ -146,7 +146,7 @@ public class DocServiceImpl implements DocService {
             throw new BusinessException("경영지원실 담당 서류의 상태는 경영지원실이 바꿉니다.");
         }
         if (!(DocDto.ST_NONE.equals(statusCd) || DocDto.ST_DOING.equals(statusCd) || DocDto.ST_READY.equals(statusCd))) {
-            throw new BusinessException("준비 상태가 올바르지 않습니다.");
+            throw new BusinessException("상태가 올바르지 않습니다.");
         }
         mapper.updateDocStatus(dcmntSn, statusCd);
     }
@@ -363,7 +363,7 @@ public class DocServiceImpl implements DocService {
             }
         }
         if (!missing.isEmpty()) {
-            throw new BusinessException("준비되지 않은 필수 서류가 있습니다: " + String.join(", ", missing));
+            throw new BusinessException("완료되지 않은 필수 서류가 있습니다: " + String.join(", ", missing));
         }
         if (mapper.updateSubmitted(pbancSn, userId) == 0) {
             throw new BusinessException("등록 완료 처리하지 못했습니다. 화면을 새로 고쳐 상태를 확인해 주세요.");
@@ -398,7 +398,7 @@ public class DocServiceImpl implements DocService {
         }
         requireOpen(pbancSn); // 나라장터 등록 뒤에는 삭제할 수 없다
         if (!canDeleteFile(f.getRgtrId(), false, userId, admin, lead)) {
-            throw new BusinessException("파일은 올린 사람, 주관팀 팀장, 경영지원실만 삭제할 수 있습니다.");
+            throw new BusinessException("파일은 등록자, 주관팀 팀장, 경영지원실만 삭제할 수 있습니다.");
         }
         String r = reason == null ? "" : reason.trim();
         if (r.isEmpty()) {

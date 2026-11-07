@@ -24,6 +24,8 @@ public interface ScheduleMapper {
 
     /** 내가 제안팀원으로 들어간 사업건 (일정에서 사업별로 고를 때 쓴다) */
     List<CodeOption> findMyPbancs(@Param("userId") String userId);
+    /** 내 사업건 중 진행 중인 것 (사업 고르기 드롭다운. 결과 등록·유찰로 끝난 사업은 빠진다) */
+    List<CodeOption> findMyActivePbancs(@Param("userId") String userId);
     /** 우리 팀이 주관하는 진행 중 사업건 (주관팀 팀장이 일정을 등록·수정할 수 있는 사업건. 참여팀은 보기만) */
     List<CodeOption> findEditablePbancs(@Param("teamSn") Long teamSn);
     /**

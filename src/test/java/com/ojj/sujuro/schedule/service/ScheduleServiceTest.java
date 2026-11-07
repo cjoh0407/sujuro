@@ -129,6 +129,47 @@ class ScheduleServiceTest {
     }
 
     @Test
+    void 사업_드롭다운에는_진행_중인_사업만_나온다() {
+        when(mapper.findMyPbancs("M1")).thenReturn(Arrays.asList(opt("10", "A사업"), opt("11", "끝난 사업")));
+        when(mapper.findMyActivePbancs("M1")).thenReturn(Arrays.asList(opt("10", "A사업")));
+        noEvents();
+
+        ScheduleView v = service.month(user("M1", Role.MEMBER), "2026-10", null, null, null);
+
+        assertEquals(1, v.getPickProjects().size());
+        assertEquals("A사업", v.getPickProjects().get(0).getName());
+        assertEquals("전체 사업", v.getPickTitle());
+        assertEquals(2, v.getProjects().size()); // 전체 이력은 그대로 (일정 판단용)
+    }
+
+    @Test
+    void 끝난_사업이_골라져_들어오면_드롭다운에_지난_사업으로_한_줄_붙인다() {
+        when(mapper.findMyPbancs("M1")).thenReturn(Arrays.asList(opt("10", "A사업"), opt("11", "끝난 사업")));
+        when(mapper.findMyActivePbancs("M1")).thenReturn(Arrays.asList(opt("10", "A사업")));
+        noEvents();
+
+        ScheduleView v = service.month(user("M1", Role.MEMBER), "2026-10", null, 11L, null);
+
+        assertEquals(Long.valueOf(11L), v.getSelectedPbancSn()); // 이력은 볼 수 있다
+        assertEquals(2, v.getPickProjects().size());
+        assertEquals("끝난 사업 (지난 사업)", v.getPickTitle());
+        verify(mapper).findAutoEvents(eq((Long) null), eq("M1"), eq(11L), anyString(), anyString());
+    }
+
+    @Test
+    void 사업이_모두_끝난_팀원도_지난_일정은_본다() {
+        when(mapper.findMyPbancs("M1")).thenReturn(Arrays.asList(opt("11", "끝난 사업")));
+        when(mapper.findMyActivePbancs("M1")).thenReturn(Collections.<CodeOption>emptyList());
+        noEvents();
+
+        ScheduleView v = service.month(user("M1", Role.MEMBER), "2026-10", null, null, null);
+
+        assertTrue(v.getPickProjects().isEmpty());
+        verify(mapper).findAutoEvents(eq((Long) null), eq("M1"), eq((Long) null), anyString(), anyString());
+        verify(mapper).findInternalEvents(eq((Long) null), eq("M1"), eq((Long) null), anyString(), anyString());
+    }
+
+    @Test
     void 참여하는_사업이_없는_팀원에게는_일정을_보여_주지_않는다() {
         when(mapper.findMyPbancs("M1")).thenReturn(Collections.<CodeOption>emptyList());
 

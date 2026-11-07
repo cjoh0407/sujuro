@@ -57,6 +57,17 @@
      ORDER BY P.PBANC_SN DESC
   </select>
 
+  <!-- 사업 고르기(드롭다운)에 넣는 사업건 (11/07): 내 사업건 중 진행 중(참여 확정·제안 작성 중·제출 완료)인 것만.
+       결과 등록·유찰로 끝난 사업은 목록에서 빼지만 일정 이력은 findMyPbancs 기준으로 캘린더에 그대로 남는다 -->
+  <select id="findMyActivePbancs" resultType="com.ojj.sujuro.user.dto.CodeOption">
+    SELECT TO_CHAR(P.PBANC_SN) AS code, P.PBANC_NM AS name
+      FROM TB_PRP_TMMBR M
+      JOIN TB_BID_PBANC P ON P.PBANC_SN = M.PBANC_SN
+     WHERE M.USER_ID = #{userId}
+       AND P.PBANC_STTS_CD IN ('PS030', 'PS040', 'PS050')
+     ORDER BY P.PBANC_SN DESC
+  </select>
+
   <!-- 팀장이 일정을 등록·수정할 수 있는 사업건: 우리 팀이 주관하는 진행 중(참여 확정·제안 작성 중·제출 완료) 사업건 (FR-093).
        참여팀 팀장은 일정을 보기만 한다. 주관팀 팀장은 참여 결정 때 제안팀원이 되므로 등록한 일정이 항상 캘린더에 보인다. -->
   <select id="findEditablePbancs" resultType="com.ojj.sujuro.user.dto.CodeOption">

@@ -16,7 +16,7 @@
 
 <!--
   대시보드 (FR-089, 090). 모든 역할이 같은 뼈대이고 역할별 블록만 다르다. (DashboardService 주석 참고)
-    배너(이미지 + 날짜·한 줄 요약) → 아이콘 카드 → 역할별 블록 → 목록 칸 + 미니 캘린더 / 오른쪽 최근 알림
+    배너(이미지 + 날짜) | 미니 캘린더 → 아이콘 카드 → 역할별 블록 → 목록 칸 / 오른쪽 최근 알림
   블록 사이 간격은 dashboard.css 의 --dash-gap 하나로 통일한다.
   목록은 칸 안에서 스크롤한다(.dash-scroll). 눌러서 일을 처리하는 곳으로만 링크를 건다. (숫자·그림만 보여 주는 블록은 링크 없음)
 -->
@@ -24,12 +24,16 @@
 <div class="dash">
   <div class="dash-main">
 
+    <!-- 맨 위 줄 (11/07 멘토링): 왼쪽 배너, 오른쪽 미니 캘린더. 좁은 화면에서는 위아래로 쌓인다 -->
+    <div class="dash-top">
     <!-- 배너: 역할마다 다른 그림. static/images/banner-sales·mgmt·leader·member.svg (dashboard.css 의 .banner-역할 에서 연결). 없는 역할은 dashboard-banner.svg -->
     <section class="dash-banner" th:classappend="|banner-${#strings.toLowerCase(view.roleKey)}|" aria-label="오늘 요약">
       <div class="dash-banner-chip">
         <b th:text="${view.todayText}">2026년 11월 3일 화요일</b>
       </div>
     </section>
+    <div th:replace="~{dashboard/fragments :: miniCal(${view.miniCal})}"></div>
+    </div>
 
     <!-- 아이콘 카드: 역할별 할 일 요약 (FR-090) -->
     <div class="dash-cards" th:classappend="${#lists.size(view.stats) == 3} ? 'c3'" th:if="${!#lists.isEmpty(view.stats)}">
@@ -41,104 +45,56 @@
       <div class="dash-pair">
         <div class="card dash-chart">
           <div class="card-head"><h3><span>팀별 진행 현황</span></h3></div>
-          <div class="dash-empty" th:if="${view.radar.blank}">표시할 팀이 없습니다. (팀이 3개 이상일 때 보여요)</div>
-          <th:block th:unless="${view.radar.blank}"><div th:replace="~{dashboard/fragments :: radarChart(${view.radar})}"></div></th:block>
+          <div class="dash-empty" th:if="${view.teamLoad.blank}">작업 중인 공고와 팀이 없습니다.</div>
+          <th:block th:unless="${view.teamLoad.blank}"><div th:replace="~{dashboard/fragments :: teamLoad(${view.teamLoad})}"></div></th:block>
         </div>
-        <div class="card dash-chart">
-          <div class="card-head"><h3><span>곧 마감되는 공고</span></h3><a class="btn sm" th:href="@{/notices}">공고 관리</a></div>
-          <div class="dash-empty" th:if="${#lists.isEmpty(view.dueBids)}">마감이 가까운 공고가 없습니다.</div>
-          <div class="dash-tiles" th:unless="${#lists.isEmpty(view.dueBids)}">
-            <a class="dash-tile" th:each="b : ${view.dueBids}" th:classappend="|t-${b.tone}|" th:href="@{/notices/{sn}(sn=${b.pbancSn})}">
-              <span class="dday-circle" th:text="${b.ddayChip}">D-2</span>
-              <span class="nm" th:text="${b.pbancNm}" th:title="${b.pbancNm}">공고명</span>
-              <span class="due" th:text="${b.ddlnShort}">11/05 (목) 10:00</span>
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <div class="dash-blocks">
-        <div class="card dash-list wide">
+        <!-- 11/07: 곧 마감되는 공고 블록을 빼고 처리할 공고를 그 자리(그래프 오른쪽)에 둔다. 높이는 그래프 칸에 맞추고 칸 안에서 스크롤 -->
+        <div class="card dash-list fit">
           <div class="card-head"><h3>처리할 공고</h3></div>
           <div class="dash-empty" th:if="${#lists.isEmpty(view.todoBids)}">처리할 공고가 없습니다.</div>
-          <div class="lt-head" th:unless="${#lists.isEmpty(view.todoBids)}"><span class="f">공고</span><span class="w84 tc">상태</span><span class="w96">담당팀</span><span class="w76 tr">마감</span></div>
-          <div class="dash-scroll sh-330" th:unless="${#lists.isEmpty(view.todoBids)}">
+          <!-- 제목 줄을 스크롤 칸 안에 둔다(위에 고정). 스크롤바가 생겨도 제목과 내용 열이 같은 폭으로 맞는다 -->
+          <div class="dash-scroll" th:unless="${#lists.isEmpty(view.todoBids)}">
+            <div class="lt-head"><span class="f">공고</span><span class="w84 tc">상태</span><span class="w96 tc">담당팀</span><span class="w76 tr">마감</span></div>
             <a class="lt-row" th:each="b : ${view.todoBids}" th:href="@{/notices/{sn}(sn=${b.pbancSn})}">
               <span class="f" th:text="${b.pbancNm}" th:title="${b.pbancNm}">공고명</span>
               <span class="w84 tc"><span class="pill danger" th:if="${b.returnNm != null}" th:text="|${b.returnNm} 반환|">불참 반환</span><span class="pill" th:unless="${b.returnNm != null}" th:classappend="${b.statusPill}" th:text="${b.statusNm}">신규</span></span>
-              <span class="w96 s" th:text="${b.teamNm != null} ? ${b.teamNm} : '-'">공공사업1Div</span>
+              <span class="w96 tc s" th:text="${b.teamNm != null} ? ${b.teamNm} : '-'">공공사업1Div</span>
               <span class="w76 tr dd" th:classappend="|t-${b.tone}|" th:text="${b.ddlnText != null} ? ${b.ddayLabel} : '마감일 미정'">D-3</span>
             </a>
           </div>
           <a class="dash-more-link" th:href="@{/notices}" >공고 관리에서 전체 보기</a>
         </div>
-        <div th:replace="~{dashboard/fragments :: miniCal(${view.miniCal})}"></div>
       </div>
     </th:block>
 
     <!-- ===================== 경영지원실 ===================== -->
     <th:block th:if="${view.roleKey == 'MGMT'}">
-      <div class="dash-pair wide-left">
+      <div class="dash-pair mgmt-pair"><!-- 11/07: 차트와 제출서류 현황 5:5 -->
         <div class="card dash-chart">
-          <div class="card-head"><h3><span th:text="${view.mainChart.title}">연도별 성과</span></h3></div>
+          <div class="card-head"><h3><span th:text="${view.mainChart.title}">최근 3년 성과</span></h3></div>
           <div class="dash-empty" th:if="${view.mainChart.blank}" th:text="${view.mainChart.emptyText}">연도별 결과가 아직 없습니다.</div>
           <th:block th:unless="${view.mainChart.blank}"><th:block th:replace="~{dashboard/fragments :: lineChart(${view.mainChart})}"></th:block></th:block>
         </div>
-        <div class="card dash-chart">
-          <div class="card-head"><h3><span>주의가 필요한 항목</span></h3></div>
-          <div class="dash-empty" th:if="${#lists.isEmpty(view.attention)}">주의가 필요한 항목이 없습니다.</div>
-          <th:block th:unless="${#lists.isEmpty(view.attention)}">
-            <div class="lt-head"><span class="w84">구분</span><span class="f">사업</span><span class="w52 tr">기한</span></div>
-            <div class="dash-scroll sh-420">
-              <a class="lt-row" th:each="a : ${view.attention}" th:classappend="${a.tone}" th:href="@{${a.href}}">
-                <span class="w84 k" th:text="${a.title}">서류 2건 누락</span>
-                <span class="f" th:text="${a.pbancNm}" th:title="|${a.pbancNm}${a.teamNm != null ? ' · ' + a.teamNm : ''}|">사업명</span>
-                <span class="w52 tr r" th:text="${a.right}">D-2</span>
-              </a>
-            </div>
-          </th:block>
-        </div>
-      </div>
-
-      <div class="card dash-full">
-        <div class="card-head"><h3><span>올해 수주한 사업</span></h3><a class="btn sm" th:href="@{/results}">결과 관리</a></div>
-        <div class="dash-empty" th:if="${#lists.isEmpty(view.wins)}">올해 수주한 사업이 아직 없습니다.</div>
-        <th:block th:unless="${#lists.isEmpty(view.wins)}">
-          <div class="lt-head"><span class="f2">사업명</span><span class="g">발주기관</span><span class="g">수요기관</span><span class="g">담당팀</span><span class="w64 tc">유형</span><span class="w96 tc">낙찰금액</span><span class="w80 tc">낙찰률</span><span class="w110 tc">경쟁</span></div>
-          <div class="dash-scroll sh-340">
-            <a class="lt-row" th:each="w : ${view.wins}" th:href="@{/results(bid=${w.pbancSn})}">
-              <span class="f2" th:text="${w.pbancNm}" th:title="${w.pbancNm}">사업명</span>
-              <span class="g s" th:text="${w.orderInstNm}" th:title="${w.orderInstNm}">발주기관</span>
-              <span class="g s" th:text="${!#strings.isEmpty(w.dmndInstNm)} ? ${w.dmndInstNm} : '-'" th:title="${w.dmndInstNm}">수요기관</span>
-              <span class="g s" th:text="${w.teamNm != null} ? ${w.teamNm} : '-'">공공사업3Div</span>
-              <span class="w64 tc"><span class="pill" th:classappend="${w.typePill}" th:if="${w.bizTypeNm != null}" th:text="${w.bizTypeNm}">SI</span></span>
-              <b class="w96 tc amt" th:text="${w.amtText}">12.4억</b>
-              <span class="w80 tc s" th:text="${w.rateText}">89.2%</span>
-              <span class="w110 tc s" th:text="${w.rivalText}">3개사 · 1위</span>
-            </a>
-          </div>
-          <div class="win-sum"><b th:text="${view.winTotal}">합계 38.2억</b></div>
-        </th:block>
-      </div>
-
-      <div class="dash-blocks">
-        <div class="card dash-list wide">
-          <div class="card-head"><h3>제출서류 준비 현황</h3></div>
-          <div class="dash-empty" th:if="${#lists.isEmpty(view.docRows)}">준비 중인 사업건이 없습니다.</div>
-          <div class="lt-head" th:unless="${#lists.isEmpty(view.docRows)}"><span class="f">사업</span><span class="w88">담당팀</span><span class="w44 tr">서류</span><span class="w76">누락</span><span class="w72 tc">상태</span></div>
-          <div class="dash-scroll sh-330" th:unless="${#lists.isEmpty(view.docRows)}">
+        <!-- 11/07: '주의가 필요한 항목' 블록은 없애고, 제출서류 현황을 차트 옆으로 옮겼다.
+             내용만큼 늘어나고(최대 420px 후 칸 안 스크롤), 옆 차트 칸과 높이를 맞춘다. 열: 사업 · 담당팀 · 서류 · 누락 · 상태 · 마감 -->
+        <div class="card dash-list">
+          <div class="card-head"><h3>제출서류 현황</h3></div>
+          <div class="dash-empty" th:if="${#lists.isEmpty(view.docRows)}">진행 중인 사업건이 없습니다.</div>
+          <div class="dash-scroll sh-420" th:unless="${#lists.isEmpty(view.docRows)}">
+            <div class="lt-head"><span class="f">사업</span><span class="w88 tc">담당팀</span><span class="w44 tc">서류</span><span class="w64 tc">누락</span><span class="w72 tc">상태</span><span class="w64 tr">마감</span></div>
             <a class="lt-row" th:each="r : ${view.docRows}" th:href="@{/docs(bid=${r.pbancSn})}">
               <span class="f" th:text="${r.pbancNm}" th:title="${r.pbancNm}">사업건</span>
-              <span class="w88 s" th:text="${r.teamNm != null} ? ${r.teamNm} : '-'">공공사업1Div</span>
-              <span class="w44 tr s" th:text="|${r.docReady}/${r.docTotal}|">3/5</span>
-              <span class="w76 s miss" th:text="${r.missingRequired > 0} ? |필수 ${r.missingRequired}건| : ''">필수 1건</span>
+              <span class="w88 tc s" th:text="${r.teamNm != null} ? ${r.teamNm} : '-'">공공사업1Div</span>
+              <span class="w44 tc s" th:text="|${r.docReady}/${r.docTotal}|">3/5</span>
+              <span class="w64 tc s" th:classappend="${r.missingRequired > 0} ? 'miss'" th:text="${r.missingRequired > 0} ? |필수 ${r.missingRequired}건| : '-'">필수 1건</span>
               <span class="w72 tc"><span class="pill" th:classappend="${r.statePill}" th:text="${r.stateLabel}">작성 중</span></span>
+              <span class="w64 tr dd" th:classappend="|t-${r.ddayTone}|" th:text="${r.ddayLabel}">D-3</span>
             </a>
           </div>
-          <a class="dash-more-link" th:href="@{/docs}" >제출서류에서 전체 보기</a>
+          <a class="dash-more-link" th:href="@{/docs}">제출서류에서 전체 보기</a>
         </div>
-        <div th:replace="~{dashboard/fragments :: miniCal(${view.miniCal})}"></div>
       </div>
+
     </th:block>
 
     <!-- ===================== 팀장 ===================== -->
@@ -179,7 +135,8 @@
       </div>
 
       <div class="dash-blocks">
-        <div class="card dash-list wide">
+        <!-- 11/07: 내용만큼만 늘어나고(최소 높이 없음), 목록은 최대 360px 까지 보인 뒤 칸 안에서 스크롤 -->
+        <div class="card dash-list wide auto-h">
           <div class="card-head"><h3>처리할 일</h3></div>
           <div class="dash-empty" th:if="${#lists.isEmpty(view.todos)}">처리할 일이 없습니다.</div>
           <div class="dash-scroll sh-360" th:unless="${#lists.isEmpty(view.todos)}">
@@ -193,7 +150,6 @@
             </div>
           </div>
         </div>
-        <div th:replace="~{dashboard/fragments :: miniCal(${view.miniCal})}"></div>
       </div>
     </th:block>
 
@@ -227,7 +183,8 @@
       </div>
 
       <div class="dash-blocks">
-        <div class="card dash-list wide">
+        <!-- 11/07: 내용만큼만 늘어나고(최소 높이 없음), 목록은 최대 360px 까지 보인 뒤 칸 안에서 스크롤 -->
+        <div class="card dash-list wide auto-h">
           <div class="card-head"><h3>내 할 일</h3></div>
           <div class="dash-empty" th:if="${#lists.isEmpty(view.myTocs)}">담당 목차가 없습니다.</div>
           <div class="dash-scroll sh-360" th:unless="${#lists.isEmpty(view.myTocs)}">
@@ -237,11 +194,10 @@
                 <div class="todo-nm"><span class="t" th:text="${t.title}" th:title="${t.title}">2. 사업 이해</span><span class="dd-chip" th:if="${t.dday != null}" th:classappend="|t-${t.tone}|" th:text="${t.ddayChip}">D-2</span></div>
                 <div class="todo-sub" th:text="${t.pbancNm}" th:title="|${t.pbancNm} · ${t.fileLabel}|">사업명</div>
               </div>
-              <a class="todo-btn" th:href="@{${t.actionHref}}"><span th:text="${t.actionLabel}">파일 올리기</span> <i>›</i></a>
+              <a class="todo-btn" th:href="@{${t.actionHref}}"><span th:text="${t.actionLabel}">파일 등록</span> <i>›</i></a>
             </div>
           </div>
         </div>
-        <div th:replace="~{dashboard/fragments :: miniCal(${view.miniCal})}"></div>
       </div>
     </th:block>
   </div>

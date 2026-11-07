@@ -74,12 +74,12 @@ public class DocDto {
     }
 
     public String getStatusNm() {
-        return ST_READY.equals(prgrsSttsCd) ? "준비 완료" : ST_DOING.equals(prgrsSttsCd) ? "준비 중" : "미준비";
+        return ST_READY.equals(prgrsSttsCd) ? "완료" : "미완료"; // 11/06 화면에는 완료·미완료 두 가지만 (DS020 도 미완료)
     }
 
     /** 준비 상태 표시 색 (common.css pill) */
     public String getStatusPill() {
-        return ST_READY.equals(prgrsSttsCd) ? "success" : ST_DOING.equals(prgrsSttsCd) ? "warning" : "neutral";
+        return ST_READY.equals(prgrsSttsCd) ? "success" : "neutral";
     }
 
     public String getSizeLabel() {

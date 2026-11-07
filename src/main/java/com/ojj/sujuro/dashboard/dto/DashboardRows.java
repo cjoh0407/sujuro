@@ -125,6 +125,16 @@ public final class DashboardRows {
             return registered ? "success" : (isWaitingRegistration() ? "warning" : "neutral");
         }
 
+        /** 제출 마감 표시 (11/07): D-3 · 오늘 마감 · 마감 지남. 마감일이 없으면 - */
+        public String getDdayLabel() {
+            return DashboardRows.ddayLabel(dday);
+        }
+
+        /** 마감 글자색: 등록을 마쳤으면 회색, 아니면 3일 이내 빨강 · 7일 이내 갈색 · 그 밖 파랑 */
+        public String getDdayTone() {
+            return registered ? "neutral" : DashboardRows.ddayTone(dday);
+        }
+
         /** 서류 준비율(%) - 목록의 작은 막대 길이 */
         public int getReadyPercent() {
             return docTotal <= 0 ? 0 : (int) Math.round(docReady * 100.0 / docTotal);
@@ -155,88 +165,6 @@ public final class DashboardRows {
             int decided = won + lost;
             return decided == 0 ? null : (int) Math.round(won * 100.0 / decided);
         }
-    }
-
-    /** 주의가 필요한 항목 한 줄 (경영지원실) */
-    @Getter
-    @Setter
-    public static class MgmtAlert {
-        public static final String DOC_MISSING = "DOC_MISSING";   // 필수 서류 누락
-        public static final String PAST_DUE = "PAST_DUE";         // 제출 마감 지남 · 서류 미준비
-        public static final String RESULT_WAIT = "RESULT_WAIT";   // 결과 미등록
-
-        private String kind;
-        private Long pbancSn;
-        private String pbancNm;
-        private String teamNm;
-        private int missing;        // 누락된 필수 서류 수
-        private Integer dday;       // 제출 마감까지 남은 일수 (서류 관련)
-        private Integer passedDays; // 개찰 후 경과 일수 (결과 관련)
-
-        public String getTitle() {
-            if (PAST_DUE.equals(kind)) {
-                return "마감 지남";
-            }
-            if (RESULT_WAIT.equals(kind)) {
-                return "결과 미등록";
-            }
-            return missing > 0 ? "서류 " + missing + "건 누락" : "서류 미등록";
-        }
-
-        /** 오른쪽 끝 표시: D-2 / D+1 / +3일 */
-        public String getRight() {
-            if (RESULT_WAIT.equals(kind)) {
-                return "+" + (passedDays == null ? 0 : passedDays) + "일";
-            }
-            if (dday == null) {
-                return "-";
-            }
-            return dday < 0 ? "D+" + (-dday) : (dday == 0 ? "D-day" : "D-" + dday);
-        }
-
-        /** 빨강(위험) 또는 갈색(주의) */
-        public String getTone() {
-            if (PAST_DUE.equals(kind)) {
-                return "danger";
-            }
-            if (DOC_MISSING.equals(kind) && dday != null && dday <= 3) {
-                return "danger";
-            }
-            return "warning";
-        }
-
-        public String getHref() {
-            return (RESULT_WAIT.equals(kind) ? "/results?bid=" : "/docs?bid=") + pbancSn;
-        }
-    }
-
-    /** 올해 수주한 사업 한 줄 (경영지원실) */
-    @Getter
-    @Setter
-    public static class Win {
-        private Long pbancSn;
-        private String pbancNm;
-        private String orderInstNm;  // 발주기관
-        private String dmndInstNm;   // 수요기관
-        private String teamNm;       // 담당(주관)팀
-        private String bizTypeNm;    // SI / 유지보수
-        private long scsbdAmt;       // 낙찰금액(원)
-        private long budgetAmt;      // 배정예산(원)
-        private int rivalCnt;        // 개찰에 참가한 업체 수(우리 포함). 데이터가 없으면 0
-        private Integer evlRank;     // 평가순위
-
-        public String getAmtText() { return DashboardRows.eok(scsbdAmt); }
-        public String getBudgetText() { return DashboardRows.eok(budgetAmt); }
-        /** 낙찰률 = 낙찰금액 ÷ 배정예산. 예산이 없으면 null */
-        public Double getRate() { return budgetAmt <= 0 ? null : scsbdAmt * 100.0 / budgetAmt; }
-        public String getRateText() { Double r = getRate(); return r == null ? "-" : String.format(Locale.ROOT, "%.1f%%", r); }
-        public String getRivalText() {
-            if (rivalCnt <= 0) {
-                return "-";
-            }
-            return rivalCnt + "개사" + (evlRank == null ? "" : " · " + evlRank + "위");
-        }
-        public String getTypePill() { return "SI".equals(bizTypeNm) ? "accent" : "neutral"; }
     }
 
     // ===================================================================================
@@ -410,7 +338,7 @@ public final class DashboardRows {
         public String getTitle() { return ((tocNo == null ? "" : tocNo + " ") + (tocNm == null ? "" : tocNm)).trim(); }
         public String getFileLabel() { return fileCnt != null && fileCnt > 0 ? "파일 " + fileCnt + "건 올림" : "파일 없음"; }
         /** 검토 완료면 목차를 보러, 아니면 파일을 올리러 간다 */
-        public String getActionLabel() { return isDone() ? "목차 보기" : "파일 올리기"; }
+        public String getActionLabel() { return isDone() ? "목차 보기" : "파일 등록"; }
         public String getActionHref() { return (isDone() ? "/proposal?bid=" : "/files?bid=") + pbancSn; }
     }
 

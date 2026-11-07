@@ -27,9 +27,6 @@ function schOpenEdit(btn) {
     document.getElementById(id).disabled = !changeable;
   });
   document.getElementById('se-save').hidden = !changeable;
-  var lock = document.getElementById('se-lock');
-  lock.hidden = changeable;
-  lock.textContent = d.reason || '';
   document.getElementById('schEditTitle').textContent = changeable ? '일정 수정' : '일정';
   schOpen('schEdit');
 }
@@ -51,10 +48,71 @@ function schDelete() {
   }
 }
 
-/* Esc 로 열린 모달을 닫는다 */
+/* Esc 로 열린 모달과 연도·월 고르기 창을 닫는다 */
 document.addEventListener('keydown', function (e) {
   if (e.key !== 'Escape') return;
   ['schAdd', 'schEdit', 'schView'].forEach(schClose);
+  schYmClose();
+});
+
+/* ===== 연도·월 고르기 (11/07) =====
+   제목 버튼의 data-ym(보는 달), data-now(이번 달), data-base(고른 팀·사업이 들어 있는 주소)로 1~12월 링크를 만든다.
+   화면이 비동기로 바뀌어도 동작하도록 요소는 부를 때마다 찾는다. */
+function schYmEls() {
+  return { btn: document.querySelector('.sch-ym-btn'), pop: document.querySelector('.sch-ym-pop') };
+}
+
+function schYmRender() {
+  var el = schYmEls();
+  var y = parseInt(el.pop.getAttribute('data-year'), 10);
+  var cur = el.btn.getAttribute('data-ym');
+  var now = el.btn.getAttribute('data-now');
+  el.pop.querySelector('.sch-ym-y').textContent = y + '년';
+  var box = el.pop.querySelector('.sch-ym-mons');
+  box.textContent = '';
+  for (var m = 1; m <= 12; m++) {
+    var ym = y + '-' + (m < 10 ? '0' + m : m);
+    var url = new URL(el.btn.getAttribute('data-base'), location.href);
+    url.searchParams.set('ym', ym);
+    var a = document.createElement('a');
+    a.href = url.pathname + url.search;
+    a.textContent = m + '월';
+    if (ym === cur) { a.className = 'on'; a.setAttribute('aria-current', 'true'); }
+    else if (ym === now) { a.className = 'now'; }
+    box.appendChild(a);
+  }
+}
+
+function schYmToggle() {
+  var el = schYmEls();
+  if (!el.btn || !el.pop) return;
+  if (!el.pop.hidden) { schYmClose(); return; }
+  el.pop.setAttribute('data-year', el.btn.getAttribute('data-ym').slice(0, 4));
+  schYmRender();
+  el.pop.hidden = false;
+  el.btn.setAttribute('aria-expanded', 'true');
+  var focus = el.pop.querySelector('.sch-ym-mons a.on') || el.pop.querySelector('.sch-ym-mons a');
+  if (focus) focus.focus();
+}
+
+function schYmYear(step) {
+  var el = schYmEls();
+  if (!el.pop) return;
+  el.pop.setAttribute('data-year', parseInt(el.pop.getAttribute('data-year'), 10) + parseInt(step, 10));
+  schYmRender();
+}
+
+function schYmClose() {
+  var el = schYmEls();
+  if (!el.pop || el.pop.hidden) return;
+  el.pop.hidden = true;
+  el.btn.setAttribute('aria-expanded', 'false');
+}
+
+/* 창 바깥을 누르면 닫는다 */
+document.addEventListener('click', function (e) {
+  if (e.target.closest && e.target.closest('.sch-ym')) return;
+  schYmClose();
 });
 
 /* 드래그로 일정 옮기기 (주관팀 팀장, 우리 팀이 등록한 일정).

@@ -22,9 +22,24 @@
   <!-- 월 이동 + 팀 탭(영업부·경영지원실) -->
   <div class="row jc-between mb-12">
     <div class="row">
-      <a class="btn sm" th:href="@{/schedule(ym=${view.prevYm}, team=${view.selectedTeamSn}, pbanc=${view.selectedPbancSn})}">‹</a>
-      <b class="fs-14" th:text="${view.label}">2026년 10월</b>
-      <a class="btn sm" th:href="@{/schedule(ym=${view.nextYm}, team=${view.selectedTeamSn}, pbanc=${view.selectedPbancSn})}">›</a>
+      <a class="btn sm" th:href="@{/schedule(ym=${view.prevYm}, team=${view.selectedTeamSn}, pbanc=${view.selectedPbancSn})}" title="이전 달">‹</a>
+      <!-- 연도·월 고르기 (11/07): 제목을 누르면 아래에 작은 창. 연도 ‹ › + 1~12월 버튼. 고른 팀·사업은 그대로 둔다 (js/schedule.js).
+           제목 칸 너비를 고정해 9월 → 10월처럼 글자 수가 바뀌어도 ‹ › 위치가 움직이지 않는다 -->
+      <div class="sch-ym">
+        <button class="sch-ym-btn" type="button" data-on-click="schYmToggle" aria-haspopup="dialog" aria-expanded="false" title="연도·월 고르기"
+                th:attr="data-ym=${view.ym},data-now=${#strings.substring(view.today,0,7)},data-base=@{/schedule(team=${view.selectedTeamSn}, pbanc=${view.selectedPbancSn})}">
+          <span th:text="${view.label}">2026년 10월</span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3"/></svg>
+        </button>
+        <div class="sch-ym-pop" role="dialog" aria-label="연도와 월 고르기" hidden>
+          <div class="sch-ym-yr">
+            <button type="button" data-on-click="schYmYear" data-arg="-1" title="이전 해">‹</button>
+            <b class="sch-ym-y">2026년</b>
+            <button type="button" data-on-click="schYmYear" data-arg="1" title="다음 해">›</button>
+          </div>
+          <div class="sch-ym-mons"></div>
+        </div>
+      </div>
+      <a class="btn sm" th:href="@{/schedule(ym=${view.nextYm}, team=${view.selectedTeamSn}, pbanc=${view.selectedPbancSn})}" title="다음 달">›</a>
       <!-- 일정 등록 (주관팀 팀장). 주관하는 진행 중 사업이 없으면(참여팀 팀장 포함) 눌러지지 않고 이유를 보여 준다 -->
       <button class="btn sm primary" type="button" th:if="${view.canEdit}" data-on-click="schOpen" data-arg="schAdd"
               th:disabled="${#lists.isEmpty(view.editProjects)}"
@@ -37,13 +52,18 @@
          th:classappend="${view.selectedTeamSn != null and view.selectedTeamSn.toString() == t.code} ? 'on'"
          th:href="@{/schedule(ym=${view.ym}, team=${t.code})}" th:text="${t.name}">공공사업1Div</a>
     </div>
-    <!-- 사업별 보기: 참여하는 사업이 2개 이상일 때만 -->
-    <div class="tabs" th:if="${#lists.size(view.projects) > 1}">
-      <a class="tab" th:classappend="${view.selectedPbancSn == null} ? 'on'" th:href="@{/schedule(ym=${view.ym})}">전체 사업</a>
-      <a class="tab" th:each="p : ${view.projects}"
-         th:classappend="${view.selectedPbancSn != null and view.selectedPbancSn.toString() == p.code} ? 'on'"
-         th:href="@{/schedule(ym=${view.ym}, pbanc=${p.code})}" th:text="${p.name}">사업명</a>
-    </div>
+    <!-- 사업별 보기 (11/07): 탭 대신 드롭다운. 진행 중인 사업만 나오고, 결과 등록·유찰로 끝난 사업은 빠진다(일정은 '전체 사업'에 남음).
+         참여하는 사업이 2개 이상이고 고를 사업이 있을 때만. 고르면 바로 그 사업으로 바뀐다(보던 달 유지) -->
+    <form class="sch-pick" method="get" th:action="@{/schedule}"
+          th:if="${#lists.size(view.projects) > 1 and !#lists.isEmpty(view.pickProjects)}">
+      <input type="hidden" name="ym" th:value="${view.ym}">
+      <select name="pbanc" aria-label="볼 사업" data-change-submit th:title="${view.pickTitle}">
+        <option value="">전체 사업</option>
+        <option th:each="p : ${view.pickProjects}" th:value="${p.code}" th:text="${p.name}"
+                th:selected="${view.selectedPbancSn != null and view.selectedPbancSn.toString() == p.code}">사업명</option>
+      </select>
+      <noscript><button class="btn sm" type="submit">보기</button></noscript>
+    </form>
   </div>
 
   <!-- 범례 (FR-094): 색은 팀, 글자는 종류 -->
@@ -62,7 +82,7 @@
       <th:block th:each="e : ${c.events}">
         <!-- 자기 팀이 등록한 일정은 팀장이 누르면 수정·삭제 모달이 열린다. 그 밖의 일정은 보기만 한다 -->
         <button th:if="${e.editable}" type="button" class="ev sch-ev" th:classappend="|tm${e.teamNo}|"
-                th:attr="data-id=${e.id},data-title=${e.title},data-date=${e.eventDate},data-time=${e.timeText},data-pbanc=${e.pbancNm},data-changeable=${e.changeable},data-reason=${e.lockReason},draggable=${e.changeable} ? 'true' : null"
+                th:attr="data-id=${e.id},data-title=${e.title},data-date=${e.eventDate},data-time=${e.timeText},data-pbanc=${e.pbancNm},data-changeable=${e.changeable},draggable=${e.changeable} ? 'true' : null"
                 data-on-click="schOpenEdit"
                 th:title="|${e.label}${e.pbancNm != null ? ' · ' + e.pbancNm : ''} · ${e.changeable ? '눌러서 수정·삭제, 끌어서 날짜 옮기기' : '눌러서 삭제'}|"
                 th:text="${(view.teams.isEmpty() ? '' : e.teamNm + ' · ') + e.label}">14:00 내부 점검</button>
@@ -165,7 +185,6 @@
       </div>
       <div class="pad">
         <div class="sch-pbanc">사업: <b id="se-pbanc">사업명</b></div>
-        <div class="banner warn" id="se-lock" hidden>지난 일정은 수정할 수 없습니다.</div>
         <form class="sch-form" id="se-form" method="post" th:action="@{/schedule/edit}">
           <input type="hidden" name="ym" th:value="${view.ym}">
           <input type="hidden" name="team" th:if="${view.selectedTeamSn != null}" th:value="${view.selectedTeamSn}">

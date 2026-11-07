@@ -45,7 +45,7 @@
         <span class="ds-ic" th:classappend="${#lists.size(docs) > 0 and readyCnt == #lists.size(docs)} ? 'ok' : 'blue'">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
         </span>
-        <div><span class="ds-l">준비 완료</span><b th:text="${readyCnt} + ' / ' + ${#lists.size(docs)}">0 / 0</b></div>
+        <div><span class="ds-l">완료</span><b th:text="${readyCnt} + ' / ' + ${#lists.size(docs)}">0 / 0</b></div>
       </div>
       <div>
         <span class="ds-ic" th:classappend="${missingCnt > 0} ? 'red' : 'ok'">
@@ -73,7 +73,7 @@
         <table class="doc-table" th:classappend="${admin and open} ? '' : 'no-x'">
           <thead>
             <tr>
-              <th>서류명</th><th>필수</th><th>준비 담당</th><th>준비 상태</th><th>제출 기한</th><th>파일</th><th class="doc-act-h"></th>
+              <th>서류명</th><th>필수</th><th>담당</th><th>상태</th><th>제출 기한</th><th>파일</th><th class="doc-act-h"></th>
               <th th:if="${admin and open}"></th>
             </tr>
           </thead>
@@ -90,12 +90,12 @@
                   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                   <input type="hidden" name="dcmntSn" th:value="${d.dcmntSn}">
                   <select name="prgrsSttsCd" data-change-submit>
-                    <option value="DS010" th:selected="${d.prgrsSttsCd == 'DS010'}">미준비</option>
-                    <option value="DS020" th:selected="${d.prgrsSttsCd == 'DS020'}">준비 중</option>
-                    <option value="DS030" th:selected="${d.prgrsSttsCd == 'DS030'}">준비 완료</option>
+                    <!--/* 11/06 화면에는 완료·미완료 두 가지만. 코드는 셋 그대로(DS010 미준비·DS020 파일 올라옴·DS030 완료)이고 DS010·DS020 은 미완료로 보인다 */-->
+                    <option value="DS010" th:selected="${d.prgrsSttsCd != 'DS030'}">미완료</option>
+                    <option value="DS030" th:selected="${d.prgrsSttsCd == 'DS030'}">완료</option>
                   </select>
                 </form>
-                <span th:unless="${canSt}" class="pill" th:classappend="${d.statusPill}" th:text="${d.statusNm}">미준비</span>
+                <span th:unless="${canSt}" class="pill" th:classappend="${d.statusPill}" th:text="${d.statusNm}">미완료</span>
               </td>
               <td class="mono">
                 <form th:if="${admin and open}" th:action="@{/docs/due}" method="post">
@@ -112,7 +112,7 @@
                   <div class="file-info doc-file">
                     <a class="dl-name" title="눌러서 내려받기" th:href="@{/docs/download(bid=${bid.pbancSn}, fileSn=${d.fileSn})}" th:text="${d.orgnlFileNm}">파일명</a>
                     <span class="faint fs-11_5"
-                          th:text="${(d.fileRgtrNm ?: '') + ' · ' + #dates.format(d.fileRegDt, 'yyyy-MM-dd HH:mm') + ' · ' + d.sizeLabel + (d.fileCnt > 1 ? ' · v' + d.fileCnt : '')}">올린 사람 · 일시</span>
+                          th:text="${(d.fileRgtrNm ?: '') + ' · ' + #dates.format(d.fileRegDt, 'yyyy-MM-dd HH:mm') + ' · ' + d.sizeLabel + (d.fileCnt > 1 ? ' · v' + d.fileCnt : '')}">등록자 · 일시</span>
                   </div>
                     <form th:if="${#sets.contains(deletable, d.fileSn)}" th:action="@{/docs/file-delete}" method="post" class="d-inline"
                           data-on-submit="askReason">
@@ -134,7 +134,7 @@
                       <input type="file" name="file" required data-max-mb="50" data-auto-upload>
                       <span class="ic ic-upload"></span>
                       <span class="drop-body">
-                        <span class="drop-text"><span><b th:text="${d.fileSn != null} ? '다시 올리기' : '파일 올리기'">파일 올리기</b></span></span>
+                        <span class="drop-text"><span><b th:text="${d.fileSn != null} ? '다시 등록' : '파일 등록'">파일 등록</b></span></span>
                         <span class="drop-hint"></span>
                       </span>
                     </label>
@@ -270,13 +270,13 @@
       </div>
       <div class="ts">
         <table>
-          <thead><tr><th>서류</th><th>파일</th><th>버전</th><th>올린 사람</th><th>삭제한 사람 · 일시</th><th>삭제 사유</th><th class="c-end"></th></tr></thead>
+          <thead><tr><th>서류</th><th>파일</th><th>버전</th><th>등록자</th><th>삭제한 사람 · 일시</th><th>삭제 사유</th><th class="c-end"></th></tr></thead>
           <tbody>
             <tr class="hv" th:each="f : ${deletedFiles}">
               <td th:text="${f.targetNm ?: '-'}">최종 제안서</td>
               <td><a class="dl-name" title="눌러서 내려받기" th:href="@{/docs/download(bid=${bid.pbancSn}, fileSn=${f.fileSn})}" th:text="${f.orgnlFileNm}">파일명</a></td>
               <td class="mono" th:text="'v' + ${f.verNo}">v1</td>
-              <td th:text="${(f.rgtrNm ?: f.rgtrId) + ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm')}">올린 사람</td>
+              <td th:text="${(f.rgtrNm ?: f.rgtrId) + ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm')}">등록자</td>
               <td th:text="${(f.dltrNm ?: f.dltrId) + ' · ' + #dates.format(f.delDt, 'yyyy-MM-dd HH:mm')}">삭제한 사람</td>
               <td th:text="${f.delRsn}">사유</td>
               <td class="c-end"></td>

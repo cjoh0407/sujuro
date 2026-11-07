@@ -644,7 +644,7 @@ document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') closeVerPop();
 });
 
-/* 제안서 관리: 담당자가 없는 목차의 [파일 올리기]를 누르면 담당자 지정부터 안내한다 */
+/* 제안서 관리: 담당자가 없는 목차의 [파일 등록]을 누르면 담당자 지정부터 안내한다 */
 function needOwner(label) {
   alert('「' + label + '」 목차의 담당자가 아직 없습니다. 스토리보드 관리에서 담당자를 먼저 지정해 주세요.');
 }

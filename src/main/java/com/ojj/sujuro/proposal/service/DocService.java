@@ -66,6 +66,14 @@ public interface DocService {
      */
     int savePages(Long pbancSn, List<Long> evlArtclSns, List<String> pageNos);
 
+    /**
+     * 조견표 편집 창의 [저장] (11/07). 한 번에 저장한다.
+     * 경영지원실(admin): 기존 항목 이름·배점 수정, delSns 삭제, newNames/newScores 추가 (이름 중복·배점 합계 100점 검사)
+     * 제안팀: 쪽번호만 저장 (savePages 와 같다)
+     */
+    void saveArticles(Long pbancSn, boolean admin, List<Long> sns, List<String> names, List<String> scores,
+                      List<String> pages, List<Long> delSns, List<String> newNames, List<String> newScores);
+
     /* ---------- 나라장터 등록 (경영지원실) ---------- */
 
     /**

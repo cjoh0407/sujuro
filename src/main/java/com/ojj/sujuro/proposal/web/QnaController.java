@@ -1,5 +1,7 @@
 package com.ojj.sujuro.proposal.web;
 
+import javax.servlet.http.HttpSession;
+
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -53,7 +55,7 @@ public class QnaController {
                         @RequestParam(value = "edit", required = false) Long edit,
                         @RequestParam(value = "q", required = false) String keyword,
                         @RequestParam(value = "past", required = false) Long past,
-                        Model model) {
+                        HttpSession session, Model model) {
         String me = user.getEmpNo();
         boolean reader = accessChecker.isQnaViewer(user); // 영업부·경영지원실: 모든 사업건을 읽기만
         List<ProposalBidDto> bids = reader ? proposalService.proposalBids() : proposalService.myBids(me);
@@ -62,7 +64,7 @@ public class QnaController {
         if (bids.isEmpty()) {
             return "proposal/qa";
         }
-        Long pbancSn = bid != null ? bid : ProposalBidDto.defaultPbancSn(bids);
+        Long pbancSn = CurrentBid.pick(bids, bid, session); // 다른 제안 화면에서 고른 사업건을 이어서 연다
         accessChecker.requireQnaReader(pbancSn, user);
         ProposalBidDto current = reader ? proposalService.viewBid(pbancSn) : proposalService.openBid(pbancSn, me);
         String tk = TAB_PRESENTED.equals(tab) ? TAB_PRESENTED : TAB_EXPECTED;

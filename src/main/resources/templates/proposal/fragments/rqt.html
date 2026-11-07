@@ -142,7 +142,7 @@
     <input type="hidden" name="view" value="unmapped" th:if="${editRqt != null}">
     <div class="fld">
       <label for="rqtMttrNo">요구사항 ID</label>
-      <input id="rqtMttrNo" name="rqtMttrNo" type="text" maxlength="50" required
+      <input id="rqtMttrNo" name="rqtMttrNo" type="text" maxlength="50" required class="up-case" autocomplete="off"
              th:value="${editRqt?.rqtMttrNo}" th:disabled="${editRqt != null}">
     </div>
     <div class="fld">

@@ -126,7 +126,7 @@ public class TocServiceImpl implements TocService {
             t.setTocNo(src.getTocNo());
             t.setTocNm(src.getTocNm());
             t.setSortSeq(src.getSortSeq());
-            t.setExpcPageCnt(src.isLeaf() ? src.getExpcPageCnt() : null);
+            // 예상 쪽수는 사업마다 새로 정한다: 양식에서 가져오지 않고 비워 둔다 (11/06)
             mapper.insert(t);
             idMap.put(src.getTocSn(), t.getTocSn());
         }
@@ -431,7 +431,7 @@ public class TocServiceImpl implements TocService {
         }
     }
 
-    /** 양식의 항목을 지우고 사업건 목차(tocs, 부모가 먼저 나오는 순서)로 다시 채운다. 번호·이름·순서·최하위 쪽수만 옮긴다 */
+    /** 양식의 항목을 지우고 사업건 목차(tocs, 부모가 먼저 나오는 순서)로 다시 채운다. 번호·이름·순서만 옮긴다 (예상 쪽수는 옮기지 않는다) */
     private void writeFormItems(Long formSn, String se, List<TocDto> tocs) {
         List<TocDto> old = mapper.findFormItems(formSn);
         for (int i = old.size() - 1; i >= 0; i--) { // 깊은 하위부터 지운다
@@ -446,7 +446,7 @@ public class TocServiceImpl implements TocService {
             item.setTocNo(src.getTocNo());
             item.setTocNm(src.getTocNm());
             item.setSortSeq(src.getSortSeq());
-            item.setExpcPageCnt(src.isLeaf() ? src.getExpcPageCnt() : null);
+            // 예상 쪽수는 양식에 저장하지 않는다 (사업마다 새로 정한다, 11/06)
             mapper.insertFormItem(item);
             idMap.put(src.getTocSn(), item.getTocSn());
         }

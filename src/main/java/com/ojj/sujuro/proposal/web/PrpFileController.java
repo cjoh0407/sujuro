@@ -1,5 +1,7 @@
 package com.ojj.sujuro.proposal.web;
 
+import javax.servlet.http.HttpSession;
+
 import com.ojj.sujuro.common.exception.BusinessException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -63,14 +65,14 @@ public class PrpFileController {
                         @RequestParam(value = "bid", required = false) Long bid,
                         @RequestParam(value = "tab", defaultValue = TAB_PART) String tab,
                         @RequestParam(value = "deleted", defaultValue = "false") boolean showDeleted,
-                        Model model) {
+                        HttpSession session, Model model) {
         String me = user.getEmpNo();
         List<ProposalBidDto> bids = proposalService.myBids(me);
         model.addAttribute("bids", bids);
         if (bids.isEmpty()) {
             return "proposal/files";
         }
-        Long pbancSn = bid != null ? bid : ProposalBidDto.defaultPbancSn(bids);
+        Long pbancSn = CurrentBid.pick(bids, bid, session); // 다른 제안 화면에서 고른 사업건을 이어서 연다
         accessChecker.requireProposalMember(pbancSn, user);
         String tk = TAB_FULL.equals(tab) || TAB_SUMMARY.equals(tab) ? tab : TAB_PART;
 
@@ -97,7 +99,9 @@ public class PrpFileController {
         } else {
             boolean sum = TAB_SUMMARY.equals(tk);
             se = sum ? PrpFileDto.SE_SUMMARY : PrpFileDto.SE_PART;
-            List<TocDto> leaves = tocService.leaves(tocService.list(pbancSn, sum ? TocDto.SE_SUMMARY : TocDto.SE_PROPOSAL));
+            List<TocDto> tocs = tocService.list(pbancSn, sum ? TocDto.SE_SUMMARY : TocDto.SE_PROPOSAL);
+            List<TocDto> leaves = tocService.leaves(tocs);
+            model.addAttribute("tocs", tocs); // 스토리보드처럼 묶음 목차 줄도 보여 준다
             Map<Long, String> progress = new HashMap<>();
             for (TocDto t : leaves) {
                 progress.put(t.getTocSn(), t.getPrgrsSttsCd());

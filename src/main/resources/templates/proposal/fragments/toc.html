@@ -85,7 +85,7 @@
         <!-- 현재 양식이 있으면 그 양식이, 없으면 "양식 선택"이 골라져 있다 -->
         <select name="tocFormSn" required>
           <option value="" disabled th:selected="${curForm == null or !curForm.inUse}">양식 선택</option>
-          <option th:each="f : ${forms}" th:value="${f.tocFormSn}" th:text="${f.labelFor(me)}"
+          <option th:each="f : ${forms}" th:value="${f.tocFormSn}" th:text="${f.tocFormNm}"
                   th:data-name="${f.tocFormNm}"
                   th:selected="${curForm != null and f.tocFormSn == curForm.tocFormSn}">양식</option>
         </select>

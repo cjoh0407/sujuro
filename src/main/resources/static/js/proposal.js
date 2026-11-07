@@ -372,7 +372,7 @@ function openQa(row, e) {
   var r = row.dataset.r;
   qaEl('qaViewR').textContent = r ? r : '-';
   qaEl('qaViewR').classList.toggle('faint', !r);
-  if (qaEl('qaViewEmpty')) qaEl('qaViewEmpty').hidden = true;
+  qaEl('qaCard').hidden = false; // 쓸 수 없는 사람은 처음에 숨겨 두었다가 이때 연다
   var mine = !!row.dataset.sn && !!qaEl('qaForm');
   qaEl('qaViewAct').hidden = !mine;
   if (mine) {
@@ -403,7 +403,7 @@ function cancelQaForm() {
   else closeQa();
 }
 
-/* [닫기]: 다시 빈 추가 칸으로 (쓸 수 없는 사람은 안내만) */
+/* [닫기]: 다시 빈 추가 칸으로 (쓸 수 없는 사람은 칸을 닫는다) */
 function closeQa() {
   var card = qaEl('qaCard');
   if (!card) return;
@@ -416,11 +416,9 @@ function closeQa() {
     qaEl('qaFormSubmit').textContent = '등록';
     qaMode('add', card.dataset.addTitle || '질의응답 추가');
   } else {
-    qaMode('view', '질의응답 보기');
-    ['qaViewQ', 'qaViewA', 'qaViewR'].forEach(function (id) { qaEl(id).textContent = ''; });
-    qaEl('qaViewAct').hidden = true;
-    if (qaEl('qaViewEmpty')) qaEl('qaViewEmpty').hidden = false;
-    qaEl('qaClose').hidden = true;
+    // 쓸 수 없는 사람: 칸을 다시 숨긴다
+    document.querySelectorAll('.qa-row.on').forEach(function (r) { r.classList.remove('on'); });
+    card.hidden = true;
   }
 }
 
@@ -495,8 +493,15 @@ function dropHasFiles(e) {
 
 document.addEventListener('change', function (e) {
   var z = dropZoneOf(e);
-  if (z && e.target.type === 'file') dropRender(z);
+  if (z && e.target.type === 'file') { dropRender(z); dropAutoUpload(z); }
 });
+
+/* data-auto-upload: 파일을 고르거나 끌어 놓으면 형식·용량 확인(dropRender)을 통과한 경우 바로 올린다 (제안서 관리 목차 카드) */
+function dropAutoUpload(zone) {
+  var input = zone.querySelector('input[type=file][data-auto-upload]');
+  if (!input || !input.files || !input.files.length || !input.form) return;
+  input.form.requestSubmit(); // 보내는 동안은 async-form.js 가 aria-busy 를 붙인다
+}
 ['dragenter', 'dragover'].forEach(function (t) {
   document.addEventListener(t, function (e) {
     if (!dropHasFiles(e)) return;
@@ -522,6 +527,7 @@ document.addEventListener('drop', function (e) {
     dt.items.add(e.dataTransfer.files[0]); // 한 번에 한 파일
     input.files = dt.files;
     dropRender(z);
+    dropAutoUpload(z);
   }
 });
 
@@ -617,3 +623,108 @@ function openRqt(row, e) {
   var a = row.querySelector('a.rq-name');
   if (a) a.click();
 }
+
+/* 제안서 관리: 줄의 시계 아이콘 → 화면 가운데 창에 그 목차의 버전 이력 */
+function openVerPop(btn) {
+  var src = btn.closest('.pf-cell').querySelector('.ver-src');
+  var pop = document.getElementById('verPop');
+  if (!src || !pop) return;
+  document.getElementById('verPopToc').textContent = src.dataset.title || '';
+  document.getElementById('verPopTitle').textContent = '버전 이력 (' + (src.dataset.count || 0) + ')';
+  document.getElementById('verPopRows').innerHTML = src.tBodies[0].innerHTML;
+  pop.hidden = false;
+}
+
+function closeVerPop() {
+  var pop = document.getElementById('verPop');
+  if (pop) pop.hidden = true;
+}
+
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') closeVerPop();
+});
+
+/* 제안서 관리: 담당자가 없는 목차의 [파일 올리기]를 누르면 담당자 지정부터 안내한다 */
+function needOwner(label) {
+  alert('「' + label + '」 목차의 담당자가 아직 없습니다. 스토리보드 관리에서 담당자를 먼저 지정해 주세요.');
+}
+
+/* ---------- 제출서류 · 조견표 편집 창 (docs.html #evPop) ----------
+   칸에서 바로 고치고 [저장]으로 한 번에 보낸다. 지운 줄은 숨기고 칸을 비활성화해 보내지 않으며 delSn 으로 알린다.
+   [취소]·닫기는 처음 상태로 되돌린다. */
+function evForm() { var p = document.getElementById('evPop'); return p ? p.querySelector('form') : null; }
+
+function openEvPop() {
+  var p = document.getElementById('evPop');
+  if (!p) return;
+  p.hidden = false;
+  evRecalc();
+  var first = p.querySelector('input:not([type=hidden]):not([disabled])');
+  if (first) first.focus();
+}
+
+function closeEvPop() {
+  var p = document.getElementById('evPop'), f = evForm();
+  if (!p || !f) return;
+  f.reset();
+  f.querySelectorAll('tr.ev-new').forEach(function (tr) { tr.remove(); });
+  f.querySelectorAll('input[name=delSn]').forEach(function (i) { i.remove(); });
+  f.querySelectorAll('tr.ev-row[hidden]').forEach(function (tr) {
+    tr.hidden = false;
+    tr.querySelectorAll('input').forEach(function (i) { i.disabled = false; });
+  });
+  evRecalc();
+  p.hidden = true;
+}
+
+function evDelRow(btn) {
+  var tr = btn.closest('tr'), f = evForm();
+  if (tr.classList.contains('ev-new')) { tr.remove(); evRecalc(); return; }
+  var sn = tr.querySelector('input[name=evlArtclSn]');
+  if (sn) {
+    var del = document.createElement('input');
+    del.type = 'hidden'; del.name = 'delSn'; del.value = sn.value;
+    f.appendChild(del);
+  }
+  tr.querySelectorAll('input').forEach(function (i) { i.disabled = true; }); // 보내지 않는다 (줄 목록 순서가 어긋나지 않게 한 줄을 통째로)
+  tr.hidden = true;
+  evRecalc();
+}
+
+function evAddRow() {
+  var t = document.getElementById('evNewRow'), body = document.getElementById('evRows');
+  if (!t || !body) return;
+  body.appendChild(t.content.cloneNode(true));
+  var rows = body.querySelectorAll('tr.ev-new');
+  rows[rows.length - 1].querySelector('input').focus();
+  evRecalc();
+}
+
+/* 줄 번호 · 배점 합계 · 쪽번호 입력 수를 지금 칸 값으로 다시 센다 */
+function evRecalc() {
+  var body = document.getElementById('evRows');
+  if (!body) return;
+  var sum = 0, total = 0, paged = 0, no = 0;
+  body.querySelectorAll('tr.ev-row').forEach(function (tr) {
+    if (tr.hidden) return;
+    no++;
+    if (!tr.classList.contains('ev-new')) tr.querySelector('.ev-no').textContent = no;
+    var s = tr.querySelector('input.ev-scr'), st = tr.querySelector('.ev-scr-t');
+    var v = s ? parseFloat(s.value) : (st ? parseFloat(st.dataset.v) : NaN);
+    if (!isNaN(v)) sum += v;
+    total++;
+    var pg = tr.querySelector('input.ev-page'), pt = tr.querySelector('.ev-pg-t');
+    if ((pg && pg.value.trim()) || (pt && !pt.classList.contains('faint'))) paged++;
+  });
+  var e1 = document.getElementById('evSum'), e2 = document.getElementById('evPaged');
+  if (e1) {
+    e1.textContent = Math.round(sum * 1000) / 1000;
+    e1.classList.toggle('over', sum > 100);
+  }
+  if (e2) e2.textContent = paged + '/' + total;
+}
+
+document.addEventListener('keydown', function (e) {
+  var p = document.getElementById('evPop');
+  if (e.key === 'Escape' && p && !p.hidden) closeEvPop();
+});

@@ -45,7 +45,8 @@
              보기: 목록 줄을 누르면 전체 질문·답변·관련 요구사항. 현재 사업 Q&amp;A면 [수정]·[삭제] (삭제는 작성자·주관팀 팀장만)
              수정: 보기에서 [수정] → 같은 칸이 입력 칸으로 바뀐다. [취소]는 보기로 돌아간다
            이전 사업 Q&amp;A는 보기만 한다. -->
-      <div class="card" id="qaCard" th:data-add-title="${prs} ? '발표 Q&amp;A 기록' : '예상 Q&amp;A 추가'">
+      <!-- 쓸 수 없는 사람(경영지원실·영업부 등)은 빈 칸을 띄우지 않고, 목록에서 질문을 눌렀을 때만 연다 -->
+      <div class="card" id="qaCard" th:hidden="${!canWrite}" th:data-add-title="${prs} ? '발표 Q&amp;A 기록' : '예상 Q&amp;A 추가'">
         <div class="card-head">
           <h3 id="qaCardTitle" th:text="${canWrite} ? (${prs} ? '발표 Q&amp;A 기록' : '예상 Q&amp;A 추가') : '질의응답 보기'">예상 Q&amp;A 추가</h3>
           <button class="ico" type="button" id="qaClose" title="닫기" aria-label="닫기" data-on-click="closeQa" hidden><span class="ic ic-close"></span></button>
@@ -56,7 +57,6 @@
           <div class="qa-side-l">질문<div class="qa-full" id="qaViewQ"></div></div>
           <div class="qa-side-l qa-grow">답변<div class="qa-full" id="qaViewA"></div></div>
           <div class="qa-side-l">관련 요구사항<div class="qa-full" id="qaViewR"></div></div>
-          <div class="faint fs-12_5" id="qaViewEmpty" th:unless="${canWrite}">목록에서 질의응답을 누르면 여기에 내용이 보입니다.</div>
           <div class="row jc-end" id="qaViewAct" hidden>
             <form id="qaDel" th:action="@{/qa/delete}" method="post" class="d-inline" data-confirm="이 질의응답을 삭제할까요?">
               <input type="hidden" name="bid" th:value="${bid.pbancSn}">
@@ -105,22 +105,13 @@
          th:text="'발표 Q&amp;A (' + ${prsCnt} + ')'">발표 Q&amp;A (0)</a>
     </div>
 
-    <!-- 검색 · 이전 사업 Q&amp;A 보기 -->
-    <div class="qa-bar">
-      <form th:action="@{/qa}" method="get" class="row mw-640px u-flex-1">
+    <!-- 검색 (오른쪽 끝) -->
+    <div class="qa-bar jc-end">
+      <form th:action="@{/qa}" method="get" class="row qa-search">
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
         <input type="hidden" name="tab" th:value="${tab}">
         <span class="sbox minw-0 u-flex-1"><input type="search" name="q" th:value="${q}" placeholder="질문·답변 검색" aria-label="질문·답변 검색" maxlength="100"><button class="sb-btn" type="submit" title="검색" aria-label="검색"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button></span>
         <a class="link fs-12_5" th:if="${!#strings.isEmpty(q)}" th:href="@{/qa(bid=${bid.pbancSn}, tab=${tab})}">검색 지우기</a>
-      </form>
-      <form th:action="@{/qa}" method="get" class="row">
-        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-        <input type="hidden" name="tab" th:value="${tab}">
-        <select name="past" class="qa-past" data-change-submit th:disabled="${#lists.isEmpty(pastBids)}" aria-label="이전 사업 Q&amp;A 보기">
-          <option value="" th:text="${#lists.isEmpty(pastBids)} ? '이전 사업 Q&amp;A 없음' : '이전 사업 Q&amp;A 보기'">이전 사업 Q&amp;A 보기</option>
-          <option th:each="pb : ${pastBids}" th:value="${pb.pbancSn}" th:selected="${pastBid != null and pastBid.pbancSn == pb.pbancSn}"
-                  th:text="${pb.label} + ' (' + ${pb.qnaCnt} + '건)'">사업명 (3건)</option>
-        </select>
       </form>
     </div>
 

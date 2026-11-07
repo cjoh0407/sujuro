@@ -2,9 +2,15 @@ package com.ojj.sujuro.proposal.service.impl;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +39,42 @@ public class RqtServiceImpl implements RqtService {
 
     @Override
     public List<RqtDto> list(Long pbancSn) {
-        return mapper.findByBid(pbancSn);
+        return sortById(mapper.findByBid(pbancSn));
+    }
+
+    /** ID 앞 글자(SFR, PER ...)와 번호를 나눈다. "SFR-012" → SFR, 12 */
+    private static final Pattern ID_PARTS = Pattern.compile("^\\s*([A-Za-z]*)[^0-9]*([0-9]+)?");
+
+    /**
+     * 같은 종류의 요구사항끼리 묶어 번호 순으로 정렬한다 (11/07).
+     * 종류(ID 앞 글자)의 순서는 처음 등록된 순서(제안요청서에서 뽑힌 순서)를 따르고, 같은 종류 안에서는 번호 순.
+     * 나중에 수기로 SFR-013 을 넣어도 SFR 묶음의 번호 자리로 들어간다. 번호가 없으면 그 종류 맨 뒤.
+     * list 는 등록 순서(RQT_MTTR_SN)로 들어온다.
+     */
+    static List<RqtDto> sortById(List<RqtDto> list) {
+        Map<String, Integer> groupOrder = new HashMap<>();
+        Map<RqtDto, String> prefix = new IdentityHashMap<>();
+        Map<RqtDto, Long> number = new IdentityHashMap<>();
+        for (RqtDto r : list) {
+            Matcher m = ID_PARTS.matcher(r.getRqtMttrNo() == null ? "" : r.getRqtMttrNo());
+            String p = "";
+            Long n = null;
+            if (m.find()) {
+                p = m.group(1).toUpperCase();
+                if (m.group(2) != null && m.group(2).length() <= 18) {
+                    n = Long.valueOf(m.group(2));
+                }
+            }
+            prefix.put(r, p);
+            number.put(r, n);
+            groupOrder.putIfAbsent(p, groupOrder.size());
+        }
+        List<RqtDto> sorted = new ArrayList<>(list);
+        sorted.sort(Comparator
+                .comparing((RqtDto r) -> groupOrder.get(prefix.get(r)))
+                .thenComparing((RqtDto r) -> number.get(r), Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(RqtDto::getRqtMttrSn, Comparator.nullsLast(Comparator.naturalOrder())));
+        return sorted;
     }
 
     /** 필터: 전체 / 미매핑 / 내 담당(연결된 목차의 담당자가 나) (FR-054) */
@@ -90,7 +131,7 @@ public class RqtServiceImpl implements RqtService {
     @Override
     public void register(Long pbancSn, RqtDto in, String userId) {
         validate(in);
-        String no = in.getRqtMttrNo() == null ? "" : in.getRqtMttrNo().trim();
+        String no = in.getRqtMttrNo() == null ? "" : in.getRqtMttrNo().trim().toUpperCase(); // 소문자로 적어도 대문자로 (11/07)
         if (no.isEmpty()) {
             throw new BusinessException("요구사항 ID를 입력해 주세요.");
         }
@@ -127,7 +168,7 @@ public class RqtServiceImpl implements RqtService {
         int skipped = 0;
         Set<String> seen = new HashSet<>();
         for (int k = 0; k < nos.size(); k++) {
-            String no = nos.get(k) == null ? "" : nos.get(k).trim();
+            String no = nos.get(k) == null ? "" : nos.get(k).trim().toUpperCase(); // 소문자로 적어도 대문자로 (11/07)
             String nm = names == null || k >= names.size() || names.get(k) == null ? "" : names.get(k).trim();
             if (no.isEmpty() || nm.isEmpty() || no.length() > 50 || !seen.add(no) || mapper.countByNo(pbancSn, no) > 0) {
                 skipped++;
@@ -148,8 +189,14 @@ public class RqtServiceImpl implements RqtService {
     @Transactional
     @Override
     public void edit(Long pbancSn, Long rqtMttrSn, RqtDto in, String actorId) {
-        own(pbancSn, rqtMttrSn);
+        RqtDto cur = own(pbancSn, rqtMttrSn);
         validate(in);
+        // 저장하면서 ID를 대문자로 바꾼다 (mapper.update). 바꾼 ID가 이미 있으면 겹치므로 막는다
+        String no = cur.getRqtMttrNo() == null ? "" : cur.getRqtMttrNo();
+        String up = no.toUpperCase();
+        if (!up.equals(no) && mapper.countByNo(pbancSn, up) > 0) {
+            throw new BusinessException("대문자로 바꾼 ID(" + up + ")가 이미 있습니다. 이 요구사항을 지우거나 그 요구사항을 확인해 주세요.");
+        }
         in.setRqtMttrSn(rqtMttrSn);
         mapper.update(in);
     }

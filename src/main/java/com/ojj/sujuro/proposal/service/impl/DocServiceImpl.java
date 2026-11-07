@@ -243,6 +243,103 @@ public class DocServiceImpl implements DocService {
         return evlArtclSns.size();
     }
 
+    @Transactional
+    @Override
+    public void saveArticles(Long pbancSn, boolean admin, List<Long> sns, List<String> names, List<String> scores,
+                             List<String> pages, List<Long> delSns, List<String> newNames, List<String> newScores) {
+        requireOpen(pbancSn);
+        if (!admin) { // 제안팀: 쪽번호만
+            savePages(pbancSn, sns, pages);
+            return;
+        }
+        List<Long> keep = sns == null ? new ArrayList<>() : sns;
+        List<String> nms = names == null ? new ArrayList<>() : names; // 모두 지웠으면 빈 목록
+        List<String> scs = scores == null ? new ArrayList<>() : scores;
+        if (nms.size() != keep.size() || scs.size() != keep.size()) {
+            throw new BusinessException("조견표를 다시 열어 주세요. (항목 수가 맞지 않습니다)");
+        }
+        // 1) 지울 항목: 결과 분석에서 쓰는 항목은 지우지 않는다
+        if (delSns != null) {
+            for (Long sn : delSns) {
+                deleteArticle(pbancSn, sn);
+            }
+        }
+        // 2) 남길 항목 + 새 항목을 모두 검사 (이름 중복, 배점, 합계 100점 이하)
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        BigDecimal sum = BigDecimal.ZERO;
+        List<BigDecimal> keepScr = new ArrayList<>();
+        List<String> keepNm = new ArrayList<>();
+        for (int i = 0; i < keep.size(); i++) {
+            ownArticle(pbancSn, keep.get(i));
+            String nm = articleName(nms.get(i), seen);
+            BigDecimal scr = articleScore(scs.get(i), nm);
+            keepNm.add(nm);
+            keepScr.add(scr);
+            sum = sum.add(scr);
+        }
+        List<String> addNm = new ArrayList<>();
+        List<BigDecimal> addScr = new ArrayList<>();
+        int n = newNames == null ? 0 : newNames.size();
+        for (int i = 0; i < n; i++) {
+            String rawNm = newNames.get(i) == null ? "" : newNames.get(i).trim();
+            String rawScr = newScores == null || i >= newScores.size() || newScores.get(i) == null ? "" : newScores.get(i).trim();
+            if (rawNm.isEmpty() && rawScr.isEmpty()) {
+                continue; // 비워 둔 새 줄은 건너뛴다
+            }
+            String nm = articleName(rawNm, seen);
+            BigDecimal scr = articleScore(rawScr, nm);
+            addNm.add(nm);
+            addScr.add(scr);
+            sum = sum.add(scr);
+        }
+        if (sum.compareTo(HUNDRED) > 0) {
+            throw new BusinessException("배점 합계가 100점을 넘습니다 (" + sum.stripTrailingZeros().toPlainString() + "점).");
+        }
+        // 3) 저장
+        for (int i = 0; i < keep.size(); i++) {
+            mapper.updateArticle(keep.get(i), keepNm.get(i), keepScr.get(i));
+        }
+        for (int i = 0; i < addNm.size(); i++) {
+            EvlArtclDto a = new EvlArtclDto();
+            a.setPbancSn(pbancSn);
+            a.setEvlArtclNm(addNm.get(i));
+            a.setEvlScorScr(addScr.get(i));
+            mapper.insertArticle(a);
+        }
+    }
+
+    /** 평가 항목 이름 검사 (비었거나, 길거나, 같은 이름이 있으면 업무 예외) */
+    private String articleName(String raw, java.util.Set<String> seen) {
+        String nm = raw == null ? "" : raw.trim();
+        if (nm.isEmpty()) {
+            throw new BusinessException("평가 항목 이름을 입력해 주세요.");
+        }
+        if (nm.length() > ARTICLE_NAME_MAX) {
+            throw new BusinessException("평가 항목 이름은 " + ARTICLE_NAME_MAX + "자까지 입력할 수 있습니다.");
+        }
+        if (!seen.add(nm)) {
+            throw new BusinessException("같은 이름의 평가 항목이 있습니다. (" + nm + ")");
+        }
+        return nm;
+    }
+
+    /** 배점 검사: 0보다 크고 100 이하, 소수점 아래 세 자리까지 */
+    private BigDecimal articleScore(String raw, String nm) {
+        BigDecimal scr;
+        try {
+            scr = new BigDecimal(raw == null ? "" : raw.trim());
+        } catch (NumberFormatException e) {
+            throw new BusinessException("'" + nm + "'의 배점은 숫자로 입력해 주세요.");
+        }
+        if (scr.signum() <= 0 || scr.compareTo(HUNDRED) > 0) {
+            throw new BusinessException("'" + nm + "'의 배점은 0보다 크고 100 이하로 입력해 주세요.");
+        }
+        if (scr.scale() > 3) {
+            throw new BusinessException("'" + nm + "'의 배점은 소수점 아래 세 자리까지 입력할 수 있습니다.");
+        }
+        return scr;
+    }
+
     /* ---------- 나라장터 등록 ---------- */
 
     @Transactional

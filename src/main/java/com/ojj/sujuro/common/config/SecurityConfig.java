@@ -45,7 +45,7 @@ public class SecurityConfig {
                 .antMatchers("/proposal/**", "/files/**").hasAnyRole("LEADER", "MEMBER")
                 .antMatchers("/refs/**").hasAnyRole("LEADER", "MEMBER") // 참고자료: 제안팀만, 같은 팀 자료만 (서비스에서 팀 확인)
                 .antMatchers("/qa/**").hasAnyRole("SALES", "MGMT", "LEADER", "MEMBER") // 영업부·경영지원실은 읽기만 (쓰기는 컨트롤러에서 제안팀만)
-                .antMatchers("/docs/**").hasAnyRole("MGMT", "LEADER", "MEMBER")
+                .antMatchers("/docs/**").hasAnyRole("MGMT", "SALES", "LEADER", "MEMBER") // 영업부는 보기·서류 추가 (11/07)
                 .antMatchers("/results/**").hasAnyRole("MGMT", "LEADER")
                 .antMatchers("/schedule/**").authenticated()
                 .antMatchers("/bid-history/**").hasAnyRole("MGMT", "LEADER")

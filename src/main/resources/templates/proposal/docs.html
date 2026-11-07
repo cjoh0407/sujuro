@@ -30,59 +30,37 @@
     <div class="banner ok" data-flash="done" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
     <div class="banner err" data-flash="error" th:if="${error != null}" th:text="${error}">오류 안내</div>
 
-    <!-- 3:7 화면: 왼쪽에 사업건 목록, 오른쪽에 업무 화면 -->
-    <div class="split">
-    <aside class="split-l">
-      <th:block th:replace="~{proposal/fragments/bid-header :: bidList('/docs')}"></th:block>
-      <!-- 파일 올리기: 경영지원실이 만든 체크리스트에서 서류를 고르고 올린다 (제안서 파일 관리의 올리기 칸과 같은 박스). 나라장터 등록 뒤에는 닫힌다 -->
-      <div class="card" id="upCard" th:if="${open}">
-        <div class="card-head">
-          <h3>서류 파일 올리기</h3>
-          <span class="faint fs-11_5">최대 50MB</span>
-        </div>
-        <form th:action="@{/docs/upload}" method="post" enctype="multipart/form-data" class="pad mp-form">
-          <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-          <select name="dcmntSn" required>
-            <option value="" disabled selected th:text="${#lists.isEmpty(docs)} ? '체크리스트가 비어 있습니다' : '서류 고르기'">서류 고르기</option>
-            <option th:each="d : ${docs}" th:value="${d.dcmntSn}"
-                    th:text="${d.dcmntNm + (d.essential ? ' (필수)' : '') + (d.fileSn != null ? ' · 올림' : '')}">최종 제안서 (필수)</option>
-          </select>
-          <label class="drop">
-            <input type="file" name="file" required data-max-mb="50">
-            <span class="ic ic-upload"></span>
-            <span class="drop-body">
-              <span class="drop-text"><span><b>파일 선택</b> · 끌어 놓기</span></span>
-              <span class="drop-hint"></span>
-            </span>
-          </label>
-          <div class="row jc-end">
-            <button class="btn sm primary" type="submit">올리기</button>
-          </div>
-        </form>
+    <!-- 위: 사업명(왼쪽)과 사업건 고르기(오른쪽). 처음에는 다른 제안 화면에서 보던 사업건이 열린다 (CurrentBid) -->
+    <div class="page-head">
+      <div class="page-head-l">
+        <th:block th:replace="~{proposal/fragments/bid-header :: bizHead}"></th:block>
       </div>
-    </aside>
-    <div class="split-r">
-    <th:block th:replace="~{proposal/fragments/bid-header :: bizHead}"></th:block>
+      <th:block th:replace="~{proposal/fragments/bid-header :: bidSelect('/docs')}"></th:block>
+    </div>
 
     <!-- 준비 현황 (FR-070, NFR-013: 저장된 데이터로 계산) -->
-    <div class="stats">
-      <div class="stat">
-        <div class="l">준비 완료</div>
-        <div class="v" th:text="${readyCnt} + ' / ' + ${#lists.size(docs)}">0 / 0</div>
+    <!-- 카드 하나를 세 칸으로 나누고 칸마다 색 동그라미 아이콘 (11/07). 다 갖추면 초록 -->
+    <div class="card doc-sum">
+      <div>
+        <span class="ds-ic" th:classappend="${#lists.size(docs) > 0 and readyCnt == #lists.size(docs)} ? 'ok' : 'blue'">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        </span>
+        <div><span class="ds-l">준비 완료</span><b th:text="${readyCnt} + ' / ' + ${#lists.size(docs)}">0 / 0</b></div>
       </div>
-      <div class="stat">
-        <div class="l">누락된 필수 서류</div>
-        <div class="v" th:text="${missingCnt}">0</div>
+      <div>
+        <span class="ds-ic" th:classappend="${missingCnt > 0} ? 'red' : 'ok'">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 6.5v7"/><path d="M12 17.5h.01"/></svg>
+        </span>
+        <div><span class="ds-l">누락된 필수 서류</span><b th:text="${missingCnt}" th:title="${missing}">0</b></div>
       </div>
-      <div class="stat">
-        <div class="l">최종 제안서</div>
-        <div class="v" th:text="${finalDoc == null} ? '-' : ${finalDoc.statusNm}">미준비</div>
-        <div class="h" th:if="${finalDoc != null and finalDoc.fileSn != null}" th:text="${finalDoc.orgnlFileNm}"></div>
-      </div>
-      <div class="stat">
-        <div class="l">나라장터 등록</div>
-        <div class="v" th:text="${sub.submitted} ? '완료' : '대기'">대기</div>
-        <div class="h" th:text="${sub.sbmsnDt != null} ? ${#dates.format(sub.sbmsnDt, 'yyyy-MM-dd HH:mm')} : ''"></div>
+      <div>
+        <span class="ds-ic" th:classappend="${sub.submitted} ? 'ok' : 'amb'">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 2"/></svg>
+        </span>
+        <div>
+          <span class="ds-l">나라장터 등록</span><b th:text="${sub.submitted} ? '완료' : '대기'">대기</b>
+          <span class="ds-h" th:if="${sub.sbmsnDt != null}" th:text="${#dates.format(sub.sbmsnDt, 'yyyy-MM-dd HH:mm')}"></span>
+        </div>
       </div>
     </div>
 
@@ -92,15 +70,15 @@
         <h3>필요 서류 체크리스트</h3>
       </div>
       <div class="ts">
-        <table th:classappend="${admin and open} ? '' : 'no-x'">
+        <table class="doc-table" th:classappend="${admin and open} ? '' : 'no-x'">
           <thead>
             <tr>
-              <th>서류명</th><th>필수</th><th>준비 담당</th><th>준비 상태</th><th>제출 기한</th><th>파일</th>
+              <th>서류명</th><th>필수</th><th>준비 담당</th><th>준비 상태</th><th>제출 기한</th><th>파일</th><th class="doc-act-h"></th>
               <th th:if="${admin and open}"></th>
             </tr>
           </thead>
           <tbody>
-            <tr class="hv" th:each="d : ${docs}" th:with="canSt=${open and (admin or d.teamOwned)}">
+            <tr class="hv" th:each="d : ${docs}" th:with="canSt=${open and (admin or (team and d.teamOwned))}">
               <td th:text="${d.dcmntNm}">최종 제안서</td>
               <td>
                 <span class="pill danger" th:if="${d.essential}">필수</span>
@@ -129,23 +107,38 @@
                 <span th:unless="${admin and open}" th:text="${d.sbmsnDdlnDt != null} ? ${#dates.format(d.sbmsnDdlnDt, 'yyyy-MM-dd')} : '-'">-</span>
               </td>
               <td>
-                <div class="file-line">
-                <div th:if="${d.fileSn != null}" class="file-info">
-                  <span th:text="${d.orgnlFileNm}">파일명</span>
-                  <span class="faint fs-11_5"
-                        th:text="${(d.fileRgtrNm ?: '') + ' · ' + #dates.format(d.fileRegDt, 'yyyy-MM-dd HH:mm') + ' · ' + d.sizeLabel + (d.fileCnt > 1 ? ' · v' + d.fileCnt : '')}">올린 사람 · 일시</span>
+                <!-- 파일 이름은 "파일" 머리글 아래 가운데, 올리기·내려받기·삭제는 오른쪽 칸 -->
+                <div th:if="${d.fileSn != null}" class="doc-file-row">
+                  <div class="file-info doc-file">
+                    <a class="dl-name" title="눌러서 내려받기" th:href="@{/docs/download(bid=${bid.pbancSn}, fileSn=${d.fileSn})}" th:text="${d.orgnlFileNm}">파일명</a>
+                    <span class="faint fs-11_5"
+                          th:text="${(d.fileRgtrNm ?: '') + ' · ' + #dates.format(d.fileRegDt, 'yyyy-MM-dd HH:mm') + ' · ' + d.sizeLabel + (d.fileCnt > 1 ? ' · v' + d.fileCnt : '')}">올린 사람 · 일시</span>
+                  </div>
+                    <form th:if="${#sets.contains(deletable, d.fileSn)}" th:action="@{/docs/file-delete}" method="post" class="d-inline"
+                          data-on-submit="askReason">
+                      <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+                      <input type="hidden" name="fileSn" th:value="${d.fileSn}">
+                      <input type="hidden" name="reason">
+                      <button class="ico danger" type="submit" title="파일 삭제" aria-label="파일 삭제"><span class="ic ic-trash"></span></button>
+                    </form>
                 </div>
                 <span class="faint" th:if="${d.fileSn == null}">없음</span>
+              </td>
+              <td class="doc-act">
                 <div class="row file-acts">
-                  <a class="ico" th:if="${d.fileSn != null}" title="내려받기" aria-label="내려받기" th:href="@{/docs/download(bid=${bid.pbancSn}, fileSn=${d.fileSn})}"><span class="ic ic-download"></span></a>
-                  <form th:if="${#sets.contains(deletable, d.fileSn)}" th:action="@{/docs/file-delete}" method="post" class="d-inline"
-                        data-on-submit="askReason">
+                  <!-- 이 서류에 파일 올리기: 고르거나 끌어 놓으면 형식·용량 확인 뒤 바로 올린다 (proposal.js data-auto-upload). 나라장터 등록 뒤에는 닫힌다 -->
+                  <form th:if="${open and !sales}" th:action="@{/docs/upload}" method="post" enctype="multipart/form-data" class="up-strip">
                     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-                    <input type="hidden" name="fileSn" th:value="${d.fileSn}">
-                    <input type="hidden" name="reason">
-                    <button class="ico danger" type="submit" title="파일 삭제" aria-label="파일 삭제"><span class="ic ic-trash"></span></button>
+                    <input type="hidden" name="dcmntSn" th:value="${d.dcmntSn}">
+                    <label class="drop sm" title="최대 50MB. 눌러서 고르거나 끌어 놓아 주세요.">
+                      <input type="file" name="file" required data-max-mb="50" data-auto-upload>
+                      <span class="ic ic-upload"></span>
+                      <span class="drop-body">
+                        <span class="drop-text"><span><b th:text="${d.fileSn != null} ? '다시 올리기' : '파일 올리기'">파일 올리기</b></span></span>
+                        <span class="drop-hint"></span>
+                      </span>
+                    </label>
                   </form>
-                </div>
                 </div>
               </td>
               <td th:if="${admin and open}">
@@ -157,12 +150,13 @@
               </td>
             </tr>
             <tr th:if="${#lists.isEmpty(docs)}">
-              <td th:colspan="${admin and open} ? 7 : 6" class="empty">체크리스트가 비어 있습니다. 경영지원실이 필요 서류를 추가합니다.</td>
+              <td th:colspan="${admin and open} ? 8 : 7" class="empty">체크리스트가 비어 있습니다. 경영지원실·영업부가 필요 서류를 추가합니다.</td>
             </tr>
           </tbody>
         </table>
       </div>
-      <form class="pad row" th:if="${admin and open}" th:action="@{/docs/add}" method="post">
+      <!-- 서류 추가: 경영지원실·영업부 -->
+      <form class="pad row" th:if="${canAddDoc and open}" th:action="@{/docs/add}" method="post">
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
         <input type="text" name="dcmntNm" placeholder="서류명 (예: 최종 제안서)" maxlength="100" required class="w-200px">
         <select name="esntlYn">
@@ -178,64 +172,90 @@
       </form>
     </div>
 
-    <!-- ===== 조견표 (FR-071): 경영지원실이 평가 항목·배점을, 제안팀이 항목별 쪽번호를 웹에서 입력한다. 나라장터 등록 뒤에는 잠긴다 ===== -->
-    <div class="card" th:with="canPage=${team and open and !#lists.isEmpty(articles)}">
-      <div class="card-head">
-        <h3>
-          조견표
-          <span class="faint fw-normal" th:text="'· 쪽번호 입력 ' + ${pagedCnt} + ' / ' + ${#lists.size(articles)}">· 쪽번호 입력 0 / 0</span>
-        </h3>
+    <!-- ===== 조견표 (FR-071): 화면에는 요약만, [조견표 편집]을 누르면 가운데 창에서 고친다 (11/07)
+           경영지원실은 평가 항목·배점(추가·삭제), 제안팀은 쪽번호. 나라장터 등록 뒤에는 보기만 ===== -->
+    <div class="card ev-card"
+         th:with="canEv=${open and (admin or team)},
+                  missPages=${articles.?[!paged]}">
+      <div class="ev-sum">
+        <b class="ev-title">조견표</b>
+        <span class="ev-meta">평가 항목 <b th:text="${#lists.size(articles)}">0</b> · 배점 합계 <b th:text="${scoreSum}">0</b>
+          · 쪽번호 <b th:text="|${pagedCnt}/${#lists.size(articles)}|">0/0</b></span>
         <span class="pill neutral" th:unless="${open}">나라장터 등록 후 잠김</span>
+        <button type="button" class="btn sm primary ev-open" data-on-click="openEvPop">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1-4L16.5 4.5a2 2 0 0 1 3 3L8 19z"/></svg>
+          <span th:text="${canEv} ? '조견표 편집' : '조견표 보기'">조견표 편집</span>
+        </button>
       </div>
-      <form id="evPages" th:if="${canPage}" th:action="@{/docs/article/pages}" method="post">
-        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-      </form>
-      <div class="ts">
-        <table>
-          <thead>
-            <tr><th class="w-44px">No</th><th>평가 항목</th><th class="w-90px">배점</th><th class="w-160px">쪽번호</th><th th:if="${admin and open}" class="w-60px"></th></tr>
-          </thead>
-          <tbody>
-            <tr class="hv" th:each="a, st : ${articles}">
-              <td class="mono" th:text="${st.count}">1</td>
-              <td th:text="${a.evlArtclNm}">사업 이해도</td>
-              <td class="mono" th:text="${a.scoreLabel}">15</td>
-              <td>
-                <th:block th:if="${canPage}">
-                  <input type="hidden" name="evlArtclSn" form="evPages" th:value="${a.evlArtclSn}">
-                  <input type="text" name="pageNo" form="evPages" class="ev-page mono" maxlength="20" placeholder="예: 12-15" th:value="${a.pageNo}">
-                </th:block>
-                <th:block th:unless="${canPage}">
-                  <span class="mono" th:if="${a.paged}" th:text="${a.pageNo}">12-15</span>
-                  <span class="faint" th:unless="${a.paged}">미입력</span>
-                </th:block>
-              </td>
-              <td th:if="${admin and open}">
-                <form th:action="@{/docs/article/delete}" method="post" th:data-confirm="|「${a.evlArtclNm}」 평가 항목을 삭제할까요? 적어 둔 쪽번호도 함께 지워집니다.|">
-                  <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-                  <input type="hidden" name="evlArtclSn" th:value="${a.evlArtclSn}">
-                  <button class="ico danger" type="submit" title="삭제" aria-label="삭제"><span class="ic ic-trash"></span></button>
-                </form>
-              </td>
-            </tr>
-            <tr class="ev-sum" th:unless="${#lists.isEmpty(articles)}">
-              <td></td><td>합계</td><td class="mono" th:text="${scoreSum}">100</td><td></td><td th:if="${admin and open}"></td>
-            </tr>
-            <tr th:if="${#lists.isEmpty(articles)}">
-              <td th:colspan="${admin and open} ? 5 : 4" class="empty" th:text="${admin} ? '평가 항목이 없습니다. 아래에서 RFP의 평가 항목과 배점을 추가해 주세요.' : '경영지원실이 평가 항목과 배점을 넣으면 쪽번호를 입력할 수 있습니다.'">평가 항목이 없습니다.</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="ev-miss" th:if="${!#lists.isEmpty(articles) and !#lists.isEmpty(missPages)}">
+        <span class="ev-miss-l">쪽번호 미입력</span>
+        <span class="ev-chip" th:each="m : ${missPages}" th:text="${m.evlArtclNm}">데이터 이관</span>
       </div>
-      <div class="pad row jc-end" th:if="${canPage}">
-        <button class="btn primary sm" type="submit" form="evPages">쪽번호 저장</button>
+      <div class="ev-empty faint" th:if="${#lists.isEmpty(articles)}"
+           th:text="${admin} ? '평가 항목이 없습니다. [조견표 편집]에서 RFP의 평가 항목과 배점을 추가해 주세요.' : '경영지원실이 평가 항목을 등록하면 쪽번호를 적을 수 있습니다.'">평가 항목이 없습니다.</div>
+
+      <!-- 조견표 편집 창: 칸에서 바로 고치고 [저장]으로 한 번에 저장 (proposal.js openEvPop·evRecalc). 창 안 스크롤 없음 -->
+      <div class="modal ev-modal" id="evPop" hidden data-self-click="closeEvPop">
+        <form class="box ev-box" role="dialog" aria-modal="true" aria-labelledby="evPopTitle"
+              th:action="@{/docs/article/save}" method="post" data-on-input="evRecalc" novalidate>
+          <input type="hidden" name="bid" th:value="${bid.pbancSn}">
+          <div class="card-head">
+            <div>
+              <h3 id="evPopTitle" th:text="${canEv} ? '조견표 편집' : '조견표'">조견표 편집</h3>
+              <div class="faint fs-12_5" th:text="${admin} ? 'RFP의 평가 항목과 배점을 적습니다. 맨 아래 [+ 평가 항목 추가]로 줄을 늘립니다.' : '최종 제안서에서 평가 항목마다 몇 쪽에 있는지 적습니다.'">최종 제안서에서 평가 항목마다 몇 쪽에 있는지 적습니다.</div>
+            </div>
+            <button class="ico" type="button" title="닫기" aria-label="닫기" data-on-click="closeEvPop"><span class="ic ic-close"></span></button>
+          </div>
+          <table class="ev-table">
+            <colgroup><col class="ev-c-no"><col><col class="ev-c-scr"><col class="ev-c-pg"><col class="ev-c-del" th:if="${admin and open}"></colgroup>
+            <thead><tr><th>No</th><th>평가 항목</th><th class="ev-r">배점</th><th>쪽번호</th><th th:if="${admin and open}"></th></tr></thead>
+            <tbody id="evRows">
+              <tr th:each="a, st : ${articles}" class="ev-row">
+                <td class="ev-no mono" th:text="${st.count}">1</td>
+                <td>
+                  <input type="hidden" name="evlArtclSn" th:value="${a.evlArtclSn}" th:if="${canEv}">
+                  <input type="text" name="evlArtclNm" maxlength="100" th:value="${a.evlArtclNm}" th:if="${admin and open}" aria-label="평가 항목">
+                  <span th:unless="${admin and open}" th:text="${a.evlArtclNm}">사업 이해도</span>
+                </td>
+                <td class="ev-r">
+                  <input type="number" name="evlScorScr" class="ev-scr" min="0.001" max="100" step="0.001" th:value="${a.evlScorScr}" th:if="${admin and open}" aria-label="배점">
+                  <span class="mono ev-scr-t" th:unless="${admin and open}" th:text="${a.scoreLabel}" th:data-v="${a.evlScorScr}">10</span>
+                </td>
+                <td>
+                  <input type="text" name="pageNo" class="ev-page mono" maxlength="20" placeholder="예: 45-52" th:value="${a.pageNo}" th:if="${team and open}" aria-label="쪽번호">
+                  <th:block th:unless="${team and open}">
+                    <span class="mono ev-pg-t" th:if="${a.paged}" th:text="${a.pageNo}">9-15</span>
+                    <span class="faint ev-pg-t" th:unless="${a.paged}">미입력</span>
+                  </th:block>
+                </td>
+                <td th:if="${admin and open}" class="ev-r">
+                  <button type="button" class="ico danger" title="삭제" aria-label="삭제" data-on-click="evDelRow"><span class="ic ic-trash"></span></button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <!-- 새 줄 틀 (경영지원실). [+ 평가 항목 추가]를 누르면 표 맨 아래에 붙인다 -->
+          <template id="evNewRow" th:if="${admin and open}">
+            <tr class="ev-row ev-new">
+              <td class="ev-no mono">+</td>
+              <td><input type="text" name="newNm" maxlength="100" placeholder="평가 항목 (예: 사업 이해도)" aria-label="새 평가 항목"></td>
+              <td class="ev-r"><input type="number" name="newScr" class="ev-scr" min="0.001" max="100" step="0.001" placeholder="배점" aria-label="새 배점"></td>
+              <td><span class="faint">-</span></td>
+              <td class="ev-r"><button type="button" class="ico danger" title="이 줄 빼기" aria-label="이 줄 빼기" data-on-click="evDelRow"><span class="ic ic-trash"></span></button></td>
+            </tr>
+          </template>
+          <div class="ev-add" th:if="${admin and open}">
+            <button type="button" class="btn sm" data-on-click="evAddRow">+ 평가 항목 추가</button>
+          </div>
+          <div class="ev-foot">
+            <span class="ev-total">배점 합계 <b id="evSum" th:text="${scoreSum}">0</b> · 쪽번호 <b id="evPaged" th:text="|${pagedCnt}/${#lists.size(articles)}|">0/0</b></span>
+            <span class="row gap-8">
+              <button type="button" class="btn sm" data-on-click="closeEvPop" th:text="${canEv} ? '취소' : '닫기'">취소</button>
+              <button type="submit" class="btn sm primary" th:if="${canEv}">저장</button>
+            </span>
+          </div>
+        </form>
       </div>
-      <form class="pad row" th:if="${admin and open}" th:action="@{/docs/article/add}" method="post">
-        <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-        <input type="text" name="evlArtclNm" placeholder="평가 항목 (예: 사업 이해도)" maxlength="100" required class="w-240px">
-        <input type="number" name="evlScorScr" placeholder="배점" min="0.001" max="100" step="0.001" required class="w-90px">
-        <button class="btn sm" type="submit">+ 평가 항목 추가</button>
-      </form>
     </div>
 
     <!-- ===== 삭제된 파일 (원본·이력 보관, NFR-009) ===== -->
@@ -254,12 +274,12 @@
           <tbody>
             <tr class="hv" th:each="f : ${deletedFiles}">
               <td th:text="${f.targetNm ?: '-'}">최종 제안서</td>
-              <td th:text="${f.orgnlFileNm}">파일명</td>
+              <td><a class="dl-name" title="눌러서 내려받기" th:href="@{/docs/download(bid=${bid.pbancSn}, fileSn=${f.fileSn})}" th:text="${f.orgnlFileNm}">파일명</a></td>
               <td class="mono" th:text="'v' + ${f.verNo}">v1</td>
               <td th:text="${(f.rgtrNm ?: f.rgtrId) + ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm')}">올린 사람</td>
               <td th:text="${(f.dltrNm ?: f.dltrId) + ' · ' + #dates.format(f.delDt, 'yyyy-MM-dd HH:mm')}">삭제한 사람</td>
               <td th:text="${f.delRsn}">사유</td>
-              <td class="c-end"><a class="ico" title="내려받기" aria-label="내려받기" th:href="@{/docs/download(bid=${bid.pbancSn}, fileSn=${f.fileSn})}"><span class="ic ic-download"></span></a></td>
+              <td class="c-end"></td>
             </tr>
           </tbody>
         </table>
@@ -283,8 +303,6 @@
           <span class="pill neutral" th:unless="${admin}">경영지원실이 등록</span>
         </th:block>
       </div>
-    </div>
-    </div>
     </div>
   </th:block>
 </th:block>

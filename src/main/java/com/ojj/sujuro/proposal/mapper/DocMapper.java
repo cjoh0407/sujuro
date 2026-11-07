@@ -63,6 +63,10 @@ public interface DocMapper {
 
     int deleteArticle(@Param("evlArtclSn") Long evlArtclSn);
 
+    /** 평가 항목 이름·배점 수정 (조견표 편집 창) */
+    int updateArticle(@Param("evlArtclSn") Long evlArtclSn, @Param("evlArtclNm") String evlArtclNm,
+                      @Param("evlScorScr") java.math.BigDecimal evlScorScr);
+
     /** 쪽번호 저장 (비우면 NULL) */
     int updateArticlePage(@Param("evlArtclSn") Long evlArtclSn, @Param("pageNo") String pageNo);
 

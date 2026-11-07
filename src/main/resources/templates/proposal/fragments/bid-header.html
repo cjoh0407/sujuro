@@ -42,6 +42,21 @@
   </div>
 </div>
 
+<!-- 사업건 고르기 (화면 오른쪽 위 드롭다운). 고르면 바로 그 사업건으로 바뀐다 (비동기). 탭이 있으면 유지 -->
+<form th:fragment="bidSelect(action)" class="bid-select" method="get" th:action="@{${action}}">
+  <input type="hidden" name="tab" th:if="${tab != null}" th:value="${tab}">
+  <select name="bid" data-change-submit aria-label="사업건 고르기">
+    <optgroup label="진행 중" th:if="${!#lists.isEmpty(bids.?[!ended])}">
+      <option th:each="b : ${bids}" th:if="${!b.ended}" th:value="${b.pbancSn}" th:selected="${b.pbancSn == bid.pbancSn}"
+              th:text="|${b.label} · ${b.pbancSttsNm}|">사업건 · 제안 작성 중</option>
+    </optgroup>
+    <optgroup label="지난 사업" th:if="${!#lists.isEmpty(bids.?[ended])}">
+      <option th:each="b : ${bids}" th:if="${b.ended}" th:value="${b.pbancSn}" th:selected="${b.pbancSn == bid.pbancSn}"
+              th:text="|${b.label} · ${b.pbancSttsNm}|">사업건 · 결과 등록</option>
+    </optgroup>
+  </select>
+</form>
+
 <!-- 사업명 줄 -->
 <div class="biz" th:fragment="bizHead">
   <b th:text="${bid.label}">사업명</b>

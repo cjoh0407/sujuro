@@ -102,7 +102,7 @@
 .evl-grid input.num{text-align:center}
 /* 평가표 입력 칸은 항목 5줄까지 보이고, 넘치면 칸 안에서 오르내린다. 머리글은 위에 붙어 있다 (11/05).
    높이 = 머리글 + 5줄 + 가로 스크롤바 자리. 가로 스크롤바가 생겨도 5줄이 가려지지 않게 조금 더 둔다 */
-.evl-scroll{max-height:268px;overflow:auto;scrollbar-width:thin}
+.evl-scroll{max-height:268px;overflow:auto}
 .evl-scroll thead th{position:sticky;top:0;z-index:1;background:var(--surface);box-shadow:inset 0 -1px 0 var(--border)}
 /* 작은 [−][+] (11/05). 위원은 마지막 위원 오른쪽, 항목은 마지막 항목 왼쪽. 머리글 높이가 늘지 않게 위아래 여백을 줄인다 */
 .evl-grid .ctl,.evl-grid .ctl-end{width:1%;white-space:nowrap;padding:0 4px}

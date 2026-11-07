@@ -61,6 +61,22 @@
 /* 나란히 놓는 두 블록 */
 .dash-pair{display:grid;gap:var(--dash-gap);grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:stretch}
 .dash-pair.wide-left{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}
+/* 경영지원실 (11/07): 연도별 성과 | 제출서류 현황 5:5. 차트 높이를 줄여 옆 목록이 덜 스크롤되게 */
+/* 그래프는 칸 폭을 꽉 채운다(560×240 비율). 요약 숫자는 '제출 12 · 수주 5 …' 작은 한 줄 */
+.mgmt-pair .dash-line svg{max-width:none;max-height:none;width:100%}
+.mgmt-pair .dash-kpis{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:12px 18px 6px}
+.mgmt-pair .dash-kpi{display:flex;align-items:baseline;gap:5px;padding:0;border-left:0;text-align:left}
+.mgmt-pair .dash-kpi .v{font-size:16px}
+.mgmt-pair .dash-kpi .v small{font-size:11px}
+.mgmt-pair .kpi-chip{font-size:10.5px;padding:0 6px}
+.mgmt-pair .dash-list{min-height:0;display:flex;flex-direction:column}
+/* 칸이 좁을 때(노트북 화면 등): 칸 폭 기준으로 줄인다. 요약 숫자는 3칸 × 2줄, 목록은 담당팀·서류 열을 숨겨 사업명 자리를 지킨다 (누락·상태로 알 수 있음) */
+.mgmt-pair > .card{container-type:inline-size}
+@container (max-width:560px){
+  .mgmt-pair .dash-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));row-gap:6px}
+  .mgmt-pair .kpi-chip{display:none}
+  .mgmt-pair .lt-head .w88,.mgmt-pair .lt-row .w88,.mgmt-pair .lt-head .w44,.mgmt-pair .lt-row .w44{display:none}
+}
 .dash-chart{display:flex;flex-direction:column;min-height:200px;min-width:0}
 .dash-full{display:flex;flex-direction:column;min-width:0}
 .dash-empty{flex:1;display:flex;align-items:center;justify-content:center;padding:26px;text-align:center;color:var(--d-sub);font-size:12.5px}
@@ -149,6 +165,7 @@
 .dash-blocks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--dash-gap);align-items:stretch}
 .dash-blocks > .card{min-height:300px;display:flex;flex-direction:column;min-width:0}
 .dash-blocks > .wide{grid-column:1 / -1} /* 11/07 캘린더를 맨 위로 옮겨 목록이 한 줄을 다 쓴다 */
+.dash-blocks > .card.auto-h{min-height:0} /* 내용만큼만 (팀장 처리할 일·팀원 내 할 일). 최대 높이는 안쪽 .dash-scroll 이 막는다 */
 .dash-more-link{margin-top:auto;padding:10px 18px;font-size:12px;font-weight:500;text-align:center;border-top:1px solid var(--border);text-decoration:none;color:var(--accent)}
 .dash-more-link:hover{background:var(--alt);text-decoration:underline}
 
@@ -190,19 +207,21 @@
 .cal-pop-foot a:hover{text-decoration:underline}
 
 /* 미니 캘린더 */
-.dash-cal-body{padding:10px 14px 6px}
+.dash-cal-body{padding:6px 14px 8px}
 .dash-cal-dow,.dash-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));text-align:center}
 .dash-cal-dow{font-size:11px;font-weight:600;color:var(--d-sub);padding-bottom:4px}
 .dash-cal-dow span:first-child{color:var(--d-sun)}
 .dash-cal-dow span:last-child{color:var(--d-sat)}
-.dash-cal-grid{row-gap:2px}
-.dash-cal-cell{min-height:30px;display:flex;flex-direction:column;align-items:center;gap:2px;padding-top:3px;font-size:11.5px}
-.dash-cal-cell b{font-weight:400;width:20px;height:20px;line-height:20px;border-radius:50%}
+/* 높이 고정 (11/07): 주 수(4~6주)나 일정 표시(점·건수) 유무와 상관없이 항상 6줄 × 32px (전체 약 280px).
+   달을 넘겨도 캘린더와 옆 배너의 높이가 바뀌지 않는다. 칸 안: 위 1px + 날짜 18px + 간격 1px + 건수 12px = 32px */
+.dash-cal-grid{row-gap:2px;grid-template-rows:repeat(6,32px);grid-auto-rows:32px}
+.dash-cal-cell{min-height:0;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:1px;padding-top:1px;font-size:11.5px}
+.dash-cal-cell b{font-weight:400;width:18px;height:18px;line-height:18px;border-radius:50%}
 .dash-cal-grid > .dash-cal-cell:nth-child(7n+1) b{color:var(--d-sun)}
 .dash-cal-grid > .dash-cal-cell:nth-child(7n) b{color:var(--d-sat)}
 .dash-cal-cell.today b{background:var(--accent);color:#fff !important;font-weight:600}
 .dash-cal-cell .dots{display:flex;gap:2px}
-.dash-cal-cell .cnt{min-width:16px;height:14px;line-height:14px;padding:0 3px;box-sizing:border-box;border-radius:7px;background:var(--accent-soft);color:var(--accent-s);font-size:10px;font-weight:600}
+.dash-cal-cell .cnt{min-width:15px;height:12px;line-height:12px;padding:0 3px;box-sizing:border-box;border-radius:6px;background:var(--accent-soft);color:var(--accent-s);font-size:9.5px;font-weight:600}
 .dash-cal .dot,.dash-upcoming .dot{width:6px;height:6px;margin:0;flex:none}
 .dash-upcoming{border-top:1px solid var(--border);padding:8px 14px 12px;display:flex;flex-direction:column;gap:6px;font-size:11.5px;margin-top:auto}
 .dash-upcoming .h{font-weight:600;color:var(--d-sub)}
@@ -274,7 +293,6 @@
 .w80{flex:none;width:80px}.w110{flex:none;width:110px}
 .f2{flex:1.5 1 0;min-width:0}.g{flex:1 1 0;min-width:0}
 .tr{text-align:right}.tc{text-align:center}
-.win-sum{display:flex;justify-content:flex-end;padding:10px 18px;font-size:12.5px;background:var(--alt);border-top:1px solid var(--border)}
 @media (max-width:760px){.lt-head .w96,.lt-row .w96,.lt-head .w120,.lt-row .w120,.lt-head .w110,.lt-row .w110{display:none}}
 
 /* 팀별 진행 현황 (영업부, 11/07): 왼쪽 도넛(배정 파랑 / 미배정 회색) + 오른쪽 팀별 막대 */
@@ -305,6 +323,7 @@
 /* 나란히 놓인 블록의 머리 높이를 같게 (버튼이 있는 블록과 없는 블록의 내용 시작선이 같아진다) */
 .dash .card{overflow:hidden}
 .dash .card-head{min-height:56px;box-sizing:border-box}
+.dash .dash-cal > .card-head{min-height:48px;padding-top:8px;padding-bottom:8px} /* 미니 캘린더만 제목 줄을 낮게 (11/07) */
 
 /* ===== 화면을 열 때 차트가 차오르는 효과 (11/05) =====
    화면이 그려질 때(비동기로 바뀐 뒤 포함) 한 번 실행된다. 움직임을 줄이는 설정이면 끈다. */

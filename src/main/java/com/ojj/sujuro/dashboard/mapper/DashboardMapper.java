@@ -10,13 +10,11 @@ import com.ojj.sujuro.dashboard.dto.DashboardRows.DocRow;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.LeaderCounts;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.LeaderProject;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.MemberProject;
-import com.ojj.sujuro.dashboard.dto.DashboardRows.MgmtAlert;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.MyToc;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.ResultWait;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.SalesCounts;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.TeamStat;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.TodoItem;
-import com.ojj.sujuro.dashboard.dto.DashboardRows.Win;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.YearStat;
 
 /**
@@ -48,12 +46,6 @@ public interface DashboardMapper {
 
     /** 올해를 포함한 최근 3년의 연도별 성과 (오래된 해부터) */
     List<YearStat> yearStats();
-
-    /** 주의가 필요한 항목: 필수 서류 누락, 제출 마감 지남·서류 미준비, 결과 미등록 */
-    List<MgmtAlert> mgmtAlerts();
-
-    /** 올해 수주한 사업 (결과 등록 최근 순) */
-    List<Win> yearWins();
 
     // ---- 팀장 ----
 

@@ -2,7 +2,6 @@ package com.ojj.sujuro.dashboard.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -140,7 +139,6 @@ class DashboardServiceTest {
 
         assertEquals(0, v.getStats().get(2).getValue());
         assertTrue(v.getDocRows().isEmpty());
-        assertNull(v.getWinTotal());
     }
 
     // ---------------------------------------------------------------- 팀장

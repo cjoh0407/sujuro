@@ -69,66 +69,32 @@
 
     <!-- ===================== 경영지원실 ===================== -->
     <th:block th:if="${view.roleKey == 'MGMT'}">
-      <div class="dash-pair wide-left">
+      <div class="dash-pair mgmt-pair"><!-- 11/07: 차트와 제출서류 현황 5:5 -->
         <div class="card dash-chart">
-          <div class="card-head"><h3><span th:text="${view.mainChart.title}">연도별 성과</span></h3></div>
+          <div class="card-head"><h3><span th:text="${view.mainChart.title}">최근 3년 성과</span></h3></div>
           <div class="dash-empty" th:if="${view.mainChart.blank}" th:text="${view.mainChart.emptyText}">연도별 결과가 아직 없습니다.</div>
           <th:block th:unless="${view.mainChart.blank}"><th:block th:replace="~{dashboard/fragments :: lineChart(${view.mainChart})}"></th:block></th:block>
         </div>
-        <div class="card dash-chart">
-          <div class="card-head"><h3><span>주의가 필요한 항목</span></h3></div>
-          <div class="dash-empty" th:if="${#lists.isEmpty(view.attention)}">주의가 필요한 항목이 없습니다.</div>
-          <th:block th:unless="${#lists.isEmpty(view.attention)}">
-            <div class="lt-head"><span class="w84">구분</span><span class="f">사업</span><span class="w52 tr">기한</span></div>
-            <div class="dash-scroll sh-420">
-              <a class="lt-row" th:each="a : ${view.attention}" th:classappend="${a.tone}" th:href="@{${a.href}}">
-                <span class="w84 k" th:text="${a.title}">서류 2건 누락</span>
-                <span class="f" th:text="${a.pbancNm}" th:title="|${a.pbancNm}${a.teamNm != null ? ' · ' + a.teamNm : ''}|">사업명</span>
-                <span class="w52 tr r" th:text="${a.right}">D-2</span>
-              </a>
-            </div>
-          </th:block>
-        </div>
-      </div>
-
-      <div class="card dash-full">
-        <div class="card-head"><h3><span>올해 수주한 사업</span></h3><a class="btn sm" th:href="@{/results}">결과 관리</a></div>
-        <div class="dash-empty" th:if="${#lists.isEmpty(view.wins)}">올해 수주한 사업이 아직 없습니다.</div>
-        <th:block th:unless="${#lists.isEmpty(view.wins)}">
-          <div class="lt-head"><span class="f2">사업명</span><span class="g">발주기관</span><span class="g">수요기관</span><span class="g">담당팀</span><span class="w64 tc">유형</span><span class="w96 tc">낙찰금액</span><span class="w80 tc">낙찰률</span><span class="w110 tc">경쟁</span></div>
-          <div class="dash-scroll sh-340">
-            <a class="lt-row" th:each="w : ${view.wins}" th:href="@{/results(bid=${w.pbancSn})}">
-              <span class="f2" th:text="${w.pbancNm}" th:title="${w.pbancNm}">사업명</span>
-              <span class="g s" th:text="${w.orderInstNm}" th:title="${w.orderInstNm}">발주기관</span>
-              <span class="g s" th:text="${!#strings.isEmpty(w.dmndInstNm)} ? ${w.dmndInstNm} : '-'" th:title="${w.dmndInstNm}">수요기관</span>
-              <span class="g s" th:text="${w.teamNm != null} ? ${w.teamNm} : '-'">공공사업3Div</span>
-              <span class="w64 tc"><span class="pill" th:classappend="${w.typePill}" th:if="${w.bizTypeNm != null}" th:text="${w.bizTypeNm}">SI</span></span>
-              <b class="w96 tc amt" th:text="${w.amtText}">12.4억</b>
-              <span class="w80 tc s" th:text="${w.rateText}">89.2%</span>
-              <span class="w110 tc s" th:text="${w.rivalText}">3개사 · 1위</span>
-            </a>
-          </div>
-          <div class="win-sum"><b th:text="${view.winTotal}">합계 38.2억</b></div>
-        </th:block>
-      </div>
-
-      <div class="dash-blocks">
-        <div class="card dash-list wide">
+        <!-- 11/07: '주의가 필요한 항목' 블록은 없애고, 제출서류 현황을 차트 옆으로 옮겼다.
+             내용만큼 늘어나고(최대 420px 후 칸 안 스크롤), 옆 차트 칸과 높이를 맞춘다. 열: 사업 · 담당팀 · 서류 · 누락 · 상태 · 마감 -->
+        <div class="card dash-list">
           <div class="card-head"><h3>제출서류 현황</h3></div>
           <div class="dash-empty" th:if="${#lists.isEmpty(view.docRows)}">진행 중인 사업건이 없습니다.</div>
-          <div class="lt-head" th:unless="${#lists.isEmpty(view.docRows)}"><span class="f">사업</span><span class="w88">담당팀</span><span class="w44 tr">서류</span><span class="w76">누락</span><span class="w72 tc">상태</span></div>
-          <div class="dash-scroll sh-330" th:unless="${#lists.isEmpty(view.docRows)}">
+          <div class="dash-scroll sh-420" th:unless="${#lists.isEmpty(view.docRows)}">
+            <div class="lt-head"><span class="f">사업</span><span class="w88 tc">담당팀</span><span class="w44 tc">서류</span><span class="w64 tc">누락</span><span class="w72 tc">상태</span><span class="w64 tr">마감</span></div>
             <a class="lt-row" th:each="r : ${view.docRows}" th:href="@{/docs(bid=${r.pbancSn})}">
               <span class="f" th:text="${r.pbancNm}" th:title="${r.pbancNm}">사업건</span>
-              <span class="w88 s" th:text="${r.teamNm != null} ? ${r.teamNm} : '-'">공공사업1Div</span>
-              <span class="w44 tr s" th:text="|${r.docReady}/${r.docTotal}|">3/5</span>
-              <span class="w76 s miss" th:text="${r.missingRequired > 0} ? |필수 ${r.missingRequired}건| : ''">필수 1건</span>
+              <span class="w88 tc s" th:text="${r.teamNm != null} ? ${r.teamNm} : '-'">공공사업1Div</span>
+              <span class="w44 tc s" th:text="|${r.docReady}/${r.docTotal}|">3/5</span>
+              <span class="w64 tc s" th:classappend="${r.missingRequired > 0} ? 'miss'" th:text="${r.missingRequired > 0} ? |필수 ${r.missingRequired}건| : '-'">필수 1건</span>
               <span class="w72 tc"><span class="pill" th:classappend="${r.statePill}" th:text="${r.stateLabel}">작성 중</span></span>
+              <span class="w64 tr dd" th:classappend="|t-${r.ddayTone}|" th:text="${r.ddayLabel}">D-3</span>
             </a>
           </div>
-          <a class="dash-more-link" th:href="@{/docs}" >제출서류에서 전체 보기</a>
+          <a class="dash-more-link" th:href="@{/docs}">제출서류에서 전체 보기</a>
         </div>
       </div>
+
     </th:block>
 
     <!-- ===================== 팀장 ===================== -->
@@ -169,7 +135,8 @@
       </div>
 
       <div class="dash-blocks">
-        <div class="card dash-list wide">
+        <!-- 11/07: 내용만큼만 늘어나고(최소 높이 없음), 목록은 최대 360px 까지 보인 뒤 칸 안에서 스크롤 -->
+        <div class="card dash-list wide auto-h">
           <div class="card-head"><h3>처리할 일</h3></div>
           <div class="dash-empty" th:if="${#lists.isEmpty(view.todos)}">처리할 일이 없습니다.</div>
           <div class="dash-scroll sh-360" th:unless="${#lists.isEmpty(view.todos)}">
@@ -216,7 +183,8 @@
       </div>
 
       <div class="dash-blocks">
-        <div class="card dash-list wide">
+        <!-- 11/07: 내용만큼만 늘어나고(최소 높이 없음), 목록은 최대 360px 까지 보인 뒤 칸 안에서 스크롤 -->
+        <div class="card dash-list wide auto-h">
           <div class="card-head"><h3>내 할 일</h3></div>
           <div class="dash-empty" th:if="${#lists.isEmpty(view.myTocs)}">담당 목차가 없습니다.</div>
           <div class="dash-scroll sh-360" th:unless="${#lists.isEmpty(view.myTocs)}">

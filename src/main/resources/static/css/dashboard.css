@@ -323,7 +323,7 @@
 /* 나란히 놓인 블록의 머리 높이를 같게 (버튼이 있는 블록과 없는 블록의 내용 시작선이 같아진다) */
 .dash .card{overflow:hidden}
 .dash .card-head{min-height:56px;box-sizing:border-box}
-.dash .dash-cal > .card-head{min-height:48px;padding-top:8px;padding-bottom:8px} /* 미니 캘린더만 제목 줄을 낮게 (11/07) */
+.dash .dash-cal > .card-head,.dash .dash-side > .card-head{min-height:48px;padding-top:8px;padding-bottom:8px} /* 미니 캘린더와 옆 최근 알림은 제목 줄을 낮게 맞춰 구분선이 한 줄로 (11/07) */
 
 /* ===== 화면을 열 때 차트가 차오르는 효과 (11/05) =====
    화면이 그려질 때(비동기로 바뀐 뒤 포함) 한 번 실행된다. 움직임을 줄이는 설정이면 끈다. */

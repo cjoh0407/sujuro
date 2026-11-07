@@ -17,11 +17,11 @@ import com.ojj.sujuro.dashboard.dto.DashboardRows.TeamStat;
 import com.ojj.sujuro.dashboard.dto.DashboardRows.YearStat;
 import com.ojj.sujuro.dashboard.dto.DashboardView.Chart;
 import com.ojj.sujuro.dashboard.dto.DashboardView.MiniCal;
-import com.ojj.sujuro.dashboard.dto.DashboardView.Radar;
+import com.ojj.sujuro.dashboard.dto.DashboardView.TeamLoad;
 import com.ojj.sujuro.schedule.dto.ScheduleEvent;
 import com.ojj.sujuro.schedule.dto.ScheduleView;
 
-/** 대시보드 그래프 계산: 레이더·버블 좌표, 0으로 나누지 않기, 다가오는 일정 */
+/** 대시보드 그래프 계산: 팀별 진행 현황, 꺾은선 좌표, 0으로 나누지 않기, 다가오는 일정 */
 class DashboardChartsTest {
 
     private static TeamStat team(String nm, int assigned, int inProgress, int submitted) {
@@ -46,34 +46,31 @@ class DashboardChartsTest {
     }
 
     @Test
-    void 레이더는_팀마다_꼭짓점_눈금은_4겹_가장_많은_팀이_강조() {
-        Radar r = DashboardCharts.radar(Arrays.asList(team("B", 0, 1, 0), team("A", 1, 2, 1), team("C", 0, 0, 0)));
+    void 팀별_진행_현황은_결정대기와_진행중만_세고_제출은_뺀다() {
+        TeamLoad t = DashboardCharts.teamLoad(Arrays.asList(team("A", 1, 2, 5), team("B", 0, 1, 0), team("C", 0, 0, 3)), 4);
 
-        assertFalse(r.isBlank());
-        assertEquals(3, r.getPoints().size());
-        assertEquals(4, r.getRings().size());
-        assertEquals(3, r.getSpokes().size());
-        assertEquals(4, r.getRingLabels().size());
-        assertEquals("8", r.getRingLabels().get(3).getLabel());           // 최대 4건 → 바깥 눈금 8 (4의 배수, 4보다 큼)
-        assertEquals("4건", r.getPoints().get(1).getValueText());
-        assertTrue(r.getPoints().get(1).isTop());
-        assertFalse(r.getPoints().get(0).isTop());
-        assertEquals(3, r.getShape().split(" ").length);
+        assertEquals(4, t.getAssigned());          // A 3건 + B 1건 (제출 5·3건은 빼고)
+        assertEquals(4, t.getUnassigned());
+        assertEquals(8, t.getTotal());
+        assertEquals(50, t.getAssignedPct());
+        assertEquals(3, t.getTeams().size());
+        assertEquals(3, t.getTeams().get(0).getCount());
+        assertEquals(100, t.getTeams().get(0).getPct()); // 가장 많은 팀이 막대 끝까지
+        assertEquals(33, t.getTeams().get(1).getPct());
+        assertEquals(0, t.getTeams().get(2).getPct());
+        assertFalse(t.isBlank());
     }
 
     @Test
-    void 레이더는_팀이_3개_미만이거나_없으면_빈_상태() {
-        assertTrue(DashboardCharts.radar(null).isBlank());
-        assertTrue(DashboardCharts.radar(Collections.<TeamStat>emptyList()).isBlank());
-        assertTrue(DashboardCharts.radar(Arrays.asList(team("A", 1, 0, 0), team("B", 1, 0, 0))).isBlank());
-    }
+    void 팀별_진행_현황은_모두_0건이어도_0으로_나누지_않는다() {
+        TeamLoad t = DashboardCharts.teamLoad(Arrays.asList(team("A", 0, 0, 0), team("B", 0, 0, 0)), 0);
+        assertEquals(0, t.getAssignedPct());
+        assertEquals(0, t.getTeams().get(0).getPct());
+        assertFalse(t.isBlank());                  // 팀이 있으면 0건 막대라도 보여 준다
 
-    @Test
-    void 레이더는_모든_팀이_0건이어도_오류없이_그린다() {
-        Radar r = DashboardCharts.radar(Arrays.asList(team("A", 0, 0, 0), team("B", 0, 0, 0), team("C", 0, 0, 0)));
-        assertEquals(3, r.getPoints().size());
-        assertEquals("4", r.getRingLabels().get(3).getLabel());
-        assertFalse(r.getPoints().get(0).isTop());
+        assertTrue(DashboardCharts.teamLoad(null, 0).isBlank());
+        assertTrue(DashboardCharts.teamLoad(Collections.<TeamStat>emptyList(), 0).isBlank());
+        assertEquals(0, DashboardCharts.teamLoad(null, 3).getAssignedPct()); // 팀 없이 미배정만 3건
     }
 
     @Test
@@ -158,7 +155,9 @@ class DashboardChartsTest {
         MiniCal m = DashboardCharts.miniCal(monthWith("2026-11-01", "2026-11-03", "2026-11-20"),
                 monthWith("2026-12-02", "2026-12-09"), LocalDate.of(2026, 11, 3));
 
-        assertEquals("11월 일정", m.getTitle());
+        assertEquals("2026년 11월", m.getTitle());
+        assertEquals("2026-10", m.getPrevYm());
+        assertEquals("2026-12", m.getNextYm());
         assertEquals(3, m.getUpcoming().size());
         assertEquals("11/03", m.getUpcoming().get(0).getDate()); // 지난 11/01 은 빠진다
         assertEquals("12/02", m.getUpcoming().get(2).getDate());

@@ -6,6 +6,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.ojj.sujuro.auth.dto.LoginUser;
 import lombok.RequiredArgsConstructor;
@@ -25,8 +26,11 @@ public class DashboardController {
     }
 
     @GetMapping("/dashboard")
-    public String dashboard(@AuthenticationPrincipal LoginUser user, Model model) {
-        model.addAttribute("view", service.build(user));
+    public String dashboard(@AuthenticationPrincipal LoginUser user,
+                            @RequestParam(value = "ym", required = false) String ym,
+                            Model model) {
+        // ym: 미니 캘린더로 볼 달. 화살표는 이 주소를 비동기로 불러 캘린더만 바꾼다 (dashboard.js)
+        model.addAttribute("view", service.build(user, ym));
         return "dashboard/index";
     }
 }

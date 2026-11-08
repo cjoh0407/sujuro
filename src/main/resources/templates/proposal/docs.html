@@ -62,6 +62,20 @@
           <span class="ds-h" th:if="${sub.sbmsnDt != null}" th:text="${#dates.format(sub.sbmsnDt, 'yyyy-MM-dd HH:mm')}"></span>
         </div>
       </div>
+      <!-- 이 공고의 제안서 제출(입찰) 마감 일시. 나라장터에서 받아 둔 값 (11/08) -->
+      <div>
+        <span class="ds-ic red">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>
+        </span>
+        <div class="ds-due">
+          <span class="ds-l">제출 마감</span>
+          <!-- 날짜와 시간을 한 줄에. 시간도 중요해서 같은 크기로 칸 오른쪽 끝에 -->
+          <div class="ds-due-row">
+            <b th:text="${sub.bidDdlnDt != null} ? ${#dates.format(sub.bidDdlnDt, 'yyyy-MM-dd')} : '-'">2026-11-12</b>
+            <b class="ds-time" th:if="${sub.bidDdlnDt != null}" th:text="${#dates.format(sub.bidDdlnDt, 'HH:mm')}">10:00</b>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ===== 필요 서류 체크리스트 (FR-067~069) ===== -->
@@ -73,12 +87,12 @@
         <table class="doc-table" th:classappend="${admin and open} ? '' : 'no-x'">
           <thead>
             <tr>
-              <th>서류명</th><th>필수</th><th>담당</th><th>상태</th><th>제출 기한</th><th>파일</th><th class="doc-act-h"></th>
+              <th>서류명</th><th>필수</th><th>담당</th><th>상태</th><th>제출 기한</th><th>파일</th><th class="doc-act-h" th:if="${open and !sales}"></th>
               <th th:if="${admin and open}"></th>
             </tr>
           </thead>
           <tbody>
-            <tr class="hv" th:each="d : ${docs}" th:with="canSt=${open and (admin or (team and d.teamOwned))}">
+            <tr class="hv" th:each="d : ${docs}">
               <td th:text="${d.dcmntNm}">최종 제안서</td>
               <td>
                 <span class="pill danger" th:if="${d.essential}">필수</span>
@@ -86,25 +100,20 @@
               </td>
               <td th:text="${d.ownerNm}">제안팀</td>
               <td>
-                <form th:if="${canSt}" th:action="@{/docs/status}" method="post">
-                  <input type="hidden" name="bid" th:value="${bid.pbancSn}">
-                  <input type="hidden" name="dcmntSn" th:value="${d.dcmntSn}">
-                  <select name="prgrsSttsCd" data-change-submit>
-                    <!--/* 11/06 화면에는 완료·미완료 두 가지만. 코드는 셋 그대로(DS010 미준비·DS020 파일 올라옴·DS030 완료)이고 DS010·DS020 은 미완료로 보인다 */-->
-                    <option value="DS010" th:selected="${d.prgrsSttsCd != 'DS030'}">미완료</option>
-                    <option value="DS030" th:selected="${d.prgrsSttsCd == 'DS030'}">완료</option>
-                  </select>
-                </form>
-                <span th:unless="${canSt}" class="pill" th:classappend="${d.statusPill}" th:text="${d.statusNm}">미완료</span>
+                <!-- 완료·미완료는 파일로 정해진다 (파일을 등록하면 완료, 모두 삭제하면 미완료). 고르는 칸은 없앴다 (11/08) -->
+                <span class="pill" th:classappend="${d.statusPill}" th:text="${d.statusNm}">미완료</span>
               </td>
               <td class="mono">
                 <form th:if="${admin and open}" th:action="@{/docs/due}" method="post">
                   <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                   <input type="hidden" name="dcmntSn" th:value="${d.dcmntSn}">
-                  <input type="date" name="due" th:min="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}" th:value="${d.sbmsnDdlnDt != null} ? ${#dates.format(d.sbmsnDdlnDt, 'yyyy-MM-dd')} : ''"
-                         data-change-submit>
+                  <span class="due-in">
+                    <input type="date" name="due" th:min="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}" th:value="${d.dueDate}"
+                           data-change-submit aria-label="제출 기한 날짜">
+                    <input type="time" name="dueTime" th:value="${d.dueTime}" data-change-submit aria-label="제출 기한 시간 (선택)" title="시간 (선택)">
+                  </span>
                 </form>
-                <span th:unless="${admin and open}" th:text="${d.sbmsnDdlnDt != null} ? ${#dates.format(d.sbmsnDdlnDt, 'yyyy-MM-dd')} : '-'">-</span>
+                <span th:unless="${admin and open}" th:text="${d.dueLabel}">-</span>
               </td>
               <td>
                 <!-- 파일 이름은 "파일" 머리글 아래 가운데, 올리기·내려받기·삭제는 오른쪽 칸 -->
@@ -115,16 +124,16 @@
                           th:text="${(d.fileRgtrNm ?: '') + ' · ' + #dates.format(d.fileRegDt, 'yyyy-MM-dd HH:mm') + ' · ' + d.sizeLabel + (d.fileCnt > 1 ? ' · v' + d.fileCnt : '')}">등록자 · 일시</span>
                   </div>
                     <form th:if="${#sets.contains(deletable, d.fileSn)}" th:action="@{/docs/file-delete}" method="post" class="d-inline"
-                          data-on-submit="askReason">
+                          data-confirm="정말로 파일을 삭제하시겠습니까?">
                       <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                       <input type="hidden" name="fileSn" th:value="${d.fileSn}">
-                      <input type="hidden" name="reason">
                       <button class="ico danger" type="submit" title="파일 삭제" aria-label="파일 삭제"><span class="ic ic-trash"></span></button>
                     </form>
                 </div>
                 <span class="faint" th:if="${d.fileSn == null}">없음</span>
               </td>
-              <td class="doc-act">
+              <!-- 파일 등록 칸: 영업부·나라장터 등록 후에는 열째 없앤다 (영업부는 서류 추가·파일 내려받기만, 파일 칸이 표 끝까지) -->
+              <td class="doc-act" th:if="${open and !sales}">
                 <div class="row file-acts">
                   <!-- 이 서류에 파일 올리기: 고르거나 끌어 놓으면 형식·용량 확인 뒤 바로 올린다 (proposal.js data-auto-upload). 나라장터 등록 뒤에는 닫힌다 -->
                   <form th:if="${open and !sales}" th:action="@{/docs/upload}" method="post" enctype="multipart/form-data" class="up-strip">
@@ -150,7 +159,7 @@
               </td>
             </tr>
             <tr th:if="${#lists.isEmpty(docs)}">
-              <td th:colspan="${admin and open} ? 8 : 7" class="empty">체크리스트가 비어 있습니다. 경영지원실·영업부가 필요 서류를 추가합니다.</td>
+              <td th:colspan="${6 + (open and !sales ? 1 : 0) + (admin and open ? 1 : 0)}" class="empty">체크리스트가 비어 있습니다. 경영지원실·영업부가 필요 서류를 추가합니다.</td>
             </tr>
           </tbody>
         </table>
@@ -167,7 +176,8 @@
           <option value="TK010">경영지원실</option>
           <option value="TK020">제안팀</option>
         </select>
-        <input type="date" name="due" th:min="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
+        <input type="date" name="due" required aria-label="제출 기한 (필수)" title="제출 기한 (필수)" th:min="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
+        <input type="time" name="dueTime" aria-label="제출 시간 (선택)" title="제출 시간 (선택, 비우면 날짜만)">
         <button class="btn sm" type="submit">+ 서류 추가</button>
       </form>
     </div>
@@ -258,33 +268,6 @@
       </div>
     </div>
 
-    <!-- ===== 삭제된 파일 (원본·이력 보관, NFR-009) ===== -->
-    <div class="row jc-end" th:if="${deletedCnt > 0}">
-      <a class="link" th:unless="${showDeleted}" th:href="@{/docs(bid=${bid.pbancSn}, deleted=true)}"
-         th:text="'삭제된 파일 보기 (' + ${deletedCnt} + ')'">삭제된 파일 보기 (0)</a>
-      <a class="link" th:if="${showDeleted}" th:href="@{/docs(bid=${bid.pbancSn})}">삭제된 파일 닫기</a>
-    </div>
-    <div class="card" th:if="${showDeleted}">
-      <div class="card-head">
-        <h3 th:text="'삭제된 파일 (' + ${deletedCnt} + ')'">삭제된 파일</h3>
-      </div>
-      <div class="ts">
-        <table>
-          <thead><tr><th>서류</th><th>파일</th><th>버전</th><th>등록자</th><th>삭제한 사람 · 일시</th><th>삭제 사유</th><th class="c-end"></th></tr></thead>
-          <tbody>
-            <tr class="hv" th:each="f : ${deletedFiles}">
-              <td th:text="${f.targetNm ?: '-'}">최종 제안서</td>
-              <td><a class="dl-name" title="눌러서 내려받기" th:href="@{/docs/download(bid=${bid.pbancSn}, fileSn=${f.fileSn})}" th:text="${f.orgnlFileNm}">파일명</a></td>
-              <td class="mono" th:text="'v' + ${f.verNo}">v1</td>
-              <td th:text="${(f.rgtrNm ?: f.rgtrId) + ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm')}">등록자</td>
-              <td th:text="${(f.dltrNm ?: f.dltrId) + ' · ' + #dates.format(f.delDt, 'yyyy-MM-dd HH:mm')}">삭제한 사람</td>
-              <td th:text="${f.delRsn}">사유</td>
-              <td class="c-end"></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
 
     <!-- ===== 나라장터 등록 완료 처리 (FR-073): 경영지원실 ===== -->
     <div class="card pad">

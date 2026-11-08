@@ -154,9 +154,11 @@ public class DocController {
                          @RequestParam(value = "dcmntNm", required = false) String name,
                          @RequestParam(value = "esntlYn", defaultValue = "Y") String esntlYn,
                          @RequestParam(value = "tkcgSeCd", required = false) String tkcgSeCd,
-                         @RequestParam(value = "due", required = false) String due, RedirectAttributes ra) {
+                         @RequestParam(value = "due", required = false) String due,
+                         @RequestParam(value = "dueTime", required = false) String dueTime, RedirectAttributes ra) {
         requireMgmtOrSales(bid, user);
-        return FlashRedirect.run(ra, PATH, bid, null, "서류 항목을 추가했습니다.", () -> docService.addDoc(bid, name, "Y".equals(esntlYn), tkcgSeCd, due));
+        String dueAt = withTime(due, dueTime);
+        return FlashRedirect.run(ra, PATH, bid, null, "서류 항목을 추가했습니다.", () -> docService.addDoc(bid, name, "Y".equals(esntlYn), tkcgSeCd, dueAt));
     }
 
     @PostMapping("/docs/delete")
@@ -169,9 +171,11 @@ public class DocController {
     @PostMapping("/docs/due")
     public String changeDue(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
                             @RequestParam("dcmntSn") Long dcmntSn,
-                            @RequestParam(value = "due", required = false) String due, RedirectAttributes ra) {
+                            @RequestParam(value = "due", required = false) String due,
+                            @RequestParam(value = "dueTime", required = false) String dueTime, RedirectAttributes ra) {
         requireMgmt(bid, user);
-        return FlashRedirect.run(ra, PATH, bid, null, "제출 기한을 바꿨습니다.", () -> docService.changeDue(bid, dcmntSn, due));
+        String dueAt = withTime(due, dueTime);
+        return FlashRedirect.run(ra, PATH, bid, null, "제출 기한을 바꿨습니다.", () -> docService.changeDue(bid, dcmntSn, dueAt));
     }
 
     /* ---------- 서류 상태·파일 (경영지원실·제안팀) ---------- */
@@ -213,7 +217,7 @@ public class DocController {
         requireViewer(bid, user);
         boolean admin = isMgmt(user);
         boolean lead = !admin && accessChecker.isLeadTeamLeader(bid, user);
-        return FlashRedirect.run(ra, PATH, bid, null, "파일을 삭제했습니다. 원본과 기록은 \"삭제된 파일 보기\"에서 확인할 수 있습니다.",
+        return FlashRedirect.run(ra, PATH, bid, null, "파일을 삭제했습니다.",
                 () -> docService.deleteFile(bid, fileSn, reason, user.getEmpNo(), admin, lead));
     }
 
@@ -303,6 +307,14 @@ public class DocController {
 
     private boolean isMgmt(LoginUser user) {
         return user.getRole() == Role.MGMT;
+    }
+
+    /** 제출 기한 날짜(yyyy-MM-dd)에 시간(HH:mm, 선택)을 붙인다. 시간이 없으면 날짜만 (11/08) */
+    private static String withTime(String date, String time) {
+        if (date == null || date.trim().isEmpty()) {
+            return date;
+        }
+        return time == null || time.trim().isEmpty() ? date.trim() : date.trim() + " " + time.trim();
     }
 
     private static List<String> strings(String[] v) {

@@ -45,7 +45,7 @@
   </select>
 
   <select id="findSubmission" resultType="com.ojj.sujuro.proposal.dto.SubmissionDto">
-    SELECT B.PBANC_SN AS pbancSn, B.PBANC_STTS_CD AS pbancSttsCd, B.SBMSN_DT AS sbmsnDt,
+    SELECT B.PBANC_SN AS pbancSn, B.PBANC_STTS_CD AS pbancSttsCd, B.SBMSN_DT AS sbmsnDt, B.BID_DDLN_DT AS bidDdlnDt,
            B.PRSNR_ID AS prsnrId, U.USER_NM AS prsnrNm
       FROM TB_BID_PBANC B
       LEFT JOIN TB_USER U ON U.USER_ID = B.PRSNR_ID
@@ -94,7 +94,7 @@
 
   <insert id="insertDoc" parameterType="com.ojj.sujuro.proposal.dto.DocDto" useGeneratedKeys="true" keyProperty="dcmntSn" keyColumn="DCMNT_SN">
     INSERT INTO TB_SBMSN_DCMNT (PBANC_SN, DCMNT_NM, ESNTL_YN, TKCG_SE_CD, PRGRS_STTS_CD, SBMSN_DDLN_DT)
-    VALUES (#{pbancSn}, #{dcmntNm}, #{esntlYn}, #{tkcgSeCd}, 'DS010', #{sbmsnDdlnDt, jdbcType=DATE})
+    VALUES (#{pbancSn}, #{dcmntNm}, #{esntlYn}, #{tkcgSeCd}, 'DS010', #{sbmsnDdlnDt, jdbcType=TIMESTAMP})
   </insert>
 
   <update id="updateDocStatus">
@@ -102,7 +102,7 @@
   </update>
 
   <update id="updateDocDue">
-    UPDATE TB_SBMSN_DCMNT SET SBMSN_DDLN_DT = #{sbmsnDdlnDt, jdbcType=DATE} WHERE DCMNT_SN = #{dcmntSn}
+    UPDATE TB_SBMSN_DCMNT SET SBMSN_DDLN_DT = #{sbmsnDdlnDt, jdbcType=TIMESTAMP} WHERE DCMNT_SN = #{dcmntSn}
   </update>
 
   <select id="findFilesOfDoc" resultType="com.ojj.sujuro.proposal.dto.PrpFileDto">
@@ -199,6 +199,14 @@
     UPDATE TB_ATCH_FILE
        SET DEL_YN = 'Y', DLTR_ID = #{userId}, DEL_DT = SYSDATE, DEL_RSN = #{reason}
      WHERE FILE_SN = #{fileSn} AND DEL_YN = 'N'
+  </update>
+
+  <!-- 파일을 삭제해 남은 파일이 없으면 그 서류를 미완료(DS010)로 (11/08: 완료 여부는 파일로 정한다) -->
+  <update id="resetDocStatusIfNoFile">
+    UPDATE TB_SBMSN_DCMNT D
+       SET D.PRGRS_STTS_CD = 'DS010'
+     WHERE D.DCMNT_SN = (SELECT F.DCMNT_SN FROM TB_ATCH_FILE F WHERE F.FILE_SN = #{fileSn})
+       AND NOT EXISTS (SELECT 1 FROM TB_ATCH_FILE X WHERE X.DCMNT_SN = D.DCMNT_SN AND X.DEL_YN = 'N')
   </update>
 
   <select id="findFile" resultType="com.ojj.sujuro.proposal.dto.PrpFileDto">

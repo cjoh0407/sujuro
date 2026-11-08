@@ -250,3 +250,129 @@
     if (a) window.open(a.href, '_blank');
   });
 })();
+
+/* ---------- 사업 드롭다운 펼친 목록 (11/09) ----------
+   .bid-select / .sch-pick 의 <select>를 우리 모양 목록으로 보여 준다. 원래 select는 숨겨서 그대로 두고
+   고르면 값을 넣고 change를 보낸다(data-change-submit가 그대로 폼을 보낸다).
+   option의 data-name·data-sub가 있으면 이름과 상태를 나눠 보여 준다. 키보드: ↑↓ Home End Enter Esc */
+(function () {
+  var CHECK = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 7.2 5.8 10 11 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var uid = 0;
+  function esc(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : t; return d.innerHTML; }
+  function parts(o) {
+    return { name: o.getAttribute('data-name') || o.textContent.trim(), sub: o.getAttribute('data-sub') || '' };
+  }
+
+  function enhance(sel) {
+    if (sel.dataset.csel) return;
+    sel.dataset.csel = '1';
+    var id = 'csel' + (++uid);
+    var wrap = document.createElement('div');
+    wrap.className = 'csel';
+    sel.parentNode.insertBefore(wrap, sel);
+    wrap.appendChild(sel);
+    sel.classList.add('csel-native');
+    sel.tabIndex = -1;
+    sel.setAttribute('aria-hidden', 'true');
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'csel-btn';
+    btn.setAttribute('aria-haspopup', 'listbox');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.setAttribute('aria-controls', id);
+    if (sel.getAttribute('aria-label')) btn.setAttribute('aria-label', sel.getAttribute('aria-label'));
+    var pop = document.createElement('div');
+    pop.className = 'csel-pop';
+    pop.id = id;
+    pop.setAttribute('role', 'listbox');
+    pop.hidden = true;
+    wrap.appendChild(btn);
+    wrap.appendChild(pop);
+
+    function paintBtn() {
+      var o = sel.options[sel.selectedIndex];
+      var p = o ? parts(o) : { name: '', sub: '' };
+      btn.innerHTML = '<span class="csel-v">' + esc(p.name) + '</span>' + (p.sub ? '<span class="csel-sub">' + esc(p.sub) + '</span>' : '');
+      btn.title = o ? o.textContent.trim() : '';
+    }
+    function build() {
+      var html = '';
+      Array.prototype.forEach.call(sel.children, function (n) {
+        if (n.tagName === 'OPTGROUP') {
+          html += '<div class="csel-grp">' + esc(n.label) + '<span>' + n.children.length + '</span></div>';
+          Array.prototype.forEach.call(n.children, function (o) { html += item(o); });
+        } else if (n.tagName === 'OPTION') { html += item(n); }
+      });
+      pop.innerHTML = html;
+    }
+    function item(o) {
+      var p = parts(o), on = o.selected;
+      return '<div class="csel-opt' + (on ? ' on' : '') + '" role="option" aria-selected="' + on + '" data-i="' + o.index + '" title="' + esc(o.textContent.trim()) + '">' +
+        '<span class="csel-ck">' + (on ? CHECK : '') + '</span><span class="csel-nm">' + esc(p.name) + '</span>' +
+        (p.sub ? '<span class="csel-sub">' + esc(p.sub) + '</span>' : '') + '</div>';
+    }
+    function opts() { return pop.querySelectorAll('.csel-opt'); }
+    function setActive(el) {
+      Array.prototype.forEach.call(opts(), function (x) { x.classList.toggle('act', x === el); });
+      if (!el) return; // 화면 전체가 아니라 목록 안에서만 스크롤
+      if (el.offsetTop < pop.scrollTop) pop.scrollTop = el.offsetTop - 6;
+      else if (el.offsetTop + el.offsetHeight > pop.scrollTop + pop.clientHeight) pop.scrollTop = el.offsetTop + el.offsetHeight - pop.clientHeight + 6;
+    }
+    function open() {
+      build();
+      pop.hidden = false;
+      wrap.classList.add('open');
+      btn.setAttribute('aria-expanded', 'true');
+      setActive(pop.querySelector('.csel-opt.on') || opts()[0]);
+    }
+    function close(focus) {
+      if (pop.hidden) return;
+      pop.hidden = true;
+      wrap.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+      if (focus) btn.focus();
+    }
+    function choose(el) {
+      var i = +el.getAttribute('data-i');
+      close(true);
+      if (i === sel.selectedIndex) return;
+      sel.selectedIndex = i;
+      paintBtn();
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    btn.addEventListener('click', function () { if (pop.hidden) open(); else close(); });
+    pop.addEventListener('mousedown', function (e) { e.preventDefault(); }); // 버튼 포커스 유지
+    pop.addEventListener('click', function (e) {
+      var el = e.target.closest('.csel-opt');
+      if (el) choose(el);
+    });
+    pop.addEventListener('mousemove', function (e) {
+      var el = e.target.closest('.csel-opt');
+      if (el && !el.classList.contains('act')) Array.prototype.forEach.call(opts(), function (x) { x.classList.toggle('act', x === el); });
+    });
+    btn.addEventListener('keydown', function (e) {
+      var list = Array.prototype.slice.call(opts());
+      var cur = pop.querySelector('.csel-opt.act');
+      var i = list.indexOf(cur);
+      if (pop.hidden) {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); open(); }
+        return;
+      }
+      if (e.key === 'ArrowDown') { e.preventDefault(); setActive(list[Math.min(i + 1, list.length - 1)]); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(list[Math.max(i - 1, 0)]); }
+      else if (e.key === 'Home') { e.preventDefault(); setActive(list[0]); }
+      else if (e.key === 'End') { e.preventDefault(); setActive(list[list.length - 1]); }
+      else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (cur) choose(cur); }
+      else if (e.key === 'Escape' || e.key === 'Tab') { close(e.key === 'Escape'); }
+    });
+    document.addEventListener('mousedown', function (e) { if (!wrap.contains(e.target)) close(); });
+    sel.addEventListener('change', paintBtn);
+    paintBtn();
+  }
+
+  onPageReady(function () {
+    Array.prototype.forEach.call(document.querySelectorAll('.bid-select select, .sch-pick select'), enhance);
+  });
+})();

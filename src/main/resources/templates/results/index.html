@@ -65,7 +65,8 @@
     <aside class="split-l" th:if="${upload}">
       <!-- 평가표 등록 (제안서 관리의 파일 올리기와 같은 박스). 개찰 업체를 고르고 그 업체의 엑셀을 올린다. 업체마다 따로 올려 오른쪽 '업체별 평가표 비교'에서 나란히 본다.
            업체 칸은 화면만 바꾸므로 GET 폼에 묶어(form 속성) 올리기 폼으로 같이 보내지 않는다 -->
-      <div class="card" id="upCard" th:with="co=${view.company}, cf=${view.companyFile}">
+      <!-- 크기는 요구사항 자동 추출 칸과 같게: 내용만큼 높이, 파일 칸은 한 줄 (11/07) -->
+      <div class="card" id="evlUpCard" th:with="co=${view.company}, cf=${view.companyFile}">
         <form id="evl-co-form" method="get" th:action="@{/results}"><input type="hidden" name="bid" th:value="${b.pbancSn}"></form>
         <div class="card-head">
           <h3>평가표 등록</h3>

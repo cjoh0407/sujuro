@@ -88,9 +88,9 @@
 /* 긴 파일명은 한 줄로 줄이고 마우스를 올리면 전체가 보인다 (11/06) */
 .evl-file .faint{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* 평가표 올리기 칸: 세로 배치(proposal.css #upCard .drop)는 글자 폭만큼 늘어나 칸 밖으로 나간다. 칸 폭 안에 가둔다 (11/06) */
-#upCard .drop-body,#upCard .drop-text{max-width:100%}
-#upCard .drop-text .nm{min-width:0;max-width:100%}
-#upCard .drop-hint{max-width:100%;overflow-wrap:anywhere}
+#evlUpCard .drop-body,#evlUpCard .drop-text{max-width:100%}
+#evlUpCard .drop-text .nm{min-width:0;max-width:100%}
+#evlUpCard .drop-hint{max-width:100%;overflow-wrap:anywhere}
 
 /* 평가표 입력 표 (경영지원실). 위원이 많으면 옆으로 넘긴다 */
 .evl-grid td{padding:4px 6px}
@@ -164,3 +164,10 @@ tr.ours td{background:var(--accent-soft)}
 @media (prefers-reduced-motion:reduce){
   .hist-view .split-r .card,.hist-view .score-card .bar>i,.hist-view .co-bar path,.hist-view .co-bar .val,.hist-view .evl-win{animation:none !important}
 }
+
+/* 평가표 등록 칸: 요구사항 자동 추출과 같은 크기 (한 줄 파일 칸, 내용만큼 높이) (11/07) */
+#evlUpCard .mp-form{gap:12px}
+#evlUpCard .mp-form>select{width:100%;min-width:0;height:36px;box-sizing:border-box}
+#evlUpCard .drop{width:100%;box-sizing:border-box}
+#evlUpCard .mp-form>.row:last-child{justify-content:space-between;align-items:center;gap:12px;flex-wrap:nowrap}
+#evlUpCard .up-note{font-size:11.5px;color:var(--faint);line-height:1.45}

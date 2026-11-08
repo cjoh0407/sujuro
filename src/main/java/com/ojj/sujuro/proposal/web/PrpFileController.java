@@ -174,7 +174,7 @@ public class PrpFileController {
         accessChecker.requireProposalMember(bid, user);
         return FlashRedirect.run(ra, PATH, bid, tabParam(tab), () -> {
             fileService.deleteFile(bid, fileSn, reason, user.getEmpNo(), accessChecker.isLeadTeamLeader(bid, user));
-            return "파일을 삭제했습니다. 원본과 기록은 \"삭제된 파일 보기\"에서 확인할 수 있습니다.";
+            return "파일을 삭제했습니다.";
         });
     }
 

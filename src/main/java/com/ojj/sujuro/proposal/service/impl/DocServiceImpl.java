@@ -1,8 +1,10 @@
 package com.ojj.sujuro.proposal.service.impl;
 
 import java.math.BigDecimal;
-import java.sql.Date;
+import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -104,6 +106,9 @@ public class DocServiceImpl implements DocService {
                 throw new BusinessException("같은 이름의 서류가 이미 있습니다.");
             }
         }
+        if (due == null || due.trim().isEmpty()) { // 제출 기한은 꼭 받는다 (11/08)
+            throw new BusinessException("제출 기한을 입력해 주세요.");
+        }
         DocDto d = new DocDto();
         d.setPbancSn(pbancSn);
         d.setDcmntNm(nm);
@@ -158,8 +163,9 @@ public class DocServiceImpl implements DocService {
         DocDto d = own(pbancSn, dcmntSn);
         PrpFileDto f = newFile(pbancSn, SE_DOC, file, userId, String.valueOf(d.getFileTotal() + 1)); // 삭제한 버전도 세어 번호를 되돌리지 않는다
         store(f, file, dcmntSn);
-        if (DocDto.ST_NONE.equals(d.getPrgrsSttsCd())) {
-            mapper.updateDocStatus(dcmntSn, DocDto.ST_DOING);
+        // 11/08: 완료 여부는 사람이 고르지 않고 파일로 정한다. 파일을 등록하면 완료
+        if (!DocDto.ST_READY.equals(d.getPrgrsSttsCd())) {
+            mapper.updateDocStatus(dcmntSn, DocDto.ST_READY);
         }
     }
 
@@ -400,14 +406,13 @@ public class DocServiceImpl implements DocService {
         if (!canDeleteFile(f.getRgtrId(), false, userId, admin, lead)) {
             throw new BusinessException("파일은 등록자, 주관팀 팀장, 경영지원실만 삭제할 수 있습니다.");
         }
+        // 삭제 사유는 받지 않는다 (11/09). 확인창만 띄우고, 예전 요청에 사유가 오면 1000자까지만 남긴다.
         String r = reason == null ? "" : reason.trim();
-        if (r.isEmpty()) {
-            throw new BusinessException("삭제 사유를 입력해 주세요.");
-        }
         if (r.length() > 1000) {
-            throw new BusinessException("삭제 사유는 1000자까지 입력할 수 있습니다.");
+            r = r.substring(0, 1000);
         }
-        mapper.markFileDeleted(fileSn, userId, r); // 준비 상태는 담당자가 직접 바꾼다
+        mapper.markFileDeleted(fileSn, userId, r);
+        mapper.resetDocStatusIfNoFile(fileSn); // 남은 파일이 없으면 미완료로 (11/08)
     }
 
     @Override
@@ -475,20 +480,26 @@ public class DocServiceImpl implements DocService {
         }
     }
 
-    private Date parseDate(String s) {
+    /** 제출 기한: "yyyy-MM-dd" 또는 "yyyy-MM-dd HH:mm" (시간은 화면에서 직접 입력, 없으면 0시 = 날짜만) (11/08) */
+    private Timestamp parseDate(String s) {
         if (s == null || s.trim().isEmpty()) {
             return null;
         }
+        String[] parts = s.trim().split("\\s+");
         LocalDate day;
+        LocalTime time = LocalTime.MIDNIGHT;
         try {
-            day = LocalDate.parse(s.trim());
+            day = LocalDate.parse(parts[0]);
+            if (parts.length > 1) {
+                time = LocalTime.parse(parts[1]);
+            }
         } catch (DateTimeParseException e) {
-            throw new BusinessException("제출 기한 날짜 형식이 올바르지 않습니다.");
+            throw new BusinessException("제출 기한 날짜·시간 형식이 올바르지 않습니다.");
         }
         if (day.isBefore(LocalDate.now())) {
             throw new BusinessException("제출 기한은 오늘 이후 날짜로 정해 주세요.");
         }
-        return Date.valueOf(day);
+        return Timestamp.valueOf(LocalDateTime.of(day, time));
     }
 
 }

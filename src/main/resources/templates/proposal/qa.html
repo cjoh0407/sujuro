@@ -36,6 +36,9 @@
     <div class="banner ok" data-flash="done" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
     <div class="banner err" data-flash="error" th:if="${error != null}" th:text="${error}">오류 안내</div>
 
+    <!-- 사업명은 3:7 칸 위 왼쪽에 (사업 이력 관리와 같게). 그래서 왼쪽·오른쪽 칸이 같은 높이에서 시작한다 -->
+    <th:block th:replace="~{proposal/fragments/bid-header :: bizHead}"></th:block>
+
     <!-- 3:7 화면: 왼쪽에 사업건 목록, 오른쪽에 업무 화면 -->
     <div class="split">
     <aside class="split-l">
@@ -78,7 +81,7 @@
             <textarea id="qaFormQ" name="qstnCn" rows="3" maxlength="4000" required></textarea>
           </label>
           <label class="qa-side-l qa-grow">
-            <span th:text="${prs} ? '답변 (발표 때 한 답변)' : '준비한 답변 (나중에 채워도 됩니다)'">답변</span>
+            <span>답변</span>
             <textarea id="qaFormA" name="ansCn" maxlength="4000"></textarea>
           </label>
           <label class="qa-side-l">관련 요구사항 (선택)
@@ -95,18 +98,15 @@
       </div>
     </aside>
     <div class="split-r">
-    <th:block th:replace="~{proposal/fragments/bid-header :: bizHead}"></th:block>
 
-    <!-- 예상·발표 Q&amp;A 탭 (FR-076) -->
+    <!-- 예상·발표 Q&amp;A 탭(왼쪽)과 검색(오른쪽)을 한 줄에 (FR-076) -->
+    <div class="qa-bar">
     <div class="tabs">
       <a class="tab" th:classappend="${!prs} ? 'on'" th:href="@{/qa(bid=${bid.pbancSn}, tab='exp')}"
          th:text="'예상 Q&amp;A (' + ${expCnt} + ')'">예상 Q&amp;A (0)</a>
       <a class="tab" th:classappend="${prs} ? 'on'" th:href="@{/qa(bid=${bid.pbancSn}, tab='prs')}"
          th:text="'발표 Q&amp;A (' + ${prsCnt} + ')'">발표 Q&amp;A (0)</a>
     </div>
-
-    <!-- 검색 (오른쪽 끝) -->
-    <div class="qa-bar jc-end">
       <form th:action="@{/qa}" method="get" class="row qa-search">
         <input type="hidden" name="bid" th:value="${bid.pbancSn}">
         <input type="hidden" name="tab" th:value="${tab}">

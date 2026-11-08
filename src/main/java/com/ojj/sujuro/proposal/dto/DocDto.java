@@ -65,8 +65,9 @@ public class DocDto {
         return dcmntNm != null && dcmntNm.replace(" ", "").contains("최종제안서");
     }
 
+    /** 완료 = 등록된 파일이 있다 (11/08: 사람이 고르지 않고 파일로 정한다) */
     public boolean isReady() {
-        return ST_READY.equals(prgrsSttsCd);
+        return fileCnt > 0;
     }
 
     public String getOwnerNm() {
@@ -74,12 +75,12 @@ public class DocDto {
     }
 
     public String getStatusNm() {
-        return ST_READY.equals(prgrsSttsCd) ? "완료" : "미완료"; // 11/06 화면에는 완료·미완료 두 가지만 (DS020 도 미완료)
+        return isReady() ? "완료" : "미완료"; // 파일이 있으면 완료
     }
 
     /** 준비 상태 표시 색 (common.css pill) */
     public String getStatusPill() {
-        return ST_READY.equals(prgrsSttsCd) ? "success" : "neutral";
+        return isReady() ? "success" : "neutral";
     }
 
     public String getSizeLabel() {
@@ -90,5 +91,28 @@ public class DocDto {
             return String.format("%.1fMB", fileSz / 1024.0 / 1024.0);
         }
         return Math.max(1, Math.round(fileSz / 1024.0)) + "KB";
+    }
+
+    /** 제출 기한 날짜 칸 값 (yyyy-MM-dd) */
+    public String getDueDate() {
+        return sbmsnDdlnDt == null ? "" : new java.text.SimpleDateFormat("yyyy-MM-dd").format(sbmsnDdlnDt);
+    }
+
+    /** 제출 기한 시간 칸 값 (HH:mm). 0시면 시간을 넣지 않은 것으로 보고 비운다 */
+    public String getDueTime() {
+        if (sbmsnDdlnDt == null) {
+            return "";
+        }
+        String t = new java.text.SimpleDateFormat("HH:mm").format(sbmsnDdlnDt);
+        return "00:00".equals(t) ? "" : t;
+    }
+
+    /** 화면 표시: 날짜, 시간이 있으면 "날짜 시간" */
+    public String getDueLabel() {
+        if (sbmsnDdlnDt == null) {
+            return "-";
+        }
+        String t = getDueTime();
+        return t.isEmpty() ? getDueDate() : getDueDate() + " " + t;
     }
 }

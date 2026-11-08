@@ -20,3 +20,7 @@
 
 /* hidden 속성이 다른 display 값에 덮이지 않게 한다 */
 .usr [hidden]{display:none !important}
+
+/* 직원 목록: 머리글·내용 모두 가운데 정렬 (다른 화면 표와 같게, 11/07) */
+.usr table th,.usr table td{text-align:center}
+.usr table td .row{justify-content:center}

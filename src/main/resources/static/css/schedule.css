@@ -52,7 +52,7 @@
 
 /* 사업 고르기 드롭다운 (11/07). 사업명이 길면 칸 안에서 말줄임, 전체 이름은 title.
    높이를 고정하고 위아래 여백을 0으로 둬 글자가 칸 가운데에 온다 (여백 7px + 32px 높이로 글자 아래가 잘리던 문제) */
-.sch-pick select{height:34px;box-sizing:border-box;padding-top:0;padding-bottom:0;line-height:normal;min-width:180px;max-width:300px;font-size:13px;text-overflow:ellipsis}
+.sch-pick select{height:36px;box-sizing:border-box;padding-top:0;padding-bottom:0;line-height:normal;width:340px;max-width:100%;text-overflow:ellipsis} /* 제안서 관리·제출서류 드롭다운과 같은 크기 (11/09) */
 @media (max-width:760px){.sch-pick,.sch-pick select{width:100%;max-width:none}}
 
 /* 연도·월 고르기 (11/07). 제목 칸 너비를 '2026년 12월' 기준으로 고정해 ‹ › 위치가 달마다 움직이지 않는다 */

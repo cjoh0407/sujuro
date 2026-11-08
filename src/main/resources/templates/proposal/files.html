@@ -96,11 +96,10 @@
                           <td class="mono" th:text="${v.sizeLabel}">143KB</td>
                           <td class="vp-act">
                             <form th:if="${#sets.contains(deletable, v.fileSn)}" th:action="@{/files/delete}" method="post" class="d-inline"
-                                  data-on-submit="askReason">
+                                  data-confirm="정말로 파일을 삭제하시겠습니까?">
                               <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                               <input type="hidden" name="tab" th:value="${tab}">
                               <input type="hidden" name="fileSn" th:value="${v.fileSn}">
-                              <input type="hidden" name="reason">
                               <button class="ico danger" type="submit" title="삭제" aria-label="삭제"><span class="ic ic-trash"></span></button>
                             </form>
                           </td>
@@ -112,13 +111,7 @@
                   </td>
                   <td><span class="pill" th:classappend="${t.fileStatusPill}" th:text="${t.fileStatus}">미착수</span></td>
                   <td class="pf-act"><div class="pf-act-in">
-                    <!-- 이 목차에 파일 올리기: 주관팀 팀장 또는 이 목차 담당자 (서버에서도 다시 검사) -->
-                    <!-- 담당자가 없는 목차는 올리기 전에 담당자 지정 안내부터 띄운다 (proposal.js needOwner) -->
-                    <th:block th:if="${canUp and t.assigned}"><th:block th:replace="~{proposal/files :: upStrip(${t.tocSn}, false)}"></th:block></th:block>
-                    <span class="up-strip" th:if="${canUp and !t.assigned}">
-                      <button type="button" class="drop sm need-owner" data-on-click="needOwner" th:data-arg="${t.label}"
-                              title="담당자를 먼저 지정해 주세요"><span class="ic ic-upload"></span><span class="drop-body"><span class="drop-text"><span><b>파일 등록</b></span></span></span></button>
-                    </span>
+                    <!-- 검토 완료 (주관팀 팀장, 파일이 있을 때) — [파일 등록] 왼쪽 -->
                     <form th:if="${canAssign and t.fileCnt > 0}" th:action="@{/files/review}" method="post" class="d-inline">
                       <input type="hidden" name="bid" th:value="${bid.pbancSn}">
                       <input type="hidden" name="tab" th:value="${tab}">
@@ -129,6 +122,13 @@
                         <span class="ic ic-check"></span>검토 완료
                       </button>
                     </form>
+                    <!-- 이 목차에 파일 올리기: 주관팀 팀장 또는 이 목차 담당자 (서버에서도 다시 검사) -->
+                    <!-- 담당자가 없는 목차는 올리기 전에 담당자 지정 안내부터 띄운다 (proposal.js needOwner) -->
+                    <th:block th:if="${canUp and t.assigned}"><th:block th:replace="~{proposal/files :: upStrip(${t.tocSn}, false)}"></th:block></th:block>
+                    <span class="up-strip" th:if="${canUp and !t.assigned}">
+                      <button type="button" class="drop sm need-owner" data-on-click="needOwner" th:data-arg="${t.label}"
+                              title="담당자를 먼저 지정해 주세요"><span class="ic ic-upload"></span><span class="drop-body"><span class="drop-text"><span><b>파일 등록</b></span></span></span></button>
+                    </span>
                   </div></td>
                 </tr>
               </th:block>
@@ -216,11 +216,10 @@
           <button class="btn sm" type="submit">최종본 확정</button>
         </form>
         <form th:if="${#sets.contains(deletable, f.fileSn)}" th:action="@{/files/delete}" method="post" class="d-inline"
-              data-on-submit="askReason">
+              data-confirm="정말로 파일을 삭제하시겠습니까?">
           <input type="hidden" name="bid" th:value="${bid.pbancSn}">
           <input type="hidden" name="tab" th:value="${tab}">
           <input type="hidden" name="fileSn" th:value="${f.fileSn}">
-          <input type="hidden" name="reason">
           <button class="ico danger" type="submit" title="삭제" aria-label="삭제"><span class="ic ic-trash"></span></button>
         </form>
       </span>

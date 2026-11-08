@@ -160,12 +160,10 @@ public class PrpFileServiceImpl implements PrpFileService {
         if (!lead && !userId.equals(f.getRgtrId())) {
             throw new BusinessException("파일은 등록자와 주관팀 팀장만 삭제할 수 있습니다.");
         }
+        // 삭제 사유는 받지 않는다 (11/09). 확인창만 띄우고, 예전 요청에 사유가 오면 1000자까지만 남긴다.
         String r = reason == null ? "" : reason.trim();
-        if (r.isEmpty()) {
-            throw new BusinessException("삭제 사유를 입력해 주세요.");
-        }
         if (r.length() > 1000) {
-            throw new BusinessException("삭제 사유는 1000자까지 입력할 수 있습니다.");
+            r = r.substring(0, 1000);
         }
         mapper.markDeleted(fileSn, userId, r);
     }

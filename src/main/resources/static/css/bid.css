@@ -41,13 +41,6 @@
 
 /* 공고 목록 카드 머리의 밑줄 탭 (11/05). 고른 탭은 포인트 색 바탕 + 파란 글자 + 밑줄 (11/06 바탕 추가), 숫자는 작게.
    바탕을 칠하려고 좌우 여백을 늘렸다. 글자 사이 간격(24px)은 그대로이고, 첫 탭 글자는 다른 카드 제목과 같은 위치다 */
-.nl-head{padding-top:0;padding-bottom:0}
-.ntabs{display:flex;flex-wrap:wrap;gap:0 4px;margin-left:-10px}
-.ntab{display:inline-flex;align-items:baseline;gap:4px;padding:13px 10px 11px;margin-bottom:-1px;border-bottom:2px solid transparent;color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap}
-.ntab .n{font-size:11.5px;color:var(--faint)}
-.ntab:hover{color:var(--text);background:var(--alt)}
-.ntab.on,.ntab.on:hover{color:var(--accent-s);background:var(--accent-soft);border-bottom-color:var(--accent);font-weight:700}
-.ntab.on .n{color:var(--accent-s)}
 
 /* 공고 목록 머리글 오른쪽의 마지막 수집. 줄이 좁아 아래로 내려가도 오른쪽에 붙는다 */
 .list-info{margin-left:auto;font-size:11.5px}
@@ -172,3 +165,6 @@
 .nd-tl b{font-size:13px}
 .nd-tl li.next b{color:var(--muted)}
 .nd-tl .who{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+
+
+/* 목록 카드 머리의 밑줄 탭(.ntabs .ntab)은 참고자료와 같이 쓰려고 common.css 로 옮겼다 (11/09) */

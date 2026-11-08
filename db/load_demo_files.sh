@@ -5,6 +5,8 @@
 # 사용법
 #   로컬: bash db/load_demo_files.sh                 (application-local.properties 의 app.upload-dir 을 읽는다)
 #   로컬·서버: bash db/load_demo_files.sh /경로/upload  (업로드 폴더를 직접 준다)
+#   배포 서버(S3): bash load_demo_files.sh s3://sujuro-files-s3   (S3 버킷의 seed/ 아래로 올린다. AWS CLI 필요,
+#                 권한은 EC2 IAM 역할로 받는다. 서버 설정이 app.storage.type=s3 일 때 쓴다)
 # DB 를 다시 만든 뒤(reset_local.sh · reset_demo_db.sh) 한 번 실행한다. 다시 실행해도 된다 (seed 폴더만 새로 채운다).
 
 set -u
@@ -13,6 +15,16 @@ SRC="$HERE/demo-files"
 MANIFEST="$SRC/manifest.tsv"
 
 UP="${1:-}"
+# s3://버킷 이면 임시 폴더에 먼저 모은 뒤 마지막에 S3 로 올린다
+S3DEST=""
+case "$UP" in
+  s3://*)
+    command -v aws >/dev/null 2>&1 || { echo "aws 명령이 없습니다. AWS CLI v2 를 먼저 설치하세요."; exit 1; }
+    S3DEST="${UP%/}"
+    UP="$(mktemp -d)"
+    trap 'rm -rf "$UP"' EXIT
+    ;;
+esac
 if [ -z "$UP" ]; then
   PROPS="$HERE/../src/main/resources/application-local.properties"
   if [ -f "$PROPS" ]; then
@@ -26,7 +38,7 @@ if [ -z "$UP" ]; then
 fi
 [ -f "$MANIFEST" ] || { echo "목록 파일이 없습니다: $MANIFEST"; exit 1; }
 
-echo "업로드 폴더: $UP"
+if [ -n "$S3DEST" ]; then echo "S3 대상:     $S3DEST/seed/ (임시 폴더 $UP 에 모은 뒤 올림)"; else echo "업로드 폴더: $UP"; fi
 echo "원본 폴더:   $SRC"
 mkdir -p "$UP" || { echo "업로드 폴더를 만들 수 없습니다."; exit 1; }
 
@@ -60,6 +72,16 @@ while IFS=$'\t' read -r dest src || [ -n "${dest:-}" ]; do
 done < "$MANIFEST"
 
 echo "목록 ${total}건 · 복사 ${copied}건 · 원본 없음 ${missing}건 · 업로드 폴더에 없는 파일 ${absent}건"
+
+# S3: 이전 seed/ 를 지우고 새로 올린 뒤 개수를 확인한다 (사람이 화면에서 올린 파일은 seed 밖에 있어 건드리지 않는다)
+if [ -n "$S3DEST" ] && [ $missing -eq 0 ] && [ $absent -eq 0 ]; then
+  echo "S3 로 올리는 중..."
+  aws s3 rm "$S3DEST/seed/" --recursive --only-show-errors || { echo "S3 의 이전 seed 를 지우지 못했습니다."; exit 1; }
+  aws s3 cp "$UP/seed/" "$S3DEST/seed/" --recursive --only-show-errors || { echo "S3 로 올리지 못했습니다."; exit 1; }
+  uploaded=$(aws s3 ls "$S3DEST/seed/" --recursive | wc -l | tr -d ' ')
+  echo "S3 에 올라간 파일 ${uploaded}건 (목록 ${total}건)"
+  [ "$uploaded" -eq "$total" ] || absent=$((total - uploaded))
+fi
 if [ $missing -eq 0 ] && [ $absent -eq 0 ]; then
   echo "완료. 화면에서 제안서·제출서류·참고자료·평가표를 내려받아 확인하세요."
 else

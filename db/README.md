@@ -19,7 +19,8 @@
 ## 파일 넣기: DB를 만든 뒤 `load_demo_files.sh`
 DB에는 파일 정보만 들어갑니다. 실제 파일(제안서·제출서류·평가표·참고자료 893개)은 `demo-files/`에 있고, 아래 스크립트가 업로드 폴더의 `seed/` 아래로 복사합니다. 이걸 안 하면 목록에는 보여도 내려받기가 안 됩니다.
 - 로컬: `bash db/load_demo_files.sh` (`application-local.properties`의 `app.upload-dir`을 읽음)
-- 서버·직접 지정: `bash load_demo_files.sh <업로드 폴더>`
+- 직접 지정: `bash load_demo_files.sh <업로드 폴더>`
+- 배포 서버(S3): `bash load_demo_files.sh s3://sujuro-files-s3` (버킷의 `seed/`를 지우고 새로 올린 뒤 개수 확인. AWS CLI v2 필요, 권한은 EC2 IAM 역할)
 - DB 접속·비밀번호가 필요 없고, 다시 실행해도 됩니다. 윈도우는 Git Bash에서 실행합니다.
 
 ### 로컬 DB 만들기
@@ -33,7 +34,7 @@ DB에는 파일 정보만 들어갑니다. 실제 파일(제안서·제출서류
 4. `07_seed_etc.sql` 끝의 확인 쿼리 8개 결과가 모두 0이면 끝입니다. WHERE 없는 DELETE 경고(03 맨 앞 정리)는 확인을 누릅니다.
 5. `bash db/load_demo_files.sh`로 파일을 넣습니다.
 
-**서버**: `~/db`에 최신 `db` 폴더(`demo-files` 포함)를 올린 뒤 `bash reset_demo_db.sh` → `bash load_demo_files.sh <서버 업로드 폴더>`. 새 코드를 먼저 배포하고 실행합니다.
+**서버**: `~/db`에 최신 `db` 폴더(`demo-files` 포함)를 올린 뒤 `bash reset_demo_db.sh` → `bash load_demo_files.sh s3://sujuro-files-s3`. 새 코드를 먼저 배포하고 실행합니다. (서버 파일 저장소는 S3, 루트 README '파일 저장소')
 
 - 기존 데이터는 모두 지워집니다. 테스트 계정 비밀번호는 `Demo!2026a`입니다.
 

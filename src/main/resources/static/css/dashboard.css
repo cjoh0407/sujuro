@@ -6,9 +6,9 @@
    목록은 칸 안에서 스크롤한다(.dash-scroll). 칸이 길게 늘어나지 않는다. */
 .dash{
   --dash-gap:16px;
-  --d-ink:color-mix(in srgb,var(--text) 84%,var(--surface));--d-sub:color-mix(in srgb,var(--muted) 88%,var(--text));--d-faint:color-mix(in srgb,var(--muted) 70%,var(--faint));
-  --d-done:#13804F;--d-doing:#3A8AFD;--d-todo:#E3E6EC;--d-track:#ECEEF2;--d-sun:#A4292F;--d-sat:#1D4B7E;
-  --danger:#A4292F;--danger-soft:#F9E6E7;--info:#1D4B7E;--info-soft:#E4ECF4;
+  --d-ink:var(--text);--d-sub:color-mix(in srgb,var(--muted) 80%,var(--text));--d-faint:color-mix(in srgb,var(--muted) 80%,var(--faint));
+  --d-done:#086B3E;--d-doing:#2776EA;--d-todo:#C7CED8;--d-track:#D5DBE4;--d-sun:#A12224;--d-sat:#1A4274; /* 11/07 colortest 1.5단계 (1단계와 2단계 중간) */
+  --danger:#A12224;--danger-soft:#F4CACE;--info:#1A4274;--info-soft:#D0DDED;
   --ln2:#2F7DF0;
   display:flex;flex-wrap:wrap;gap:var(--dash-gap);align-items:stretch}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dash{
@@ -296,7 +296,7 @@
 @media (max-width:760px){.lt-head .w96,.lt-row .w96,.lt-head .w120,.lt-row .w120,.lt-head .w110,.lt-row .w110{display:none}}
 
 /* 팀별 진행 현황 (영업부, 11/07): 왼쪽 도넛(배정 파랑 / 미배정 회색) + 오른쪽 팀별 막대 */
-.dash{--d-un:#99A2B1}
+.dash{--d-un:#818B9A}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dash{--d-un:#5A6472}}
 :root[data-theme="dark"] .dash{--d-un:#5A6472}
 .dash-load{flex:1;display:flex;gap:22px;align-items:center;padding:16px 20px 18px;min-width:0}
@@ -323,7 +323,7 @@
 /* 나란히 놓인 블록의 머리 높이를 같게 (버튼이 있는 블록과 없는 블록의 내용 시작선이 같아진다) */
 .dash .card{overflow:hidden}
 .dash .card-head{min-height:56px;box-sizing:border-box}
-.dash .dash-cal > .card-head{min-height:48px;padding-top:8px;padding-bottom:8px} /* 미니 캘린더만 제목 줄을 낮게 (11/07) */
+.dash .dash-cal > .card-head,.dash .dash-side > .card-head{min-height:48px;padding-top:8px;padding-bottom:8px} /* 미니 캘린더와 옆 최근 알림은 제목 줄을 낮게 맞춰 구분선이 한 줄로 (11/07) */
 
 /* ===== 화면을 열 때 차트가 차오르는 효과 (11/05) =====
    화면이 그려질 때(비동기로 바뀐 뒤 포함) 한 번 실행된다. 움직임을 줄이는 설정이면 끈다. */

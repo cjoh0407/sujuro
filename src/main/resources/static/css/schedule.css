@@ -1,7 +1,7 @@
 /* 일정 관리 화면 전용 (schedule/index.html).
    포인트 색은 오티아이 로고 색: 남색 #1d4b7e(버튼·강조), 빨간색 #a4292f(삭제). 이 화면 안에서만 바꾼다.
    캘린더 일정 색은 팀 색(common.css 의 .ev.tm1~6)을 그대로 쓴다. */
-.sch{--accent:#1d4b7e;--accent-s:#163a62;--accent-soft:rgba(29,75,126,.1);--sch-red:#a4292f;--sch-red-soft:rgba(164,41,47,.08)}
+.sch{--accent:#1a4575;--accent-s:#102e52;--accent-soft:rgba(29,75,126,.19);--sch-red:#a12224;--sch-red-soft:rgba(164,41,47,.155)} /* 11/07 colortest 1.5단계 (1단계와 2단계 중간) */
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sch{--accent:#6f9bd1;--accent-s:#8fb3de;--accent-soft:rgba(111,155,209,.16);--sch-red:#e07a7f;--sch-red-soft:rgba(224,122,127,.14)}}
 :root[data-theme="dark"] .sch{--accent:#6f9bd1;--accent-s:#8fb3de;--accent-soft:rgba(111,155,209,.16);--sch-red:#e07a7f;--sch-red-soft:rgba(224,122,127,.14)}
 

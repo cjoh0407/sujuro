@@ -121,6 +121,7 @@ flowchart LR
 | Language | Java 11 |
 | Framework | Spring Boot 2.7.18, Spring Security, Spring Validation, Spring Mail, Spring WebSocket |
 | Persistence | MyBatis 2.3.2, Oracle 21c XE (ojdbc8), 공공데이터 공통표준용어 기반 테이블 23개 |
+| 파일 저장 | 로컬: 서버 폴더 / 배포 서버: AWS S3 (AWS SDK for Java v2, EC2 IAM 역할) |
 | View | Thymeleaf, Thymeleaf Layout Dialect, FullCalendar, Chart.js |
 | 외부 API | 조달청 나라장터 OpenAPI (공공데이터포털) |
 | Build · IDE | Maven, Spring Tools(STS) 4 |
@@ -205,9 +206,32 @@ git clone https://github.com/cjoh0407/sujuro.git
    # spring.mail.host= / spring.mail.username= / spring.mail.password= / notice.mail.from=
    ```
    macOS는 서비스명을 `FREEPDB1`, 업로드 경로를 `/Users/이름/dev/upload` 형태로 바꿉니다.
+   업로드 파일은 로컬에서는 이 폴더(`app.upload-dir`)에 저장됩니다. 배포 서버만 S3를 쓰므로 로컬에는 AWS 설정이 필요 없습니다 (아래 '파일 저장소').
    STS에서 이 파일의 한글이 깨져 보이면 파일 우클릭 → Open With → Text Editor로 여세요. (파일은 UTF-8)
 4. `DbConnectionTest`를 JUnit으로 실행해 `DB 연결 성공` 로그를 확인합니다.
 5. `SujuroApplication`을 Spring Boot App으로 실행하고 http://localhost:8080 에 접속합니다.
+
+### 파일 저장소 (로컬: 폴더 / 배포 서버: S3)
+
+업로드 파일(제안서·제출서류·평가표·참고자료)은 `common/file/FileStorage`가 저장하고, 실제 위치는 설정 `app.storage.type`으로 고릅니다.
+
+| 설정 | 쓰는 곳 | 저장 위치 |
+| --- | --- | --- |
+| `local` (기본값) | 팀원 로컬 PC | `app.upload-dir/<하위폴더>/<저장 이름>` |
+| `s3` | 배포 서버 (EC2) | S3 버킷 `<하위폴더>/<저장 이름>` (폴더 구조와 같음) |
+
+배포 서버 설정 (서비스 설정에 넣음, 액세스 키는 넣지 않음):
+
+```properties
+app.storage.type=s3
+app.storage.s3.bucket=sujuro-files-s3
+app.storage.s3.region=ap-northeast-2
+```
+
+- 권한은 EC2에 붙인 IAM 역할 `sujuro-ec2-role`(정책 `sujuro-s3-files`: 이 버킷의 올리기·읽기·삭제·목록)에서 SDK가 자동으로 받습니다.
+- 버킷은 퍼블릭 접근을 모두 막았습니다. 내려받기는 앱이 권한을 확인한 뒤 S3에서 읽어 보냅니다.
+- 견본 파일: 서버에서 `bash load_demo_files.sh s3://sujuro-files-s3` (AWS CLI v2 필요).
+- DB에는 하위폴더(`FILE_PATH_NM`)와 저장 이름(`STRG_FILE_NM`)만 들어가서, 저장소를 바꿔도 DB는 그대로입니다.
 
 ### 테스트 계정
 

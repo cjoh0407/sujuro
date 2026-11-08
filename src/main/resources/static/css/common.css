@@ -6,7 +6,16 @@
  * 색은 :root 의 변수(--accent, --danger ...)로만 지정하고, 상태 색은 .pill 의 색 이름(accent, success, warning, danger, neutral, info)을 쓴다.
  * (상태 용어와 색은 전 화면에서 같게 쓴다 - NFR-018)
  */
-:root{--bg:#F4F5F8;--surface:#fff;--alt:#F7F8FA;--border:#E3E6EC;--text:#17202E;--muted:#636E7E;--faint:#99A2B1;--accent:#16419E;--accent-s:#1D4B7E;--accent-soft:#E7EDF8;--success:#13804F;--success-soft:#DFF3E8;--warning:#AD6F0A;--warning-soft:#FBEED3;--danger:#C13B3B;--danger-soft:#FBE4E4;--neutral:#6B7585;--neutral-soft:#ECEEF2;--info:#5B4FC4;--info-soft:#ECE9FB;color-scheme:light;}
+/* 11/07 colortest 1.5단계: 1단계와 2단계의 딱 중간 값 (각 색을 반씩 섞음). 단, 글씨(--text·--muted·--faint 색과 굵기 500)는 2단계 값.
+   1단계 값: --bg:#E6E9F0 --alt:#F0F2F6 --border:#D2D7E0 --text:#0E1520 --muted:#4A5566 --faint:#7B8596 --accent-s:#123576 --accent-soft:#D9E4F8
+            --success:#0B7443/#CDEEDB --warning:#955B00/#FAE2B2 --danger:#B42424/#F8D3D3 --neutral:#4F5A6B/#E0E4EA --info:#4B3FBF/#E0DCFA
+   (1단계 설명) 바탕을 한 단계 진하게(흰 카드가 떠 보이게), 테두리·보조 글자를 진하게, 상태 색은 채도를 높이고 연한 바탕을 한 단계 진하게.
+   원래 값: --bg:#F4F5F8 --alt:#F7F8FA --border:#E3E6EC --text:#17202E --muted:#636E7E --faint:#99A2B1 --accent-s:#1D4B7E --accent-soft:#E7EDF8
+            --success:#13804F/#DFF3E8 --warning:#AD6F0A/#FBEED3 --danger:#C13B3B/#FBE4E4 --neutral:#6B7585/#ECEEF2 --info:#5B4FC4/#ECE9FB
+   2단계 값: --bg:#DADFE8 --alt:#E9ECF2 --border:#BCC4D1 --text:#070B12 --muted:#353F4F --faint:#5E6879 --accent-s:#0E2C66 --accent-soft:#CAD9F5
+            --success:#06623A/#BCE6CD --warning:#7A4900/#F6D48D --danger:#9E1A1A/#F3C1C1 --neutral:#3B4555/#D1D7E0 --info:#3B2FAC/#D1CBF6, 글자 굵기 500
+   3단계 값: --bg:#CCD2DD --alt:#DEE2EA --border:#929CAD --text:#000 --muted:#151C28 --faint:#363F4F (상태 색·배지 더 진하게) */
+:root{--bg:#E0E4EC;--surface:#fff;--alt:#ECEFF4;--border:#C7CED8;--text:#070B12;--muted:#353F4F;--faint:#5E6879;--accent:#16419E;--accent-s:#10306E;--accent-soft:#D2DEF6;--success:#086B3E;--success-soft:#C4EAD4;--warning:#885200;--warning-soft:#F8DBA0;--danger:#A91F1F;--danger-soft:#F6CACA;--neutral:#455060;--neutral-soft:#D8DEE5;--info:#4337B6;--info-soft:#D8D4F8;color-scheme:light;}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1318;--surface:#171C23;--alt:#1C222A;--border:#2A323C;--text:#E7EAEF;--muted:#9AA4B2;--faint:#6D7786;--accent:#6E95F0;--accent-s:#8FADF4;--accent-soft:#1E2A47;--success:#4FBE8C;--success-soft:#143426;--warning:#E2B259;--warning-soft:#3B2D13;--danger:#E2797C;--danger-soft:#3A1E20;--neutral:#8B96A6;--neutral-soft:#212A34;--info:#9A90E8;--info-soft:#262149;color-scheme:dark;}
 }
 :root[data-theme="dark"]{--bg:#0F1318;--surface:#171C23;--alt:#1C222A;--border:#2A323C;--text:#E7EAEF;--muted:#9AA4B2;--faint:#6D7786;--accent:#6E95F0;--accent-s:#8FADF4;--accent-soft:#1E2A47;--success:#4FBE8C;--success-soft:#143426;--warning:#E2B259;--warning-soft:#3B2D13;--danger:#E2797C;--danger-soft:#3A1E20;--neutral:#8B96A6;--neutral-soft:#212A34;--info:#9A90E8;--info-soft:#262149;color-scheme:dark;}
@@ -14,7 +23,7 @@
 html,body{margin:0}
 /* 스크롤바 자리를 늘 비워 둔다. 긴 화면(스크롤바 있음)과 …(main에 있던 주석 그대로) */
 html{scrollbar-gutter:stable}
-body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif;font-size:14px;line-height:1.55}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif;font-size:14px;line-height:1.55;font-weight:500} /* 11/07 colortest: 글씨는 2단계(굵기 500) */
 h1,h2,h3{margin:0}
 button{font-family:inherit}
 /* 뼈대 (11/07): 1줄 헤더(가로 전체) / 2줄 사이드바 | 내용. 헤더 높이는 --hd-h 하나로 맞춘다 */
@@ -84,7 +93,7 @@ button{font-family:inherit}
 .page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
 .page-head h2{font-size:19px}
 .sub{font-size:12.5px;color:var(--muted);margin-top:3px}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 1px 3px rgba(10,16,25,.08)} /* 11/07 colortest 1.5단계: 1단계(.06)와 2단계(.10) 사이 그림자 */
 .pad{padding:18px}
 .card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap}
 .card-head h3{font-size:13.5px}

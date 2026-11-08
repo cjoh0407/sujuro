@@ -150,7 +150,7 @@ public class DocServiceImpl implements DocService {
         if (!admin && !d.isTeamOwned()) {
             throw new BusinessException("경영지원실 담당 서류의 상태는 경영지원실이 바꿉니다.");
         }
-        if (!(DocDto.ST_NONE.equals(statusCd) || DocDto.ST_DOING.equals(statusCd) || DocDto.ST_READY.equals(statusCd))) {
+        if (!(DocDto.ST_NONE.equals(statusCd) || DocDto.ST_READY.equals(statusCd))) {
             throw new BusinessException("상태가 올바르지 않습니다.");
         }
         mapper.updateDocStatus(dcmntSn, statusCd);

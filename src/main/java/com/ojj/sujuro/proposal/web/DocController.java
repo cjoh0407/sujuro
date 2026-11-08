@@ -102,7 +102,7 @@ public class DocController {
         model.addAttribute("missing", String.join(", ", missing));
         model.addAttribute("canRegister", admin && sub.isSubmittable() && !docs.isEmpty() && missing.isEmpty());
 
-        // 위쪽 통계 카드: 체크리스트의 "최종 제안서"가 준비 완료인지
+        // 위쪽 통계 카드: 체크리스트의 "최종 제안서"가 완료(파일 있음)인지
         DocDto finalDoc = null;
         for (DocDto d : docs) {
             if (d.isFinalProposal()) {

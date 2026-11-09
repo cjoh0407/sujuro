@@ -84,5 +84,8 @@ public interface DocMapper {
     /** 삭제(숨김) 처리. 원본과 이력은 남긴다 (NFR-009) */
     int markFileDeleted(@Param("fileSn") Long fileSn, @Param("userId") String userId, @Param("reason") String reason);
 
+    /** 이 파일이 속한 서류에 남은 파일이 없으면 미완료로 되돌린다 */
+    int resetDocStatusIfNoFile(@Param("fileSn") Long fileSn);
+
     PrpFileDto findFile(@Param("fileSn") Long fileSn);
 }

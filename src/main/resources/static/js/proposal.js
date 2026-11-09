@@ -34,14 +34,6 @@ function confirmDel(f) {
   return confirm(msg + ' 삭제할까요?');
 }
 
-/* 파일 삭제 사유를 한 줄 받는다. 비우면 취소. 폼에 name="reason" hidden 칸이 있어야 한다. (NFR-009: 숨김 삭제) */
-function askReason(f) {
-  var r = prompt('삭제 사유를 입력해 주세요. (목록에서만 숨기고 원본과 기록은 남습니다)');
-  if (r === null || !r.trim()) return false;
-  f.elements.reason.value = r.trim();
-  return true;
-}
-
 /* ---------- 목차 양식 (FR-048) ---------- */
 
 /* 이름 바꾸기: 새 이름을 받아 hidden tocFormNm에 넣는다. 비우거나 그대로면 취소 */

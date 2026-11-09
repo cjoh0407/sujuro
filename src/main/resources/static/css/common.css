@@ -401,3 +401,76 @@ tr[data-row-link]{cursor:pointer}
 /* 파일 이름 = 내려받기 링크 (11/07): 내려받기 아이콘 대신 이름을 누른다. 평소엔 글자처럼, 올리면 밑줄·파랑 */
 a.dl-name{color:var(--text);font-weight:600;text-decoration:none;cursor:pointer;overflow-wrap:anywhere}
 a.dl-name:hover,a.dl-name:focus-visible{color:var(--accent);text-decoration:underline;text-underline-offset:3px;outline:0}
+
+/* 화면 맨 위 공고명(사업명) 줄 높이를 모든 화면에서 36px로 같게 (11/09)
+   사업 이력 관리·평가·결과 입력(h2)과 제안 화면들(.biz)이 같은 높이에서 시작하고, 아래 첫 블록까지 간격(16px)도 같다 */
+.page-head{align-items:flex-start}
+.page-head h2{font-size:19px;line-height:36px;margin:0}
+.page-head>.row{min-height:36px;align-items:center}
+.page-head>.btn{align-self:flex-start;margin-top:4px} /* 36px 줄 안에서 가운데 (btn sm 높이 28px) */
+
+/* ===== 목록 카드 머리의 밑줄 탭 (공고 관리 단계 탭 · 참고자료 구분 탭, 11/09 bid.css 에서 옮김) =====
+   <div class="card-head nl-head"><nav class="ntabs"><a class="ntab on">전체<span class="n">38</span></a> ...</nav></div>
+   선택 탭은 연한 파랑 배경(위쪽만 둥글게) + 파란 밑줄, 탭 사이에는 짧은 세로 구분선 */
+.nl-head{padding-top:0;padding-bottom:0}
+.ntabs{display:flex;flex-wrap:wrap;gap:0 4px;margin-left:-10px}
+.ntab{display:inline-flex;align-items:baseline;gap:4px;padding:13px 10px 11px;margin-bottom:-1px;border-bottom:2px solid transparent;color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap}
+.ntab .n{font-size:11.5px;color:var(--faint)}
+.ntab:hover{color:var(--text);background:var(--alt)}
+.ntab.on,.ntab.on:hover{color:var(--accent-s);background:var(--accent-soft);border-bottom-color:var(--accent);font-weight:700}
+.ntab.on .n{color:var(--accent-s)}
+.ntab{position:relative;border-radius:8px 8px 0 0}
+.ntab+.ntab::before{content:"";position:absolute;left:-2px;top:50%;width:1px;height:14px;margin-top:-7px;background:var(--border)}
+.ntab.on::before,.ntab.on+.ntab::before{display:none} /* 선택된 탭 양옆에는 구분선을 빼서 배경과 겹치지 않게 */
+.ntab{margin-top:6px;padding-top:7px}
+/* 밑줄 탭 머리 높이를 왼쪽 칸 카드 머리(50px)와 같게 (11/09: 참고자료 자료 등록 · 공고 관리 공통)
+   탭은 머리 아래쪽에 붙고(밑줄이 머리 아랫선과 겹친다), 오른쪽 검색·안내 글은 세로 가운데 */
+.card-head.nl-head{height:50px;box-sizing:border-box;align-items:center;flex-wrap:nowrap}
+.nl-head .ntabs{align-self:flex-end;flex-wrap:nowrap}
+.ntab{height:44px;margin-top:0;padding:0 10px;align-items:center}
+
+/* 드롭다운 화살표 (11/09): 사이트의 모든 드롭다운(select)에 같은 남색 꺾쇠. 여러 줄 목록(multiple·size)은 빼고.
+   :not() 두 개로 .qa-box select{background:…} 같은 화면별 규칙보다 우선한다. 펼친 목록은 브라우저 기본(사업 드롭다운만 .csel) */
+select:not([multiple]):not([size]){-webkit-appearance:none;appearance:none;cursor:pointer;padding-left:12px;padding-right:30px;text-indent:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%2316419E' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:12px 12px}
+select:not([multiple]):not([size]):hover:not(:disabled){border-color:var(--accent)}
+select:not([multiple]):not([size]):disabled{cursor:default;opacity:.6}
+select::-ms-expand{display:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) select:not([multiple]):not([size]){background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%236E95F0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}}
+:root[data-theme="dark"] select:not([multiple]):not([size]){background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%236E95F0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+/* 사업 드롭다운(JS가 꺼진 경우의 모양) */
+.bid-select select,.sch-pick select{font-weight:500}
+.bid-select select:focus,.sch-pick select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+/* 사업 드롭다운 펼친 목록 (11/09, common.js 가 만든다). 원래 select는 숨겨 두고 이 버튼·목록을 보여 준다 */
+.csel{position:relative;display:inline-block;width:340px;max-width:100%;vertical-align:middle}
+.csel-native{position:absolute!important;inset:0;width:100%!important;opacity:0;pointer-events:none}
+.csel-btn{display:flex;align-items:center;gap:8px;width:100%;height:36px;box-sizing:border-box;padding:0 34px 0 12px;font:inherit;font-size:12.5px;font-weight:500;color:var(--text);text-align:left;cursor:pointer;
+  border:1px solid var(--border);border-radius:7px;transition:border-color .15s,box-shadow .15s;
+  background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%2316419E' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center}
+.csel-btn:hover{border-color:var(--accent)}
+.csel-btn:focus-visible,.csel.open .csel-btn{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.csel.open .csel-btn{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 7.5 6 4l3.5 3.5' fill='none' stroke='%2316419E' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+.csel-v{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.csel-sub{flex:none;font-size:11px;font-weight:600;line-height:1;padding:4px 7px;border-radius:999px;background:var(--neutral-soft);color:var(--neutral);white-space:nowrap}
+.csel-btn .csel-sub{background:var(--accent-soft);color:var(--accent-s)}
+.csel-pop{position:absolute;top:calc(100% + 6px);right:0;z-index:35;min-width:100%;width:440px;max-width:min(440px,92vw);max-height:360px;overflow-y:auto;box-sizing:border-box;padding:6px;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 32px rgba(15,25,45,.16),0 2px 6px rgba(15,25,45,.06);animation:cselIn .12s ease-out}
+.csel-pop[hidden]{display:none}
+@keyframes cselIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.csel-grp{display:flex;align-items:center;gap:6px;padding:10px 10px 5px;font-size:11px;font-weight:700;color:var(--faint);letter-spacing:.02em}
+.csel-grp:first-child{padding-top:4px}
+.csel-grp+.csel-opt{margin-top:0}
+.csel-opt+.csel-grp{margin-top:4px;border-top:1px solid var(--border);padding-top:12px}
+.csel-grp span{font-weight:600;color:var(--faint);background:var(--alt);border-radius:999px;padding:1px 6px;font-size:10.5px}
+.csel-opt{display:flex;align-items:center;gap:8px;padding:9px 10px 9px 8px;border-radius:8px;font-size:12.5px;color:var(--text);cursor:pointer}
+.csel-opt.act{background:var(--alt)}
+.csel-opt.on{background:var(--accent-soft);color:var(--accent-s);font-weight:600}
+.csel-opt.on .csel-sub{background:var(--surface);color:var(--accent-s)}
+.csel-ck{flex:none;width:14px;height:14px;display:flex;color:var(--accent)}
+.csel-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .csel-btn{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%236E95F0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+  :root:not([data-theme="light"]) .csel.open .csel-btn{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 7.5 6 4l3.5 3.5' fill='none' stroke='%236E95F0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}}
+:root[data-theme="dark"] .csel-btn{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%236E95F0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+:root[data-theme="dark"] .csel.open .csel-btn{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 7.5 6 4l3.5 3.5' fill='none' stroke='%236E95F0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+@media (max-width:760px){.csel{width:100%}}

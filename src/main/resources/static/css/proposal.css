@@ -318,7 +318,7 @@ tr.rq-row.on>td{background:var(--accent-soft)}
 .page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
 .page-head-l{display:flex;flex-direction:column;gap:10px;min-width:0}
 .bid-select{margin:0}
-.bid-select select{min-width:280px;max-width:420px}
+.bid-select select{width:340px;max-width:100%;text-overflow:ellipsis} /* 고정 폭: 사업명 길이와 상관없이 모든 화면 같은 크기 (11/09) */
 /* 목차 카드 머리글의 [파일 올리기 · 끌어 놓기] */
 .up-strip{margin:0;display:inline-flex}
 .up-strip .drop.sm{max-width:220px}
@@ -378,7 +378,7 @@ button.drop.need-owner:hover{border-color:var(--warning);background:var(--warnin
 .up-strip .drop.sm .drop-text{justify-content:center}
 
 /* 제출서류 위쪽 요약: 카드 하나를 세 칸으로, 칸마다 색 동그라미 아이콘 (11/07) */
-.doc-sum{display:grid;grid-template-columns:repeat(3,1fr)}
+.doc-sum{display:grid;grid-template-columns:repeat(4,1fr)}
 .doc-sum>div{display:flex;align-items:center;gap:14px;padding:16px 20px;min-width:0}
 .doc-sum>div+div{border-left:1px solid var(--border)}
 .ds-ic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:none}
@@ -457,3 +457,23 @@ main.content table.ev-table th:nth-child(2),main.content table.ev-table tbody td
 /* 질의응답 검색창: 오른쪽 끝, 고정 폭 (11/07) */
 .qa-search{width:360px;max-width:100%;flex-wrap:nowrap}
 .qa-search .sbox{flex:1}
+
+/* 제출서류 체크리스트: 파일이 있는 줄과 없는 줄의 높이를 같게 (11/08) */
+.doc-table tbody tr{height:60px}
+
+/* 제출서류: 위쪽 제출 마감 일시, 제출 기한 날짜+시간 칸 (11/08) */
+.due-in{display:inline-flex;gap:4px;align-items:center}
+.due-in input[type=time]{width:104px}
+@media (max-width:1100px) and (min-width:761px){.doc-sum{grid-template-columns:repeat(2,1fr)}.doc-sum>div:nth-child(3){border-left:0}.doc-sum>div:nth-child(n+3){border-top:1px solid var(--border)}}
+/* 제출 마감 칸: 날짜(왼쪽)와 시간(오른쪽 끝)을 한 줄에, 시간은 빨강 (11/08) */
+.doc-sum .ds-due{flex:1;min-width:0}
+.doc-sum .ds-due-row{display:flex;justify-content:flex-start;align-items:baseline;gap:8px} /* 시간은 날짜 바로 옆 */
+.doc-sum .ds-time{color:var(--danger)}
+
+/* 공고명 줄 아래 여백을 제안 화면마다 같게 (11/08)
+   - 공고명 줄 높이를 오른쪽 사업건 드롭다운(36px)과 같게 고정해서, 드롭다운이 있는 화면도 줄이 더 높아지지 않게
+   - 공고명 아래 첫 블록(탭·카드·3:7 칸)까지는 어느 화면이든 화면 기본 간격 16px */
+.biz{min-height:36px;padding:0;box-sizing:border-box}
+.page-head{align-items:flex-start} /* 드롭다운은 공고명 줄과 같은 높이에 */
+.page-head-l{gap:16px}
+.page-head .bid-select select{height:36px;box-sizing:border-box}

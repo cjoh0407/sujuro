@@ -55,14 +55,15 @@
   <div class="split-r">
 
   <div class="card">
-    <div class="card-head ref-head">
-      <div class="tabs">
-        <a class="tab" th:classappend="${se == ''} ? 'on'" th:href="@{/refs(q=${q})}" th:text="|전체 ${total}|">전체</a>
-        <a class="tab" th:classappend="${se == 'RF010'} ? 'on'" th:href="@{/refs(se='RF010', q=${q})}" th:text="|폰트 ${counts['RF010']}|">폰트</a>
-        <a class="tab" th:classappend="${se == 'RF020'} ? 'on'" th:href="@{/refs(se='RF020', q=${q})}" th:text="|이미지 ${counts['RF020']}|">이미지</a>
-        <a class="tab" th:classappend="${se == 'RF030'} ? 'on'" th:href="@{/refs(se='RF030', q=${q})}" th:text="|문서 ${counts['RF030']}|">문서</a>
-        <a class="tab" th:classappend="${se == 'RF040'} ? 'on'" th:href="@{/refs(se='RF040', q=${q})}" th:text="|기타 ${counts['RF040']}|">기타</a>
-      </div>
+    <div class="card-head ref-head nl-head">
+      <!-- 구분 탭: 공고 관리 단계 탭과 같은 밑줄 탭 (11/09) -->
+      <nav class="ntabs" aria-label="자료 구분">
+        <a data-nav class="ntab" th:classappend="${se == ''} ? 'on'" th:href="@{/refs(q=${q})}">전체<span class="n" th:text="${total}">0</span></a>
+        <a data-nav class="ntab" th:classappend="${se == 'RF010'} ? 'on'" th:href="@{/refs(se='RF010', q=${q})}">폰트<span class="n" th:text="${counts['RF010']}">0</span></a>
+        <a data-nav class="ntab" th:classappend="${se == 'RF020'} ? 'on'" th:href="@{/refs(se='RF020', q=${q})}">이미지<span class="n" th:text="${counts['RF020']}">0</span></a>
+        <a data-nav class="ntab" th:classappend="${se == 'RF030'} ? 'on'" th:href="@{/refs(se='RF030', q=${q})}">문서<span class="n" th:text="${counts['RF030']}">0</span></a>
+        <a data-nav class="ntab" th:classappend="${se == 'RF040'} ? 'on'" th:href="@{/refs(se='RF040', q=${q})}">기타<span class="n" th:text="${counts['RF040']}">0</span></a>
+      </nav>
       <form class="ref-search" th:action="@{/refs}" method="get">
         <input type="hidden" name="se" th:value="${se}">
         <span class="sbox"><input type="search" name="q" th:value="${q}" placeholder="파일 이름·설명 검색" aria-label="파일 이름·설명 검색"><button class="sb-btn" type="submit" title="검색" aria-label="검색"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button></span>

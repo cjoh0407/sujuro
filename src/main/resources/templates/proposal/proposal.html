@@ -31,6 +31,9 @@
     <div class="banner ok" data-flash="done" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
     <div class="banner err" data-flash="error" th:if="${error != null}" th:text="${error}">오류 안내</div>
 
+    <!-- 사업명은 3:7 칸 위 왼쪽에 (사업 이력 관리와 같게). 그래서 왼쪽·오른쪽 칸이 같은 높이에서 시작한다 -->
+    <th:block th:replace="~{proposal/fragments/bid-header :: bizHead}"></th:block>
+
     <!-- 3:7 화면: 왼쪽에 사업건 목록 · 인원 추가, 오른쪽에 업무 화면 -->
     <div class="split">
     <aside class="split-l">
@@ -42,7 +45,6 @@
       <th:block th:if="${canReq and unmapView == true}"><th:block th:replace="~{proposal/fragments/rqt :: rqForm}"></th:block></th:block>
     </aside>
     <div class="split-r">
-    <th:block th:replace="~{proposal/fragments/bid-header :: bizHead}"></th:block>
     <th:block th:replace="~{proposal/fragments/bid-header :: teamCard}"></th:block>
 
     <!-- 탭: 제안서 목차·요구사항 / 제안요약서 목차 (FR-063) -->

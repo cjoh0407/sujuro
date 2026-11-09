@@ -27,14 +27,13 @@
 
 <th:block layout:fragment="content">
 
-  <!-- 머리: 보고 있는 사업명(NFR-023). 볼 사업이 없으면 탭 이름과 팀 · 연도 -->
+  <!-- 머리: 보고 있는 사업명(NFR-023). 볼 사업이 없으면 탭 이름만 (팀·연도는 사업 목록의 선택칸에 있다, 11/09) -->
   <div class="page-head" th:unless="${view.locked}">
     <div th:if="${archive}">
       <h2 th:text="${archive.pbancNm}">사업명</h2>
     </div>
     <div th:unless="${archive}">
       <h2>사업 이력 관리</h2>
-      <div class="sub" th:text="|${view.teamNm} · ${view.year}년|">개발1팀 · 2026년</div>
     </div>
     <div class="row" th:if="${archive}">
       <a class="btn sm" th:if="${canEdit}" th:href="@{/results(bid=${archive.pbancSn})}">평가·결과 입력</a>

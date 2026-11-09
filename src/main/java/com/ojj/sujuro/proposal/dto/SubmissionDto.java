@@ -20,6 +20,8 @@ public class SubmissionDto {
     private String pbancSttsCd;
     /** 나라장터 등록 일시 */
     private Date sbmsnDt;
+    /** 이 공고의 입찰(제안서 제출) 마감 일시. 화면 위쪽에 보여 준다 (11/08) */
+    private Date bidDdlnDt;
     /** 등록한 경영지원실 담당자 */
     private String prsnrId;
     private String prsnrNm;

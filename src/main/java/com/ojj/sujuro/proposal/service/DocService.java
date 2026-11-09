@@ -49,7 +49,7 @@ public interface DocService {
     /** 준비 상태 변경. 제안팀은 제안팀 담당 서류만 바꿀 수 있다. */
     void changeStatus(Long pbancSn, Long dcmntSn, String statusCd, boolean admin);
 
-    /** 서류 파일 올리기 (경영지원실·제안팀). 미준비였으면 준비 중으로 바뀐다. (FR-069) */
+    /** 서류 파일 올리기 (경영지원실·제안팀). 파일을 올리면 완료가 된다. (FR-069) */
     void uploadDoc(Long pbancSn, Long dcmntSn, MultipartFile file, String userId);
 
     /* ---------- 조견표 (FR-071) ---------- */
@@ -77,7 +77,7 @@ public interface DocService {
     /* ---------- 나라장터 등록 (경영지원실) ---------- */
 
     /**
-     * 나라장터 등록 완료 처리. 체크리스트가 있고 필수 서류가 모두 준비 완료여야 한다.
+     * 나라장터 등록 완료 처리. 체크리스트가 있고 필수 서류에 모두 파일이 있어야(완료) 한다.
      * 상태를 "제출 완료"로 바꾸고 등록 일시·담당자를 기록하며, 처리 이력과 알림을 남긴다. (FR-073)
      */
     void register(Long pbancSn, String userId);

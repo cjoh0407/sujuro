@@ -98,9 +98,11 @@
     SELECT P.PBANC_SN AS pbancSn, P.PBANC_NM AS pbancNm, TM.TEAM_NM AS teamNm,
            TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE) AS dday,
            (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D WHERE D.PBANC_SN = P.PBANC_SN) AS docTotal,
-           (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D WHERE D.PBANC_SN = P.PBANC_SN AND D.PRGRS_STTS_CD = 'DS030') AS docReady,
+           (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D WHERE D.PBANC_SN = P.PBANC_SN
+               AND EXISTS (SELECT 1 FROM TB_ATCH_FILE F WHERE F.DCMNT_SN = D.DCMNT_SN AND F.DEL_YN = 'N')) AS docReady,
            (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D
-             WHERE D.PBANC_SN = P.PBANC_SN AND D.ESNTL_YN = 'Y' AND D.PRGRS_STTS_CD &lt;&gt; 'DS030') AS missingRequired,
+             WHERE D.PBANC_SN = P.PBANC_SN AND D.ESNTL_YN = 'Y'
+               AND NOT EXISTS (SELECT 1 FROM TB_ATCH_FILE F WHERE F.DCMNT_SN = D.DCMNT_SN AND F.DEL_YN = 'N')) AS missingRequired,
            CASE WHEN P.SBMSN_DT IS NOT NULL THEN 1 ELSE 0 END AS registered
       FROM TB_BID_PBANC P
       LEFT JOIN TB_TEAM TM ON TM.TEAM_SN = P.SPRVSN_TEAM_SN
@@ -170,7 +172,8 @@
            (SELECT COUNT(*) FROM TB_RQT_MTTR Q WHERE Q.PBANC_SN = P.PBANC_SN) AS rqtTotal,
            (SELECT COUNT(*) FROM TB_RQT_MTTR Q WHERE Q.PBANC_SN = P.PBANC_SN AND Q.TOC_SN IS NOT NULL) AS rqtMapped,
            (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D WHERE D.PBANC_SN = P.PBANC_SN) AS docTotal,
-           (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D WHERE D.PBANC_SN = P.PBANC_SN AND D.PRGRS_STTS_CD = 'DS030') AS docReady,
+           (SELECT COUNT(*) FROM TB_SBMSN_DCMNT D WHERE D.PBANC_SN = P.PBANC_SN
+               AND EXISTS (SELECT 1 FROM TB_ATCH_FILE F WHERE F.DCMNT_SN = D.DCMNT_SN AND F.DEL_YN = 'N')) AS docReady,
            CASE WHEN EXISTS (SELECT 1 FROM TB_ATCH_FILE F WHERE F.PBANC_SN = P.PBANC_SN AND F.FILE_SE_CD = 'FL030'
                                AND F.LAST_YN = 'Y' AND F.DEL_YN = 'N') THEN 1 ELSE 0 END AS finalConfirmed
       FROM TB_BID_PBANC P
@@ -185,7 +188,7 @@
     팀장이 처리할 일 (마감 빠른 순, 마감이 없는 결과 입력은 맨 뒤)
       DECISION 참여 결정  우리 팀에 배정됐고 결정 전인 공고 (결정은 공고 상세에서 한다)
       FINAL    최종본 확정  내가 주관팀 제안팀원이고 통합본은 올라왔는데 확정(최종여부 Y)된 것이 없는 사업
-      DOCS     제출서류  제안팀이 맡은 필수 서류가 아직 준비 완료가 아닌 사업
+      DOCS     제출서류  제안팀이 맡은 필수 서류에 아직 파일이 없는 사업 (11/09: 완료 = 삭제 안 한 파일이 있음)
       RQT      요구사항 연결  목차에 연결되지 않은 요구사항이 있는 사업
       RESULT   결과 입력  내가 주관팀 제안팀원이고 결과가 등록됐는데 기술점수나 강점 분석이 비어 있는 사업
   -->
@@ -218,7 +221,8 @@
              TRUNC(P.BID_DDLN_DT) - TRUNC(SYSDATE)
         FROM TB_BID_PBANC P
         JOIN (SELECT D.PBANC_SN, COUNT(*) AS CNT FROM TB_SBMSN_DCMNT D
-               WHERE D.ESNTL_YN = 'Y' AND D.PRGRS_STTS_CD &lt;&gt; 'DS030' AND NVL(D.TKCG_SE_CD, 'TK020') = 'TK020'
+               WHERE D.ESNTL_YN = 'Y' AND NOT EXISTS (SELECT 1 FROM TB_ATCH_FILE F WHERE F.DCMNT_SN = D.DCMNT_SN AND F.DEL_YN = 'N')
+                 AND NVL(D.TKCG_SE_CD, 'TK020') = 'TK020'
                GROUP BY D.PBANC_SN) X ON X.PBANC_SN = P.PBANC_SN
        WHERE P.PBANC_STTS_CD IN ('PS030', 'PS040') AND <include refid="myProposalBid"/>
       UNION ALL

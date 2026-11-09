@@ -16,8 +16,7 @@
 
 <th:block layout:fragment="content">
 <div class="sch">
-  <div class="banner ok mb-12" data-flash="done" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
-  <div class="banner err mb-12" data-flash="error" th:if="${error != null}" th:text="${error}">오류 안내</div>
+  <div hidden data-flash="error" th:if="${error != null}" th:text="${error}">오류 안내</div>
 
   <!-- 월 이동 + 팀 탭(영업부·경영지원실) -->
   <div class="row jc-between mb-12">

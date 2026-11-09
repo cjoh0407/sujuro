@@ -81,7 +81,7 @@
                 th:classappend="|${canReq ? 'hv rq-row' : ''} ${editRqt != null and editRqt.rqtMttrSn == q.rqtMttrSn ? 'on' : ''}|"
                 th:data-on-click="${canReq} ? 'openRqt' : null" th:title="${canReq} ? '눌러서 왼쪽에서 수정·삭제' : null">
               <td><span class="pill danger mono" th:text="${q.rqtMttrNo}">SFR-001</span></td>
-              <td><th:block th:replace="~{proposal/fragments/rqt :: rqInfo(${q}, true)}"></th:block></td>
+              <td class="c-left"><th:block th:replace="~{proposal/fragments/rqt :: rqInfo(${q}, true)}"></th:block></td>
               <td><th:block th:replace="~{proposal/fragments/rqt :: rqPickToc(${q})}"></th:block></td>
             </tr>
             <tr th:if="${#lists.isEmpty(unmappedList)}"><td colspan="3" class="empty"
@@ -195,7 +195,7 @@
 
                   <th:block th:if="${i lt mc}" th:with="q=${mine[i]}">
                     <td><th:block th:replace="~{proposal/fragments/rqt :: rqId(${q}, ${can})}"></th:block></td>
-                    <td><th:block th:replace="~{proposal/fragments/rqt :: rqInfo(${q}, false)}"></th:block></td>
+                    <td class="c-left"><th:block th:replace="~{proposal/fragments/rqt :: rqInfo(${q}, false)}"></th:block></td>
                   </th:block>
 
                   <td colspan="2" th:if="${addable and i == mc}">

@@ -322,8 +322,8 @@
 @media (max-width:560px){.dash-load{flex-direction:column;align-items:stretch}.ld-side{flex-direction:row;justify-content:center}}
 /* 나란히 놓인 블록의 머리 높이를 같게 (버튼이 있는 블록과 없는 블록의 내용 시작선이 같아진다) */
 .dash .card{overflow:hidden}
-.dash .card-head{min-height:56px;box-sizing:border-box}
-.dash .dash-cal > .card-head,.dash .dash-side > .card-head{min-height:48px;padding-top:8px;padding-bottom:8px} /* 미니 캘린더와 옆 최근 알림은 제목 줄을 낮게 맞춰 구분선이 한 줄로 (11/07) */
+.dash .card-head{min-height:50px;box-sizing:border-box} /* 11/09: 다른 화면과 같은 50px */
+.dash .dash-cal > .card-head,.dash .dash-side > .card-head{min-height:50px;padding-top:6px;padding-bottom:6px} /* 미니 캘린더와 옆 최근 알림은 제목 줄을 낮게 맞춰 구분선이 한 줄로 (11/07) */
 
 /* ===== 화면을 열 때 차트가 차오르는 효과 (11/05) =====
    화면이 그려질 때(비동기로 바뀐 뒤 포함) 한 번 실행된다. 움직임을 줄이는 설정이면 끈다. */

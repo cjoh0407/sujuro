@@ -27,8 +27,7 @@
 
   <th:block th:unless="${#lists.isEmpty(bids)}">
 
-    <div class="banner ok" data-flash="done" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
-    <div class="banner err" data-flash="error" th:if="${error != null}" th:text="${error}">오류 안내</div>
+    <div hidden data-flash="error" th:if="${error != null}" th:text="${error}">오류 안내</div>
 
     <!-- 위: 사업명·탭(왼쪽)과 사업건 고르기(오른쪽). 처음에는 스토리보드 관리 등에서 보던 사업건이 열린다 (CurrentBid) -->
     <div class="page-head">
@@ -90,7 +89,7 @@
                       <table class="ver-src" hidden th:data-title="${t.label}" th:data-count="${#lists.size(arr)}"><tbody>
                         <tr th:each="v : ${arr}">
                           <td><span class="pill accent" th:text="'v' + ${v.verNo}">v1</span></td>
-                          <td class="vp-nm"><a class="dl-name" title="눌러서 내려받기" th:href="@{/files/download(bid=${bid.pbancSn}, fileSn=${v.fileSn})}" th:text="${v.orgnlFileNm}">파일명</a><span class="pill success" th:if="${v.last}">최종본</span></td>
+                          <td class="vp-nm c-left"><a class="dl-name" title="눌러서 내려받기" th:href="@{/files/download(bid=${bid.pbancSn}, fileSn=${v.fileSn})}" th:text="${v.orgnlFileNm}">파일명</a><span class="pill success" th:if="${v.last}">최종본</span></td>
                           <td th:text="${v.rgtrNm ?: v.rgtrId}">등록자</td>
                           <td class="mono" th:text="${#dates.format(v.regDt, 'yyyy-MM-dd HH:mm')}">2026-11-06 22:03</td>
                           <td class="mono" th:text="${v.sizeLabel}">143KB</td>

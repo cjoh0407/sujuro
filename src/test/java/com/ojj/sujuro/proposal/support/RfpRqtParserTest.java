@@ -114,4 +114,22 @@ class RfpRqtParserTest {
         assertEquals(0, r.getFoundCount());
         assertEquals(1, r.getWarnings().size());
     }
+
+    @Test
+    void 총괄표의_구분명을_접두어별로_읽고_기능_비기능_분류는_뗀다() {
+        RqtExtractDto r = RfpRqtParser.parse(HEAD
+                + "제약사항 COR-00 1\n"
+                + "합 계 6\n"
+                + "01 SFR 01 가\n02 SFR 02 나\n03 SFR 03 다\n04 PER 01 라\n05 PER 02 마\n06 COR 01 바\n");
+        assertEquals("기능 요구사항", r.getGroupNames().get("SFR"));
+        assertEquals("성능 요구사항", r.getGroupNames().get("PER"));
+        assertEquals("제약사항", r.getGroupNames().get("COR"));
+        assertTrue(r.isGroupStart(0));
+        assertTrue(!r.isGroupStart(1));
+        assertTrue(r.isGroupStart(3));
+        assertEquals("성능 요구사항", r.groupTitle(3));
+        assertEquals("PER · 2개", r.groupSub(3));
+        assertEquals("기능 요구사항", RfpRqtParser.groupName("기능 요구사항"));
+        assertEquals("보안 요구사항", RfpRqtParser.groupName("비기능   보안 요구사항"));
+    }
 }

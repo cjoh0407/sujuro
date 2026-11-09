@@ -144,6 +144,9 @@ public class RqtServiceImpl implements RqtService {
         in.setPbancSn(pbancSn);
         in.setRqtMttrNo(no);
         in.setRgtrId(userId);
+        // 같은 접두어로 이미 등록된 요구사항의 구분명을 따라간다 (SFR-010 → 기능 요구사항 묶음으로, 11/09)
+        int dash = no.indexOf('-');
+        in.setRqtSeNm(dash > 0 ? mapper.findSeNm(pbancSn, no.substring(0, dash)) : null);
         mapper.insert(in);
     }
 
@@ -161,6 +164,12 @@ public class RqtServiceImpl implements RqtService {
     @Transactional
     @Override
     public int[] registerAll(Long pbancSn, List<String> nos, List<String> names, String userId) {
+        return registerAll(pbancSn, nos, names, null, userId);
+    }
+
+    @Transactional
+    @Override
+    public int[] registerAll(Long pbancSn, List<String> nos, List<String> names, List<String> seNms, String userId) {
         if (nos == null || nos.isEmpty()) {
             throw new BusinessException("등록할 요구사항을 하나 이상 골라 주세요.");
         }
@@ -177,6 +186,8 @@ public class RqtServiceImpl implements RqtService {
             RqtDto in = new RqtDto();
             in.setRqtMttrNo(no);
             in.setRqtMttrNm(nm);
+            String se = seNms == null || k >= seNms.size() || seNms.get(k) == null ? "" : seNms.get(k).trim();
+            in.setRqtSeNm(se.isEmpty() ? null : (se.length() > 100 ? se.substring(0, 100) : se));
             validate(in);
             in.setPbancSn(pbancSn);
             in.setRgtrId(userId);

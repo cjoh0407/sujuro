@@ -19,6 +19,8 @@ public interface RqtMapper {
     RqtDto findOne(@Param("rqtMttrSn") Long rqtMttrSn);
 
     /** 같은 사업건에 같은 요구사항번호가 몇 개 있는지 */
+    String findSeNm(@Param("pbancSn") Long pbancSn, @Param("prefix") String prefix);
+
     int countByNo(@Param("pbancSn") Long pbancSn, @Param("rqtMttrNo") String rqtMttrNo);
 
     int insert(RqtDto rqt);

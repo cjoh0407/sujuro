@@ -150,6 +150,7 @@ public class ProposalController {
         model.addAttribute("assignedAll", !leaves.isEmpty() && unassigned == 0);
         model.addAttribute("rqtsByToc", rqtsByToc);
         model.addAttribute("unmappedList", unmappedList);
+        model.addAttribute("unmappedGroups", com.ojj.sujuro.proposal.dto.RqtGroupDto.of(all, true)); // 구분별 제목 줄로 묶어 보여 준다 (11/09)
         model.addAttribute("mapTargets", mapTargets);
         model.addAttribute("rqtTotal", all.size());
         model.addAttribute("unmapped", unmappedList.size());

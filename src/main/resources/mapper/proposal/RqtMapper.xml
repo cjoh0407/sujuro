@@ -8,7 +8,7 @@
 
   <sql id="rqtSelect">
     SELECT R.RQT_MTTR_SN AS rqtMttrSn, R.PBANC_SN AS pbancSn, R.RQT_MTTR_NO AS rqtMttrNo,
-           R.RQT_MTTR_NM AS rqtMttrNm, R.TOC_SN AS tocSn, R.RGTR_ID AS rgtrId,
+           R.RQT_MTTR_NM AS rqtMttrNm, R.RQT_SE_NM AS rqtSeNm, R.TOC_SN AS tocSn, R.RGTR_ID AS rgtrId,
            T.TOC_NO AS tocNo, T.TOC_NM AS tocNm, T.PIC_ID AS picId, U.USER_NM AS picNm
       FROM TB_RQT_MTTR R
       LEFT JOIN TB_TOC T ON T.TOC_SN = R.TOC_SN
@@ -31,9 +31,15 @@
   </select>
 
   <insert id="insert" parameterType="com.ojj.sujuro.proposal.dto.RqtDto" useGeneratedKeys="true" keyProperty="rqtMttrSn" keyColumn="RQT_MTTR_SN">
-    INSERT INTO TB_RQT_MTTR (PBANC_SN, RQT_MTTR_NO, RQT_MTTR_NM, RGTR_ID)
-    VALUES (#{pbancSn}, #{rqtMttrNo}, #{rqtMttrNm}, #{rgtrId})
+    INSERT INTO TB_RQT_MTTR (PBANC_SN, RQT_MTTR_NO, RQT_MTTR_NM, RQT_SE_NM, RGTR_ID)
+    VALUES (#{pbancSn}, #{rqtMttrNo}, #{rqtMttrNm}, #{rqtSeNm, jdbcType=VARCHAR}, #{rgtrId})
   </insert>
+
+  <!-- 같은 사업건에서 ID 접두어가 같은 요구사항의 구분명 (수기 등록 때 같은 구분으로 묶이게, 11/09) -->
+  <select id="findSeNm" resultType="string">
+    SELECT MAX(RQT_SE_NM) FROM TB_RQT_MTTR
+     WHERE PBANC_SN = #{pbancSn} AND RQT_MTTR_NO LIKE #{prefix} || '-%' AND RQT_SE_NM IS NOT NULL
+  </select>
 
   <!-- 명칭을 고친다. ID는 대문자로만 맞추고 (11/07) 연결 목차는 그대로 (v4.0: 요구사항은 ID·명칭만) -->
   <update id="update">

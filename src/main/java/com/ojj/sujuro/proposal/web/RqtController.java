@@ -152,15 +152,23 @@ public class RqtController {
         return runReq(user, bid, ra, () -> {
             List<String> pickNos = new ArrayList<>();
             List<String> pickNms = new ArrayList<>();
+            List<String> pickSes = new ArrayList<>();
+            // 총괄표에서 읽은 구분명 (SFR → 기능 요구사항). ID를 고쳤어도 고친 ID의 접두어로 찾는다 (11/09)
+            Object ex = session.getAttribute(EXTRACT_KEY);
+            java.util.Map<String, String> seByPrefix = ex instanceof RqtExtractDto && ((RqtExtractDto) ex).getGroupNames() != null
+                    ? ((RqtExtractDto) ex).getGroupNames() : java.util.Collections.<String, String>emptyMap();
             if (picks != null && nos != null && names != null) {
                 for (Integer k : picks) {
                     if (k != null && k >= 0 && k < nos.size() && k < names.size()) {
                         pickNos.add(nos.get(k));
                         pickNms.add(names.get(k));
+                        String no = nos.get(k) == null ? "" : nos.get(k).trim().toUpperCase();
+                        int dash = no.indexOf('-');
+                        pickSes.add(dash > 0 ? seByPrefix.get(no.substring(0, dash)) : null);
                     }
                 }
             }
-            int[] r = rqtService.registerAll(bid, pickNos, pickNms, user.getEmpNo());
+            int[] r = rqtService.registerAll(bid, pickNos, pickNms, pickSes, user.getEmpNo());
             session.removeAttribute(EXTRACT_KEY);
             return "요구사항 " + r[0] + "건을 등록했습니다." + (r[1] > 0 ? " (이미 있거나 비어 있는 " + r[1] + "건은 건너뜀)" : "")
                     + " 세부 목차에 연결해 주세요.";

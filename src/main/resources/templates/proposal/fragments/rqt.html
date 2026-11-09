@@ -82,22 +82,24 @@
       <button class="btn sm" type="submit">← 취소하고 요구사항 추가 화면으로 돌아가기</button>
     </form>
   </div>
-  <div class="banner warn" th:unless="${#lists.isEmpty(extract.warnings)}">
-    <div>
-      <b>개수가 맞지 않거나 확인이 필요한 내용이 있습니다. 원본 제안요청서와 비교해 확인해 주세요. (등록은 할 수 있습니다)</b>
-      <ul class="u-margin-8px-0-0-16px-padding-0">
-        <li th:each="w : ${extract.warnings}" th:text="${w}">경고</li>
-      </ul>
-    </div>
-  </div>
   <form th:action="@{/proposal/rqt/extract/register}" method="post" class="card">
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
     <div class="card-head">
       <h3 th:text="'추출 결과 · ' + ${extract.fileNm}">추출 결과</h3>
+      <span class="row gap-4 nowrap">
       <span class="faint fs-11_5"
             th:text="'목록에서 읽은 수 ' + ${extract.foundCount} + '개 · 총괄표 항목별 합 ' + ${extract.expectedSum} + '개'
                      + (${extract.declaredTotal != null} ? ' · 총괄표 합계 ' + ${extract.declaredTotal} + '개' : '')
                      + ' · 새로 등록 가능 ' + ${extract.newCount} + '개'">개수</span>
+      <!-- 확인이 필요하면 개수 오른쪽 끝에 빨간 ! 를 두고, 마우스를 올리거나 눌러 초점을 주면 안내가 뜬다 (11/09, 띠 대신) -->
+      <span class="ex-warn" th:unless="${#lists.isEmpty(extract.warnings)}" tabindex="0" role="button"
+            aria-label="확인이 필요한 내용 보기" aria-describedby="exWarnPop">!
+        <span class="ex-warn-pop" id="exWarnPop" role="tooltip">
+          <b>원본 제안요청서와 비교해 확인해 주세요. (등록은 할 수 있습니다)</b>
+          <span class="ex-warn-li" th:each="w : ${extract.warnings}" th:text="${w}">경고</span>
+        </span>
+      </span>
+      </span>
     </div>
     <div class="ts u-max-height-520px-overflow-auto">
       <table>
@@ -108,7 +110,13 @@
           </tr>
         </thead>
         <tbody>
-          <tr th:each="it, st : ${extract.items}">
+          <!-- 총괄표의 구분(기능 요구사항·성능 요구사항…)별로 제목 줄을 넣어 묶는다 (11/09). 기능·비기능 큰 분류는 넣지 않는다 -->
+          <th:block th:each="it, st : ${extract.items}">
+          <tr th:if="${extract.isGroupStart(st.index)}" class="ex-grp">
+            <td colspan="5" class="toc-group"><span th:text="${extract.groupTitle(st.index)}">기능 요구사항</span>
+              <span class="faint fw-normal fs-11_5" th:text="${extract.groupSub(st.index)}">SFR · 7개</span></td>
+          </tr>
+          <tr>
             <td><input type="checkbox" name="pick" class="ex-pick" th:value="${st.index}" th:checked="${!it.exists}"
                        th:aria-label="${it.rqtMttrNo} + ' 선택'"></td>
             <td class="faint" th:text="${it.no}">01</td>
@@ -119,6 +127,7 @@
               <span class="pill danger" th:if="${it.note != null}" th:text="${it.note}">확인 필요</span>
             </td>
           </tr>
+          </th:block>
           <tr th:if="${#lists.isEmpty(extract.items)}"><td colspan="5" class="empty">읽은 요구사항이 없습니다.</td></tr>
         </tbody>
       </table>

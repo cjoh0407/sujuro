@@ -7,6 +7,17 @@
 /* 목차 표 */
 .toc-group{font-weight:700;background:var(--alt)}
 .toc-group-bg{background:var(--alt)}
+/* 구분 제목 줄 접기·펴기 (11/09): 오른쪽 아래 화살표, 접으면 오른쪽(›)으로 돈다 */
+tr.fold-head{cursor:pointer;user-select:none}
+tr.fold-head:hover > td{background:var(--neutral-soft)}
+.fold-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.fold-btn{flex:none;width:28px;height:28px;border:0;border-radius:6px;cursor:pointer;transition:transform .15s,background-color .15s;
+  background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%2316419E' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center}
+.fold-btn:hover{background-color:var(--accent-soft)}
+tr.fold-head.folded .fold-btn{transform:rotate(-90deg)}
+tr[data-fold-of].fold-hide{display:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fold-btn{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%236E95F0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}}
+:root[data-theme="dark"] .fold-btn{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%236E95F0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
 .vtop{vertical-align:top}
 .lbl-in{width:100%;min-width:170px;max-width:340px}
 .lbl-in.bold{font-weight:700}
@@ -472,3 +483,15 @@ main.content table.ev-table th:nth-child(2),main.content table.ev-table tbody td
 .page-head{align-items:flex-start} /* 드롭다운은 공고명 줄과 같은 높이에 */
 .page-head-l{gap:16px}
 .page-head .bid-select select{height:36px;box-sizing:border-box}
+
+/* 요구사항 추출: 개수가 맞지 않는 등 확인이 필요할 때 개수 오른쪽 끝의 빨간 ! (11/09). 마우스를 올리거나 초점을 주면 안내가 뜬다 */
+.ex-warn{position:relative;flex:none;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-left:6px;border-radius:50%;
+  background:var(--danger);color:#fff;font-size:12px;font-weight:800;line-height:1;cursor:help;vertical-align:middle}
+.ex-warn:focus-visible{outline:2px solid var(--danger-soft);outline-offset:2px}
+.ex-warn-pop{display:none;position:absolute;right:-6px;top:calc(100% + 8px);z-index:50;width:max-content;max-width:min(440px,80vw);
+  padding:10px 12px;border-radius:10px;background:var(--surface);color:var(--text);border:1px solid var(--border);box-shadow:var(--shadow-pop);
+  font-size:12px;font-weight:400;line-height:1.55;text-align:left;cursor:default;white-space:normal}
+.ex-warn-pop b{display:block;margin-bottom:6px;font-weight:700;color:var(--danger)}
+.ex-warn-li{display:block;padding-left:12px;position:relative}
+.ex-warn-li::before{content:"";position:absolute;left:2px;top:.62em;width:4px;height:4px;border-radius:50%;background:var(--danger)}
+.ex-warn:hover .ex-warn-pop,.ex-warn:focus .ex-warn-pop,.ex-warn:focus-within .ex-warn-pop{display:block}

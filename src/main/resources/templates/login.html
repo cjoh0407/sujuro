@@ -9,37 +9,60 @@
 </head>
 <body>
 <div class="login">
-  <div class="box">
-    <div class="card">
-      <div class="pad stack-16">
-        <div class="brand">
-          <svg class="brand-logo" viewBox="0 0 64 64" width="40" height="40" aria-hidden="true"><path d="M46 14C22 8 18 29 32 32C46 35 42 56 18 50" fill="none" stroke="var(--logo-n)" stroke-width="8" stroke-linecap="round"/><circle cx="46" cy="14" r="6.5" fill="var(--logo-r)"/><circle cx="18" cy="50" r="6.5" fill="var(--logo-g)"/></svg>
-          <div><b class="fs-19">수주로</b></div>
-        </div>
-
-        <div class="banner err" th:if="${param.error != null}">사번 또는 비밀번호가 올바르지 않습니다.</div>
-        <div class="banner err" th:if="${param.locked != null}">비밀번호를 5번 틀려 계정이 잠겼습니다. 경영지원실에 잠금 해제를 요청해 주세요.</div>
-        <div class="banner err" th:if="${param.disabled != null}">사용할 수 없는 계정입니다. 경영지원실에 문의해 주세요.</div>
-        <div class="banner warn" th:if="${param.expired != null}">오래 사용하지 않아 로그아웃되었습니다. 다시 로그인해 주세요.</div>
-        <div class="banner ok" th:if="${param.pwchanged != null}">비밀번호가 변경되었습니다. 새 비밀번호로 다시 로그인해 주세요.</div>
-        <div class="banner info" th:if="${param.logout != null}">로그아웃되었습니다.</div>
-        <div class="banner warn" th:if="${param.changed != null}">계정 정보(권한·소속·비밀번호)가 바뀌어 로그아웃되었습니다. 다시 로그인해 주세요.</div>
-
-        <form th:action="@{/login}" method="post" class="stack-12">
-          <div class="fld">
-            <label for="empNo">사번</label>
-            <input id="empNo" name="empNo" type="text" autocomplete="username" autofocus required>
-          </div>
-          <div class="fld">
-            <label for="password">비밀번호</label>
-            <input id="password" name="password" type="password" autocomplete="current-password" required>
-          </div>
-          <button class="btn primary jc-center" type="submit">로그인</button>
-        </form>
-
-      </div>
+  <!-- 왼쪽: 브랜드 패널 (좁은 화면에서는 숨김). 초기 비밀번호 변경 화면도 이 조각을 같이 쓴다 -->
+  <aside class="login-side" aria-hidden="true" th:fragment="side">
+    <svg class="login-wm" viewBox="0 0 64 64"><path d="M46 14C22 8 18 29 32 32C46 35 42 56 18 50" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/><circle cx="46" cy="14" r="6.5" fill="#fff"/><circle cx="18" cy="50" r="6.5" fill="#fff"/></svg>
+    <div class="login-brand">
+      <svg viewBox="0 0 64 64" width="40" height="40"><path d="M46 14C22 8 18 29 32 32C46 35 42 56 18 50" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/><circle cx="46" cy="14" r="6.5" fill="#E2777C"/><circle cx="18" cy="50" r="6.5" fill="#9FB0D3"/></svg>
+      <span>수주로</span>
     </div>
-  </div>
+    <div class="login-copy">
+      <p class="login-title">공고부터 결과까지,<br>한 곳에서.</p>
+      <ul class="login-feats">
+        <li><span class="ic"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M5 2.5h7l3 3v12H5zM12 2.5v3h3M7.5 10h5M7.5 13h5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>공고 · 제안서 한 곳에서</li>
+        <li><span class="ic"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 9.5a3 3 0 100-6 3 3 0 000 6zM4 17c.8-3 3.2-4.5 6-4.5s5.2 1.5 6 4.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>역할마다 필요한 화면</li>
+        <li><span class="ic"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M3.5 5h13v11.5h-13zM3.5 8.5h13M7 3v3.5M13 3v3.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>마감 일정 놓치지 않게</li>
+      </ul>
+    </div>
+    <div></div>
+  </aside>
+
+  <!-- 오른쪽: 로그인 폼 -->
+  <main class="login-main">
+    <div class="login-form">
+      <div class="login-mobile-brand">
+        <svg class="brand-logo" viewBox="0 0 64 64" width="32" height="32" aria-hidden="true"><path d="M46 14C22 8 18 29 32 32C46 35 42 56 18 50" fill="none" stroke="var(--logo-n)" stroke-width="8" stroke-linecap="round"/><circle cx="46" cy="14" r="6.5" fill="var(--logo-r)"/><circle cx="18" cy="50" r="6.5" fill="var(--logo-g)"/></svg>
+        <b>수주로</b>
+      </div>
+      <div>
+        <h1>로그인</h1>
+        <div class="login-sub">사번과 비밀번호를 입력해 주세요.</div>
+      </div>
+
+      <!-- 안내: 문제(오류·잠금·사용 불가)는 빨간 글자, 그 밖의 안내는 회색 한 줄 -->
+      <div class="login-msg err" role="alert" th:if="${param.error != null}"><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.6v4.2M8 11.2v.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>사번 또는 비밀번호가 올바르지 않습니다.</div>
+      <div class="login-msg err" role="alert" th:if="${param.locked != null}"><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>비밀번호를 5번 틀려 계정이 잠겼습니다. 경영지원실에 잠금 해제를 요청해 주세요.</div>
+      <div class="login-msg err" role="alert" th:if="${param.disabled != null}"><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.6v4.2M8 11.2v.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>사용할 수 없는 계정입니다. 경영지원실에 문의해 주세요.</div>
+      <div class="login-msg" th:if="${param.expired != null}">오래 사용하지 않아 로그아웃되었습니다. 다시 로그인해 주세요.</div>
+      <div class="login-msg" th:if="${param.pwchanged != null}">비밀번호가 변경되었습니다. 새 비밀번호로 다시 로그인해 주세요.</div>
+      <div class="login-msg" th:if="${param.logout != null}">로그아웃되었습니다.</div>
+      <div class="login-msg" th:if="${param.changed != null}">계정 정보(권한·소속·비밀번호)가 바뀌어 로그아웃되었습니다. 다시 로그인해 주세요.</div>
+
+      <form th:action="@{/login}" method="post" class="login-fields">
+        <div class="fld">
+          <label for="empNo">사번</label>
+          <input id="empNo" name="empNo" type="text" autocomplete="username" autofocus required>
+        </div>
+        <div class="fld">
+          <label for="password">비밀번호</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <button class="btn primary login-btn" type="submit">로그인</button>
+      </form>
+
+      <div class="login-help">비밀번호를 잊었거나 계정이 잠겼으면 경영지원실에 문의해 주세요.</div>
+    </div>
+  </main>
 </div>
 </body>
 </html>

@@ -30,7 +30,7 @@ public class PasswordService {
         return change(userId, null, newPassword, confirm);
     }
 
-    /** 내 정보 화면에서 변경 (FR-002-2). 현재 비밀번호를 확인한 뒤 바꾼다. */
+    /** 헤더 내 정보 팝업의 [비밀번호 변경]에서 변경 (FR-002-2). 현재 비밀번호를 확인한 뒤 바꾼다. */
     @Transactional
     public List<String> changePassword(String userId, String currentPassword, String newPassword, String confirm) {
         return change(userId, currentPassword == null ? "" : currentPassword, newPassword, confirm);

@@ -72,7 +72,23 @@
                 th:text="${p.team == null or p.team == p.roleLabel} ? ${p.roleLabel} : ${p.roleLabel + ' · ' + p.team}">권한 · 소속</span>
         </div>
       </div>
-      <a class="btn sm hd-ico" th:href="@{/profile}" title="내 정보" aria-label="내 정보"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.8"/><path d="M4.5 20.5c.6-4 3.8-6.2 7.5-6.2s6.9 2.2 7.5 6.2"/></svg></a>
+      <!-- 내 정보: 사람 아이콘을 누르면 팝업이 열린다 (js/me-panel.js). 따로 내 정보 화면은 없다. 비밀번호 변경은 /password/change -->
+      <div class="mebox">
+        <button type="button" class="btn sm hd-ico" id="meBtn" title="내 정보" aria-label="내 정보" aria-haspopup="dialog" aria-expanded="false" aria-controls="mePanel"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.8"/><path d="M4.5 20.5c.6-4 3.8-6.2 7.5-6.2s6.9 2.2 7.5 6.2"/></svg></button>
+        <div class="mepanel" id="mePanel" role="dialog" aria-label="내 정보" th:with="p=${#authentication.principal}">
+          <div class="me-head">
+            <b th:text="${p.name}">이름</b>
+            <span class="faint" th:text="${p.team == null or p.team == p.roleLabel} ? ${p.roleLabel} : ${p.roleLabel + ' · ' + p.team}">권한 · 소속</span>
+          </div>
+          <dl class="me-list">
+            <div><dt>사번</dt><dd th:text="${p.empNo}">2022-0009</dd></div>
+            <div><dt>소속</dt><dd th:text="${p.team ?: '-'}">소속</dd></div>
+            <div><dt>직급</dt><dd th:text="${p.rank ?: '-'}">직급</dd></div>
+            <div><dt>권한</dt><dd th:text="${p.roleLabel}">권한</dd></div>
+          </dl>
+          <div class="me-foot"><a class="btn primary" th:href="@{/password/change}">비밀번호 변경</a></div>
+        </div>
+      </div>
       <form class="logout-form" th:action="@{/logout}" method="post">
         <button class="btn sm hd-ico" type="submit" title="로그아웃" aria-label="로그아웃"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 4.5H6a1.5 1.5 0 0 0-1.5 1.5v12A1.5 1.5 0 0 0 6 19.5h3.5"/><path d="M14 8l4 4-4 4"/><path d="M18 12H9.5"/></svg></button>
       </form>
@@ -94,6 +110,7 @@
 <script th:src="@{/js/async-form.js}"></script>
 <script th:src="@{/js/notification-socket.js}"></script>
 <script th:src="@{/js/notification-panel.js}"></script>
+<script th:src="@{/js/me-panel.js}"></script>
 <th:block layout:fragment="scripts"></th:block>
 </body>
 </html>

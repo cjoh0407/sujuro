@@ -191,7 +191,7 @@ public class UserService {
     public String resetPassword(String userId, String adminId) {
         requireUser(userId);
         if (userId.equals(adminId)) {
-            throw new BusinessException("본인 비밀번호는 내 정보 화면에서 바꿔 주세요.");
+            throw new BusinessException("본인 비밀번호는 오른쪽 위 내 정보 아이콘에서 바꿔 주세요.");
         }
         String password = PasswordPolicy.generateInitial();
         userMapper.updatePassword(userId, passwordEncoder.encode(password), LoginUser.STATUS_INITIAL);

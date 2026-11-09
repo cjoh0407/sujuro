@@ -109,11 +109,7 @@
 
   /* <main> 내용을 바꾼다. 스크롤·포커스는 그대로, 안내 띠는 토스트로 */
   function swap(next) {
-    var flashes = [];
-    Array.prototype.forEach.call(next.querySelectorAll('[data-flash]'), function (b) {
-      flashes.push({ text: b.textContent.trim(), err: b.getAttribute('data-flash') === 'error' });
-      b.remove();
-    });
+    var flashes = window.readFlashes ? window.readFlashes(next) : [];
     var scrolls = keepScroll();
     var opened = Array.prototype.map.call(main.querySelectorAll('details'), function (d) { return d.open; }); // 펼쳐 둔 "지난 사업" 등
     var focusId = document.activeElement && document.activeElement.id;
@@ -132,7 +128,8 @@
     }
     if (window.runPageReady) window.runPageReady();
     // 저장·삭제 완료 문구는 화면이 바뀐 것으로 충분해서 띄우지 않고, 막힌 경우(오류)만 빨간 토스트로 알린다 (11/07)
-    flashes.forEach(function (m) { if (m.err) showToast(m.text, 'err'); });
+    // 11/09: 안내 띠는 모두 색 토스트로 (오류 빨강 · 경고 주황 · 안내 파랑, common.js flashToast)
+    if (window.flashToast) window.flashToast(flashes);
   }
 
   /* 진행 게이지: 바뀌기 전 너비를 기억했다가 새 화면에서 그 너비부터 새 값까지 차오르게 한다 (처음 열 때는 0부터) */

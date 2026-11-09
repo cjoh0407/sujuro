@@ -24,7 +24,7 @@
 /* 공통 표는 마지막 줄 아래 선을 지우는데(common.css), 공고 목록은 아래에 페이지 번호 줄이 있어 선을 둔다 (11/04) */
 .notice-table tbody tr:last-child td{border-bottom:1px solid var(--border)}
 /* 공고명 칸은 왼쪽에 붙인다 (11/06) */
-.notice-table .c-name{text-align:left}
+.notice-table td.c-name{text-align:left} /* 머리글 "공고명"은 다른 머리글처럼 가운데 (11/09) */
 
 /* 본문 버튼 크기는 대시보드의 [공고 관리](a.btn.sm, 68×30px)에 맞춘다 (11/05). 긴 문구는 잘리지 않게 폭은 최소값만 둔다.
    button 태그는 줄 높이가 달라 28px 이 되므로 물려받게 한다. 상단바 버튼은 모든 화면에서 같아야 해서 .content 로 한정한다 */

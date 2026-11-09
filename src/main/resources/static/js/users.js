@@ -30,8 +30,6 @@
     var uid = document.getElementById('userId');
     document.getElementById('usrFormTitle').textContent = edit ? '직원 정보 수정 · ' + d.nm : '직원 등록';
     document.getElementById('usrSubmit').textContent = edit ? '수정 저장' : '등록 · 초기 비밀번호 메일 발송';
-    document.getElementById('usrHelpCreate').hidden = edit;
-    document.getElementById('usrHelpEdit').hidden = !edit;
     form.action = edit ? modal.dataset.base + '/' + encodeURIComponent(d.id) + '/update' : modal.dataset.base;
     uid.readOnly = edit;
     uid.required = !edit;

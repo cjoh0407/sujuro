@@ -28,8 +28,7 @@
 
   <th:block th:unless="${#lists.isEmpty(bids)}">
 
-    <div class="banner ok" data-flash="done" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
-    <div class="banner err" data-flash="error" th:if="${error != null}" th:text="${error}">오류 안내</div>
+    <div hidden data-flash="error" th:if="${error != null}" th:text="${error}">오류 안내</div>
 
     <!-- 사업명은 3:7 칸 위 왼쪽에 (사업 이력 관리와 같게). 그래서 왼쪽·오른쪽 칸이 같은 높이에서 시작한다 -->
     <th:block th:replace="~{proposal/fragments/bid-header :: bizHead}"></th:block>

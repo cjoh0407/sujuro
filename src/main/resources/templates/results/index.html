@@ -55,10 +55,8 @@
     </div>
 
     <!-- 저장·올리기 결과. 왼쪽에서 평가표를 올려도 바로 보이게 3:7 칸 위에 둔다 -->
-    <div class="banner ok" th:if="${resultMessage}" th:text="${resultMessage}">결과를 등록했습니다.</div>
-    <div class="banner warn" th:if="${resultError}" th:text="${resultError}">아직 낙찰자가 없습니다.</div>
-    <div class="banner ok" th:if="${evaluationMessage}" th:text="${evaluationMessage}">저장했습니다.</div>
-    <div class="banner warn" th:if="${evaluationError}" th:text="${evaluationError}">칸이 비었습니다.</div>
+    <div hidden data-flash="warn" th:if="${resultError}" th:text="${resultError}">아직 낙찰자가 없습니다.</div>
+    <div hidden data-flash="warn" th:if="${evaluationError}" th:text="${evaluationError}">칸이 비었습니다.</div>
 
     <!-- 3:7 화면: 왼쪽에 평가표 등록, 오른쪽에 업무 화면. 평가표를 올리지 않는 사업은 왼쪽 칸 없이 넓게 보인다 -->
     <div th:class="${upload} ? 'split'">
@@ -217,12 +215,12 @@
             <tbody>
               <tr class="hv" th:each="c : ${view.companies}" th:classappend="${c.ours} ? 'ours'">
                 <td class="mono" th:text="${c.opengRnk ?: '-'}">1</td>
-                <td>
+                <td class="c-left">
                   <span th:text="${c.coNm}">업체</span>
                   <span class="pill success" th:if="${c.winner}">낙찰</span>
                 </td>
                 <td class="mono muted nowrap" th:text="${c.bizNoText}">107-87-28988</td>
-                <td class="mono" th:text="${c.bidAmtText}">260,000,000</td>
+                <td class="mono c-num" th:text="${c.bidAmtText}">260,000,000</td>
                 <td class="mono sc" th:text="${c.techOrgnlText}">85.284</td>
                 <td class="mono sc" th:text="${c.techText}">90</td>
                 <td class="mono sc" th:text="${c.prcText}">10</td>
@@ -264,8 +262,8 @@
 
             <!-- 엑셀 자동 채우기 결과 (팀장). 저장에 실패해 돌아온 때는 입력하던 값을 보여 주므로 안내를 숨긴다 -->
             <th:block th:if="${view.canScore and evaluationError == null}">
-              <div class="banner info" th:if="${view.excelNote}" th:text="${view.excelNote}">엑셀에서 읽어 채웠습니다.</div>
-              <div class="banner warn" th:if="${view.excelError}" th:text="${view.excelError}">엑셀을 읽지 못했습니다.</div>
+              <div hidden data-flash="info" th:if="${view.excelNote}" th:text="${view.excelNote}">엑셀에서 읽어 채웠습니다.</div>
+              <div hidden data-flash="warn" th:if="${view.excelError}" th:text="${view.excelError}">엑셀을 읽지 못했습니다.</div>
             </th:block>
 
             <form id="evl-form" method="post" th:if="${cf != null and view.canScore}" th:action="@{/results/evaluation}"
@@ -365,8 +363,7 @@
         <div class="card-head"><h3>분석 기록</h3></div>
         <form class="pad stack-12" method="post" th:action="@{/results/analysis}">
           <input type="hidden" name="bid" th:value="${b.pbancSn}">
-          <div class="banner ok" th:if="${analysisMessage}" th:text="${analysisMessage}">분석 기록을 저장했습니다.</div>
-          <div class="banner warn" th:if="${analysisError}" th:text="${analysisError}">강점은 한글 기준 1,300자까지 입력할 수 있습니다.</div>
+          <div hidden data-flash="warn" th:if="${analysisError}" th:text="${analysisError}">강점은 한글 기준 1,300자까지 입력할 수 있습니다.</div>
           <div class="grid3">
             <div class="fld">
               <label for="an-strpt">강점</label>

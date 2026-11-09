@@ -27,8 +27,7 @@
 
   <th:block th:unless="${#lists.isEmpty(bids)}">
 
-    <div class="banner ok" data-flash="done" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
-    <div class="banner err" data-flash="error" th:if="${error != null}" th:text="${error}">오류 안내</div>
+    <div hidden data-flash="error" th:if="${error != null}" th:text="${error}">오류 안내</div>
 
     <!-- 위: 사업명(왼쪽)과 사업건 고르기(오른쪽). 처음에는 다른 제안 화면에서 보던 사업건이 열린다 (CurrentBid) -->
     <div class="page-head">
@@ -93,7 +92,7 @@
           </thead>
           <tbody>
             <tr class="hv" th:each="d : ${docs}">
-              <td th:text="${d.dcmntNm}">최종 제안서</td>
+              <td class="c-left" th:text="${d.dcmntNm}">최종 제안서</td>
               <td>
                 <span class="pill danger" th:if="${d.essential}">필수</span>
                 <span class="pill neutral" th:unless="${d.essential}">선택</span>
@@ -178,7 +177,7 @@
         </select>
         <input type="date" name="due" required aria-label="제출 기한 (필수)" title="제출 기한 (필수)" th:min="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
         <input type="time" name="dueTime" aria-label="제출 시간 (선택)" title="제출 시간 (선택, 비우면 날짜만)">
-        <button class="btn sm" type="submit">+ 서류 추가</button>
+        <button class="ico ico-add" type="submit" title="서류 추가" aria-label="서류 추가"><span class="ic ic-plus"></span></button>
       </form>
     </div>
 
@@ -212,7 +211,6 @@
           <div class="card-head">
             <div>
               <h3 id="evPopTitle" th:text="${canEv} ? '조견표 편집' : '조견표'">조견표 편집</h3>
-              <div class="faint fs-12_5" th:text="${admin} ? 'RFP의 평가 항목과 배점을 적습니다. 맨 아래 [+ 평가 항목 추가]로 줄을 늘립니다.' : '최종 제안서에서 평가 항목마다 몇 쪽에 있는지 적습니다.'">최종 제안서에서 평가 항목마다 몇 쪽에 있는지 적습니다.</div>
             </div>
             <button class="ico" type="button" title="닫기" aria-label="닫기" data-on-click="closeEvPop"><span class="ic ic-close"></span></button>
           </div>

@@ -17,13 +17,8 @@
 <th:block layout:fragment="content">
 <div class="usr">
 
-  <!-- 초기 비밀번호 메일을 보내지 못했을 때만 비밀번호를 한 번 보여 준다. (FR-004, FR-008) 새로고침하면 사라진다. -->
-  <div class="banner err gap-4 mb-12 u-flex-direction-column-align-items-flex-s" th:if="${issued != null}">
-    <b th:text="|${issued.title} 이메일을 보내지 못했습니다.|">초기 비밀번호를 발급했습니다. 이메일을 보내지 못했습니다.</b>
-    <span>사번 <b class="mono" th:text="${issued.empNo}">2026-0001</b> · 초기 비밀번호 <b class="mono" th:text="${issued.password}">Tmp!xxxx</b> · 계정 상태 "초기 비밀번호"</span>
-    <span class="fs-11_5">이 비밀번호를 직원에게 직접 전달해 주세요. 이 화면을 벗어나면 다시 볼 수 없습니다. 직원은 처음 로그인할 때 비밀번호를 바꿔야 합니다.</span>
-  </div>
-  <!-- 처리 완료 문구(초록 띠)는 보여 주지 않는다 (11/09). 오류와 메일 실패 시 비밀번호 안내만 남긴다 -->
+  <!-- 처리 완료 문구는 초록 띠 대신 토스트로 띄운다 (11/09). 메일 실패 시에는 아래 가운데 창(usrIssuedModal)에 비밀번호를 보여 준다 -->
+  <div hidden data-flash="info" th:if="${message != null}" th:text="${message}">처리했습니다.</div>
   <div hidden data-flash="error" th:if="${error != null}" th:text="${error}">오류</div>
 
   <!-- 직원 목록 (FR-003). 페이지를 넘기지 않고 표 안에서 스크롤한다 -->
@@ -144,6 +139,7 @@
       </div>
       <div class="pad">
         <form id="usrForm" method="post" class="usr-form"
+              th:attr="data-confirm=${openModal == 'edit' and editUser != null} ? null : '입력한 직원을 등록하고 초기 비밀번호를 이메일로 보낼까요?'"
               th:action="${openModal == 'edit' and editUser != null} ? @{/users/{id}/update(id=${editUser.userId})} : @{/users}">
           <input type="hidden" name="keyword" th:value="${keyword}">
           <input type="hidden" name="status" th:value="${status}">
@@ -203,6 +199,33 @@
                     th:text="${openModal == 'edit'} ? '수정 저장' : '등록 · 초기 비밀번호 메일 발송'">등록 · 초기 비밀번호 메일 발송</button>
           </div>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 초기 비밀번호 메일을 보내지 못했을 때만 비밀번호를 한 번 보여 준다. (FR-004, FR-008) 새로고침하면 사라진다.
+       [확인]을 눌러야 닫힌다(바깥 클릭·Esc로는 닫히지 않음). 비밀번호가 읽기 어려워 [복사] 버튼을 둔다 -->
+  <div class="modal" id="usrIssuedModal" th:if="${issued != null}"
+       role="alertdialog" aria-modal="true" aria-labelledby="usrIssuedTitle">
+    <div class="box sm">
+      <div class="card-head">
+        <h3 id="usrIssuedTitle" th:text="${issued.title}">초기 비밀번호를 발급했습니다.</h3>
+      </div>
+      <div class="pad stack-12 fs-12_5">
+        <div class="usr-issued-warn">이메일을 보내지 못했습니다.<br>아래 비밀번호를 직원에게 직접 전달해 주세요.</div>
+        <dl class="usr-issued">
+          <dt>사번</dt>
+          <dd th:text="${issued.empNo}">2026-0001</dd>
+          <dt>초기 비밀번호</dt>
+          <dd class="usr-issued-pw" id="usrIssuedPw" th:text="${issued.password}">Tmp!xxxx</dd>
+          <dt>계정 상태</dt>
+          <dd>초기 비밀번호</dd>
+        </dl>
+        <div class="faint usr-help">이 창을 닫으면 비밀번호를 다시 볼 수 없습니다.</div>
+        <div class="usr-actions">
+          <button type="button" class="btn" id="usrCopyBtn" data-on-click="usrCopyPw">비밀번호 복사</button>
+          <button type="button" class="btn primary" data-on-click="usrClose">확인</button>
+        </div>
       </div>
     </div>
   </div>

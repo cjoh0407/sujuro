@@ -40,6 +40,9 @@ public interface RqtService {
      */
     int[] registerAll(Long pbancSn, List<String> nos, List<String> names, String userId);
 
+    /** PDF 추출 등록: seNms 는 줄마다 구분명(총괄표의 요청사항 구분, 없으면 null). 11/09 */
+    int[] registerAll(Long pbancSn, List<String> nos, List<String> names, List<String> seNms, String userId);
+
     void edit(Long pbancSn, Long rqtMttrSn, RqtDto in, String actorId);
 
     void delete(Long pbancSn, Long rqtMttrSn, String actorId);

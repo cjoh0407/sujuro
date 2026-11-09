@@ -182,6 +182,10 @@ public final class RfpRqtParser {
             Matcher total = TOTAL.matcher(t);
             if (sum.find()) {
                 r.getExpected().merge(sum.group(1), Integer.parseInt(sum.group(2)), Integer::sum);
+                String gn = groupName(t.substring(0, sum.start(1)));
+                if (!gn.isEmpty()) {
+                    r.getGroupNames().putIfAbsent(sum.group(1), gn); // 접두어별 구분명 (예: SFR → 기능 요구사항)
+                }
                 other[i] = true;
             } else if (total.matches()) {
                 r.setDeclaredTotal(Integer.parseInt(total.group(1)));
@@ -262,6 +266,20 @@ public final class RfpRqtParser {
                     + WRAP_CHECK_NOTE + "\" 표시된 줄을 원본과 비교해 주세요.");
         }
         return r;
+    }
+
+    /**
+     * 총괄표 줄에서 ID 앞의 글자를 구분명으로 쓴다 (11/09). 큰 분류(기능·비기능) 칸이 같은 줄에 붙어 나오면 뗀다.
+     *   "기능 기능 요구사항" → "기능 요구사항", "비기능 보안 요구사항" → "보안 요구사항", "기능 요구사항" → 그대로
+     */
+    static String groupName(String raw) {
+        String s = raw == null ? "" : raw.replaceAll("\\s+", " ").trim();
+        if (s.startsWith("비기능 ")) {
+            s = s.substring(4).trim();
+        } else if (s.startsWith("기능 ") && !"기능 요구사항".equals(s)) {
+            s = s.substring(3).trim();
+        }
+        return s;
     }
 
     /**

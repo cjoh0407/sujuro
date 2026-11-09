@@ -30,10 +30,6 @@
     </div>
   </div>
 
-  <div class="banner err" th:if="${overPages > 0}">
-    목차별 예상 쪽수의 합계(<span th:text="${totalPages}">0</span>쪽)가 제한(<span th:text="${bid.lmtPageCnt}">0</span>쪽)을 넘었습니다. 분량을 조정해 주세요.
-  </div>
-
   <!-- 목차가 없으면: 팀 양식 불러오기 / 직접 목차 만들기 (FR-046, FR-047) -->
   <!-- 새 양식을 이름부터 만든 직후에는 목차가 비어 있어도 목차 표를 보여 준다(curForm 있음) -->
   <!-- PDF 요구사항 추출 미리보기 (FR-050-1): 목차 표 대신 보여 준다 -->
@@ -77,14 +73,30 @@
           <thead><tr><th>요구사항 ID</th><th>명칭</th><th>연결할 세부 목차</th></tr></thead>
           <tbody>
             <!-- 줄 아무 데나 누르면 왼쪽 칸에서 수정·삭제 (proposal.js openRqt, 목차 선택칸은 제외) -->
-            <tr th:each="q : ${unmappedList}"
+            <!-- 요구사항 구분(총괄표의 요청사항 구분)별 제목 줄로 묶는다 (11/09, RqtGroupDto) -->
+            <th:block th:each="g : ${unmappedGroups}">
+            <!-- 제목 줄을 누르거나 오른쪽 화살표를 누르면 그 구분을 접고 편다 (11/09, proposal.js foldGroup). 접은 상태는 이 브라우저에 기억 -->
+            <tr class="rq-grp fold-head" th:data-fold="${g.prefix}">
+              <td colspan="3" class="toc-group">
+                <div class="fold-row">
+                  <span><span th:text="${g.title}">기능 요구사항</span>
+                    <span class="faint fw-normal fs-11_5" th:text="${g.sub}">SFR · 7건</span></span>
+                  <button type="button" class="fold-btn" aria-expanded="true" th:aria-label="|${g.title} 접기|" title="접기 / 펴기"></button>
+                </div>
+              </td>
+            </tr>
+            <tr th:each="q : ${g.items}" th:data-fold-of="${g.prefix}"
                 th:classappend="|${canReq ? 'hv rq-row' : ''} ${editRqt != null and editRqt.rqtMttrSn == q.rqtMttrSn ? 'on' : ''}|"
                 th:data-on-click="${canReq} ? 'openRqt' : null" th:title="${canReq} ? '눌러서 왼쪽에서 수정·삭제' : null">
               <td><span class="pill danger mono" th:text="${q.rqtMttrNo}">SFR-001</span></td>
               <td class="c-left"><th:block th:replace="~{proposal/fragments/rqt :: rqInfo(${q}, true)}"></th:block></td>
               <td><th:block th:replace="~{proposal/fragments/rqt :: rqPickToc(${q})}"></th:block></td>
             </tr>
-            <tr th:if="${#lists.isEmpty(unmappedList)}"><td colspan="3" class="empty"
+            <tr th:if="${#lists.isEmpty(g.items)}" th:data-fold-of="${g.prefix}">
+              <td colspan="3" class="faint fs-12_5">이 구분의 요구사항은 모두 세부 목차에 연결했습니다.</td>
+            </tr>
+            </th:block>
+            <tr th:if="${#lists.isEmpty(unmappedGroups)}"><td colspan="3" class="empty"
                 th:text="${rqtTotal == 0} ? '등록된 요구사항이 없습니다.' : '미매핑 요구사항이 없습니다.'">미매핑 요구사항이 없습니다.</td></tr>
           </tbody>
         </table>

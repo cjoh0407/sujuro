@@ -687,3 +687,48 @@ document.addEventListener('keydown', function (e) {
   var p = document.getElementById('evPop');
   if (e.key === 'Escape' && p && !p.hidden) closeEvPop();
 });
+
+/* ---------- 요구사항 구분 접기·펴기 (11/09) ----------
+   <tr class="fold-head" data-fold="SFR"> 를 누르면 같은 구분의 <tr data-fold-of="SFR"> 줄을 숨기고 보인다.
+   접은 구분은 사업건별로 이 브라우저(sessionStorage)에 기억해서 저장·새로고침 뒤에도 그대로 둔다.
+   지금 수정 중인 요구사항(.on)이 들어 있는 구분은 펴 둔다 */
+(function () {
+  function key() {
+    var m = /[?&]bid=(\d+)/.exec(location.search);
+    return 'rqFold:' + (m ? m[1] : '');
+  }
+  function load() {
+    try { return JSON.parse(sessionStorage.getItem(key()) || '[]'); } catch (e) { return []; }
+  }
+  function save(list) {
+    try { sessionStorage.setItem(key(), JSON.stringify(list)); } catch (e) { /* 저장 못 해도 동작은 한다 */ }
+  }
+  function apply(head, folded) {
+    var p = head.getAttribute('data-fold');
+    head.classList.toggle('folded', folded);
+    var b = head.querySelector('.fold-btn');
+    if (b) { b.setAttribute('aria-expanded', folded ? 'false' : 'true'); }
+    var tb = head.parentNode;
+    Array.prototype.forEach.call(tb.querySelectorAll('tr[data-fold-of]'), function (r) {
+      if (r.getAttribute('data-fold-of') === p) { r.classList.toggle('fold-hide', folded); }
+    });
+  }
+  window.foldGroup = function (head) {
+    var p = head.getAttribute('data-fold'), list = load(), i = list.indexOf(p), folded = i < 0;
+    if (folded) { list.push(p); } else { list.splice(i, 1); }
+    save(list);
+    apply(head, folded);
+  };
+  document.addEventListener('click', function (e) {
+    var head = e.target.closest && e.target.closest('tr.fold-head');
+    if (head) { window.foldGroup(head); }
+  });
+  onPageReady(function () {
+    var list = load();
+    Array.prototype.forEach.call(document.querySelectorAll('tr.fold-head'), function (h) {
+      var p = h.getAttribute('data-fold');
+      var editing = h.parentNode.querySelector('tr.on[data-fold-of="' + p + '"]');
+      apply(h, list.indexOf(p) >= 0 && !editing);
+    });
+  });
+})();

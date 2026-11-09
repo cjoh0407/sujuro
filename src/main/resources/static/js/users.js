@@ -30,6 +30,9 @@
     var uid = document.getElementById('userId');
     document.getElementById('usrFormTitle').textContent = edit ? '직원 정보 수정 · ' + d.nm : '직원 등록';
     document.getElementById('usrSubmit').textContent = edit ? '수정 저장' : '등록 · 초기 비밀번호 메일 발송';
+    // 등록일 때만 확인창을 띄운다(수정은 바로 저장). common.js 가 data-confirm 이 있는 폼을 제출할 때 묻는다.
+    if (edit) { form.removeAttribute('data-confirm'); }
+    else { form.setAttribute('data-confirm', '입력한 직원을 등록하고 초기 비밀번호를 이메일로 보낼까요?'); }
     form.action = edit ? modal.dataset.base + '/' + encodeURIComponent(d.id) + '/update' : modal.dataset.base;
     uid.readOnly = edit;
     uid.required = !edit;
@@ -45,13 +48,41 @@
   window.usrCreate = function () { setMode(false, {}); };
   window.usrEdit = function (btn) { setMode(true, btn.dataset); };
 
-  // 닫기: 바깥 배경 클릭, Esc
-  Array.prototype.forEach.call(document.querySelectorAll('.usr .modal'), function (m) {
+  // 초기 비밀번호 복사. 주소가 http 면 navigator.clipboard 를 못 쓰므로 임시 입력칸으로 복사한다.
+  window.usrCopyPw = function (btn) {
+    var pw = document.getElementById('usrIssuedPw');
+    if (!pw) { return false; }
+    var text = pw.textContent.trim();
+    function done(ok) {
+      var old = btn.getAttribute('data-label') || btn.textContent;
+      btn.setAttribute('data-label', old);
+      btn.textContent = ok ? '복사했습니다' : '길게 눌러 직접 복사해 주세요';
+      setTimeout(function () { btn.textContent = old; }, 1800);
+    }
+    function legacy() {
+      var t = document.createElement('textarea');
+      t.value = text; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(t);
+      done(ok);
+    }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, legacy);
+    } else {
+      legacy();
+    }
+    return false;
+  };
+
+  // 닫기: 바깥 배경 클릭, Esc (비밀번호 안내 창은 [확인]으로만 닫는다)
+  Array.prototype.forEach.call(document.querySelectorAll('.usr .modal:not(#usrIssuedModal)'), function (m) {
     m.addEventListener('click', function (e) { if (e.target === m) { m.hidden = true; } });
   });
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') { return; }
-    Array.prototype.forEach.call(document.querySelectorAll('.usr .modal'), function (m) { m.hidden = true; });
+    Array.prototype.forEach.call(document.querySelectorAll('.usr .modal:not(#usrIssuedModal)'), function (m) { m.hidden = true; });
   });
 
   // 서버가 다시 그린 화면: 입력 오류면 등록·수정 모달을, 팀 이동·비활성 확인이면 확인 모달을 연다

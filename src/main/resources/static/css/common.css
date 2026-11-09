@@ -95,7 +95,7 @@ button{font-family:inherit}
 .sub{font-size:12.5px;color:var(--muted);margin-top:3px}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 1px 3px rgba(10,16,25,.08)} /* 11/07 colortest 1.5단계: 1단계(.06)와 2단계(.10) 사이 그림자 */
 .pad{padding:18px}
-.card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 18px;min-height:50px;box-sizing:border-box;border-bottom:1px solid var(--border);flex-wrap:wrap} /* 11/09: 모든 카드 머리 줄 50px (버튼이 있어도 같은 높이, 내용이 두 줄이면 그만큼만 늘어난다) */
 .card-head h3{font-size:13.5px}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:7px;font-size:12.5px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;white-space:nowrap}
 .btn:hover{border-color:var(--accent);color:var(--accent-s)}

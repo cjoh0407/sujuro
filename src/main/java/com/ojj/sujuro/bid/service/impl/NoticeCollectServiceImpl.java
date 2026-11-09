@@ -79,6 +79,17 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
     /** 한 번 수집에서 넘길 최대 페이지. API 가 이상한 totalCount 를 줄 때 끝없이 돌지 않게 막는다. */
     private static final int MAX_PAGES = 50;
 
+    /**
+     * 정정 확인을 번호로 하나씩 묻는 최대 공고 수 (11/09). 이보다 많으면 기간 목록으로 받는다.
+     * 11/09 오전 실측: 기간 목록은 3일치 용역 입찰공고 683건(8페이지)에 10.2초, 번호 조회는 27번에 1.9초(한 번 평균 69ms).
+     * 번호 조회는 응답이 작아 빠르고 기간 제한이 없다. 대신 호출 수는 공고 수만큼이라 공고가 8건을 넘으면 목록보다 많다.
+     * 평균으로 셈하면 80번이 약 5.5초라 이 수까지는 목록보다 빠르다고 보고 기준으로 잡았다.
+     */
+    static final int CORRECTION_BY_NUMBER_MAX = 80;
+
+    /** 번호로 묻다가 이만큼 연달아 실패하면 나라장터 장애로 보고 그 단계를 멈춘다. 호출 하나가 재시도까지 최대 1분 남짓이다 */
+    static final int MAX_FAILS_IN_ROW = 2;
+
     /** 개찰결과 API 의 진행구분명 (progrsDivCdNm). 실측으로 이 두 값만 왔다. (2026-10-28) */
     private static final String OPENG_DONE = "개찰완료";
     private static final String OPENG_FAILED = "유찰";
@@ -93,6 +104,12 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
 
     /** 수집은 한 번에 하나만 돈다. 오후 5시 자동 수집 중에 [지금 수집] 을 눌러도 겹치지 않게 한다. */
     private final ReentrantLock running = new ReentrantLock();
+
+    /**
+     * 지금 단계에서 무엇을 몇 건 확인했는지 (11/09). 단계가 끝나면 collect() 가 걸린 시간과 함께 콘솔에 한 줄 남기고 비운다.
+     * 예: "[수집] 3. 정정 확인 · 번호 조회 29건 · 1.9초". 수집은 running 잠금으로 한 번에 하나만 돌아서 이 칸을 함께 써도 겹치지 않는다.
+     */
+    private String stepNote;
 
     private final NotificationService notificationService;
 
@@ -167,17 +184,49 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
         }
         try {
             CollectResultDTO result = new CollectResultDTO();
+            // 단계마다 무엇을 몇 건 확인했고 몇 초 걸렸는지 콘솔에 한 줄씩 남긴다 (11/09). 17시 자동 수집이 느린지 볼 때 쓴다
+            long started = System.nanoTime();
+            long t = started;
+            stepNote = null;
             result.setToPreSpec(collectPreSpec(excnSeCd, exctrId, result));
+            t = logStep("1. 사전규격 전환", t);
             result.setToBidNotice(collectBidNotice(excnSeCd, exctrId, result));
+            t = logStep("2. 입찰공고 전환", t);
             collectCorrections(excnSeCd, exctrId, result);
+            t = logStep("3. 정정 확인", t);
             collectOpenings(excnSeCd, exctrId, result);
+            t = logStep("4. 개찰 확인", t);
             collectContracts(excnSeCd, exctrId, result);
+            t = logStep("5. 계약 확인", t);
             collectResults(excnSeCd, exctrId, result);
+            t = logStep("6. 결과 확인", t);
             fillMissingFiles(excnSeCd, exctrId, result);
+            logStep("7. 빠진 첨부", t);
+            log.info("[수집] {} 수집 끝 · 전체 {} · {}{}", BidCode.EXCN_AUTO.equals(excnSeCd) ? "자동" : "수동",
+                    seconds(System.nanoTime() - started), result.getSummary(),
+                    result.getFailures().isEmpty() ? "" : " · 확인 실패 " + result.getFailures().size() + "건");
             return result;
         } finally {
+            stepNote = null;
             running.unlock();
         }
+    }
+
+    /** 지금 단계에서 무엇을 몇 건 확인하는지 적어 둔다. 단계 로그에 붙는다 */
+    private void note(String text) {
+        stepNote = text;
+    }
+
+    /** 단계 한 줄 로그. 적어 둔 내용이 없으면 확인할 공고가 없어 나라장터를 부르지 않은 단계다. 다음 단계의 시작 시각을 돌려준다 */
+    private long logStep(String step, long startedAt) {
+        long now = System.nanoTime();
+        log.info("[수집] {} · {} · {}", step, stepNote == null ? "확인할 공고 없음" : stepNote, seconds(now - startedAt));
+        stepNote = null;
+        return now;
+    }
+
+    private static String seconds(long nanos) {
+        return String.format("%.1f초", nanos / 1e9);
     }
 
     /** 1. 발주계획 → 사전규격 */
@@ -190,6 +239,7 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
             return 0;
         }
 
+        note("기다리는 발주계획 " + waiting.size() + "건 · 사전규격 목록");
         List<JsonNode> specs;
         try {
             specs = fetchRecentPreSpecs();
@@ -199,6 +249,7 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
             result.addFailure("사전규격 전환", e.getMessage());
             return 0;
         }
+        note("기다리는 발주계획 " + waiting.size() + "건 · 사전규격 목록 " + specs.size() + "건");
 
         int linked = 0;
         for (JsonNode spec : specs) {
@@ -242,6 +293,7 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
             return 0;
         }
 
+        note("번호 조회 " + waiting.size() + "건");
         int linked = 0;
         for (TrackingNoticeDTO target : waiting) {
             G2bResponse process;
@@ -461,28 +513,65 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
     /**
      * 3. 입찰공고 정정·취소 (FR-028). 입찰공고 단계 공고의 차수나 값(마감일·예산·공고명 등)이 바뀌었으면 고친다.
      *
-     * 공고마다 번호로 묻지 않고, 기간 안의 입찰공고 목록을 받아 우리 공고와 맞춘다. 등록 공고가 늘어도 호출 수가 같다.
-     * 정정·취소는 새 차수로 '등록'돼 등록일시 목록에 오고, 차수 없이 값만 고친 공고는 변경일시 목록에 온다.
-     * 같은 공고가 여러 번 오면 차수가 가장 큰 것을 쓴다.
+     * 우리 공고가 CORRECTION_BY_NUMBER_MAX 건 이하면 번호로 하나씩 묻는다 (11/09). 번호로 물으면 차수마다 한 건씩 와서
+     * 정정·취소(새 차수)와 값만 고친 경우가 모두 보이고, 기간 제한이 없어 수집이 며칠 멈췄던 사이의 정정도 놓치지 않는다.
+     * 공고가 그보다 많으면 기간 안의 입찰공고 목록(등록일시·변경일시)을 받아 맞춘다. 공고 수와 상관없이 호출 수가 같다.
+     * 어느 쪽이든 같은 공고가 여러 번 오면 차수가 가장 큰 것을 쓴다.
      */
     private void collectCorrections(String excnSeCd, String exctrId, CollectResultDTO result) {
         List<TrackingNoticeDTO> targets = bidNoticeMapper.findBidStageNotices(BidCode.STEP_BID_NOTICE);
         if (targets.isEmpty()) {
             return;
         }
-        Map<String, JsonNode> latest;
-        try {
-            latest = latestBidItems();
-        } catch (BusinessException e) {
-            log.warn("입찰공고 목록 수집 실패: {}", e.getMessage());
-            writeLog(null, excnSeCd, exctrId, BidCode.CLCT_FAILED, e.getMessage());
-            result.addFailure("정정 확인", e.getMessage());
-            return;
+        Map<String, JsonNode> listed = null;
+        if (targets.size() > CORRECTION_BY_NUMBER_MAX) {
+            note("기간 목록 · 우리 공고 " + targets.size() + "건");
+            try {
+                listed = latestBidItems();
+            } catch (BusinessException e) {
+                log.warn("입찰공고 목록 수집 실패: {}", e.getMessage());
+                writeLog(null, excnSeCd, exctrId, BidCode.CLCT_FAILED, e.getMessage());
+                result.addFailure("정정 확인", e.getMessage());
+                return;
+            }
+            note("기간 목록 " + listed.size() + "건 · 우리 공고 " + targets.size() + "건");
+        } else {
+            note("번호 조회 " + targets.size() + "건");
         }
 
         int changed = 0;
-        for (TrackingNoticeDTO target : targets) {
-            JsonNode item = latest.get(target.getBidPbancNo());
+        int failed = 0;
+        int failsInRow = 0;
+        String lastError = null;
+        boolean stopped = false;
+        for (int i = 0; i < targets.size(); i++) {
+            TrackingNoticeDTO target = targets.get(i);
+            JsonNode item;
+            if (listed != null) {
+                item = listed.get(target.getBidPbancNo());
+            } else {
+                try {
+                    item = latestOf(g2bApiClient.findBidNotice(target.getBidPbancNo()));
+                    failsInRow = 0;
+                } catch (BusinessException e) {
+                    failed++;
+                    failsInRow++;
+                    lastError = e.getMessage();
+                    log.warn("정정 확인 실패: 입찰공고 {}: {}", target.getBidPbancNo(), e.getMessage());
+                    writeLog(target.getPbancSn(), excnSeCd, exctrId, BidCode.CLCT_FAILED,
+                            "입찰공고 " + target.getBidPbancNo() + " 정정을 확인하지 못했습니다: " + e.getMessage());
+                    if (failsInRow >= MAX_FAILS_IN_ROW) {
+                        // 나라장터 장애로 보고 남은 공고는 묻지 않는다. 다음 수집에서 다시 확인한다
+                        stopped = true;
+                        String msg = "나라장터가 연달아 응답하지 않아 정정 확인을 멈췄습니다 (확인 못 한 공고 "
+                                + (targets.size() - i - 1 + failed) + "건): " + lastError;
+                        writeLog(null, excnSeCd, exctrId, BidCode.CLCT_FAILED, msg);
+                        result.addFailure("정정 확인", msg);
+                        break;
+                    }
+                    continue;
+                }
+            }
             if (item == null || !isChanged(target, item)) {
                 continue;
             }
@@ -496,7 +585,19 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
                 }
             }
         }
-        writeLog(null, excnSeCd, exctrId, changed > 0 ? BidCode.CLCT_CORRECTED : BidCode.CLCT_NO_CHANGE, null);
+        if (failed > 0 && !stopped) {
+            String msg = "입찰공고 " + failed + "건의 정정을 확인하지 못했습니다: " + lastError;
+            writeLog(null, excnSeCd, exctrId, BidCode.CLCT_FAILED, msg);
+            result.addFailure("정정 확인", msg);
+        }
+        if (changed > 0 || !stopped) {
+            writeLog(null, excnSeCd, exctrId, changed > 0 ? BidCode.CLCT_CORRECTED : BidCode.CLCT_NO_CHANGE, null);
+        }
+    }
+
+    /** 번호 조회 결과에서 차수가 가장 큰 건. 차수가 없으면 첫 건, 결과가 없으면 null */
+    private static JsonNode latestOf(G2bResponse res) {
+        return res.latestOrd() != null ? res.latestOrd() : res.first();
     }
 
     /**
@@ -573,6 +674,7 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
             return;
         }
 
+        note("번호 조회 " + targets.size() + "건");
         int opened = 0;
         for (TrackingNoticeDTO target : targets) {
             JsonNode row;
@@ -624,6 +726,7 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
             return;
         }
 
+        note("번호 조회 " + targets.size() + "건");
         int contracted = 0;
         for (TrackingNoticeDTO target : targets) {
             JsonNode row;
@@ -665,6 +768,7 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
             return;
         }
 
+        note("제출 완료 공고 " + targets.size() + "건");
         int registered = 0;
         for (ResultTargetDTO target : targets) {
             ResultOutcomeDTO out;
@@ -701,6 +805,9 @@ public class NoticeCollectServiceImpl implements NoticeCollectService {
     private void fillMissingFiles(String excnSeCd, String exctrId, CollectResultDTO result) {
         List<TrackingNoticeDTO> targets =
                 bidNoticeMapper.findNoticesWithoutFiles(BidCode.STEP_PRE_SPEC, BidCode.STEP_BID_NOTICE);
+        if (!targets.isEmpty()) {
+            note("첨부 없는 공고 번호 조회 " + targets.size() + "건");
+        }
         int filled = 0;
         for (TrackingNoticeDTO target : targets) {
             List<AtchFileDTO> files;

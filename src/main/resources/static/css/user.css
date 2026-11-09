@@ -1,8 +1,8 @@
 /* 사용자 관리 화면 전용 (user/users.html).
    모달 모양은 일정 관리(schedule.css)와 같게 맞춘다. 이 화면 안(.usr)에서만 적용된다. */
 
-/* 직원 목록: 페이지를 넘기지 않고 표 안에서 스크롤한다. 머리줄은 위에 고정 */
-.usr .usr-scroll{max-height:calc(100vh - 290px);min-height:240px;overflow-y:auto}
+/* 직원 목록: 10명씩 페이지 (UserController.PAGE_SIZE) */
+.usr .usr-scroll{overflow-x:auto} /* 11/09: 10명씩 페이지로 나눠서 표 안 세로 스크롤은 없앴다 */
 .usr .usr-scroll thead th{position:sticky;top:0;z-index:1;background:var(--alt)}
 .usr .usr-filter{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .usr .usr-count{font-weight:400;color:var(--muted);font-size:12.5px}
@@ -24,3 +24,16 @@
 /* 직원 목록: 머리글·내용 모두 가운데 정렬 (다른 화면 표와 같게, 11/07) */
 .usr table th,.usr table td{text-align:center}
 .usr table td .row{justify-content:center}
+
+/* 직원 목록 칸 너비 고정 (11/09): table-layout:fixed 라 내용 길이와 상관없이 머리글 위치가 같다. 이메일 칸이 남는 폭을 쓴다.
+   칸보다 긴 글자는 한 줄로 말줄임(…) */
+.usr table.usr-table{table-layout:fixed;width:100%;min-width:900px}
+.usr .usr-table col.w-name{width:12%}
+.usr .usr-table col.w-id{width:11%}
+.usr .usr-table col.w-team{width:14%}
+.usr .usr-table col.w-rank{width:9%}
+.usr .usr-table col.w-role{width:11%}
+.usr .usr-table col.w-st{width:12%}
+.usr .usr-table col.w-act{width:64px}
+.usr .usr-table td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.usr .usr-table td:last-child{overflow:visible}

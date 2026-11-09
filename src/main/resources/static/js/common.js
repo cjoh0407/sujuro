@@ -10,10 +10,33 @@
     if (!el || !message) return;
     el.textContent = message;
     el.classList.toggle('err', kind === 'err');
+    el.classList.toggle('warn', kind === 'warn');
+    el.classList.toggle('info', kind === 'info');
     el.classList.add('on');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { el.classList.remove('on'); }, kind === 'err' ? 5000 : 2600);
+    toastTimer = setTimeout(function () { el.classList.remove('on'); }, (kind === 'err' || kind === 'warn') ? 5000 : 3000);
   };
+
+  /* 안내 띠 대신 색 토스트 (11/09). 화면에 <div hidden data-flash="error|warn|info">문구</div> 를 두면
+     화면이 열릴 때 오른쪽 아래에 띄운다(빨강·주황·파랑). 여러 개면 한 토스트에 줄을 나눠 보이고, 색은 가장 센 것.
+     비동기로 화면 일부가 바뀔 때는 async-form.js 가 같은 규칙으로 띄운다 */
+  window.flashToast = function (list) {
+    if (!list || !list.length) return;
+    var rank = { error: 3, warn: 2, info: 1 }, top = 'info';
+    list.forEach(function (m) { if ((rank[m.kind] || 1) > rank[top]) top = m.kind; });
+    var text = list.map(function (m) { return m.text; }).filter(Boolean).join('\n');
+    window.showToast(text, top === 'error' ? 'err' : top);
+  };
+  window.readFlashes = function (root) {
+    var out = [];
+    Array.prototype.forEach.call(root.querySelectorAll('[data-flash]'), function (b) {
+      out.push({ text: (b.innerText || b.textContent).trim(), kind: b.getAttribute('data-flash') || 'info' });
+      b.remove();
+    });
+    return out;
+  };
+  function firstFlash() { window.flashToast(window.readFlashes(document)); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', firstFlash); else firstFlash();
 
   // fetch/AJAX 요청에 붙일 CSRF 정보. 예: headers[csrf.header] = csrf.token
   var tokenMeta = document.querySelector('meta[name="_csrf"]');
@@ -375,4 +398,162 @@
   onPageReady(function () {
     Array.prototype.forEach.call(document.querySelectorAll('.bid-select select, .sch-pick select'), enhance);
   });
+})();
+
+/* ---------- 모든 드롭다운의 펼친 목록 (11/09) ----------
+   브라우저(크롬·사파리·파이어폭스·맥/윈도)마다 펼친 목록 모양이 달라서, 모든 select의 목록을 우리 모양(.csel-pop)으로 띄운다.
+   select 자체는 그 자리에 그대로 두고 여는 동작만 가로챈다 → 크기·폼 제출·필수 검사는 원래대로.
+   문서 전체에서 받으므로 나중에 생긴 select(팝업·행 추가)에도 붙는다. 사업 드롭다운(.csel)은 위쪽 코드가 따로 맡는다.
+   빼는 것: 여러 줄 목록(multiple·size), 비활성, data-native 표시, 터치 화면(휴대폰은 기본 선택창이 더 편하다). */
+(function () {
+  var CHECK = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 7.2 5.8 10 11 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var touch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  var pop = null, cur = null; // 열린 목록과 그 select
+
+  function esc(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : t; return d.innerHTML; }
+  function usable(el) {
+    return el && el.tagName === 'SELECT' && !el.multiple && !(el.size > 1) && !el.disabled
+      && !el.classList.contains('csel-native') && !el.hasAttribute('data-native') && !touch;
+  }
+  function item(o) {
+    if (o.hidden) return '';
+    var name = o.getAttribute('data-name') || o.textContent.trim(), sub = o.getAttribute('data-sub') || '';
+    var on = o.selected, off = o.disabled;
+    return '<div class="csel-opt' + (on ? ' on' : '') + (off ? ' off' : '') + '" role="option" aria-selected="' + on + '"' +
+      (off ? ' aria-disabled="true"' : '') + ' data-i="' + o.index + '" title="' + esc(o.textContent.trim()) + '">' +
+      '<span class="csel-ck">' + (on ? CHECK : '') + '</span><span class="csel-nm">' + (esc(name) || '&nbsp;') + '</span>' +
+      (sub ? '<span class="csel-sub">' + esc(sub) + '</span>' : '') + '</div>';
+  }
+  function build(sel) {
+    var html = '';
+    Array.prototype.forEach.call(sel.children, function (n) {
+      if (n.tagName === 'OPTGROUP') {
+        html += '<div class="csel-grp">' + esc(n.label) + '</div>';
+        Array.prototype.forEach.call(n.children, function (o) { html += item(o); });
+      } else if (n.tagName === 'OPTION') { html += item(n); }
+    });
+    return html || '<div class="csel-empty">고를 항목이 없습니다</div>';
+  }
+  function opts() { return pop ? Array.prototype.slice.call(pop.querySelectorAll('.csel-opt:not(.off)')) : []; }
+  function setActive(el) {
+    opts().forEach(function (x) { x.classList.toggle('act', x === el); });
+    if (!el) return;
+    if (el.offsetTop < pop.scrollTop) pop.scrollTop = el.offsetTop - 6;
+    else if (el.offsetTop + el.offsetHeight > pop.scrollTop + pop.clientHeight) pop.scrollTop = el.offsetTop + el.offsetHeight - pop.clientHeight + 6;
+  }
+  function place() {
+    var r = cur.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
+    pop.style.minWidth = Math.round(r.width) + 'px';
+    pop.style.left = '0px'; pop.style.top = '0px';
+    var w = pop.offsetWidth, h = pop.offsetHeight;
+    var left = Math.min(r.left, vw - w - 8), top = r.bottom + 6;
+    if (top + h > vh - 8 && r.top - 6 - h > 8) top = r.top - 6 - h; // 아래 자리가 모자라면 위로
+    pop.style.left = Math.max(8, left) + 'px';
+    pop.style.top = Math.max(8, top) + 'px';
+  }
+  function open(sel) {
+    close();
+    cur = sel;
+    pop = document.createElement('div');
+    pop.className = 'csel-pop float';
+    pop.setAttribute('role', 'listbox');
+    pop.innerHTML = build(sel);
+    document.body.appendChild(pop);
+    sel.classList.add('csel-open');
+    sel.setAttribute('aria-expanded', 'true');
+    place();
+    setActive(pop.querySelector('.csel-opt.on:not(.off)') || opts()[0]);
+    pop.addEventListener('mousedown', function (e) { e.preventDefault(); }); // select 포커스 유지
+    pop.addEventListener('click', function (e) {
+      var el = e.target.closest('.csel-opt');
+      if (el && !el.classList.contains('off')) choose(el);
+    });
+    pop.addEventListener('mousemove', function (e) {
+      var el = e.target.closest('.csel-opt');
+      if (el && !el.classList.contains('off') && !el.classList.contains('act')) opts().forEach(function (x) { x.classList.toggle('act', x === el); });
+    });
+  }
+  function close() {
+    if (!pop) return;
+    pop.remove();
+    if (cur) { cur.classList.remove('csel-open'); cur.setAttribute('aria-expanded', 'false'); }
+    pop = null; cur = null;
+  }
+  function choose(el) {
+    var sel = cur, i = +el.getAttribute('data-i');
+    close();
+    sel.focus();
+    if (i === sel.selectedIndex) return;
+    sel.selectedIndex = i;
+    sel.dispatchEvent(new Event('input', { bubbles: true }));
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  // 누르면 기본 목록 대신 우리 목록
+  document.addEventListener('mousedown', function (e) {
+    if (pop && !pop.contains(e.target) && e.target !== cur) close();
+    var sel = e.target;
+    if (e.button !== 0 || !usable(sel)) return;
+    e.preventDefault();
+    sel.focus();
+    if (pop && cur === sel) close(); else open(sel);
+  }, true);
+
+  // 키보드: 닫혀 있을 때 ↑↓ Enter Space Alt+↓ 로 열고, 열려 있으면 ↑↓ Home End Enter Esc Tab
+  document.addEventListener('keydown', function (e) {
+    var sel = e.target;
+    if (pop && sel === cur) {
+      var list = opts(), a = pop.querySelector('.csel-opt.act'), i = list.indexOf(a);
+      if (e.key === 'ArrowDown') { e.preventDefault(); setActive(list[Math.min(i + 1, list.length - 1)]); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(list[Math.max(i - 1, 0)]); }
+      else if (e.key === 'Home') { e.preventDefault(); setActive(list[0]); }
+      else if (e.key === 'End') { e.preventDefault(); setActive(list[list.length - 1]); }
+      else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (a) choose(a); else close(); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
+      else if (e.key === 'Tab') { close(); }
+      return;
+    }
+    if (!usable(sel)) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(sel); }
+  }, true);
+
+  // 목록 밖을 굴리거나 창 크기가 바뀌면 닫는다 (목록 안 스크롤은 그대로)
+  document.addEventListener('scroll', function (e) { if (pop && !pop.contains(e.target)) close(); }, true);
+  window.addEventListener('resize', close);
+  window.addEventListener('blur', close);
+})();
+
+/* ---------- 줄 끝 "…" 메뉴 (11/09: proposal.js에서 옮김, 어느 화면에서나 쓴다) ---------- */
+/* 줄 끝 "…" 메뉴. 표를 감싼 칸(.ts)이 넘치는 부분을 가리므로 화면 기준(fixed)으로 버튼 아래 오른쪽 맞춤에 띄운다 */
+function closeRowMenus() {
+  document.querySelectorAll('.row-menu .menu-pop').forEach(function (p) {
+    p.hidden = true;
+    var b = p.parentNode.querySelector('.kebab');
+    if (b) b.setAttribute('aria-expanded', 'false');
+  });
+}
+
+function toggleRowMenu(btn) {
+  var pop = btn.parentNode.querySelector('.menu-pop');
+  var opening = pop.hidden;
+  closeRowMenus();
+  if (!opening) return;
+  pop.hidden = false;
+  var r = btn.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+  var top = r.bottom + 4;
+  if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 4); // 아래가 모자라면 위로
+  pop.style.top = top + 'px';
+  pop.style.left = Math.max(8, r.right - w) + 'px';
+  btn.setAttribute('aria-expanded', 'true');
+}
+
+(function () {
+  document.addEventListener('click', function (e) {
+    var inPop = e.target.closest && e.target.closest('.menu-pop');
+    if (inPop) { if (e.target.closest('button')) closeRowMenus(); return; }  // 메뉴 항목을 누르면 닫는다
+    if (!(e.target.closest && e.target.closest('.row-menu'))) closeRowMenus();       // 바깥을 누르면 닫는다
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeRowMenus(); });
+  window.addEventListener('scroll', closeRowMenus, true);
+  window.addEventListener('resize', closeRowMenus);
 })();

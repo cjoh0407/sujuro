@@ -49,8 +49,9 @@ public class UserController {
                        @RequestParam(required = false) String keyword,
                        @RequestParam(required = false) String status,
                        @RequestParam(required = false) Long team,
+                       @RequestParam(value = "page", defaultValue = "1") int page,
                        Model model) {
-        fill(model, me, keyword, status, team, new UserForm(), null, Collections.<String>emptyList());
+        fill(model, me, keyword, status, team, new UserForm(), null, Collections.<String>emptyList(), page);
         return "user/users";
     }
 
@@ -206,9 +207,24 @@ public class UserController {
         }
     }
 
+    /** 직원 목록 한 쪽에 보여 줄 인원 (11/09: 표 안 스크롤 대신 10명씩 페이지) */
+    private static final int PAGE_SIZE = 10;
+
     private void fill(Model model, LoginUser me, String keyword, String status, Long team,
                       UserForm form, UserDto editUser, List<String> errors) {
-        model.addAttribute("users", userService.search(keyword, status, team));
+        fill(model, me, keyword, status, team, form, editUser, errors, 1);
+    }
+
+    private void fill(Model model, LoginUser me, String keyword, String status, Long team,
+                      UserForm form, UserDto editUser, List<String> errors, int page) {
+        List<UserDto> all = userService.search(keyword, status, team);
+        int totalPages = Math.max(1, (all.size() + PAGE_SIZE - 1) / PAGE_SIZE);
+        int pageNo = Math.min(Math.max(1, page), totalPages); // 잘못된 번호는 가까운 쪽으로
+        int from = (pageNo - 1) * PAGE_SIZE;
+        model.addAttribute("users", new java.util.ArrayList<>(all.subList(from, Math.min(all.size(), from + PAGE_SIZE))));
+        model.addAttribute("filteredCount", all.size());
+        model.addAttribute("page", pageNo);
+        model.addAttribute("totalPages", totalPages);
         model.addAttribute("totalCount", userService.countAll());
         model.addAttribute("teams", userService.teams());
         model.addAttribute("ranks", userService.ranks());

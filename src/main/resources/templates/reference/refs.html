@@ -21,8 +21,7 @@
 
 <th:block layout:fragment="content">
 
-  <div class="banner ok" data-flash="done" th:if="${done != null}" th:text="${done}">처리했습니다.</div>
-  <div class="banner err" data-flash="error" th:if="${error != null}" th:text="${error}">오류 안내</div>
+  <div hidden data-flash="error" th:if="${error != null}" th:text="${error}">오류 안내</div>
   <!-- 3:7 화면: 왼쪽에 자료 올리기 카드(제안 화면들과 같은 박스), 오른쪽에 자료 목록 -->
   <div class="split">
   <aside class="split-l">

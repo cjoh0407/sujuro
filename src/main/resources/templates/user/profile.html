@@ -27,12 +27,7 @@
     <div class="card-head"><h3>비밀번호 변경</h3></div>
     <div class="pad stack-12 mw-420px">
 
-      <div class="banner ok" th:if="${done != null}">비밀번호를 변경했습니다.</div>
-      <div class="banner err" th:if="${errors != null}">
-        <ul class="u-margin-0-padding-left-16px">
-          <li th:each="e : ${errors}" th:text="${e}">오류 안내</li>
-        </ul>
-      </div>
+      <div hidden data-flash="error" th:if="${errors != null}" th:each="e : ${errors}" th:text="${e}">오류 안내</div>
 
       <form th:action="@{/profile/password}" method="post" class="stack-12">
         <div class="fld">

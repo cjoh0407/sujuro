@@ -20,10 +20,13 @@
 .ico.danger:hover{background:rgba(164,41,47,.1)}
 .ico:focus-visible{outline:2px solid var(--ic-navy);outline-offset:1px}
 /* 아이콘 그림: <span class="ic ic-edit"></span>. SVG를 마스크로 써서 글자색(currentColor)으로 칠한다 */
-.ic{display:inline-block;width:16px;height:16px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat;flex:none}
 .ic-child{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 3.5v6.5a2.5 2.5 0 0 0 2.5 2.5H15'/%3E%3Cpath d='M11.5 9l3.5 3.5-3.5 3.5'/%3E%3C/svg%3E")}
 .ic-sibling{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 5.5h9'/%3E%3Cpath d='M3.5 10h9'/%3E%3Cpath d='M3.5 14.5h5'/%3E%3Cpath d='M14.5 11.5v6'/%3E%3Cpath d='M11.5 14.5h6'/%3E%3C/svg%3E")}
-.ic-edit{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12.8 3.9a1.8 1.8 0 0 1 2.5 0l.8.8a1.8 1.8 0 0 1 0 2.5L7.6 15.7 3.8 16.6l.9-3.8z'/%3E%3Cpath d='M11.3 5.4l3.3 3.3'/%3E%3C/svg%3E")}
+.ic-plus{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' shape-rendering='crispEdges'%3E%3Crect x='11' y='5' width='2' height='14' fill='black'/%3E%3Crect x='5' y='11' width='14' height='2' fill='black'/%3E%3C/svg%3E")} /* 정중앙(12,12) 대칭 2px 막대: 픽셀 칸에 딱 맞아 흐림 없음 */
+/* 서류 추가 등 입력줄 끝의 + 버튼 (11/09): 배경 없이 아이콘만, 입력칸 높이(36px)에 맞춤 */
+.ico.ico-add{width:36px;height:36px;border-radius:8px;background:rgba(29,75,126,.1)} /* 연한 남색 배경을 기본으로 (11/09) */
+.ico.ico-add:hover{background:rgba(29,75,126,.18)}
+.ico.ico-add .ic{width:24px;height:24px;-webkit-mask-size:24px 24px;mask-size:24px 24px} /* 그림 크기 그대로(24px) → 막대가 픽셀에 딱 맞고, 36px 안에서 사방 6px씩 정중앙 */
 .ic-trash{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 5.5h13'/%3E%3Cpath d='M8 5.5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5'/%3E%3Cpath d='M5.2 5.5l.8 10.1a1.5 1.5 0 0 0 1.5 1.4h5a1.5 1.5 0 0 0 1.5-1.4l.8-10.1'/%3E%3Cpath d='M8.5 9v4.5'/%3E%3Cpath d='M11.5 9v4.5'/%3E%3C/svg%3E")}
 .ic-close{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 5l10 10'/%3E%3Cpath d='M15 5L5 15'/%3E%3C/svg%3E")}
 .ic-search{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8.8' cy='8.8' r='5.3'/%3E%3Cpath d='M13.2 13.2l3.8 3.8'/%3E%3C/svg%3E")}
@@ -273,18 +276,6 @@ main.content table.ref-table th.c-act{text-align:center}
 .form-bar .fb-acts{margin-left:auto}
 
 /* 줄 끝 "…" 메뉴 */
-.ic-more{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='black'%3E%3Ccircle cx='4.5' cy='10' r='1.6'/%3E%3Ccircle cx='10' cy='10' r='1.6'/%3E%3Ccircle cx='15.5' cy='10' r='1.6'/%3E%3C/svg%3E")}
-.row-menu{display:inline-block}
-.row-menu .kebab{width:28px;height:28px;color:var(--muted)}
-.row-menu .kebab:hover,.row-menu .kebab[aria-expanded="true"]{background:var(--alt);color:var(--text)}
-.menu-pop{position:fixed;z-index:60;min-width:200px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow-pop);text-align:left}
-.menu-pop[hidden]{display:none}
-.menu-pop hr{border:0;border-top:1px solid var(--border);margin:6px 4px}
-.menu-pop form{margin:0}
-.menu-pop button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:0;border-radius:8px;background:none;font:inherit;font-size:13px;color:var(--accent-s);cursor:pointer;text-align:left;white-space:nowrap}
-.menu-pop button:hover,.menu-pop button:focus-visible{background:var(--alt);outline:0}
-.menu-pop button.danger{color:var(--danger)}
-.menu-pop .ic{width:15px;height:15px}
 
 /* 미매핑 목록: 줄 전체를 누르면 왼쪽 칸에서 수정·삭제. 고른 줄은 파란 배경 */
 .rq-name{color:inherit;text-decoration:none}
@@ -349,7 +340,8 @@ main.content table.pf-table td.pf-act{text-align:right;white-space:nowrap}
 .ver-src[hidden]{display:none}
 .ver-box{width:680px}
 .ver-box .card-head{align-items:center}
-.ver-table td,.ver-table th{text-align:left !important;white-space:nowrap}
+.ver-table td,.ver-table th{text-align:center !important;white-space:nowrap} /* 11/09: 머리글·짧은 칸은 가운데, 파일명(c-left)만 왼쪽 */
+.ver-table td.vp-nm{text-align:left !important}
 .ver-table .vp-nm{white-space:normal}
 .ver-table .vp-nm b{margin-right:6px}
 .ver-table .vp-act{text-align:right !important}
@@ -449,7 +441,10 @@ main.content table.ev-table th:nth-child(1),main.content table.ev-table td.ev-no
 main.content table.ev-table th.ev-r,main.content table.ev-table td.ev-r{text-align:center}
 .ev-table input.ev-scr{text-align:center}
 .ev-table thead th:nth-child(4){padding-left:23px}
-.ev-table .ev-pg-t{display:inline-block;padding-left:11px}
+.ev-table .ev-pg-t{display:inline-block}
+/* 쪽번호 칸 가운데 (11/09): 머리글·글자·입력칸 모두 */
+main.content table.ev-table th:nth-child(4),main.content table.ev-table tbody td:nth-child(4){text-align:center}
+.ev-table input.ev-page{text-align:center}
 /* 평가 항목: 머리글·입력칸 글자·보기 글자 모두 가운데 */
 main.content table.ev-table th:nth-child(2),main.content table.ev-table tbody td:nth-child(2){text-align:center}
 .ev-table input[name=evlArtclNm],.ev-table input[name=newNm]{text-align:center}
@@ -463,7 +458,7 @@ main.content table.ev-table th:nth-child(2),main.content table.ev-table tbody td
 
 /* 제출서류: 위쪽 제출 마감 일시, 제출 기한 날짜+시간 칸 (11/08) */
 .due-in{display:inline-flex;gap:4px;align-items:center}
-.due-in input[type=time]{width:104px}
+.due-in input[type=time]{width:124px;box-sizing:border-box} /* "오전 10:00"이 잘리지 않게 (11/09) */
 @media (max-width:1100px) and (min-width:761px){.doc-sum{grid-template-columns:repeat(2,1fr)}.doc-sum>div:nth-child(3){border-left:0}.doc-sum>div:nth-child(n+3){border-top:1px solid var(--border)}}
 /* 제출 마감 칸: 날짜(왼쪽)와 시간(오른쪽 끝)을 한 줄에, 시간은 빨강 (11/08) */
 .doc-sum .ds-due{flex:1;min-width:0}

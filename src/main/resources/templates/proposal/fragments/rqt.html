@@ -44,7 +44,7 @@
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">
     <input type="hidden" name="rqtMttrSn" th:value="${q.rqtMttrSn}">
     <input type="hidden" name="view" value="unmapped">
-    <select name="tocSn" data-change-submit class="mw-280px">
+    <select name="tocSn" data-change-submit class="rq-pick">
       <option value="">세부 목차 선택</option>
       <option th:each="x : ${mapTargets}" th:value="${x.tocSn}" th:text="${x.label + ' (' + x.ownerLabel + ')'}">1.1 목차 (담당자)</option>
     </select>
@@ -89,9 +89,6 @@
         <li th:each="w : ${extract.warnings}" th:text="${w}">경고</li>
       </ul>
     </div>
-  </div>
-  <div class="banner ok" th:if="${#lists.isEmpty(extract.warnings)}">
-    <span>총괄표의 요구사항 수와 목록에서 읽은 수가 모두 맞습니다.</span>
   </div>
   <form th:action="@{/proposal/rqt/extract/register}" method="post" class="card">
     <input type="hidden" name="bid" th:value="${bid.pbancSn}">

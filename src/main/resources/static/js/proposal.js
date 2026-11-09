@@ -566,39 +566,6 @@ onPageReady(function () {
   setTocMode(saved ? saved === 'view' : w.dataset.done === 'true');
 });
 
-/* 줄 끝 "…" 메뉴. 표를 감싼 칸(.ts)이 넘치는 부분을 가리므로 화면 기준(fixed)으로 버튼 아래 오른쪽 맞춤에 띄운다 */
-function closeRowMenus() {
-  document.querySelectorAll('.row-menu .menu-pop').forEach(function (p) {
-    p.hidden = true;
-    var b = p.parentNode.querySelector('.kebab');
-    if (b) b.setAttribute('aria-expanded', 'false');
-  });
-}
-
-function toggleRowMenu(btn) {
-  var pop = btn.parentNode.querySelector('.menu-pop');
-  var opening = pop.hidden;
-  closeRowMenus();
-  if (!opening) return;
-  pop.hidden = false;
-  var r = btn.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
-  var top = r.bottom + 4;
-  if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 4); // 아래가 모자라면 위로
-  pop.style.top = top + 'px';
-  pop.style.left = Math.max(8, r.right - w) + 'px';
-  btn.setAttribute('aria-expanded', 'true');
-}
-
-(function () {
-  document.addEventListener('click', function (e) {
-    var inPop = e.target.closest && e.target.closest('.menu-pop');
-    if (inPop) { if (e.target.closest('[data-on-click]')) closeRowMenus(); return; }  // 메뉴 항목을 누르면 닫는다
-    if (!(e.target.closest && e.target.closest('.row-menu'))) closeRowMenus();       // 바깥을 누르면 닫는다
-  });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeRowMenus(); });
-  window.addEventListener('scroll', closeRowMenus, true);
-  window.addEventListener('resize', closeRowMenus);
-})();
 
 /* 요구사항 수정 칸(왼쪽)이 열리면 명칭 입력칸에 커서를 둔다. 화면 일부만 바뀌는 비동기 이동 뒤에는 autofocus 가 듣지 않는다 */
 window.onPageReady(function () {

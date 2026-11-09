@@ -160,7 +160,7 @@
             </div>
             <div class="fld">
               <label for="userId">사번</label>
-              <input id="userId" name="userId" type="text" maxlength="9" th:value="${form.userId}"
+              <input id="userId" name="userId" type="text" maxlength="9" data-empno inputmode="numeric" th:value="${form.userId}"
                      placeholder="2024-0001" pattern="[0-9]{4}-[0-9]{4}" title="숫자 4자리-숫자 4자리 (예: 2024-0001)"
                      th:readonly="${openModal == 'edit'}" th:required="${openModal != 'edit'}">
             </div>

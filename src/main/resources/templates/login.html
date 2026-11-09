@@ -51,7 +51,7 @@
       <form th:action="@{/login}" method="post" class="login-fields">
         <div class="fld">
           <label for="empNo">사번</label>
-          <input id="empNo" name="empNo" type="text" autocomplete="username" autofocus required>
+          <input id="empNo" name="empNo" type="text" autocomplete="username" autofocus required data-empno inputmode="numeric" maxlength="9" placeholder="2024-0001">
         </div>
         <div class="fld">
           <label for="password">비밀번호</label>
@@ -64,5 +64,6 @@
     </div>
   </main>
 </div>
+<script th:src="@{/js/common.js}"></script><!-- 사번 하이픈 자동 입력 (data-empno) -->
 </body>
 </html>

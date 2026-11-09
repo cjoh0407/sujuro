@@ -557,3 +557,25 @@ function toggleRowMenu(btn) {
   window.addEventListener('scroll', closeRowMenus, true);
   window.addEventListener('resize', closeRowMenus);
 })();
+
+/* ---------- 사번 하이픈 자동 입력 (11/09) ----------
+   <input data-empno> : 숫자만 받고 앞 4자리를 치면 바로 "-"를 붙인다 (2024-0001). 붙여넣기 "20240001"도 맞춰 준다.
+   지울 때는 "-"를 다시 붙이지 않아 Backspace로 자연스럽게 지워진다. 읽기 전용 칸은 건드리지 않는다 */
+(function () {
+  function fmt(v, adding) {
+    var d = String(v || '').replace(/\D/g, '').slice(0, 8);
+    if (d.length > 4) return d.slice(0, 4) + '-' + d.slice(4);
+    if (d.length === 4 && adding) return d + '-';
+    return d;
+  }
+  document.addEventListener('input', function (e) {
+    var el = e.target;
+    if (!el || !el.hasAttribute || !el.hasAttribute('data-empno') || el.readOnly) return;
+    var adding = !/^delete/.test(e.inputType || '');
+    var next = fmt(el.value, adding);
+    if (next !== el.value) {
+      el.value = next;
+      try { el.setSelectionRange(next.length, next.length); } catch (x) { /* 일부 브라우저 */ }
+    }
+  });
+})();

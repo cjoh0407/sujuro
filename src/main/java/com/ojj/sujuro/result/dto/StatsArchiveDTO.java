@@ -17,7 +17,7 @@ import lombok.Setter;
 /**
  * 사업별 결과 분석 (FR-080, 081, 087). 사업 이력 관리의 왼쪽 목록에서 사업을 고르면 온다.
  * 결과가 등록된 사업만 있다. 순위·점수는 수집이 나라장터 개찰 결과에서 우리 회사 사업자번호로 가져오고,
- * 평가표(항목·배점·위원별 점수)와 장단점 분석은 경영지원실이 입력한다.
+ * 평가표(엑셀, 항목·배점·위원별 점수)와 장단점 분석은 그 사업을 맡은 팀의 팀장이 입력한다 (엑셀 올리기는 11/10부터 팀장만).
  */
 @Getter
 @Setter
@@ -67,7 +67,7 @@ public class StatsArchiveDTO {
     /** 평가 항목별 점수 (11/03, 화면에는 그래프로 그린다). 평가표 엑셀을 올린 업체가 열, 항목별 등수·종합 점수 1등(수주 업체) */
     private ArticleScoreTableDTO articleTable = ArticleScoreTableDTO.of(new ArrayList<>());
 
-    /** 경영지원실이 마지막으로 올린 평가표 엑셀. 없으면 null */
+    /** 마지막으로 올린 평가표 엑셀. 없으면 null */
     private EvaluationFileDTO evaluationFile;
 
     /** 개찰 목록에 우리 회사 행이 있는지. 있어야 평가표를 넣을 수 있다(결과가 자동 등록된 사업) */

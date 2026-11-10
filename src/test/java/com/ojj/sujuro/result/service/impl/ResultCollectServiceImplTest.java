@@ -26,7 +26,6 @@ import org.springframework.transaction.support.SimpleTransactionStatus;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ojj.sujuro.auth.code.Role;
 import com.ojj.sujuro.bid.api.G2bApiClient;
 import com.ojj.sujuro.bid.api.G2bResponse;
 import com.ojj.sujuro.notification.code.NotificationType;
@@ -122,9 +121,9 @@ class ResultCollectServiceImplTest {
         assertEquals("N", co.getAllValues().get(1).getOurCoYn());
         assertEquals(new BigDecimal("9.992"), co.getAllValues().get(1).getPrcEvlScr()); // 넷째 자리는 반올림
 
-        verify(notifications).sendToRole(eq(Role.MGMT), eq(NotificationType.EVL_TABLE_REQUEST), eq(5L), contains("수주 · 1위"));
-        // 점수·장단점은 주관 팀 팀장이 입력한다
-        verify(notifications).sendToTeamLeaders(eq(3L), eq(NotificationType.EVL_TABLE_REQUEST), eq(5L), contains("장단점"));
+        // 평가표 엑셀·점수·장단점은 주관 팀 팀장만 입력해, 팀장에게만 알린다 (11/10. 경영지원실에는 보내지 않는다)
+        verify(notifications).sendToTeamLeaders(eq(3L), eq(NotificationType.EVL_TABLE_REQUEST), eq(5L), contains("수주 · 1위"));
+        verify(notifications, never()).sendToRole(any(), anyString(), anyLong(), anyString());
     }
 
     @Test
@@ -184,7 +183,7 @@ class ResultCollectServiceImplTest {
         ResultOutcomeDTO out = service("1078728988").register(target());
 
         assertEquals(ResultOutcomeDTO.Kind.WAITING, out.getKind());
-        verify(notifications, never()).sendToRole(any(), anyString(), anyLong(), anyString());
+        verify(notifications, never()).sendToTeamLeaders(anyLong(), anyString(), anyLong(), anyString());
     }
 
     @Test

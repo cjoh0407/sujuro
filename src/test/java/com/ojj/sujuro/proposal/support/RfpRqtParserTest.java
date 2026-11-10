@@ -164,4 +164,22 @@ class RfpRqtParserTest {
         assertEquals(Integer.valueOf(2), r.getExpected().get("MAR"));
         assertTrue(r.isSummaryFound());
     }
+
+    @Test
+    void 번호_없이_ID부터_나오는_목록과_구분별_개수를_읽는다() {
+        RqtExtractDto r = RfpRqtParser.parse("(1) 요구사항 총괄표\n"
+                + "구 분 요구사항ID 요구사항 명칭 요구사항 수\n"
+                + "MAR-001 유지관리 수행 방안 제시\n"
+                + "유지관리 수행 MAR-002 유지관리 대상\n"
+                + "요구사항 MAR-003 정보화 평가 지원 3\n"
+                + "성능 요구사항(PER) PER-001 웹페이지 응답시간 1\n"
+                + "합계 4\n"
+                + "요구사항 고유번호 MAR-001\n");   // 아래 상세 설명 표는 목록이 아니다
+        assertEquals(4, r.getFoundCount());
+        assertEquals("MAR-003", r.getItems().get(2).getRqtMttrNo());
+        assertEquals("정보화 평가 지원", r.getItems().get(2).getRqtMttrNm());
+        assertEquals("성능 요구사항", r.getGroupNames().get("PER"));
+        assertEquals(Integer.valueOf(3), r.getExpected().get("MAR"));
+        assertTrue(r.getWarnings().isEmpty(), r.getWarnings().toString());
+    }
 }

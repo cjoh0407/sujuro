@@ -35,10 +35,14 @@ import com.ojj.sujuro.proposal.dto.RqtExtractItemDto;
 public final class RfpRqtParser {
 
     private static final Pattern SUMMARY = Pattern.compile("([A-Z]{2,4})-0+\\s+(\\d{1,4})\\s*$");
+    /** 총괄표의 다른 모양 (11/10): "유지관리 수행 요구사항  MAR(Maintenance Requirement)  16" — ID 규칙 대신 접두어(영문 이름), 개수는 비어 있을 수 있다 */
+    private static final Pattern SUMMARY_EN = Pattern.compile("^\\s*(\\S.*?)\\s+([A-Z]{2,4})\\s*\\(\\s*[A-Za-z][A-Za-z .&-]*\\)\\s*(\\d{1,4})?\\s*$");
     private static final Pattern TOTAL = Pattern.compile("^\\s*합\\s*계\\s+(\\d{1,4})\\s*$");
     // 이름이 없는 요구사항 줄도 받는다: 가운데 정렬 칸에서 번호가 이름 줄들 사이에 따로 찍히는 경우
     private static final Pattern ROW = Pattern.compile("^\\s*(\\d{1,4})\\s+([A-Z]{2,4})[\\s-]*(\\d{1,4})(?:\\s+(\\S.*?))?\\s*$");
-    private static final Pattern PREFIX_ONLY = Pattern.compile("^[A-Z]{2,4}$");
+    /** 목록표에 "구분" 칸이 번호와 ID 사이에 있는 모양 (11/10): "8 유지관리 수행 요구사항 MAR 8 예비부품 확보 및 지원 요건".
+     *  가운데 글자는 구분명으로 쓰고, 나머지는 ROW 와 같은 모양으로 읽는다 */
+    private static final Pattern ROW_MID = Pattern.compile("^\\s*(\\d{1,4})\\s+(\\S.*?)\\s+([A-Z]{2,4})[\\s-]*(\\d{1,4})(?:\\s+(\\S.*?))?\\s*$");
     private static final Pattern FOOTER = Pattern.compile("^\\s*-\\s*\\d+\\s*-\\s*$");
     private static final Pattern HEADER = Pattern.compile("요구사항\\s*명|^\\s*No\\b");
     private static final String WRAP_NOTE = "이름 여러 줄";
@@ -162,6 +166,7 @@ public final class RfpRqtParser {
         RqtExtractDto r = new RqtExtractDto();
         int n = lines.size();
         Matcher[] rows = new Matcher[n];
+        String[] mids = new String[n]; // 목록표 "구분" 칸 글자 (번호와 ID 사이에 있을 때)
         boolean[] other = new boolean[n]; // 총괄표·합계·머리·쪽 번호 줄
         List<Float> nameXs = new ArrayList<>();
 
@@ -169,9 +174,29 @@ public final class RfpRqtParser {
             Line l = lines.get(i);
             String t = l.text();
             Matcher row = ROW.matcher(t);
-            if (row.matches()) {
+            boolean ok = row.matches();
+            if (!ok) {
+                Matcher mid = ROW_MID.matcher(t);
+                if (mid.matches()) {
+                    mids[i] = mid.group(2);
+                    String name = mid.group(5);
+                    // 구분 칸을 뺀 모양으로 다시 맞춰 아래에서는 보통 줄과 똑같이 다룬다
+                    row = ROW.matcher(mid.group(1) + " " + mid.group(3) + " " + mid.group(4) + (name != null ? " " + name : ""));
+                    ok = row.matches();
+                }
+            }
+            if (ok) {
                 rows[i] = row;
-                int k = l.words.size() > 1 && PREFIX_ONLY.matcher(l.words.get(1)).matches() ? 3 : 2; // 이름 첫 낱말 위치
+                // 이름 첫 낱말 위치 = 이름 앞 글자의 낱말 수 (낱말은 한 칸 띄어 이어 붙였으므로 그대로 센다)
+                int k = l.words.size();
+                Matcher whole = ROW.matcher(t).matches() ? ROW.matcher(t) : ROW_MID.matcher(t);
+                if (whole.matches()) {
+                    int g = whole.pattern() == ROW ? 4 : 5;
+                    if (whole.group(g) != null) {
+                        String before = t.substring(0, whole.start(g)).trim();
+                        k = before.isEmpty() ? 0 : before.split("\\s+").length;
+                    }
+                }
                 if (l.words.size() > k) {
                     nameXs.add(l.xs.get(k));
                     l.y = l.ys.get(k); // 간격은 이름 줄 기준으로 잰다
@@ -179,8 +204,20 @@ public final class RfpRqtParser {
                 continue;
             }
             Matcher sum = SUMMARY.matcher(t);
+            Matcher sumEn = SUMMARY_EN.matcher(t);
             Matcher total = TOTAL.matcher(t);
-            if (sum.find()) {
+            if (sumEn.matches()) {
+                r.setSummaryFound(true);
+                if (sumEn.group(3) != null) {
+                    r.getExpected().merge(sumEn.group(2), Integer.parseInt(sumEn.group(3)), Integer::sum);
+                }
+                String gn = groupName(sumEn.group(1));
+                if (!gn.isEmpty()) {
+                    r.getGroupNames().putIfAbsent(sumEn.group(2), gn);
+                }
+                other[i] = true;
+            } else if (sum.find()) {
+                r.setSummaryFound(true);
                 r.getExpected().merge(sum.group(1), Integer.parseInt(sum.group(2)), Integer::sum);
                 String gn = groupName(t.substring(0, sum.start(1)));
                 if (!gn.isEmpty()) {
@@ -204,6 +241,7 @@ public final class RfpRqtParser {
         for (int i = 0; i < n; i++) {
             frag[i] = rows[i] == null && !other[i] && lines.get(i).x() >= nameX;
         }
+        groupNamesFromList(r, lines, rows, mids, other, nameX);
 
         // 이름 조각을 위·아래 요구사항에 나눠 붙인다 (owner[i] = 그 조각이 붙을 요구사항 줄 번호)
         int[] owner = new int[n];
@@ -266,6 +304,51 @@ public final class RfpRqtParser {
                     + WRAP_CHECK_NOTE + "\" 표시된 줄을 원본과 비교해 주세요.");
         }
         return r;
+    }
+
+    /**
+     * 총괄표가 없고 목록표에 "구분" 칸이 있는 제안요청서 (11/10): 구분 칸 글자를 접두어별로 모아 구분명으로 쓴다.
+     * 구분 칸은 여러 줄을 합친 칸이라 글자가 번호·ID 사이에 끼거나(mids) 요구사항 줄 사이에 따로 찍힌다(이름 칸보다 왼쪽 줄).
+     * 따로 찍힌 줄은 위·아래 요구사항의 접두어가 같을 때만 그 구분에 붙인다. 영문 설명 "(Maintenance Requirement)"은 뺀다.
+     * 총괄표에서 이미 읽은 구분명이 있으면 그대로 둔다.
+     */
+    private static void groupNamesFromList(RqtExtractDto r, List<Line> lines, Matcher[] rows, String[] mids, boolean[] other, float nameX) {
+        int n = lines.size();
+        Map<String, StringBuilder> acc = new java.util.LinkedHashMap<>();
+        for (int i = 0; i < n; i++) {
+            String p = null;
+            String text = null;
+            if (rows[i] != null && mids[i] != null) {
+                p = rows[i].group(2);
+                text = mids[i];
+            } else if (rows[i] == null && !other[i] && lines.get(i).x() < nameX) {
+                int a = i - 1;
+                while (a >= 0 && rows[a] == null && !other[a] && lines.get(a).page == lines.get(i).page) {
+                    a--;
+                }
+                int b = i + 1;
+                while (b < n && rows[b] == null && !other[b] && lines.get(b).page == lines.get(i).page) {
+                    b++;
+                }
+                if (a >= 0 && b < n && rows[a] != null && rows[b] != null && lines.get(a).page == lines.get(i).page
+                        && lines.get(b).page == lines.get(i).page && rows[a].group(2).equals(rows[b].group(2))) {
+                    p = rows[a].group(2);
+                    text = lines.get(i).text();
+                }
+            }
+            if (p != null && text != null) {
+                acc.computeIfAbsent(p, x -> new StringBuilder()).append(' ').append(text);
+            }
+        }
+        for (Map.Entry<String, StringBuilder> e : acc.entrySet()) {
+            String nm = e.getValue().toString()
+                    .replaceAll("\\([^)]*\\)?", " ")      // (영문 설명)
+                    .replaceAll("[A-Za-z()]+", " ")         // 줄이 나뉘어 남은 영문 조각
+                    .replaceAll("\\s+", " ").trim();
+            if (!nm.isEmpty()) {
+                r.getGroupNames().putIfAbsent(e.getKey(), nm);
+            }
+        }
     }
 
     /**
@@ -346,7 +429,9 @@ public final class RfpRqtParser {
             w.add("요구사항 목록을 찾지 못했습니다. 스캔한 이미지 PDF이거나 표 모양이 달라 읽지 못했을 수 있습니다. 요구사항 목록표가 들어 있는 PDF인지 확인하거나 수기로 등록해 주세요.");
             return;
         }
-        if (r.getExpected().isEmpty()) {
+        if (r.getExpected().isEmpty() && r.isSummaryFound()) {
+            w.add("요구사항 총괄표에 구분별 요구사항 수가 적혀 있지 않아 개수를 비교하지 못했습니다. 목록을 직접 확인해 주세요.");
+        } else if (r.getExpected().isEmpty()) {
             w.add("요구사항 총괄표(ID 부여규칙별 개수)를 찾지 못해 개수를 비교하지 못했습니다. 목록을 직접 확인해 주세요.");
         } else {
             Map<String, Integer> got = r.getFound();

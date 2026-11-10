@@ -132,4 +132,36 @@ class RfpRqtParserTest {
         assertEquals("기능 요구사항", RfpRqtParser.groupName("기능 요구사항"));
         assertEquals("보안 요구사항", RfpRqtParser.groupName("비기능   보안 요구사항"));
     }
+
+    @Test
+    void 목록표_구분_칸이_번호와_ID_사이에_있어도_읽고_구분명으로_쓴다() {
+        RqtExtractDto r = RfpRqtParser.parse("2-2 요구사항 목록\n"
+                + "연번 구분 고유번호 요구사항 명칭\n"
+                + "1 MAR 1 사업 대상 및 범위에 관한 이해\n"
+                + "2 유지관리 수행 요구사항 MAR 2 유지관리 사업 수행 방안\n"
+                + "3 (Maintenance Requirement) MAR 3 장애 관리 수행 방안\n"
+                + "4 보안 요구사항 SER 1 보안 관리 일반\n"
+                + "5 (Security Requirement) SER 2 인원 보안\n");
+        assertEquals(5, r.getFoundCount());
+        assertEquals("MAR-002", r.getItems().get(1).getRqtMttrNo());
+        assertEquals("유지관리 사업 수행 방안", r.getItems().get(1).getRqtMttrNm());
+        assertEquals("SER-002", r.getItems().get(4).getRqtMttrNo());
+        assertEquals("인원 보안", r.getItems().get(4).getRqtMttrNm());
+        assertEquals("유지관리 수행 요구사항", r.getGroupNames().get("MAR"));
+        assertEquals("보안 요구사항", r.getGroupNames().get("SER"));
+    }
+
+    @Test
+    void 총괄표가_접두어_영문이름_모양이어도_구분명과_개수를_읽는다() {
+        RqtExtractDto r = RfpRqtParser.parse("2-1 요구사항 총괄표\n"
+                + "요구사항 구분 요구사항 수\n"
+                + "유지관리 수행 요구사항 MAR(Maintenance Requirement) 2\n"
+                + "보안 요구사항 SER(Security Requirement)\n"
+                + "1 MAR 1 가\n2 MAR 2 나\n3 SER 1 다\n");
+        assertEquals(3, r.getFoundCount());
+        assertEquals("유지관리 수행 요구사항", r.getGroupNames().get("MAR"));
+        assertEquals("보안 요구사항", r.getGroupNames().get("SER"));
+        assertEquals(Integer.valueOf(2), r.getExpected().get("MAR"));
+        assertTrue(r.isSummaryFound());
+    }
 }

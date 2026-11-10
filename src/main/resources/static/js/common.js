@@ -159,6 +159,9 @@
     function accept() { close(kind === 'prompt' ? input.value : true); }
     function reject() { close(kind === 'prompt' ? null : false); }
     function onKey(e) {
+      // 한글을 조합하는 중에 Enter를 누르면 브라우저가 Enter를 두 번 보낸다(조합 끝내기 + 진짜 Enter).
+      // 첫 번째에 창을 닫으면 두 번째 Enter가 다시 포커스된 버튼을 눌러 같은 창이 또 뜨므로, 조합 중인 키는 넘긴다 (11/10)
+      if (e.isComposing || e.keyCode === 229) return;
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); reject(); }
       else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); accept(); }
     }

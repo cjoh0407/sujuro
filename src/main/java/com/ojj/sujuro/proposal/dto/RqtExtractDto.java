@@ -28,6 +28,8 @@ public class RqtExtractDto implements Serializable {
     private Map<String, Integer> expected = new LinkedHashMap<>();
     /** 총괄표의 ID 접두어별 구분명 (예: SFR → 기능 요구사항, COR → 제약사항). 추출 결과를 이 구분별로 묶어 보여 준다 (11/09) */
     private Map<String, String> groupNames = new LinkedHashMap<>();
+    /** 총괄표를 찾았는지 (요구사항 수 칸이 비어 있어도 true). 경고 문구를 고르는 데 쓴다 (11/10) */
+    private boolean summaryFound;
     /** 총괄표에 적힌 합계. 못 찾으면 null */
     private Integer declaredTotal;
     /** 개수가 맞지 않는 등 확인이 필요한 내용 */

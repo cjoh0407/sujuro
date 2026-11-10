@@ -24,17 +24,11 @@ import com.ojj.sujuro.auth.code.Role;
 import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.common.exception.BusinessException;
 import com.ojj.sujuro.common.file.FileStorage;
-import com.ojj.sujuro.history.code.ProcessType;
-import com.ojj.sujuro.history.service.HistoryService;
-import com.ojj.sujuro.notification.code.NotificationType;
-import com.ojj.sujuro.notification.service.NotificationService;
-import com.ojj.sujuro.result.code.ResultCode;
 import com.ojj.sujuro.result.dto.EvaluationArticleDTO;
 import com.ojj.sujuro.result.dto.EvaluationCompareDTO;
 import com.ojj.sujuro.result.dto.EvaluationFileDTO;
 import com.ojj.sujuro.result.dto.EvaluationForm;
 import com.ojj.sujuro.result.dto.EvaluationScoreDTO;
-import com.ojj.sujuro.result.dto.ManualResultForm;
 import com.ojj.sujuro.result.dto.ResultBidDTO;
 import com.ojj.sujuro.result.dto.ResultCompanyDTO;
 import com.ojj.sujuro.result.dto.ResultOutcomeDTO;
@@ -71,26 +65,22 @@ public class ResultEntryServiceImpl implements ResultEntryService {
     /** 항목 이름 끝의 배점 표시. 예: "전략 및 방법론(15)" */
     private static final Pattern MAX_SUFFIX = Pattern.compile("\\s*\\(\\s*\\d+(\\.\\d+)?\\s*\\)\\s*$");
 
-    private static final String MANUAL_ONLY = "컨소시엄 참여·하도급 사업은 나라장터 개찰 목록에 우리 회사가 나오지 않아 결과를 직접 입력합니다.";
+    private static final String VIA_PARTNER = "컨소시엄 참여·하도급 사업은 나라장터 개찰 목록에 우리 회사가 나오지 않습니다. "
+            + "함께 참여한 주관사·원도급사의 사업자번호를 넣어 결과를 가져옵니다.";
 
     private final ResultMapper resultMapper;
     private final StatsMapper statsMapper;
     private final StatsService statsService;
     private final ResultCollectService resultCollectService;
     private final FileStorage storage;
-    private final NotificationService notificationService;
-    private final HistoryService historyService;
 
     public ResultEntryServiceImpl(ResultMapper resultMapper, StatsMapper statsMapper, StatsService statsService,
-                                  ResultCollectService resultCollectService, FileStorage storage,
-                                  NotificationService notificationService, HistoryService historyService) {
+                                  ResultCollectService resultCollectService, FileStorage storage) {
         this.resultMapper = resultMapper;
         this.statsMapper = statsMapper;
         this.statsService = statsService;
         this.resultCollectService = resultCollectService;
         this.storage = storage;
-        this.notificationService = notificationService;
-        this.historyService = historyService;
     }
 
     @Override
@@ -115,10 +105,11 @@ public class ResultEntryServiceImpl implements ResultEntryService {
         Long sn = bids.stream().anyMatch(b -> b.getPbancSn().equals(bid)) ? bid : bids.get(0).getPbancSn();
         ResultBidDTO picked = resultMapper.findResultBid(sn);
         v.setBid(picked);
-        v.setCanEnterResult(user.getRole() == Role.MGMT && picked.isManualResult());
+        v.setCanLinkPartner(picked.isViaPartner() && leadsTeamOf(user, picked.getSprvsnTeamSn()));
         List<ResultCompanyDTO> companies = new ArrayList<>();
         if (picked.isSubmitted() || picked.isResulted()) {
             companies = resultMapper.findCompanies(sn); // 낙찰자가 나오기 전에도 개찰 업체는 보인다
+            companies.forEach(c -> c.setOursTag(picked.getOursTag())); // 컨소시엄 참여·하도급은 우리 쪽 행이 주관사·원도급사다
             v.setCompanies(companies);
         }
         if (picked.isResulted()) {
@@ -178,8 +169,8 @@ public class ResultEntryServiceImpl implements ResultEntryService {
         ResultTargetDTO target = resultMapper.findResultTarget(pbancSn);
         if (target == null) {
             ResultBidDTO bid = resultMapper.findResultBid(pbancSn);
-            if (bid != null && bid.isManualResult()) {
-                throw new BusinessException(MANUAL_ONLY);
+            if (bid != null && bid.isViaPartner()) {
+                throw new BusinessException(VIA_PARTNER);
             }
             throw new BusinessException("제출 완료 상태인 사업만 나라장터에서 결과를 가져올 수 있습니다.");
         }
@@ -198,54 +189,37 @@ public class ResultEntryServiceImpl implements ResultEntryService {
     }
 
     @Override
-    public String saveManualResult(LoginUser user, Long pbancSn, ManualResultForm form) {
-        if (user.getRole() != Role.MGMT) {
-            throw new AccessDeniedException("결과 입력은 경영지원실이 합니다.");
+    @Transactional(propagation = Propagation.NOT_SUPPORTED) // 나라장터를 부르는 동안 DB 연결을 잡지 않는다
+    public String importPartnerResult(LoginUser user, Long pbancSn, String bizNo) {
+        if (user.getRole() != Role.LEADER) {
+            throw new AccessDeniedException("주관사·원도급사 사업자번호는 이 사업을 맡은 팀의 팀장이 넣습니다.");
         }
-        ResultBidDTO bid = resultMapper.findResultBid(pbancSn);
-        if (bid == null) {
-            throw new BusinessException("사업건을 찾을 수 없습니다.");
+        String no = bizNo == null ? "" : bizNo.replaceAll("[^0-9]", "");
+        if (no.length() != 10) {
+            throw new BusinessException("함께 참여한 업체의 사업자번호 10자리를 넣어 주세요. 예: 123-45-67890");
         }
-        if (!bid.isManualResult()) {
-            throw new BusinessException("직접 입력은 컨소시엄 참여·하도급 사업만 합니다. 이 사업의 결과는 나라장터에서 가져옵니다.");
+        ResultTargetDTO target = resultMapper.findPartnerTarget(pbancSn);
+        if (target == null) {
+            ResultBidDTO bid = resultMapper.findResultBid(pbancSn);
+            if (bid != null && !bid.isViaPartner()) {
+                throw new BusinessException("참여 업체 사업자번호는 컨소시엄 참여·하도급 사업에만 넣습니다. 이 사업은 우리 회사 번호로 결과를 가져옵니다.");
+            }
+            throw new BusinessException("제출 완료 상태인 사업만 나라장터에서 결과를 가져올 수 있습니다.");
         }
-        if (!bid.isSubmitted() && !bid.isResulted()) {
-            throw new BusinessException("결과는 제출 완료가 된 뒤에 입력합니다.");
+        if (!leadsTeamOf(user, target.getSprvsnTeamSn())) {
+            throw new AccessDeniedException("자기 팀이 맡은 사업만 넣을 수 있습니다.");
         }
-
-        boolean won = ResultCode.WON.equals(form.getBidRsltCd());
-        if (!won && !ResultCode.LOST.equals(form.getBidRsltCd())) {
-            throw new BusinessException("결과를 수주나 실주 중에서 고르세요.");
+        target.setPartnerBizNo(no);
+        ResultOutcomeDTO out = resultCollectService.register(target);
+        String co = "사업자번호 " + StatsFormat.bizNo(no);
+        if (out.getKind() == ResultOutcomeDTO.Kind.REGISTERED) {
+            return out.getMessage() + " (" + co + " 업체 기준). 평가표 엑셀이 올라오면 항목별 점수와 장단점을 입력해 주세요.";
         }
-        Long amount = won ? wonAmount(form.getScsbdAmt()) : null;
-
-        resultMapper.mergeManualBidRslt(pbancSn, form.getBidRsltCd(), amount, user.getEmpNo());
-        String text = won ? "수주" : "실주";
-        if (bid.isResulted()) {
-            return "결과를 고쳤습니다: " + text;
+        if (out.getKind() == ResultOutcomeDTO.Kind.NOT_LISTED) {
+            throw new BusinessException(out.getMessage());
         }
-        if (resultMapper.updateToResult(pbancSn) == 0) {
-            throw new BusinessException("그사이 공고 상태가 바뀌었습니다. 새로고침한 뒤 다시 확인해 주세요."); // 예외라 위의 저장도 되돌린다
-        }
-        historyService.record(pbancSn, ProcessType.RESULT_REGISTERED, user.getEmpNo(), bid.getSprvsnTeamSn(),
-                bid.getPtcpShpNm() + " · " + text + " (직접 입력)");
-        if (bid.getSprvsnTeamSn() != null) {
-            notificationService.sendToTeamLeaders(bid.getSprvsnTeamSn(), NotificationType.EVL_TABLE_REQUEST, pbancSn,
-                    "[" + bid.getPbancNm() + "] 결과가 등록되었습니다(" + text + "). 평가·결과 입력에서 장단점을 입력해 주세요.");
-        }
-        return "결과를 등록했습니다: " + text + ". 장단점은 담당 팀 팀장이 입력합니다.";
-    }
-
-    /** 수주 금액 칸. 콤마·공백은 떼고 원 단위 양의 정수만 받는다. 컬럼이 NUMBER(15) */
-    static Long wonAmount(String s) {
-        String t = s == null ? "" : s.replaceAll("[,\\s]", "");
-        if (t.isEmpty()) {
-            throw new BusinessException("수주하면 우리 회사가 받는 금액을 입력해 주세요.");
-        }
-        if (!t.matches("\\d{1,15}") || Long.parseLong(t) == 0) {
-            throw new BusinessException("수주 금액은 원 단위 숫자로 입력해 주세요. 예: 120000000");
-        }
-        return Long.valueOf(t);
+        return co + " 업체를 개찰 목록에서 찾아 저장했습니다. 아직 최종 낙찰자가 올라오지 않아, "
+                + "낙찰자가 정해지면 평일 오후 5시 수집 때 이 업체 기준으로 결과가 자동 등록됩니다.";
     }
 
     @Override
@@ -395,6 +369,12 @@ public class ResultEntryServiceImpl implements ResultEntryService {
     }
 
     /** 이 사업을 맡은 개발팀의 팀장인지 */
+    /** 이 사업을 맡은 팀(주관 팀)의 팀장인지. 결과가 나오기 전(제출 완료)에도 공고의 주관 팀으로 본다 */
+    private boolean leadsTeamOf(LoginUser user, Long sprvsnTeamSn) {
+        return user.getRole() == Role.LEADER && sprvsnTeamSn != null
+                && sprvsnTeamSn.equals(statsMapper.findDevTeamSnOf(user.getEmpNo()));
+    }
+
     private boolean isTeamLeader(LoginUser user, StatsArchiveDTO a) {
         return user.getRole() == Role.LEADER && a.getTeamSn() != null
                 && a.getTeamSn().equals(statsMapper.findDevTeamSnOf(user.getEmpNo()));

@@ -4,19 +4,20 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.result.dto.EvaluationForm;
-import com.ojj.sujuro.result.dto.ManualResultForm;
 import com.ojj.sujuro.result.dto.ResultsViewDTO;
 import com.ojj.sujuro.result.dto.StatsAnalysisForm;
 
 /**
  * 평가·결과 입력 (FR-077~081, /results). 경영지원실과 팀장이 쓴다 (회의 결정, 2026-11-02 반영).
  *   경영지원실 : 모든 사업을 보고, 나라장터 결과 가져오기·평가표 엑셀 올리기. 점수·장단점은 읽기만
- *   팀장       : 자기 팀이 맡은(주관) 사업만 보고, 평가표 엑셀 올리기·평가 항목·점수·장단점 입력
+ *   팀장       : 자기 팀이 맡은(주관) 사업만 보고, 평가표 엑셀 올리기·평가 항목·점수·장단점 입력,
+ *                컨소시엄 참여·하도급이면 주관사·원도급사 사업자번호 넣기 (11/10)
  * 평가표는 개찰 업체마다 따로 올리고 저장한다(coSn, 없으면 우리 회사). 업체별로 항목 점수를 비교하기 위해서다.
  * 사업별 결과 분석(항목별 득점률)에는 우리 회사 점수만 들어간다.
  * 권한이 없으면 AccessDeniedException(403), 결과가 등록된 사업이 아니거나 값이 틀리면 BusinessException.
  * 순위·점수는 입력하지 않는다. 나라장터 개찰 결과에서 가져온다(ResultCollectService).
- * 컨소시엄 참여·하도급은 나라장터에서 가져올 수 없어 결과와 수주 금액을 경영지원실이 직접 입력한다(saveManualResult).
+ * 컨소시엄 참여·하도급은 개찰 목록에 우리 회사 대신 주관사·원도급사가 올라와, 담당 팀 팀장이 넣은 그 업체의 사업자번호로
+ * 결과(수주·실주)·순위·점수·수주 금액을 모두 나라장터에서 가져온다(importPartnerResult). 직접 입력은 없앴다 (11/10).
  */
 public interface ResultEntryService {
 
@@ -37,14 +38,14 @@ public interface ResultEntryService {
     String importResult(LoginUser user, Long pbancSn);
 
     /**
-     * 컨소시엄 참여·하도급 사업의 결과 직접 입력 (11/04, 경영지원실만). 개찰 목록에 주관사·원도급사 이름으로 올라와
-     * 나라장터에서 가져올 수 없다. 결과(수주·탈락)와 수주 금액만 받는다. 수주 금액은 우리 회사가 받는 몫이다.
-     * 제출 완료면 결과 등록으로 올리고 담당 팀 팀장에게 장단점 입력을 알린다. 이미 결과 등록이면 값만 고친다.
-     * 다른 참여 형태이거나 값이 틀리면 BusinessException.
+     * 컨소시엄 참여·하도급의 [참여 업체로 결과 가져오기] (11/10, 이 사업을 맡은 팀의 팀장만). 개찰 목록에 우리 대신 올라온 주관사·원도급사의
+     * 사업자번호(bizNo, 하이픈 있어도 됨)로 그 업체의 수주·실주, 순위·점수, 낙찰 금액을 주관 사업과 똑같이 가져온다.
+     * 그 업체 행을 우리 쪽으로 표시해 두어 낙찰자가 아직 없으면 평일 오후 5시 수집이 이어받는다.
+     * 번호가 10자리가 아니거나, 제출 완료인 컨소시엄 참여·하도급이 아니거나, 개찰 목록에 그 업체가 없으면 BusinessException.
      *
-     * @return 화면에 보여 줄 안내 문구
+     * @return 화면에 보여 줄 안내 문구 (등록했거나, 업체를 저장하고 낙찰자를 기다리는 중)
      */
-    String saveManualResult(LoginUser user, Long pbancSn, ManualResultForm form);
+    String importPartnerResult(LoginUser user, Long pbancSn, String bizNo);
 
     /** 장단점 분석 (FR-081). 빈 칸은 지운다. 한 칸이 4000바이트(한글 약 1,300자)를 넘으면 BusinessException */
     void saveAnalysis(LoginUser user, Long pbancSn, StatsAnalysisForm form);

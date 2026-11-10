@@ -7,8 +7,10 @@
   - 결과 등록: 제출 완료(PS050) 공고에 최종 낙찰자가 올라오면 개찰 목록 전체를 TB_CO_EVL_RSLT 에, 우리 회사 결과를
     TB_BID_RSLT 에 넣고 상태를 결과 등록(PS060)으로 바꾼다. 수주(BR010)·탈락(BR020)은 낙찰자 사업자번호로 정한다.
   - 평가표: 엑셀은 파일구분 평가표(FL070)로 보관만 하고 읽지 않는다. 항목·배점·위원별 점수는 경영지원실이 직접 적는다.
-  - 컨소시엄 참여(PF020)·하도급(PF030): 개찰 목록에 우리 회사가 나오지 않아 자동 등록 대상에서 뺀다.
-    결과와 수주 금액은 경영지원실이 직접 입력한다 (mergeManualBidRslt, 11/04).
+  - 컨소시엄 참여(PF020)·하도급(PF030): 개찰 목록에 우리 회사 대신 주관사·원도급사가 올라온다.
+    담당 팀 팀장이 그 업체의 사업자번호를 넣으면 그 업체 행을 우리 쪽(OUR_CO_YN = 'Y')으로 표시하고, 결과·순위·점수·낙찰 금액을
+    주관 사업과 똑같이 가져온다. 그 뒤로는 자동 등록 대상이 된다 (partnerBizNoCol, 11/10). 번호를 넣기 전에는 대상이 아니다.
+    11/04 의 결과 직접 입력(mergeManualBidRslt)은 11/10 에 없앴다.
 -->
 <mapper namespace="com.ojj.sujuro.result.mapper.ResultMapper">
 
@@ -20,14 +22,30 @@
   <!-- 나라장터에서 결과를 가져오는 참여 형태. 컨소시엄 참여·하도급은 직접 입력한다. 참여 형태를 안 정했으면 주관처럼 가져온다 -->
   <sql id="autoResultShp">NVL(P.PTCP_SHP_CD, 'PF010') NOT IN ('PF020', 'PF030')</sql>
 
+  <!-- 컨소시엄 참여·하도급에서 담당 팀 팀장이 넣은 참여 업체(주관사·원도급사) 사업자번호 (11/10).
+       따로 저장하지 않고 개찰 목록에서 그 업체 행을 우리 쪽(OUR_CO_YN = 'Y')으로 표시해 둔 것을 읽는다. 다른 참여 형태는 NULL -->
+  <sql id="partnerBizNoCol">
+    CASE WHEN NVL(P.PTCP_SHP_CD, 'PF010') IN ('PF020', 'PF030')
+         THEN (SELECT MAX(C.BIZ_NO) FROM TB_CO_EVL_RSLT C WHERE C.PBANC_SN = P.PBANC_SN AND C.OUR_CO_YN = 'Y') END
+  </sql>
+
   <select id="findResultTargets" resultType="com.ojj.sujuro.result.dto.ResultTargetDTO">
-    SELECT <include refid="targetCols"/>
+    SELECT <include refid="targetCols"/>, <include refid="partnerBizNoCol"/> AS partnerBizNo
       FROM TB_BID_PBANC P
      WHERE P.PBANC_STTS_CD = 'PS050'
        AND P.PBANC_STEP_CD IN ('PP040', 'PP050')
        AND P.BID_PBANC_NO IS NOT NULL
-       AND <include refid="autoResultShp"/>
+       AND (<include refid="autoResultShp"/>
+            OR EXISTS (SELECT 1 FROM TB_CO_EVL_RSLT C WHERE C.PBANC_SN = P.PBANC_SN AND C.OUR_CO_YN = 'Y'))
      ORDER BY P.PBANC_SN
+  </select>
+
+  <!-- 결과 화면의 [참여 업체로 결과 가져오기] (11/10). 제출 완료인 컨소시엄 참여·하도급이면 단계와 상관없이 묻는다 -->
+  <select id="findPartnerTarget" resultType="com.ojj.sujuro.result.dto.ResultTargetDTO">
+    SELECT <include refid="targetCols"/>
+      FROM TB_BID_PBANC P
+     WHERE P.PBANC_SN = #{pbancSn} AND P.PBANC_STTS_CD = 'PS050' AND P.BID_PBANC_NO IS NOT NULL
+       AND NOT (<include refid="autoResultShp"/>)
   </select>
 
   <!-- 평가·결과 입력의 [나라장터에서 결과 가져오기]. 제출 완료면 단계와 상관없이 묻는다(개찰 단계 전환 전이어도) -->
@@ -79,18 +97,6 @@
                   #{scsbdAmt, jdbcType=NUMERIC}, SYSDATE)
   </update>
 
-  <!-- 컨소시엄 참여·하도급의 결과 직접 입력 (11/04). 결과와 수주 금액만 쓴다. 수집한 값이 아니라 수집일시는 비우고, 입력한 사람을 남긴다 -->
-  <update id="mergeManualBidRslt">
-    MERGE INTO TB_BID_RSLT R
-    USING (SELECT #{pbancSn} AS PBANC_SN FROM DUAL) S
-       ON (R.PBANC_SN = S.PBANC_SN)
-     WHEN MATCHED THEN UPDATE
-          SET R.BID_RSLT_CD = #{bidRsltCd}, R.SCSBD_AMT = #{scsbdAmt, jdbcType=NUMERIC},
-              R.MDFR_ID = #{userId}, R.MDFCN_DT = SYSDATE
-     WHEN NOT MATCHED THEN INSERT (PBANC_SN, BID_RSLT_CD, SCSBD_AMT, MDFR_ID, MDFCN_DT)
-          VALUES (#{pbancSn}, #{bidRsltCd}, #{scsbdAmt, jdbcType=NUMERIC}, #{userId}, SYSDATE)
-  </update>
-
   <update id="updateToResult">
     UPDATE TB_BID_PBANC
        SET PBANC_STTS_CD = 'PS060', LAST_CFMTN_DT = SYSDATE
@@ -116,7 +122,8 @@
            T.TEAM_NM AS teamNm, P.PBANC_STTS_CD AS pbancSttsCd, S.CD_NM AS pbancSttsNm,
            P.BID_DDLN_DT AS bidDdlnDt, P.OPENG_DT AS opengDt, P.EVL_MTHD_NM AS evlMthdNm,
            P.TECH_SCOR_SCR AS techScorScr, P.PRC_SCOR_SCR AS prcScorScr,
-           P.SPRVSN_TEAM_SN AS sprvsnTeamSn, P.PTCP_SHP_CD AS ptcpShpCd, PF.CD_NM AS ptcpShpNm
+           P.SPRVSN_TEAM_SN AS sprvsnTeamSn, P.PTCP_SHP_CD AS ptcpShpCd, PF.CD_NM AS ptcpShpNm,
+           <include refid="partnerBizNoCol"/> AS partnerBizNo
       FROM TB_BID_PBANC P
       LEFT JOIN TB_TEAM T ON T.TEAM_SN = P.SPRVSN_TEAM_SN
       LEFT JOIN TB_COM_CD S ON S.GROUP_CD = 'PBSTS' AND S.CD = P.PBANC_STTS_CD

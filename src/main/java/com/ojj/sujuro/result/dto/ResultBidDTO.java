@@ -36,10 +36,35 @@ public class ResultBidDTO {
     /** 참여 형태 (PTFRM). 이 사업 하나를 읽을 때만 값이 있다 */
     private String ptcpShpCd;
     private String ptcpShpNm;
+    /** 컨소시엄 참여·하도급에서 넣어 둔 참여 업체(주관사·원도급사) 사업자번호. 넣지 않았거나 다른 참여 형태면 null (11/10) */
+    private String partnerBizNo;
 
-    /** 컨소시엄 참여·하도급이라 결과를 나라장터에서 가져오지 않고 직접 입력하는지 (11/04) */
-    public boolean isManualResult() {
-        return BidCode.isManualResult(ptcpShpCd);
+    /** 컨소시엄 참여·하도급이라 주관사·원도급사 사업자번호로 결과를 가져오는지 (11/10, BidCode.isViaPartner) */
+    public boolean isViaPartner() {
+        return BidCode.isViaPartner(ptcpShpCd);
+    }
+
+    /** 컨소시엄 참여·하도급인데 참여 업체 사업자번호를 넣어 그 업체의 결과를 나라장터에서 가져오는지 (11/10) */
+    public boolean isPartnerLinked() {
+        return isViaPartner() && partnerBizNo != null;
+    }
+
+    /** 순위·점수·개찰 업체·평가표를 나라장터 개찰 결과로 보여 주는지. 주관 사업이거나 참여 업체를 넣은 컨소시엄 참여·하도급 */
+    public boolean isNaraResult() {
+        return !isViaPartner() || isPartnerLinked();
+    }
+
+    /** 참여 업체 사업자번호. 예: "220-86-57703" */
+    public String getPartnerBizNoText() {
+        return StatsFormat.bizNo(partnerBizNo);
+    }
+
+    /** 개찰 목록에서 우리 쪽 행에 붙일 이름: 자사, 컨소시엄 참여면 주관사, 하도급이면 원도급사 */
+    public String getOursTag() {
+        if (BidCode.is(ptcpShpCd, BidCode.PTCP_SHP_CONSORTIUM)) {
+            return "주관사";
+        }
+        return BidCode.is(ptcpShpCd, BidCode.PTCP_SHP_SUBCONTRACT) ? "원도급사" : "자사";
     }
 
     /** 진행상태 이름. 공고 화면과 같은 일곱 가지(배정 전 … 유찰·불참)로 보여 준다 (11/03, BidCode.progressNm) */

@@ -115,9 +115,13 @@ public class StatsArchiveDTO {
         return (rsltNm == null ? "-" : rsltNm) + (evlRnk == null ? "" : " · " + evlRnk + "위");
     }
 
-    /** 컨소시엄 참여·하도급이라 결과를 직접 입력한 사업인지. 순위·점수·평가표가 없다 (11/04) */
-    public boolean isManualResult() {
-        return BidCode.isManualResult(ptcpShpCd);
+    /**
+     * 점수 없이 결과만 있는 사업인지: 컨소시엄 참여·하도급인데 개찰 목록에 우리 쪽(주관사·원도급사) 행이 없다.
+     * 11/10 전에 결과를 직접 입력하던 때의 데이터다. 지금은 주관사·원도급사 사업자번호로 결과를 가져와 우리 쪽 행이 생기고
+     * 순위·점수·평가표가 주관 사업처럼 보인다
+     */
+    public boolean isScoreless() {
+        return BidCode.isViaPartner(ptcpShpCd) && !ourCompanyListed;
     }
 
     /** 수주 금액. 예: "15.9억". 탈락·유찰·진행 중이면 null */

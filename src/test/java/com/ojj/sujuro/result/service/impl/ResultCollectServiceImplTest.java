@@ -159,7 +159,7 @@ class ResultCollectServiceImplTest {
         ResultOutcomeDTO out = service("1234567890").register(target());
 
         assertEquals(ResultOutcomeDTO.Kind.NOT_LISTED, out.getKind());
-        assertTrue(out.getMessage().contains("1234567890"));
+        assertTrue(out.getMessage().contains("123-45-67890"));
         ArgumentCaptor<CoEvlRsltDTO> co = ArgumentCaptor.forClass(CoEvlRsltDTO.class);
         verify(mapper, times(2)).mergeCoEvlRslt(co.capture());
         assertEquals("N", co.getAllValues().get(0).getOurCoYn());
@@ -192,7 +192,126 @@ class ResultCollectServiceImplTest {
         assertFalse(service("0000000000").isReady());
         assertFalse(service("").isReady());
         assertFalse(service("12345").isReady());
+        assertFalse(service("12345, 0000000000").isReady());
         assertTrue(service("107-87-28988").isReady());
+        assertTrue(service("12345, 220-86-57703").isReady()); // 틀린 번호는 빼고 맞는 번호만 쓴다
+    }
+
+    /* 우리 회사 번호 여러 개 (11/10): 개찰 목록에 그중 하나라도 있으면 우리 회사다 */
+
+    @Test
+    void 우리_회사_번호가_둘이면_목록에_있는_쪽을_우리_회사로_본다() {
+        ResultOutcomeDTO out = service("107-87-28988, 314-81-87147").register(target());
+        assertEquals("결과 등록: 수주 · 1위", out.getMessage());
+
+        out = service("220-86-57703,314-81-87147").register(target());
+        assertEquals("결과 등록: 실주 · 2위", out.getMessage());
+    }
+
+    @Test
+    void 두_번호가_모두_목록에_있으면_낙찰된_쪽_하나만_우리_행이다() {
+        ResultOutcomeDTO out = service("3148187147,1078728988").register(target());
+
+        assertEquals("결과 등록: 수주 · 1위", out.getMessage());
+        ArgumentCaptor<CoEvlRsltDTO> co = ArgumentCaptor.forClass(CoEvlRsltDTO.class);
+        verify(mapper, times(2)).mergeCoEvlRslt(co.capture());
+        assertEquals("Y", co.getAllValues().get(0).getOurCoYn());
+        assertEquals("N", co.getAllValues().get(1).getOurCoYn()); // 우리 번호여도 우리 행은 사업마다 하나
+    }
+
+    @Test
+    void 낙찰자가_없을_때_두_번호가_모두_있으면_순위가_높은_쪽이_우리_행이다() throws Exception {
+        when(api.findAward("R26BK01541118")).thenReturn(response("[]"));
+        service("3148187147,1078728988").register(target());
+
+        ArgumentCaptor<CoEvlRsltDTO> co = ArgumentCaptor.forClass(CoEvlRsltDTO.class);
+        verify(mapper, times(2)).mergeCoEvlRslt(co.capture());
+        assertEquals("Y", co.getAllValues().get(0).getOurCoYn()); // 1위
+        assertEquals("N", co.getAllValues().get(1).getOurCoYn());
+    }
+
+    @Test
+    void 목록에_우리_번호가_하나도_없으면_넣어_둔_번호를_모두_알린다() {
+        ResultOutcomeDTO out = service("1234567890,220-86-57703").register(target());
+
+        assertEquals(ResultOutcomeDTO.Kind.NOT_LISTED, out.getKind());
+        assertTrue(out.getMessage().contains("123-45-67890, 220-86-57703"));
+    }
+
+    /* 컨소시엄 참여·하도급 (11/10): 함께 참여한 주관사·원도급사의 사업자번호(partnerBizNo)로 그 업체 행을 우리 쪽으로 본다 */
+
+    @Test
+    void 참여_업체_번호로_그_업체의_결과와_순위_점수_낙찰_금액을_가져온다() {
+        ResultTargetDTO t = target();
+        t.setPartnerBizNo("107-87-28988");
+        ResultOutcomeDTO out = service("220-86-57703").register(t); // 우리 회사 번호는 목록에 없다
+
+        assertEquals(ResultOutcomeDTO.Kind.REGISTERED, out.getKind());
+        assertEquals("결과 등록: 수주 · 1위", out.getMessage());
+        BidRsltDTO r = captureResult();
+        assertEquals("BR010", r.getBidRsltCd());
+        assertEquals(new BigDecimal("100.000"), r.getSnthsEvlScr());
+        assertEquals(260_000_000L, r.getScsbdAmt()); // 직접 입력 없이 주관사의 낙찰 금액을 그대로 쓴다 (11/10)
+        ArgumentCaptor<CoEvlRsltDTO> co = ArgumentCaptor.forClass(CoEvlRsltDTO.class);
+        verify(mapper, times(2)).mergeCoEvlRslt(co.capture());
+        assertEquals("Y", co.getAllValues().get(0).getOurCoYn());
+        assertEquals("N", co.getAllValues().get(1).getOurCoYn());
+    }
+
+    @Test
+    void 참여_업체가_실주면_실주로_등록한다() {
+        ResultTargetDTO t = target();
+        t.setPartnerBizNo("3148187147");
+        assertEquals("결과 등록: 실주 · 2위", service("107-87-28988").register(t).getMessage()); // 우리 회사 번호보다 참여 업체가 먼저
+    }
+
+    @Test
+    void 참여_업체_번호는_우리_회사_번호가_없어도_쓴다() {
+        ResultTargetDTO t = target();
+        t.setPartnerBizNo("1078728988");
+        assertEquals(ResultOutcomeDTO.Kind.REGISTERED, service("").register(t).getKind());
+    }
+
+    @Test
+    void 낙찰자가_아직_없으면_참여_업체_행을_우리_쪽으로_저장해_두고_기다린다() throws Exception {
+        when(api.findAward("R26BK01541118")).thenReturn(response("[]"));
+        ResultTargetDTO t = target();
+        t.setPartnerBizNo("314-81-87147");
+
+        assertEquals(ResultOutcomeDTO.Kind.WAITING, service("107-87-28988").register(t).getKind());
+        ArgumentCaptor<CoEvlRsltDTO> co = ArgumentCaptor.forClass(CoEvlRsltDTO.class);
+        verify(mapper, times(2)).mergeCoEvlRslt(co.capture());
+        assertEquals("N", co.getAllValues().get(0).getOurCoYn());
+        assertEquals("Y", co.getAllValues().get(1).getOurCoYn()); // 다음 수집은 이 행의 번호로 이어받는다
+        verify(mapper, never()).mergeBidRslt(any());
+    }
+
+    @Test
+    void 참여_업체가_목록에_없으면_낙찰자가_없어도_바로_알린다() throws Exception {
+        when(api.findAward("R26BK01541118")).thenReturn(response("[]"));
+        ResultTargetDTO t = target();
+        t.setPartnerBizNo("1234567890");
+
+        ResultOutcomeDTO out = service("107-87-28988").register(t);
+        assertEquals(ResultOutcomeDTO.Kind.NOT_LISTED, out.getKind());
+        assertTrue(out.getMessage().contains("사업자번호 123-45-67890 업체가 없어"));
+        ArgumentCaptor<CoEvlRsltDTO> co = ArgumentCaptor.forClass(CoEvlRsltDTO.class);
+        verify(mapper, times(2)).mergeCoEvlRslt(co.capture()); // 개찰 업체는 그대로 남긴다
+        assertEquals("N", co.getAllValues().get(0).getOurCoYn());
+        assertEquals("N", co.getAllValues().get(1).getOurCoYn());
+    }
+
+    @Test
+    void 개찰_전에는_참여_업체_번호를_받지_않는다() throws Exception {
+        when(api.findAward("R26BK01541118")).thenReturn(response("[]"));
+        when(api.findOpeningCompanies("R26BK01541118")).thenReturn(response("[]"));
+        ResultTargetDTO t = target();
+        t.setPartnerBizNo("1078728988");
+
+        ResultOutcomeDTO out = service("107-87-28988").register(t);
+        assertEquals(ResultOutcomeDTO.Kind.NOT_LISTED, out.getKind());
+        assertTrue(out.getMessage().contains("아직 나라장터에 개찰 결과가 없습니다"));
+        verify(mapper, never()).mergeCoEvlRslt(any());
     }
 
     @Test

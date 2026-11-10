@@ -20,8 +20,8 @@ public class ResultsViewDTO {
     /** [나라장터에서 결과 가져오기]를 할 수 있는지 (경영지원실) */
     private boolean canImport;
 
-    /** 컨소시엄 참여·하도급 사업의 결과를 직접 입력할 수 있는지 (경영지원실, 11/04) */
-    private boolean canEnterResult;
+    /** 컨소시엄 참여·하도급에서 주관사·원도급사 사업자번호를 넣을 수 있는지 (이 사업을 맡은 팀의 팀장, 11/10) */
+    private boolean canLinkPartner;
 
     /** 평가표 엑셀을 올릴 수 있는지 (경영지원실, 이 사업을 맡은 팀의 팀장) */
     private boolean canUpload;

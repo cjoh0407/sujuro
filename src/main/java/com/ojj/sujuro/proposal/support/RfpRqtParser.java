@@ -43,6 +43,14 @@ public final class RfpRqtParser {
     /** 목록표에 "구분" 칸이 번호와 ID 사이에 있는 모양 (11/10): "8 유지관리 수행 요구사항 MAR 8 예비부품 확보 및 지원 요건".
      *  가운데 글자는 구분명으로 쓰고, 나머지는 ROW 와 같은 모양으로 읽는다 */
     private static final Pattern ROW_MID = Pattern.compile("^\\s*(\\d{1,4})\\s+(\\S.*?)\\s+([A-Z]{2,4})[\\s-]*(\\d{1,4})(?:\\s+(\\S.*?))?\\s*$");
+    /** 번호 없이 ID부터 나오는 목록 (11/10): "MAR-001 유지관리 수행 방안 제시", 앞에 구분 칸 글자, 뒤에 구분별 개수가 붙을 수 있다.
+     *  "유지관리 수행 MAR-012 사이버보안 실태 평가 지원" / "요구사항 MAR-013 정보화 평가 지원 23". 번호는 읽은 순서대로 매긴다.
+     *  ID는 붙임표(-)가 있는 모양만 받는다 (본문 글자를 요구사항으로 잘못 읽지 않게) */
+    private static final Pattern ROW_ID = Pattern.compile("^\\s*(?:(\\S.*?)\\s+)?([A-Z]{2,4})-(\\d{1,4})\\s+(\\S.*?)\\s*$");
+    /** ROW_ID 앞 글자가 이런 말이면 목록이 아니라 상세 설명 표("요구사항 고유번호 MAR-001")이므로 읽지 않는다 */
+    private static final Pattern NOT_LIST = Pattern.compile("고유\\s*번호|요구사항\\s*ID|관련|번호|분류");
+    /** 숫자만 있는 낱말·줄 (구분별 요구사항 수) */
+    private static final Pattern COUNT_ONLY = Pattern.compile("^\\s*(\\d{1,3})\\s*$");
     private static final Pattern FOOTER = Pattern.compile("^\\s*-\\s*\\d+\\s*-\\s*$");
     private static final Pattern HEADER = Pattern.compile("요구사항\\s*명|^\\s*No\\b");
     private static final String WRAP_NOTE = "이름 여러 줄";
@@ -112,6 +120,22 @@ public final class RfpRqtParser {
             if (cur == null) {
                 cur = new Line(getCurrentPageNo(), first.getYDirAdj());
             }
+            // PDFBox가 띄어쓰기가 든 덩어리("데이터 구조 관리 4")를 한 번에 넘길 때가 있다 (11/10).
+            // 낱말마다 위치를 알아야 이름 칸 위치·멀리 떨어진 개수 숫자를 가릴 수 있으므로 글자 위치로 낱말을 나눈다
+            if (positions.size() == text.length()) {
+                int start = -1;
+                for (int c = 0; c <= text.length(); c++) {
+                    boolean end = c == text.length() || Character.isWhitespace(text.charAt(c));
+                    if (!end && start < 0) {
+                        start = c;
+                    } else if (end && start >= 0) {
+                        TextPosition tp = positions.get(start);
+                        cur.add(text.substring(start, c), tp.getXDirAdj(), tp.getYDirAdj());
+                        start = -1;
+                    }
+                }
+                return;
+            }
             cur.add(text.trim(), first.getXDirAdj(), first.getYDirAdj());
         }
 
@@ -167,6 +191,8 @@ public final class RfpRqtParser {
         int n = lines.size();
         Matcher[] rows = new Matcher[n];
         String[] mids = new String[n]; // 목록표 "구분" 칸 글자 (번호와 ID 사이에 있을 때)
+        Integer[] counts = new Integer[n]; // 목록표에 구분별 요구사항 수가 같이 적힌 경우 그 숫자 (ROW_ID 줄 끝·숫자만 있는 줄)
+        int seq = 0; // 번호 없는 목록(ROW_ID)에 매기는 번호
         boolean[] other = new boolean[n]; // 총괄표·합계·머리·쪽 번호 줄
         List<Float> nameXs = new ArrayList<>();
 
@@ -175,6 +201,10 @@ public final class RfpRqtParser {
             String t = l.text();
             Matcher row = ROW.matcher(t);
             boolean ok = row.matches();
+            int k = l.words.size(); // 이름 첫 낱말 위치 = 이름 앞 글자의 낱말 수 (낱말은 한 칸 띄어 이어 붙였으므로 그대로 센다)
+            if (ok && row.group(4) != null) {
+                k = words(t.substring(0, row.start(4)));
+            }
             if (!ok) {
                 Matcher mid = ROW_MID.matcher(t);
                 if (mid.matches()) {
@@ -183,20 +213,35 @@ public final class RfpRqtParser {
                     // 구분 칸을 뺀 모양으로 다시 맞춰 아래에서는 보통 줄과 똑같이 다룬다
                     row = ROW.matcher(mid.group(1) + " " + mid.group(3) + " " + mid.group(4) + (name != null ? " " + name : ""));
                     ok = row.matches();
+                    if (name != null) {
+                        k = words(t.substring(0, mid.start(5)));
+                    }
+                }
+            }
+            if (!ok) {
+                Matcher idr = ROW_ID.matcher(t);
+                // 총괄표 줄("기능 요구사항 SFR-00 7")·번호가 0뿐인 ID·숫자만 있는 이름은 목록이 아니다
+                if (idr.matches() && (idr.group(1) == null || !NOT_LIST.matcher(idr.group(1)).find())
+                        && Integer.parseInt(idr.group(3)) > 0 && !idr.group(4).matches("[\\d\\s]+")
+                        && !SUMMARY.matcher(t).find() && !SUMMARY_EN.matcher(t).matches()) {
+                    List<String> nm = new ArrayList<>(java.util.Arrays.asList(idr.group(4).split("\\s+")));
+                    // 줄 끝 숫자가 멀리 떨어져 있으면(개수 칸) 이름이 아니라 구분별 요구사항 수다. 위치를 모르면(글자만) 숫자만 있는 끝 낱말을 개수로 본다
+                    int last = l.words.size() - 1;
+                    boolean farNum = nm.size() > 1 && COUNT_ONLY.matcher(nm.get(nm.size() - 1)).matches()
+                            && (l.xs.get(last) == 0f || l.xs.get(last) - l.xs.get(last - 1) > 60f);
+                    if (farNum) {
+                        counts[i] = Integer.parseInt(nm.remove(nm.size() - 1));
+                    }
+                    if (idr.group(1) != null) {
+                        mids[i] = idr.group(1);
+                    }
+                    row = ROW.matcher((++seq) + " " + idr.group(2) + " " + idr.group(3) + " " + String.join(" ", nm));
+                    ok = row.matches();
+                    k = words(t.substring(0, idr.start(4)));
                 }
             }
             if (ok) {
                 rows[i] = row;
-                // 이름 첫 낱말 위치 = 이름 앞 글자의 낱말 수 (낱말은 한 칸 띄어 이어 붙였으므로 그대로 센다)
-                int k = l.words.size();
-                Matcher whole = ROW.matcher(t).matches() ? ROW.matcher(t) : ROW_MID.matcher(t);
-                if (whole.matches()) {
-                    int g = whole.pattern() == ROW ? 4 : 5;
-                    if (whole.group(g) != null) {
-                        String before = t.substring(0, whole.start(g)).trim();
-                        k = before.isEmpty() ? 0 : before.split("\\s+").length;
-                    }
-                }
                 if (l.words.size() > k) {
                     nameXs.add(l.xs.get(k));
                     l.y = l.ys.get(k); // 간격은 이름 줄 기준으로 잰다
@@ -229,6 +274,9 @@ public final class RfpRqtParser {
                 other[i] = true;
             } else if (FOOTER.matcher(t).matches() || HEADER.matcher(t).find()) {
                 other[i] = true;
+            } else if (COUNT_ONLY.matcher(t).matches()) {
+                counts[i] = Integer.parseInt(t.trim()); // 구분 칸 옆 "요구사항 수" 칸만 따로 찍힌 줄 (이름 조각이 아니다)
+                other[i] = true;
             }
         }
         // 이름 칸의 왼쪽 위치. 이보다 왼쪽에서 시작하는 줄(제목·본문)은 이름 조각이 아니다
@@ -241,7 +289,7 @@ public final class RfpRqtParser {
         for (int i = 0; i < n; i++) {
             frag[i] = rows[i] == null && !other[i] && lines.get(i).x() >= nameX;
         }
-        groupNamesFromList(r, lines, rows, mids, other, nameX);
+        groupNamesFromList(r, lines, rows, mids, counts, other, nameX);
 
         // 이름 조각을 위·아래 요구사항에 나눠 붙인다 (owner[i] = 그 조각이 붙을 요구사항 줄 번호)
         int[] owner = new int[n];
@@ -312,33 +360,52 @@ public final class RfpRqtParser {
      * 따로 찍힌 줄은 위·아래 요구사항의 접두어가 같을 때만 그 구분에 붙인다. 영문 설명 "(Maintenance Requirement)"은 뺀다.
      * 총괄표에서 이미 읽은 구분명이 있으면 그대로 둔다.
      */
-    private static void groupNamesFromList(RqtExtractDto r, List<Line> lines, Matcher[] rows, String[] mids, boolean[] other, float nameX) {
+    private static void groupNamesFromList(RqtExtractDto r, List<Line> lines, Matcher[] rows, String[] mids, Integer[] counts,
+                                           boolean[] other, float nameX) {
         int n = lines.size();
         Map<String, StringBuilder> acc = new java.util.LinkedHashMap<>();
+        Map<String, Integer> cnt = new java.util.LinkedHashMap<>();
         for (int i = 0; i < n; i++) {
             String p = null;
             String text = null;
-            if (rows[i] != null && mids[i] != null) {
+            if (rows[i] != null) {
                 p = rows[i].group(2);
                 text = mids[i];
-            } else if (rows[i] == null && !other[i] && lines.get(i).x() < nameX) {
+            } else if (counts[i] != null || (!other[i] && lines.get(i).x() < nameX)) {
                 int a = i - 1;
-                while (a >= 0 && rows[a] == null && !other[a] && lines.get(a).page == lines.get(i).page) {
+                while (a >= 0 && rows[a] == null && lines.get(a).page == lines.get(i).page) { // 위로 가장 가까운 요구사항 줄
                     a--;
                 }
                 int b = i + 1;
-                while (b < n && rows[b] == null && !other[b] && lines.get(b).page == lines.get(i).page) {
+                while (b < n && rows[b] == null && lines.get(b).page == lines.get(i).page) { // 아래로 가장 가까운 요구사항 줄
                     b++;
                 }
                 if (a >= 0 && b < n && rows[a] != null && rows[b] != null && lines.get(a).page == lines.get(i).page
                         && lines.get(b).page == lines.get(i).page && rows[a].group(2).equals(rows[b].group(2))) {
                     p = rows[a].group(2);
-                    text = lines.get(i).text();
+                    text = counts[i] != null ? null : lines.get(i).text();
                 }
             }
-            if (p != null && text != null) {
+            if (p == null) {
+                continue;
+            }
+            // 구분 칸 줄 끝의 숫자는 그 구분의 요구사항 수 ("요구사항 2")
+            if (text != null) {
+                Matcher tail = Pattern.compile("^(.*?)\\s+(\\d{1,3})\\s*$").matcher(text);
+                if (tail.matches() && rows[i] == null) {
+                    text = tail.group(1);
+                    cnt.putIfAbsent(p, Integer.parseInt(tail.group(2)));
+                }
                 acc.computeIfAbsent(p, x -> new StringBuilder()).append(' ').append(text);
             }
+            if (counts[i] != null) {
+                cnt.putIfAbsent(p, counts[i]);
+            }
+        }
+        // 목록표에 구분별 요구사항 수가 적혀 있으면 총괄표처럼 개수를 비교한다 (총괄표에서 이미 읽었으면 그대로)
+        if (!cnt.isEmpty() && r.getExpected().isEmpty()) {
+            r.getExpected().putAll(cnt);
+            r.setSummaryFound(true);
         }
         for (Map.Entry<String, StringBuilder> e : acc.entrySet()) {
             String nm = e.getValue().toString()
@@ -349,6 +416,12 @@ public final class RfpRqtParser {
                 r.getGroupNames().putIfAbsent(e.getKey(), nm);
             }
         }
+    }
+
+    /** 글자의 낱말 수 (빈 글자는 0) */
+    private static int words(String s) {
+        String t = s.trim();
+        return t.isEmpty() ? 0 : t.split("\\s+").length;
     }
 
     /**

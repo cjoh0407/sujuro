@@ -72,7 +72,10 @@ public class SecurityConfig {
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID"))
             .sessionManagement(session -> session
-                .invalidSessionStrategy(new ExpiredSessionStrategy()));
+                .invalidSessionStrategy(new ExpiredSessionStrategy()))
+            // CSRF 토큰이 무효인 요청(오래 띄워 둔 로그인 화면 등)은 "접근 권한이 없습니다" 대신 로그인·대시보드로 보낸다 (11/10)
+            .exceptionHandling(ex -> ex
+                .accessDeniedHandler(new CsrfAwareAccessDeniedHandler()));
 
         return http.build();
     }

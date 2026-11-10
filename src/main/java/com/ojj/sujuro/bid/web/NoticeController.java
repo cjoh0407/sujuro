@@ -240,7 +240,15 @@ public class NoticeController {
     public String register(@RequestParam String pbancNo,
                            @AuthenticationPrincipal LoginUser user,
                            RedirectAttributes redirect) {
-        NoticeRegisterResultDTO result = noticeRegisterService.register(pbancNo, user.getEmpNo());
+        NoticeRegisterResultDTO result;
+        try {
+            result = noticeRegisterService.register(pbancNo, user.getEmpNo());
+        } catch (BusinessException e) {
+            // 번호 형식이 틀렸거나(13자리 아님 등) 나라장터에 없는 번호: 오류 화면으로 넘기지 않고 목록에서 빨간 알림으로 (11/10)
+            redirect.addFlashAttribute("registError", e.getMessage());
+            redirect.addFlashAttribute("registNo", pbancNo);
+            return "redirect:/notices";
+        }
 
         StringBuilder msg = new StringBuilder();
         msg.append(result.getStepNm()).append(" 단계로 등록했습니다: ").append(result.getPbancNm());

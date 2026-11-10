@@ -19,3 +19,21 @@ window.addEventListener('pageshow', function () {
     btn.textContent = '지금 수집';
   });
 });
+
+/* 공고 등록 번호 검사 (11/10): 형식만 본다 (R + 연도 2자리 + BK·BD·DD + 숫자). 자릿수는 묻지 않는다.
+   형식이 맞는데 나라장터에 없는 번호는 서버가 "찾을 수 없습니다" 빨간 알림을 띄운다 */
+function checkPbancNo(f) {
+  var no = (f.elements.pbancNo.value || '').replace(/\s+/g, '').toUpperCase();
+  var msg = null;
+  if (!no) {
+    msg = '공고번호를 입력해 주세요.';
+  } else if (!/^R\d{2}(BK|BD|DD)\d+$/.test(no)) {
+    msg = '공고번호 형식이 아닙니다. 발주계획(R26DD…), 사전규격(R26BD…), 입찰공고(R26BK…) 번호를 넣어 주세요.';
+  }
+  if (msg) {
+    if (window.showToast) { window.showToast(msg, 'err'); }
+    f.elements.pbancNo.focus();
+    return false;
+  }
+  return true;
+}

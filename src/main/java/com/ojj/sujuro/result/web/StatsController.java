@@ -26,18 +26,19 @@ import com.ojj.sujuro.result.dto.StatsViewDTO;
 import com.ojj.sujuro.result.service.StatsService;
 
 /**
- * 사업 이력 관리 (11/05 통계를 지우고 새로 만든 탭)와 사업별 결과 분석 (FR-080, 081, 087).
+ * 사업 이력 관리 (11/05 통계를 지우고 새로 만든 탭. 11/10 주소를 /bid-history 에서 /stats 로 되돌려 클래스·템플릿 이름과 맞췄다)와 사업별 결과 분석 (FR-080, 081, 087).
  *
- *   /bid-history                                    화면 (team: 경영지원실이 고른 팀, year: 네 자리 연도,
- *                                                   bid: 왼쪽 목록에서 고른 사업. 없으면 목록 맨 위 사업.
- *                                                   오른쪽에 그 사업의 결과 분석, 아직 결과가 없으면 공고 기본 정보와 안내 문구)
- *   /bid-history/bids/{pbancSn}/evaluation-file     평가표 엑셀 내려받기
+ *   /stats                                화면 (team: 경영지원실이 고른 팀, year: 네 자리 연도,
+ *                                         bid: 왼쪽 목록에서 고른 사업. 없으면 목록 맨 위 사업.
+ *                                         오른쪽에 그 사업의 결과 분석, 아직 결과가 없으면 공고 기본 정보와 안내 문구)
+ *   /stats/bids/{pbancSn}/evaluation-file 평가표 엑셀 내려받기
  *
- * 경영지원실·팀장만 들어온다 (SecurityConfig 의 /bid-history/** 규칙). 볼 수 있는 팀 범위는 StatsService 가 정한다.
+ * 경영지원실·팀장만 들어온다 (SecurityConfig 의 /stats/** 규칙). 볼 수 있는 팀 범위는 StatsService 가 정한다.
  * 모두 읽기 화면이다. 결과·평가표·장단점 입력은 평가·결과 입력(ResultController, /results)에서 한다.
+ * 그리로 가는 [평가·결과 입력] 버튼은 그 사업을 맡은 팀의 팀장에게만 보인다 (11/10, 경영지원실은 없음).
  */
 @Controller
-@RequestMapping("/bid-history")
+@RequestMapping("/stats")
 public class StatsController {
 
     private final StatsService statsService;
@@ -83,8 +84,9 @@ public class StatsController {
 
     private static void addArchive(Model model, LoginUser user, StatsArchiveDTO archive) {
         model.addAttribute("archive", archive);
-        // 이 화면은 모두 읽기만 한다. 평가·결과 입력으로 가는 버튼을 보여 준다 (팀장은 자기 팀 사업만 여기 온다)
-        model.addAttribute("canEdit", user.getRole() == Role.MGMT || user.getRole() == Role.LEADER);
+        // 이 화면은 모두 읽기만 한다. 평가 기록은 그 사업을 맡은 팀의 팀장만 하므로 평가·결과 입력 버튼은 팀장에게만 보인다 (11/10).
+        // 팀장은 자기 팀 사업만 여기 온다(StatsService). 경영지원실의 나라장터 결과 가져오기는 대시보드에서 들어가 한다
+        model.addAttribute("canEdit", user.getRole() == Role.LEADER);
     }
 
     @GetMapping("/bids/{pbancSn}/evaluation-file")

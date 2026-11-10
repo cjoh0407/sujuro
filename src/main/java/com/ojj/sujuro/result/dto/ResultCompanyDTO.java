@@ -23,11 +23,6 @@ public class ResultCompanyDTO {
     private String scsbdYn;
     /** 평가표 엑셀을 올렸는지 (업체마다 따로 올린다) */
     private String evlTblUpldYn;
-    /**
-     * 우리 쪽 행 옆에 붙일 이름. 보통은 자사이고, 컨소시엄 참여·하도급 사업은 우리 대신 개찰 목록에 오른
-     * 주관사·원도급사 행이 우리 쪽이라 그 이름을 붙인다 (11/10, ResultEntryServiceImpl.build 가 정한다)
-     */
-    private String oursTag = "자사";
 
     public boolean isOurs() {
         return "Y".equals(ourCoYn);
@@ -37,8 +32,11 @@ public class ResultCompanyDTO {
         return "Y".equals(evlTblUpldYn);
     }
 
-    /** 평가표 업체 고르기 목록의 이름. 예: "1위 엑사아이엔티 주식회사 (자사) · 평가표 있음" */
-    public String getOptionLabel() {
+    /**
+     * 평가표 업체 고르기 목록의 이름. 예: "1위 엑사아이엔티 주식회사 (자사) · 평가표 있음"
+     * 우리 쪽 행에 붙는 이름은 사업의 참여 형태로 정해져 화면이 넘긴다: ${c.optionLabel(b.oursTag)} (ResultBidDTO.getOursTag)
+     */
+    public String optionLabel(String oursTag) {
         return (opengRnk == null ? "" : opengRnk + "위 ") + coNm + (isOurs() ? " (" + oursTag + ")" : "")
                 + (isUploaded() ? " · 평가표 있음" : "");
     }

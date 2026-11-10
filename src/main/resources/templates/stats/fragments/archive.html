@@ -6,9 +6,9 @@
   경영지원실은 모든 개발팀, 팀장은 자기 팀 사업만 본다.
   11/04 아직 결과가 없는 사업(archive.pending. 진행 중·유찰)도 같은 자리에 보인다. 공고 기본 정보만 채우고 점수·평가 항목별 점수·장단점 칸 가운데에 안내 문구를 둔다.
   11/05 제출 산출물을 지웠다. 위 줄은 공고 기본 정보 | 점수, 그 아래 평가 항목별 점수와 장단점 분석은 넓게 쓴다.
-  모두 읽기 화면이다. 결과·평가표는 경영지원실이, 평가 점수·장단점은 담당 팀 팀장이 평가·결과 입력(/results)에서 넣는다.
+  모두 읽기 화면이다. 결과 가져오기는 경영지원실이, 평가표·평가 점수·장단점은 담당 팀 팀장이 평가·결과 입력(/results)에서 넣는다 (평가표는 11/10부터 팀장만).
 
-  모델: archive (result.dto.StatsArchiveDTO), canEdit (평가·결과 입력으로 가는 버튼)
+  모델: archive (result.dto.StatsArchiveDTO), canEdit (평가·결과 입력으로 가는 버튼. 11/10부터 그 사업을 맡은 팀의 팀장만)
 */-->
 <body>
 
@@ -59,7 +59,7 @@
       <span class="faint fs-11_5" th:unless="${archive.articleTable.empty}">단위: 점 · 괄호는 배점</span>
     </div>
     <th:block th:replace="~{stats/fragments/result-parts :: articleChart(${archive.articleTable},
-              '평가표 엑셀이 올라오지 않아 항목별 점수가 없습니다. 평가·결과 입력에서 올리면 다른 업체와 비교한 결과가 나옵니다.')}"></th:block>
+              '평가표가 업로드되지 않았습니다.')}"></th:block>
   </div>
 
   <div class="card pending-card" th:if="${archive.pending}">

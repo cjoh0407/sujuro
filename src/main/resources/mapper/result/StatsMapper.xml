@@ -175,7 +175,7 @@
      WHERE <include refid="joinedCond"/> AND P.PBANC_SN = #{pbancSn}
   </select>
 
-  <!-- 평가표 엑셀 (FL070). 경영지원실이 올린 것 중 마지막 -->
+  <!-- 평가표 엑셀 (FL070). 올린 것 중 마지막 -->
   <!-- 우리 회사의 마지막 평가표. 다른 업체 평가표도 같은 공고에 올라오므로 업로드 기록으로 우리 회사 것을 고른다 -->
   <select id="findEvaluationFile" resultType="com.ojj.sujuro.result.dto.EvaluationFileDTO">
     SELECT F.FILE_SN AS fileSn, F.ORGNL_FILE_NM AS orgnlFileNm, F.STRG_FILE_NM AS strgFileNm,

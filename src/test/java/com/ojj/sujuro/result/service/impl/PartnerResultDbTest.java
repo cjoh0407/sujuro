@@ -117,12 +117,11 @@ class PartnerResultDbTest {
         assertNull(resultMapper.findResultBid(sn).getPartnerBizNo());
         String before = page(leader, "/results?bid=" + sn);
         assertTrue(before.contains("action=\"/results/partner-import\""));
-        assertTrue(before.contains("함께 참여한 주관사 사업자번호"));
+        assertTrue(before.contains("함께 참여한 업체 사업자번호"));
         assertFalse(before.contains("/results/manual"));
         assertFalse(before.contains("<h3>개찰 업체 점수</h3>"));
         String mgmtBefore = page(mgmt, "/results?bid=" + sn);
         assertFalse(mgmtBefore.contains("action=\"/results/partner-import\""));
-        assertTrue(mgmtBefore.contains("담당 팀 팀장이 주관사 사업자번호를 넣으면"));
 
         // 번호가 10자리가 아니면 나라장터를 부르기 전에 막고, 넣은 값을 돌려준다
         mvc.perform(post("/results/partner-import").session(leader).with(csrf()).param("bid", sn.toString()).param("bizNo", "999-99-9990"))
@@ -167,16 +166,15 @@ class PartnerResultDbTest {
         assertTrue(after.contains("<h3>입찰 결과 · 기술·가격·종합 점수 (API)</h3>"));
         assertTrue(after.contains("<h3>개찰 업체 점수</h3>"));
         assertTrue(after.contains("<h3>평가 항목·배점 (평가표) · (가상) 주관 업체</h3>")); // 제목 뒤에 고른 업체(우리 쪽 행)가 붙는다
-        assertTrue(after.contains("1위 (가상) 주관 업체 (주관사)"));
-        assertTrue(after.contains("개찰 목록의 주관사(사업자번호 999-99-99901) 결과를 우리 결과로 봅니다"));
+        assertTrue(after.contains("1위 (가상) 주관 업체 (참여)"));
         assertFalse(after.contains("action=\"/results/partner-import\"")); // 결과가 나온 뒤에는 번호를 바꾸지 않는다
         assertFalse(after.contains("/results/manual"));
 
         // 사업 이력 관리: 점수 칸과 수주 금액(4.5억)이 보이고, 팀 목록에 이 사업이 있다
-        String archive = page(leader, "/bid-history?bid=" + sn);
+        String archive = page(leader, "/stats?bid=" + sn);
         assertTrue(archive.contains("<h3>점수</h3>"));
         assertTrue(archive.contains("4.5억"));
-        assertTrue(page(mgmt, "/bid-history?team=" + teamSn + "&year=2026").contains("(가상) 컨소시엄 사업"));
+        assertTrue(page(mgmt, "/stats?team=" + teamSn + "&year=2026").contains("(가상) 컨소시엄 사업"));
     }
 
     @Test

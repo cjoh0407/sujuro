@@ -51,7 +51,7 @@ public class ResultController {
                        @RequestParam(required = false) Long bid,
                        @RequestParam(required = false) Long co, Model model) {
         if (bid == null) {
-            return "redirect:/bid-history"; // 이 화면에는 사업건 목록이 없다 (11/04)
+            return "redirect:/stats"; // 이 화면에는 사업건 목록이 없다 (11/04)
         }
         ResultsViewDTO view = resultEntryService.build(user, bid, co);
         model.addAttribute("view", view);

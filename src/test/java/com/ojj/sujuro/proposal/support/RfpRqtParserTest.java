@@ -182,4 +182,26 @@ class RfpRqtParserTest {
         assertEquals(Integer.valueOf(3), r.getExpected().get("MAR"));
         assertTrue(r.getWarnings().isEmpty(), r.getWarnings().toString());
     }
+
+    @Test
+    void 가운데_영문이_붙은_ID와_윗줄_구분명을_읽는다() {
+        RqtExtractDto r = RfpRqtParser.parse("1) 요구사항 총괄표\n"
+                + "기능요구사항 System Function\n"
+                + "FUN-QMS00 2\n"
+                + "(FUN) Requirement\n"
+                + "성능요구사항\n"
+                + "Performance Requirement PER-000 1\n"
+                + "(PER)\n"
+                + "합계 3\n"
+                + "1 FUN-QMS01 결함등록연계 관리 개선\n"
+                + "2 FUN-QMS02 결함처리 통계 기능 개선\n"
+                + "3 PER-001 화면 디스플레이 시간\n");
+        assertEquals(3, r.getFoundCount());
+        assertEquals("FUN-QMS01", r.getItems().get(0).getRqtMttrNo());   // ID는 원래 모양 그대로
+        assertEquals("결함등록연계 관리 개선", r.getItems().get(0).getRqtMttrNm());
+        assertEquals("기능요구사항", r.getGroupNames().get("FUN"));
+        assertEquals("성능요구사항", r.getGroupNames().get("PER"));
+        assertEquals(Integer.valueOf(2), r.getExpected().get("FUN"));
+        assertTrue(r.getWarnings().isEmpty(), r.getWarnings().toString());
+    }
 }

@@ -43,8 +43,10 @@
     <!-- 영업부만: 공고 등록과 [지금 수집] -->
     <div class="nl-acts" sec:authorize="hasRole('SALES')">
       <!-- 공고 등록. 번호만 넣으면 나라장터 API로 내용을 가져온다. 키워드 검색은 없다. -->
-      <form class="row" method="post" th:action="@{/notices/register}">
-        <input type="text" name="pbancNo" placeholder="공고번호 13자리를 입력해 주세요" title="예) R26BK01234567 · R26BD01234567 · R26DD01234567" aria-label="등록할 공고번호" class="nl-regist" required>
+      <!-- 형식(R + 연도 2자리 + BK·BD·DD + 숫자)만 보내기 전에 검사한다. 자릿수는 묻지 않는다(12자리 공고도 있을 수 있어서, 11/10).
+           나라장터에 없는 번호는 서버가 "찾을 수 없습니다" 빨간 알림으로 -->
+      <form class="row" method="post" th:action="@{/notices/register}" data-on-submit="checkPbancNo">
+        <input type="text" name="pbancNo" th:value="${registNo}" maxlength="30" autocomplete="off" placeholder="공고번호 (예: R26BK01234567)" title="예) R26BK01234567 · R26BD01234567 · R26DD01234567" aria-label="등록할 공고번호" class="nl-regist" required>
         <button class="btn primary sm" type="submit">등록</button>
       </form>
       <!-- [지금 수집] (FR-025). 오후 5시 자동 수집과 같은 일을 지금 한다.
@@ -178,10 +180,10 @@
 <th:block layout:fragment="scripts">
   <script th:src="@{/js/notices.js}"></script>
   <!-- 등록·수집 결과는 오른쪽 아래 작은 알림으로 (common.js showToast). 실패(collectError)는 빨간 알림 -->
-  <script th:if="${registMessage != null or collectMessage != null or collectError != null}" th:inline="javascript">
+  <script th:if="${registMessage != null or collectMessage != null or collectError != null or registError != null}" th:inline="javascript">
     document.addEventListener('DOMContentLoaded', function () {
       var ok = /*[[${registMessage ?: collectMessage}]]*/ null;
-      var err = /*[[${collectError}]]*/ null;
+      var err = /*[[${collectError ?: registError}]]*/ null;
       if (!window.showToast) return;
       if (err) window.showToast(err, 'err');
       else if (ok) window.showToast(ok);

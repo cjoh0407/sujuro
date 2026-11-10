@@ -46,7 +46,9 @@ public final class RfpRqtParser {
     /** 번호 없이 ID부터 나오는 목록 (11/10): "MAR-001 유지관리 수행 방안 제시", 앞에 구분 칸 글자, 뒤에 구분별 개수가 붙을 수 있다.
      *  "유지관리 수행 MAR-012 사이버보안 실태 평가 지원" / "요구사항 MAR-013 정보화 평가 지원 23". 번호는 읽은 순서대로 매긴다.
      *  ID는 붙임표(-)가 있는 모양만 받는다 (본문 글자를 요구사항으로 잘못 읽지 않게) */
-    private static final Pattern ROW_ID = Pattern.compile("^\\s*(?:(\\S.*?)\\s+)?([A-Z]{2,4})-(\\d{1,4})\\s+(\\S.*?)\\s*$");
+    private static final Pattern ROW_ID = Pattern.compile("^\\s*(?:(\\S.*?)\\s+)?([A-Z]{2,4})-(\\d{1,4})(?:\\s+(\\S.*?))?\\s*$");
+    /** 가운데에 영문이 더 붙은 ID (11/10): "FUN-QMS01" → 접두어 FUN, 번호 01. ID는 원래 모양 그대로 저장한다 */
+    private static final Pattern INFIX_ID = Pattern.compile("\\b([A-Z]{2,4})-([A-Z]{1,4})(\\d{1,4})\\b");
     /** ROW_ID 앞 글자가 이런 말이면 목록이 아니라 상세 설명 표("요구사항 고유번호 MAR-001")이므로 읽지 않는다 */
     private static final Pattern NOT_LIST = Pattern.compile("고유\\s*번호|요구사항\\s*ID|관련|번호|분류");
     /** 숫자만 있는 낱말·줄 (구분별 요구사항 수) */
@@ -193,12 +195,20 @@ public final class RfpRqtParser {
         String[] mids = new String[n]; // 목록표 "구분" 칸 글자 (번호와 ID 사이에 있을 때)
         Integer[] counts = new Integer[n]; // 목록표에 구분별 요구사항 수가 같이 적힌 경우 그 숫자 (ROW_ID 줄 끝·숫자만 있는 줄)
         int seq = 0; // 번호 없는 목록(ROW_ID)에 매기는 번호
+        String[] rawIds = new String[n]; // "FUN-QMS01"처럼 원래 ID를 그대로 둘 줄
         boolean[] other = new boolean[n]; // 총괄표·합계·머리·쪽 번호 줄
         List<Float> nameXs = new ArrayList<>();
 
         for (int i = 0; i < n; i++) {
             Line l = lines.get(i);
             String t = l.text();
+            // "FUN-QMS01"은 "FUN-01"로 바꿔 읽고(낱말 수는 그대로) 원래 ID는 따로 기억한다. 총괄표 "FUN-QMS00 20"도 같은 방법으로 읽힌다
+            String rawId = null;
+            Matcher im = INFIX_ID.matcher(t);
+            if (im.find()) {
+                rawId = im.group();
+                t = t.substring(0, im.start()) + im.group(1) + "-" + im.group(3) + t.substring(im.end());
+            }
             Matcher row = ROW.matcher(t);
             boolean ok = row.matches();
             int k = l.words.size(); // 이름 첫 낱말 위치 = 이름 앞 글자의 낱말 수 (낱말은 한 칸 띄어 이어 붙였으므로 그대로 센다)
@@ -222,9 +232,12 @@ public final class RfpRqtParser {
                 Matcher idr = ROW_ID.matcher(t);
                 // 총괄표 줄("기능 요구사항 SFR-00 7")·번호가 0뿐인 ID·숫자만 있는 이름은 목록이 아니다
                 if (idr.matches() && (idr.group(1) == null || !NOT_LIST.matcher(idr.group(1)).find())
-                        && Integer.parseInt(idr.group(3)) > 0 && !idr.group(4).matches("[\\d\\s]+")
+                        && Integer.parseInt(idr.group(3)) > 0 && (idr.group(4) == null || !idr.group(4).matches("[\\d\\s]+"))
+                        && (idr.group(4) != null || idr.group(1) != null || t.trim().equals(idr.group(2) + "-" + idr.group(3)))
                         && !SUMMARY.matcher(t).find() && !SUMMARY_EN.matcher(t).matches()) {
-                    List<String> nm = new ArrayList<>(java.util.Arrays.asList(idr.group(4).split("\\s+")));
+                    // 이름이 위·아래 줄로 나뉘어 ID 줄에 이름이 없을 수도 있다 (그때는 아래에서 이름 조각을 붙인다)
+                    List<String> nm = idr.group(4) == null ? new ArrayList<>()
+                            : new ArrayList<>(java.util.Arrays.asList(idr.group(4).split("\\s+")));
                     // 줄 끝 숫자가 멀리 떨어져 있으면(개수 칸) 이름이 아니라 구분별 요구사항 수다. 위치를 모르면(글자만) 숫자만 있는 끝 낱말을 개수로 본다
                     int last = l.words.size() - 1;
                     boolean farNum = nm.size() > 1 && COUNT_ONLY.matcher(nm.get(nm.size() - 1)).matches()
@@ -235,13 +248,16 @@ public final class RfpRqtParser {
                     if (idr.group(1) != null) {
                         mids[i] = idr.group(1);
                     }
-                    row = ROW.matcher((++seq) + " " + idr.group(2) + " " + idr.group(3) + " " + String.join(" ", nm));
+                    row = ROW.matcher((++seq) + " " + idr.group(2) + " " + idr.group(3) + (nm.isEmpty() ? "" : " " + String.join(" ", nm)));
                     ok = row.matches();
-                    k = words(t.substring(0, idr.start(4)));
+                    if (idr.group(4) != null) {
+                        k = words(t.substring(0, idr.start(4)));
+                    }
                 }
             }
             if (ok) {
                 rows[i] = row;
+                rawIds[i] = rawId;
                 if (l.words.size() > k) {
                     nameXs.add(l.xs.get(k));
                     l.y = l.ys.get(k); // 간격은 이름 줄 기준으로 잰다
@@ -264,7 +280,10 @@ public final class RfpRqtParser {
             } else if (sum.find()) {
                 r.setSummaryFound(true);
                 r.getExpected().merge(sum.group(1), Integer.parseInt(sum.group(2)), Integer::sum);
-                String gn = groupName(t.substring(0, sum.start(1)));
+                String gn = groupName(korean(t.substring(0, sum.start(1))));
+                if (gn.isEmpty()) { // 구분명이 위 줄에 따로 있는 총괄표: "성능요구사항" / "Performance Requirement PER-000 5" / "(PER)"
+                    gn = groupName(nameAbove(lines, other, i));
+                }
                 if (!gn.isEmpty()) {
                     r.getGroupNames().putIfAbsent(sum.group(1), gn); // 접두어별 구분명 (예: SFR → 기능 요구사항)
                 }
@@ -333,7 +352,7 @@ public final class RfpRqtParser {
             parts.addAll(after.getOrDefault(k, new ArrayList<>()));
             RqtExtractItemDto item = new RqtExtractItemDto();
             item.setNo(row.group(1));
-            item.setRqtMttrNo(row.group(2) + "-" + String.format("%03d", Integer.parseInt(row.group(3))));
+            item.setRqtMttrNo(rawIds[k] != null ? rawIds[k] : row.group(2) + "-" + String.format("%03d", Integer.parseInt(row.group(3))));
             item.setRqtMttrNm(String.join(" ", parts));
             if (!seenIds.add(item.getRqtMttrNo())) {
                 item.setNote("ID가 목록에 두 번 나옵니다");
@@ -381,8 +400,10 @@ public final class RfpRqtParser {
                     b++;
                 }
                 if (a >= 0 && b < n && rows[a] != null && rows[b] != null && lines.get(a).page == lines.get(i).page
-                        && lines.get(b).page == lines.get(i).page && rows[a].group(2).equals(rows[b].group(2))) {
-                    p = rows[a].group(2);
+                        && lines.get(b).page == lines.get(i).page) {
+                    // 위·아래 접두어가 같으면 그 구분, 다르면 세로로 더 가까운 요구사항의 구분 (한 줄짜리 구분 칸이 두 줄로 찍힌 경우)
+                    float ya = lines.get(a).y, yb = lines.get(b).y, yi = lines.get(i).y;
+                    p = rows[a].group(2).equals(rows[b].group(2)) || yi - ya <= yb - yi ? rows[a].group(2) : rows[b].group(2);
                     text = counts[i] != null ? null : lines.get(i).text();
                 }
             }
@@ -416,6 +437,25 @@ public final class RfpRqtParser {
                 r.getGroupNames().putIfAbsent(e.getKey(), nm);
             }
         }
+    }
+
+    /** 한글 구분명만 남긴다: 괄호 속 접두어·영문 설명과 영문 낱말을 뺀다 ("(PER) Performance Requirement" → "") */
+    static String korean(String s) {
+        return (s == null ? "" : s).replaceAll("\\([^)]*\\)?", " ").replaceAll("[A-Za-z()]+", " ")
+                .replaceAll("\\s+", " ").trim();
+    }
+
+    /** 총괄표 줄 바로 위 줄의 한글 구분명 (요구사항·총괄표 줄이나 표 머리글이면 빈 글자) */
+    private static String nameAbove(List<Line> lines, boolean[] other, int i) {
+        if (i == 0 || other[i - 1] || lines.get(i - 1).page != lines.get(i).page) {
+            return "";
+        }
+        String t = lines.get(i - 1).text();
+        if (SUMMARY.matcher(t).find() || ROW.matcher(t).matches()) {
+            return "";
+        }
+        String k = korean(t);
+        return k.matches(".*(구분|부여|사항수|총괄표).*") || k.length() < 2 ? "" : k;
     }
 
     /** 글자의 낱말 수 (빈 글자는 0) */

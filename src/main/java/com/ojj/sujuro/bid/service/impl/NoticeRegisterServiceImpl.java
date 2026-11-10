@@ -38,14 +38,14 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
 
     private static final Logger log = LoggerFactory.getLogger(NoticeRegisterServiceImpl.class);
 
-    /** 사전규격등록번호 형식: R + 연도 2자리 + BD + 순번 8자리 (예: R26BD00283794) */
-    private static final Pattern PRE_SPEC_NO = Pattern.compile("^R\\d{2}BD\\d{8}$");
+    /** 사전규격등록번호 형식: R + 연도 2자리 + BD + 순번 숫자 (보통 8자리, 자릿수는 묻지 않는다 11/10) (예: R26BD00283794) */
+    private static final Pattern PRE_SPEC_NO = Pattern.compile("^R\\d{2}BD\\d{1,20}$");
 
-    /** 발주계획번호 형식: R + 연도 2자리 + DD + 순번 8자리 (예: R26DD20907423) */
-    private static final Pattern ORDER_PLAN_NO = Pattern.compile("^R[0-9]{2}DD[0-9]{8}$");
+    /** 발주계획번호 형식: R + 연도 2자리 + DD + 순번 숫자 (자릿수는 묻지 않는다) (예: R26DD20907423) */
+    private static final Pattern ORDER_PLAN_NO = Pattern.compile("^R[0-9]{2}DD[0-9]{1,20}$");
 
-    /** 입찰공고번호 형식: R + 연도 2자리 + BK + 순번 8자리 (예: R26BK01790125). 차수는 따로 온다. */
-    private static final Pattern BID_NO = Pattern.compile("^R[0-9]{2}BK[0-9]{8}$");
+    /** 입찰공고번호 형식: R + 연도 2자리 + BK + 순번 숫자 (자릿수는 묻지 않는다) (예: R26BK01790125). 차수는 따로 온다. */
+    private static final Pattern BID_NO = Pattern.compile("^R[0-9]{2}BK[0-9]{1,20}$");
 
     private final BidNoticeMapper bidNoticeMapper;
     private final G2bApiClient g2bApiClient;
@@ -76,8 +76,8 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
         if (BID_NO.matcher(no).matches()) {
             return registerByBidNo(no, userId);
         }
-        throw new BusinessException("공고번호 형식을 알 수 없습니다. 발주계획번호(R26DD…), 사전규격등록번호(R26BD…), "
-                + "입찰공고번호(R26BK…) 중 하나를 13글자로 넣으세요.");
+        throw new BusinessException("공고번호 형식이 아닙니다. 발주계획번호(R26DD…), 사전규격등록번호(R26BD…), "
+                + "입찰공고번호(R26BK…) 중 하나를 넣어 주세요.");
     }
 
     /**
@@ -91,7 +91,7 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
         String no = normalize(rawNo);
         if (!PRE_SPEC_NO.matcher(no).matches()) {
             throw new BusinessException(
-                    "사전규격등록번호 형식이 아닙니다. R + 연도 2자리 + BD + 순번 8자리 13글자입니다. (예: R26BD00283794)");
+                    "사전규격등록번호 형식이 아닙니다. R + 연도 2자리 + BD + 순번입니다. (예: R26BD00283794)");
         }
         if (bidNoticeMapper.countByBfSpecRgstNo(no) > 0) {
             throw new BusinessException("이미 등록된 사전규격입니다. 공고 목록에서 확인해 주세요.");
@@ -132,7 +132,7 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
         String no = normalize(rawNo);
         if (!ORDER_PLAN_NO.matcher(no).matches()) {
             throw new BusinessException(
-                    "발주계획번호 형식이 아닙니다. R + 연도 2자리 + DD + 순번 8자리 13글자입니다. (예: R26DD20907423)");
+                    "발주계획번호 형식이 아닙니다. R + 연도 2자리 + DD + 순번입니다. (예: R26DD20907423)");
         }
         if (bidNoticeMapper.countByOrderPlanNo(no) > 0) {
             throw new BusinessException("이미 등록된 발주계획입니다. 공고 목록에서 확인해 주세요.");
@@ -166,7 +166,7 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
         String no = normalize(rawNo);
         if (!BID_NO.matcher(no).matches()) {
             throw new BusinessException(
-                    "입찰공고번호 형식이 아닙니다. R + 연도 2자리 + BK + 순번 8자리 13글자입니다. (예: R26BK01790125)");
+                    "입찰공고번호 형식이 아닙니다. R + 연도 2자리 + BK + 순번입니다. (예: R26BK01790125)");
         }
         if (bidNoticeMapper.countByBidPbancNo(no) > 0) {
             throw new BusinessException("이미 등록된 입찰공고입니다. 공고 목록에서 확인해 주세요.");

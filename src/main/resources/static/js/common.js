@@ -98,7 +98,7 @@
     }
   }
 
-  function show(kind, msg, def, done) {
+  function show(kind, msg, def, done, check) {
     busy = true;
     var ov = document.createElement('div');
     ov.className = 'dlg-ov';
@@ -129,6 +129,13 @@
       input.className = 'dlg-in';
       input.value = def == null ? '' : def;
       box.appendChild(input);
+      // 입력값 검사 (prompt(문구, 기본값, 검사함수)): 검사함수가 문구를 돌려주면 창을 닫지 않고 입력칸 아래에 빨갛게 보여 준다 (11/10)
+      var err = document.createElement('div');
+      err.className = 'dlg-err';
+      err.setAttribute('role', 'alert');
+      err.hidden = true;
+      box.appendChild(err);
+      input.addEventListener('input', function () { err.hidden = true; input.classList.remove('bad'); });
     }
     var bar = document.createElement('div');
     bar.className = 'dlg-bar';
@@ -156,14 +163,40 @@
       if (prevFocus && prevFocus.focus) { try { prevFocus.focus(); } catch (e) {} }
       if (done) done(val);
     }
-    function accept() { close(kind === 'prompt' ? input.value : true); }
+    function accept() {
+      if (kind === 'prompt' && typeof check === 'function') {
+        var why = check(input.value);
+        if (why) {
+          err.textContent = why;
+          err.hidden = false;
+          input.classList.add('bad');
+          input.focus();
+          input.select();
+          return false;
+        }
+      }
+      close(kind === 'prompt' ? input.value : true);
+      return true;
+    }
+    // Enter로 창을 닫은 직후 뒤따라오는 Enter(입력기에 따라 한 번 더 온다)가 원래 버튼을 다시 눌러 같은 창이 또 뜨지 않게
+    // 잠깐(0.5초) Enter를 막는다 (11/10)
+    function swallowEnter() {
+      var until = Date.now() + 500;
+      function stop(e) {
+        if (Date.now() > until) { off(); return; }
+        if (e.key === 'Enter' || e.keyCode === 13 || e.keyCode === 229) { e.preventDefault(); e.stopPropagation(); }
+      }
+      function off() { ['keydown', 'keypress', 'keyup'].forEach(function (t) { document.removeEventListener(t, stop, true); }); }
+      ['keydown', 'keypress', 'keyup'].forEach(function (t) { document.addEventListener(t, stop, true); });
+      setTimeout(off, 600);
+    }
     function reject() { close(kind === 'prompt' ? null : false); }
     function onKey(e) {
       // 한글을 조합하는 중에 Enter를 누르면 브라우저가 Enter를 두 번 보낸다(조합 끝내기 + 진짜 Enter).
       // 첫 번째에 창을 닫으면 두 번째 Enter가 다시 포커스된 버튼을 눌러 같은 창이 또 뜨므로, 조합 중인 키는 넘긴다 (11/10)
       if (e.isComposing || e.keyCode === 229) return;
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); reject(); }
-      else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); accept(); }
+      else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); if (accept()) { swallowEnter(); } }
     }
     document.addEventListener('keydown', onKey, true);
     ok.addEventListener('click', accept);
@@ -173,7 +206,7 @@
     if (input) input.select();
   }
 
-  function ask(kind, msg, def) {
+  function ask(kind, msg, def, check) {
     var empty = kind === 'confirm' ? false : null;
     var c = ctx();
     if (!c || !document.body) return kind === 'confirm' ? nativeConfirm(msg) : nativePrompt(msg, def);
@@ -188,12 +221,12 @@
       if (val === null || val === false) { st = null; return; }
       st.answers.push(val);
       rerun(c);
-    });
+    }, check);
     return empty;
   }
 
   window.confirm = function (msg) { return ask('confirm', msg); };
-  window.prompt = function (msg, def) { return ask('prompt', msg, def); };
+  window.prompt = function (msg, def, check) { return ask('prompt', msg, def, check); };
   window.alert = function (msg) {
     if (!document.body) return;
     if (!busy) show('alert', msg);

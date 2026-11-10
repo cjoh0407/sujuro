@@ -15,7 +15,6 @@ import com.ojj.sujuro.auth.code.Role;
 import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.common.exception.BusinessException;
 import com.ojj.sujuro.result.dto.EvaluationForm;
-import com.ojj.sujuro.result.dto.ManualResultForm;
 import com.ojj.sujuro.result.dto.ResultsViewDTO;
 import com.ojj.sujuro.result.dto.StatsAnalysisForm;
 import com.ojj.sujuro.result.service.ResultEntryService;
@@ -26,7 +25,8 @@ import com.ojj.sujuro.result.service.ResultEntryService;
  *
  *   /results?bid=&co=                  화면 (bid: 사업건. 없으면 사업 이력 관리로 보낸다, 사업건은 사업 이력 관리의 목록에서 고른다. co: 평가표를 볼 개찰 업체, 없으면 우리 회사)
  *   POST /results/import               나라장터에서 결과 가져오기 (제출 완료 사업)
- *   POST /results/manual               결과 직접 입력 (컨소시엄 참여·하도급 사업, 경영지원실)
+ *   POST /results/partner-import       참여 업체(주관사·원도급사) 사업자번호로 결과 가져오기 (컨소시엄 참여·하도급 사업, 담당 팀 팀장, 11/10)
+ *                                      (11/04 의 결과 직접 입력 POST /results/manual 은 11/10 에 없앴다)
  *   POST /results/evaluation-file      평가표 엑셀 올리기 (업체별)
  *   POST /results/evaluation           평가 항목·배점·위원별 점수 저장 (업체별, 엑셀에서 읽어 채운 값을 팀장이 확인해 저장)
  *   POST /results/analysis             장단점 분석 입력
@@ -72,14 +72,14 @@ public class ResultController {
         return back(ra, bid, null);
     }
 
-    @PostMapping("/manual")
-    public String saveManualResult(@AuthenticationPrincipal LoginUser user, @RequestParam Long bid,
-                                   ManualResultForm form, RedirectAttributes ra) {
+    @PostMapping("/partner-import")
+    public String importPartnerResult(@AuthenticationPrincipal LoginUser user, @RequestParam Long bid,
+                                      @RequestParam(required = false) String bizNo, RedirectAttributes ra) {
         try {
-            ra.addFlashAttribute("resultMessage", resultEntryService.saveManualResult(user, bid, form));
+            ra.addFlashAttribute("resultMessage", resultEntryService.importPartnerResult(user, bid, bizNo));
         } catch (BusinessException e) {
             ra.addFlashAttribute("resultError", e.getMessage());
-            ra.addFlashAttribute("manualForm", form); // 입력한 값을 다시 채워 준다
+            ra.addFlashAttribute("partnerBizNo", bizNo); // 입력한 번호를 다시 채워 준다
         }
         return back(ra, bid, null);
     }

@@ -40,6 +40,12 @@ public final class StatsFormat {
         return BigDecimal.valueOf(v).setScale(1, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
     }
 
+    /** 사업자번호 10자리 → "107-87-28988". 10자리가 아니면 받은 그대로 */
+    public static String bizNo(String digits) {
+        return digits != null && digits.length() == 10
+                ? digits.substring(0, 3) + "-" + digits.substring(3, 5) + "-" + digits.substring(5) : digits;
+    }
+
     /** 평가 점수는 저장한 그대로(소수 셋째 자리까지) 보여 준다. 96.992 → "96.992", 90.0 → "90". 값이 없으면 "-" */
     public static String score(Double v) {
         if (v == null) {

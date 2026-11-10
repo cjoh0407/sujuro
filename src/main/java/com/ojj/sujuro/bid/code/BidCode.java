@@ -104,10 +104,11 @@ public final class BidCode {
     public static final String FILE_BID_ATCH = "FL090";  // 입찰공고 첨부 (제안요청서 말고 나머지)
 
     /**
-     * 결과를 사람이 직접 입력하는 참여 형태인지 (11/04 수정사항). 컨소시엄 참여·하도급은 나라장터 개찰 목록에
-     * 주관사·원도급사 이름으로 올라와 우리 회사 결과를 찾을 수 없다. 참여 형태를 정하지 않았으면 주관처럼 자동으로 가져온다.
+     * 주관사·원도급사를 통해 참여하는 형태인지 (11/04 수정사항, 11/10 변경). 컨소시엄 참여·하도급은 나라장터 개찰 목록에
+     * 우리 회사 대신 주관사·원도급사가 올라와, 담당 팀 팀장이 넣은 그 업체의 사업자번호로 결과를 가져온다.
+     * 참여 형태를 정하지 않았으면 주관처럼 우리 회사 번호로 가져온다.
      */
-    public static boolean isManualResult(String ptcpShpCd) {
+    public static boolean isViaPartner(String ptcpShpCd) {
         return is(ptcpShpCd, PTCP_SHP_CONSORTIUM) || is(ptcpShpCd, PTCP_SHP_SUBCONTRACT);
     }
 

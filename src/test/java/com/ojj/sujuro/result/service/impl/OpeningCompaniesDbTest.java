@@ -59,7 +59,9 @@ class OpeningCompaniesDbTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ResultMapper resultMapper;
     @Autowired private ResultCollectService collect;
-    @Value("${company.biz-no}") private String ourBizNo;
+    /** 우리 회사 번호 설정. 쉼표로 여러 개일 수 있어(11/10) 첫 번호를 우리 회사 행에 쓴다 */
+    @Value("${company.biz-no}") private String bizNoSetting;
+    private String ourBizNo;
 
     @MockBean private G2bApiClient api;
     @MockBean private NotificationService notifications;
@@ -68,6 +70,7 @@ class OpeningCompaniesDbTest {
 
     @BeforeEach
     void notice() {
+        ourBizNo = bizNoSetting.split(",")[0].trim();
         Long teamSn = jdbc.queryForObject("SELECT TEAM_SN FROM TB_USER WHERE USER_ID = ?", Long.class, LEADER);
         String salesId = jdbc.queryForObject(
                 "SELECT USER_ID FROM TB_USER WHERE AUTHRT_CD = ? ORDER BY USER_ID FETCH FIRST 1 ROWS ONLY", String.class, Role.CD_SALES);

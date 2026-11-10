@@ -16,8 +16,8 @@
 
   <!-- 사업 타이틀(사업명 · 평가·결과 입력 버튼)은 화면 맨 위 머리에 있다 (stats/index) -->
 
-  <!--/* 컨소시엄 참여·하도급은 순위·점수·평가표를 받지 않아(11/04) 옆 칸 없이 공고 기본 정보만 넓게 보인다 */-->
-  <div th:class="${archive.pending or !archive.manualResult} ? 'two even'">
+  <!--/* 점수 없이 결과만 있는 사업(11/10 전에 직접 입력한 컨소시엄 참여·하도급)은 옆 칸 없이 공고 기본 정보만 넓게 보인다 */-->
+  <div th:class="${archive.pending or !archive.scoreless} ? 'two even'">
     <div class="card">
       <div class="card-head"><h3>공고 기본 정보</h3></div>
       <div class="info-grid">
@@ -41,7 +41,7 @@
     <!--/* 사업 전체의 최종 성적. 나라장터 개찰 결과에서 가져온다. 만점은 공고의 기술·가격 배점(비율).
          카드 높이는 옆 공고 기본 정보에 맞추고, 점수 줄을 그 높이에 고르게 벌려 아래 빈 공간이 없게 한다 (.score-card).
          th:replace 는 th:unless 보다 먼저 돌아서 조건을 바깥에 둔다 */-->
-    <th:block th:unless="${archive.pending or archive.manualResult}">
+    <th:block th:unless="${archive.pending or archive.scoreless}">
       <th:block th:replace="~{stats/fragments/result-parts :: scoreCard(${archive})}"></th:block>
     </th:block>
   </div>
@@ -53,7 +53,7 @@
 
   <!--/* 평가 항목(대분류)별 점수 그래프 (11/05). 평가표 엑셀을 올린 업체마다 위원 평균 점수를 막대로 그리고, 항목마다 1등 막대만 진하다.
        종합 점수 1등 업체를 수주 업체로 보인다. 평가표 엑셀이 올라오기 전에는 비어 있다. 두 칸 폭을 쓴다 */-->
-  <div class="card" th:unless="${archive.pending or archive.manualResult}">
+  <div class="card" th:unless="${archive.pending or archive.scoreless}">
     <div class="card-head">
       <h3>평가 항목별 점수</h3>
       <span class="faint fs-11_5" th:unless="${archive.articleTable.empty}">단위: 점 · 괄호는 배점</span>

@@ -3,8 +3,11 @@ package com.ojj.sujuro.result.service.impl;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -28,6 +31,7 @@ import com.ojj.sujuro.result.dto.ResultOutcomeDTO;
 import com.ojj.sujuro.result.dto.ResultTargetDTO;
 import com.ojj.sujuro.result.mapper.ResultMapper;
 import com.ojj.sujuro.result.service.ResultCollectService;
+import com.ojj.sujuro.result.support.StatsFormat;
 
 /**
  * 결과 등록. 규칙은 인터페이스(ResultCollectService)에 있다.
@@ -51,23 +55,39 @@ public class ResultCollectServiceImpl implements ResultCollectService {
     private final G2bApiClient g2bApiClient;
     private final NotificationService notificationService;
     private final TransactionTemplate tx;
-    private final String ourBizNo;
+    /** 우리 회사 사업자번호들 (10자리). 쉼표로 여러 개를 줄 수 있고, 개찰 목록에 그중 하나라도 있으면 우리 회사다 (11/10) */
+    private final Set<String> ourBizNos;
 
     public ResultCollectServiceImpl(ResultMapper resultMapper,
                                     G2bApiClient g2bApiClient,
                                     NotificationService notificationService,
                                     PlatformTransactionManager transactionManager,
-                                    @Value("${company.biz-no:}") String ourBizNo) {
+                                    @Value("${company.biz-no:}") String ourBizNos) {
         this.resultMapper = resultMapper;
         this.g2bApiClient = g2bApiClient;
         this.notificationService = notificationService;
         this.tx = new TransactionTemplate(transactionManager);
-        this.ourBizNo = digits(ourBizNo);
+        this.ourBizNos = parseBizNos(ourBizNos);
+    }
+
+    /** "107-87-28988, 220-86-57703" → {1078728988, 2208657703}. 10자리가 아니거나 0000000000 이면 뺀다 */
+    static Set<String> parseBizNos(String text) {
+        Set<String> nos = new LinkedHashSet<>();
+        if (text == null) {
+            return nos;
+        }
+        for (String part : text.split(",")) {
+            String d = digits(part);
+            if (d != null && d.length() == 10 && !d.equals("0000000000")) {
+                nos.add(d);
+            }
+        }
+        return nos;
     }
 
     @Override
     public boolean isReady() {
-        return ourBizNo != null && ourBizNo.length() == 10 && !ourBizNo.equals("0000000000");
+        return !ourBizNos.isEmpty();
     }
 
     @Override
@@ -77,38 +97,49 @@ public class ResultCollectServiceImpl implements ResultCollectService {
 
     @Override
     public ResultOutcomeDTO register(ResultTargetDTO target) {
-        if (!isReady()) {
+        String partner = digits(target.getPartnerBizNo());
+        if (partner == null && !isReady()) {
             return ResultOutcomeDTO.waiting(); // 부르는 쪽이 먼저 isReady 를 본다
         }
+        Set<String> mine = partner != null ? Collections.singleton(partner) : ourBizNos;
         String no = target.getBidPbancNo();
         JsonNode award = latest(g2bApiClient.findAward(no).all());
         String winner = digits(G2bResponse.textOf(award, "bidwinnrBizno"));
 
         // 개찰 업체는 낙찰자가 나오기 전에도, 우리 회사가 목록에 없어도 전부 저장한다 (11/04). 사업자번호는 그중 우리 행을 가릴 때만 쓴다
         List<JsonNode> rows = latestRound(g2bApiClient.findOpeningCompanies(no).all());
+        if (partner != null && rows.isEmpty()) {
+            // 참여 업체 번호는 개찰 목록의 그 업체 행에 남긴다. 개찰 전에는 남길 행이 없어 받지 않는다
+            return ResultOutcomeDTO.notListed("입찰공고 " + no + " 는 아직 나라장터에 개찰 결과가 없습니다. "
+                    + "개찰 결과가 나온 뒤에 함께 참여한 업체의 사업자번호를 다시 넣어 주세요.");
+        }
+        JsonNode ours = oursOf(rows, mine, winner);
+        String oursBizNo = ours == null ? null : digits(G2bResponse.textOf(ours, "prcbdrBizno"));
         List<CoEvlRsltDTO> companies = rows.stream()
-                .map(r -> companyOf(target.getPbancSn(), r, winner))
+                .map(r -> companyOf(target.getPbancSn(), r, winner, oursBizNo))
                 .filter(c -> c != null)
                 .collect(Collectors.toList());
         if (companies.size() < rows.size()) {
             log.warn("입찰공고 {} 개찰 업체 {}곳 중 {}곳은 사업자번호가 10자리가 아니라 저장하지 않았습니다",
                     no, rows.size(), rows.size() - companies.size());
         }
+        if (partner != null && ours == null) {
+            saveCompanies(companies);
+            return ResultOutcomeDTO.notListed("입찰공고 " + no + " 개찰 목록에 사업자번호 " + StatsFormat.bizNo(partner)
+                    + " 업체가 없어 결과를 가져오지 않았습니다. 함께 참여한 주관사·원도급사의 사업자번호를 확인해 주세요.");
+        }
         if (winner == null) {
             saveCompanies(companies);
             return ResultOutcomeDTO.waiting();
         }
-
-        JsonNode ours = rows.stream()
-                .filter(r -> ourBizNo.equals(digits(G2bResponse.textOf(r, "prcbdrBizno"))))
-                .findFirst().orElse(null);
         if (ours == null) {
             saveCompanies(companies);
-            return ResultOutcomeDTO.notListed("입찰공고 " + no + " 개찰 목록에 우리 회사(사업자번호 " + ourBizNo
+            return ResultOutcomeDTO.notListed("입찰공고 " + no + " 개찰 목록에 우리 회사(사업자번호 " + bizNosText(mine)
                     + ")가 없어 결과를 등록하지 않았습니다. 사업자번호나 제출 여부를 확인해 주세요.");
         }
 
-        boolean won = ourBizNo.equals(winner);
+        boolean won = winner.equals(oursBizNo);
+        // 컨소시엄 참여·하도급도 주관사·원도급사의 낙찰 금액을 그대로 수주 금액으로 쓴다 (11/10 결정: 직접 입력 없이 API 값만)
         BidRsltDTO result = resultOf(target.getPbancSn(), ours, won,
                 won ? longOf(G2bResponse.amountOf(award, "sucsfbidAmt")) : null);
         JsonNode bid = target.getTechScorScr() == null ? bidNoticeOf(no) : null;
@@ -186,8 +217,32 @@ public class ResultCollectServiceImpl implements ResultCollectService {
         return r;
     }
 
-    /** 개찰 목록 한 행. 사업자번호가 10자리가 아니면 넣지 않는다(BIZ_NO CHAR(10)) */
-    CoEvlRsltDTO companyOf(Long pbancSn, JsonNode row, String winner) {
+    /**
+     * 개찰 목록에서 우리 쪽 행. 우리 번호(mine)인 행 중 낙찰자가 있으면 그 행, 없으면 순위가 가장 높은 행.
+     * 우리 회사 번호가 둘이라 두 행이 다 올라와도 우리 행은 하나로 정한다(OUR_CO_YN = 'Y' 는 사업마다 한 행).
+     */
+    private static JsonNode oursOf(List<JsonNode> rows, Set<String> mine, String winner) {
+        List<JsonNode> candidates = rows.stream()
+                .filter(r -> mine.contains(digits(G2bResponse.textOf(r, "prcbdrBizno"))))
+                .collect(Collectors.toList());
+        return candidates.stream()
+                .filter(r -> winner != null && winner.equals(digits(G2bResponse.textOf(r, "prcbdrBizno"))))
+                .findFirst()
+                .orElseGet(() -> candidates.stream()
+                        .min(Comparator.comparingInt((JsonNode r) -> {
+                            Integer rank = rankOf(r);
+                            return rank == null ? Integer.MAX_VALUE : rank;
+                        }))
+                        .orElse(null));
+    }
+
+    /** "107-87-28988, 220-86-57703" */
+    private static String bizNosText(Set<String> nos) {
+        return nos.stream().map(StatsFormat::bizNo).collect(Collectors.joining(", "));
+    }
+
+    /** 개찰 목록 한 행. 사업자번호가 10자리가 아니면 넣지 않는다(BIZ_NO CHAR(10)). oursBizNo 행만 우리 쪽(OUR_CO_YN = 'Y') */
+    CoEvlRsltDTO companyOf(Long pbancSn, JsonNode row, String winner, String oursBizNo) {
         String bizNo = digits(G2bResponse.textOf(row, "prcbdrBizno"));
         if (bizNo == null || bizNo.length() != 10) {
             return null;
@@ -203,7 +258,7 @@ public class ResultCollectServiceImpl implements ResultCollectService {
         c.setTechEvlOrgnlScr(scoreOf(row, "techEvlNaturVal"));
         c.setPrcEvlScr(scoreOf(row, "bidPrceEvlVal"));
         c.setSnthsEvlScr(scoreOf(row, "totalEvlAmtVal"));
-        c.setOurCoYn(bizNo.equals(ourBizNo) ? "Y" : "N");
+        c.setOurCoYn(bizNo.equals(oursBizNo) ? "Y" : "N");
         c.setScsbdYn(bizNo.equals(winner) ? "Y" : "N");
         return c;
     }

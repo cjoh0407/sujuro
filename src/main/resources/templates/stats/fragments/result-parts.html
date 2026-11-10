@@ -28,7 +28,7 @@
 </div>
 
 <div class="evl-file" th:fragment="evaluationFile(a)" th:if="${a.evaluationFile}" th:with="f=${a.evaluationFile}">
-  <span class="faint">평가표 <a class="dl-name" title="눌러서 내려받기" th:href="@{/bid-history/bids/{sn}/evaluation-file(sn=${a.pbancSn})}" th:text="${f.orgnlFileNm}">평가표.xlsx</a><th:block th:text="| · ${f.rgtrNm ?: '-'}${f.regDt != null ? ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm') : ''}|"></th:block></span>
+  <span class="faint">평가표 <a class="dl-name" title="눌러서 내려받기" th:href="@{/stats/bids/{sn}/evaluation-file(sn=${a.pbancSn})}" th:text="${f.orgnlFileNm}">평가표.xlsx</a><th:block th:text="| · ${f.rgtrNm ?: '-'}${f.regDt != null ? ' · ' + #dates.format(f.regDt, 'yyyy-MM-dd HH:mm') : ''}|"></th:block></span>
 </div>
 
 <!--/* 평가 항목별 점수 그래프 (11/05). 좌표는 ArticleScoreChartDTO 가 계산한다. viewBox 크기는 그 클래스의 WIDTH·HEIGHT 와 같다 */-->
@@ -38,9 +38,9 @@
     <div class="co-legend">
       <span class="co-key" th:each="k : ${c.companies}" th:classappend="${k.ours} ? 'ours'">
         <i class="sw" th:classappend="${k.cls}"></i>
-        <b th:if="${k.ours}" th:text="${k.coNm}">우리 회사</b>
+        <b th:if="${k.ours}" th:text="${k.coNm}">자사</b>
         <span th:unless="${k.ours}" th:text="${k.coNm}">경쟁 업체</span>
-        <span class="pill accent" th:if="${k.ours}">우리 회사</span>
+        <span class="pill accent" th:if="${k.ours}">자사</span>
         <span class="faint" th:text="|종합 ${k.totalText}점${k.totalRank != null ? ' · ' + k.totalRank + '등' : ''}|">종합 94.6점 · 1등</span>
       </span>
     </div>
@@ -72,7 +72,7 @@
   <!--/* 그래프 아래 수주 업체(종합 점수 1등). 줄 전체에 연한 초록을 칠한다 */-->
   <div class="evl-win" th:if="${t.winnerNm}">
     <span class="faint">수주 업체</span>
-    <b th:text="${t.winnerNm}">우리 회사</b>
+    <b th:text="${t.winnerNm}">자사</b>
     <span class="faint" th:text="|종합 점수 1등 · ${t.winnerTotalText}점|">종합 점수 1등 · 94.6점</span>
   </div>
   <div class="empty" th:if="${t.empty}" th:text="${emptyText}">평가표 엑셀을 올리면 결과가 나옵니다.</div>

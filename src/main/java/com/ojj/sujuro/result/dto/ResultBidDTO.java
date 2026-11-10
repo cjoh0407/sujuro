@@ -59,10 +59,10 @@ public class ResultBidDTO {
         return StatsFormat.bizNo(partnerBizNo);
     }
 
-    /** 개찰 목록에서 우리 쪽 행에 붙일 이름: 자사, 컨소시엄 참여면 주관사, 하도급이면 원도급사 */
+    /** 개찰 목록에서 우리 쪽 행에 붙일 이름: 자사, 컨소시엄 참여면 참여, 하도급이면 원도급사 (11/10) */
     public String getOursTag() {
         if (BidCode.is(ptcpShpCd, BidCode.PTCP_SHP_CONSORTIUM)) {
-            return "주관사";
+            return "참여";
         }
         return BidCode.is(ptcpShpCd, BidCode.PTCP_SHP_SUBCONTRACT) ? "원도급사" : "자사";
     }

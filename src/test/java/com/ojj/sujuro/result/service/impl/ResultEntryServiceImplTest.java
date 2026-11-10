@@ -126,7 +126,7 @@ class ResultEntryServiceImplTest {
     }
 
     @Test
-    void 경영지원실은_가져오기와_엑셀만_팀장은_자기_팀_사업의_점수와_장단점을_입력한다() {
+    void 경영지원실은_가져오기만_팀장은_자기_팀_사업의_평가표와_점수_장단점을_입력한다() {
         when(resultMapper.findResultBids(null)).thenReturn(Arrays.asList(bid(8L, "PS060")));
         when(resultMapper.findResultBids(3L)).thenReturn(Arrays.asList(bid(8L, "PS060")));
         when(resultMapper.findResultBid(8L)).thenReturn(bid(8L, "PS060"));
@@ -135,13 +135,11 @@ class ResultEntryServiceImplTest {
 
         ResultsViewDTO m = service.build(mgmt, 8L, null);
         assertTrue(m.isCanImport());
-        assertTrue(m.isCanUpload());
-        assertFalse(m.isCanScore());
+        assertFalse(m.isCanScore()); // 평가표 엑셀도 올리지 않는다 (11/10)
 
         ResultsViewDTO l = service.build(leader, 8L, null);
         verify(resultMapper).findResultBids(3L); // 팀장은 자기 팀 사업만
         assertFalse(l.isCanImport());
-        assertTrue(l.isCanUpload());
         assertTrue(l.isCanScore());
 
         // 개발팀이 아닌 팀장은 볼 사업이 없다
@@ -235,7 +233,7 @@ class ResultEntryServiceImplTest {
         when(resultMapper.findResultTarget(5L)).thenReturn(t);
 
         when(collect.register(t)).thenReturn(ResultOutcomeDTO.registered("결과 등록: 수주 · 1위"));
-        assertEquals("결과 등록: 수주 · 1위. 평가표 엑셀을 올려 주세요. 항목별 점수와 장단점은 담당 팀 팀장이 입력합니다.",
+        assertEquals("결과 등록: 수주 · 1위. 평가표 엑셀과 항목별 점수·장단점은 담당 팀 팀장이 입력합니다.",
                 service.importResult(mgmt, 5L));
         assertThrows(AccessDeniedException.class, () -> service.importResult(leader, 5L));
 
@@ -323,7 +321,7 @@ class ResultEntryServiceImplTest {
     }
 
     @Test
-    void 컨소시엄_사업의_우리_쪽_행은_주관사_하도급은_원도급사로_보인다() {
+    void 컨소시엄_사업의_우리_쪽_행은_참여_하도급은_원도급사로_보인다() {
         when(resultMapper.findResultBids(any())).thenReturn(Arrays.asList(bid(5L, "PS050")));
         when(resultMapper.findCompanies(5L)).thenAnswer(inv -> Arrays.asList(
                 company(41L, 1, "주관 업체", "Y", null, null, null, null),
@@ -333,17 +331,21 @@ class ResultEntryServiceImplTest {
         consortium.setPartnerBizNo("2208657703");
         when(resultMapper.findResultBid(5L)).thenReturn(consortium);
         ResultsViewDTO v = service.build(mgmt, 5L, null);
-        assertEquals("1위 주관 업체 (주관사)", v.getCompanies().get(0).getOptionLabel());
-        assertEquals("2위 다른 업체", v.getCompanies().get(1).getOptionLabel());
+        assertEquals("참여", v.getBid().getOursTag());
+        assertEquals("1위 주관 업체 (참여)", v.getCompanies().get(0).optionLabel(v.getBid().getOursTag()));
+        assertEquals("2위 다른 업체", v.getCompanies().get(1).optionLabel(v.getBid().getOursTag()));
         assertTrue(consortium.isPartnerLinked());
         assertTrue(consortium.isNaraResult());
         assertEquals("220-86-57703", consortium.getPartnerBizNoText());
 
         when(resultMapper.findResultBid(5L)).thenReturn(shapedBid(5L, "PS050", "PF030", "하도급"));
-        assertEquals("1위 주관 업체 (원도급사)", service.build(mgmt, 5L, null).getCompanies().get(0).getOptionLabel());
+        assertEquals("원도급사", service.build(mgmt, 5L, null).getBid().getOursTag());
 
         when(resultMapper.findResultBid(5L)).thenReturn(shapedBid(5L, "PS050", "PF010", "주관"));
-        assertEquals("1위 주관 업체 (자사)", service.build(mgmt, 5L, null).getCompanies().get(0).getOptionLabel());
+        assertEquals("자사", service.build(mgmt, 5L, null).getBid().getOursTag());
+        ResultCompanyDTO uploaded = company(41L, 1, "주관 업체", "Y", null, null, null, null);
+        uploaded.setEvlTblUpldYn("Y");
+        assertEquals("1위 주관 업체 (자사) · 평가표 있음", uploaded.optionLabel("자사"));
     }
 
     @Test
@@ -411,13 +413,15 @@ class ResultEntryServiceImplTest {
     }
 
     @Test
-    void 평가표_엑셀은_경영지원실과_담당_팀_팀장이_업체별로_올린다() {
+    void 평가표_엑셀은_담당_팀_팀장만_업체별로_올린다() {
         when(storage.save(any(), anyString(), anyString())).thenReturn("abc.xlsx");
         service.uploadEvaluationFile(leader, 8L, OTHER, excel("평가결과.xlsx"));
         verify(resultMapper).clearLastEvaluationFiles(OTHER);
         verify(resultMapper).insertUpload(eq(OTHER), any(), eq("2024-0031"));
         verify(resultMapper).markUploaded(OTHER);
 
+        // 경영지원실은 11/10부터 올리지 않는다
+        assertThrows(AccessDeniedException.class, () -> service.uploadEvaluationFile(mgmt, 8L, null, excel("평가결과.xlsx")));
         assertThrows(AccessDeniedException.class, () -> service.uploadEvaluationFile(otherLeader, 8L, null, excel("평가결과.xlsx")));
         assertThrows(AccessDeniedException.class,
                 () -> service.uploadEvaluationFile(user("2025-0001", Role.MEMBER), 8L, null, excel("평가결과.xlsx")));
@@ -431,30 +435,30 @@ class ResultEntryServiceImplTest {
         doAnswer(inv -> {
             ((EvaluationFileDTO) inv.getArgument(2)).setFileSn(77L);
             return 1;
-        }).when(resultMapper).insertEvaluationFile(eq(8L), eq("2"), any(), anyLong(), eq("xlsx"), eq("2022-0009"));
+        }).when(resultMapper).insertEvaluationFile(eq(8L), eq("2"), any(), anyLong(), eq("xlsx"), eq("2024-0031"));
 
-        service.uploadEvaluationFile(mgmt, 8L, null, excel("평가결과.xlsx"));
+        service.uploadEvaluationFile(leader, 8L, null, excel("평가결과.xlsx"));
 
         InOrder order = inOrder(resultMapper);
         order.verify(resultMapper).clearLastEvaluationFiles(OURS); // 업로드 기록의 '마지막'을 떼기 전에
         order.verify(resultMapper).clearLastUploads(OURS);
-        verify(resultMapper).insertUpload(OURS, 77L, "2022-0009");
+        verify(resultMapper).insertUpload(OURS, 77L, "2024-0031");
         verify(resultMapper).markUploaded(OURS);
     }
 
     @Test
     void 평가표는_엑셀만_받고_DB_저장이_실패하면_파일을_지운다() {
-        assertTrue(message(() -> service.uploadEvaluationFile(mgmt, 8L, null, excel("평가결과.pdf"))).contains("xls, xlsx"));
+        assertTrue(message(() -> service.uploadEvaluationFile(leader, 8L, null, excel("평가결과.pdf"))).contains("xls, xlsx"));
         verify(storage, never()).save(any(), anyString(), anyString());
 
         when(storage.save(any(), anyString(), anyString())).thenReturn("abc.xlsx");
         doThrow(new IllegalStateException("DB 오류")).when(resultMapper).insertUpload(anyLong(), any(), anyString());
-        assertThrows(IllegalStateException.class, () -> service.uploadEvaluationFile(mgmt, 8L, null, excel("평가결과.xlsx")));
+        assertThrows(IllegalStateException.class, () -> service.uploadEvaluationFile(leader, 8L, null, excel("평가결과.xlsx")));
         verify(storage).deleteQuietly("evaluation/8", "abc.xlsx");
 
         when(resultMapper.findCompanies(8L)).thenReturn(Collections.singletonList(
                 company(OTHER, 1, "엑사아이엔티 주식회사", "N", 90.0, 85.284, 10.0, 100.0)));
-        assertTrue(message(() -> service.uploadEvaluationFile(mgmt, 8L, OTHER, excel("평가결과.xlsx"))).contains("우리 회사 행이 없어"));
+        assertTrue(message(() -> service.uploadEvaluationFile(leader, 8L, OTHER, excel("평가결과.xlsx"))).contains("우리 회사 행이 없어"));
     }
 
     @Test

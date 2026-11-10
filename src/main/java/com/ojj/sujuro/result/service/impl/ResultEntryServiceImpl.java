@@ -109,14 +109,12 @@ public class ResultEntryServiceImpl implements ResultEntryService {
         List<ResultCompanyDTO> companies = new ArrayList<>();
         if (picked.isSubmitted() || picked.isResulted()) {
             companies = resultMapper.findCompanies(sn); // 낙찰자가 나오기 전에도 개찰 업체는 보인다
-            companies.forEach(c -> c.setOursTag(picked.getOursTag())); // 컨소시엄 참여·하도급은 우리 쪽 행이 주관사·원도급사다
             v.setCompanies(companies);
         }
         if (picked.isResulted()) {
             StatsArchiveDTO a = statsService.findArchive(user, sn); // 개발팀 사업이 아니거나 결과 행이 없으면 null
             v.setArchive(a);
-            v.setCanUpload(a != null && (user.getRole() == Role.MGMT || isTeamLeader(user, a)));
-            v.setCanScore(a != null && isTeamLeader(user, a));
+            v.setCanScore(a != null && isTeamLeader(user, a)); // 평가표 엑셀 올리기도 같다 (11/10)
             ResultCompanyDTO co = pickCompany(companies, coSn);
             if (a != null && co != null) {
                 fillCompany(v, sn, co);
@@ -179,7 +177,7 @@ public class ResultEntryServiceImpl implements ResultEntryService {
         }
         ResultOutcomeDTO out = resultCollectService.register(target);
         if (out.getKind() == ResultOutcomeDTO.Kind.REGISTERED) {
-            return out.getMessage() + ". 평가표 엑셀을 올려 주세요. 항목별 점수와 장단점은 담당 팀 팀장이 입력합니다.";
+            return out.getMessage() + ". 평가표 엑셀과 항목별 점수·장단점은 담당 팀 팀장이 입력합니다.";
         }
         if (out.getKind() == ResultOutcomeDTO.Kind.NOT_LISTED) {
             throw new BusinessException(out.getMessage());
@@ -234,11 +232,7 @@ public class ResultEntryServiceImpl implements ResultEntryService {
 
     @Override
     public void uploadEvaluationFile(LoginUser user, Long pbancSn, Long coSn, MultipartFile file) {
-        if (user.getRole() != Role.MGMT) {
-            requireTeamLeader(user, pbancSn);
-        } else {
-            requireArchive(pbancSn);
-        }
+        requireTeamLeader(user, pbancSn);
         Long co = requireCompany(pbancSn, coSn).getCoEvlRsltSn();
         String name = FileStorage.checkUpload(file);
         String ext = FileStorage.extension(name);
@@ -358,10 +352,10 @@ public class ResultEntryServiceImpl implements ResultEntryService {
         }
     }
 
-    /** 평가 점수·장단점은 이 사업을 맡은 팀(주관 팀)의 팀장만 입력한다. 경영지원실은 읽기만 한다 */
+    /** 평가표 엑셀·평가 점수·장단점은 이 사업을 맡은 팀(주관 팀)의 팀장만 입력한다 (엑셀은 11/10부터). 경영지원실은 읽기만 한다 */
     private void requireTeamLeader(LoginUser user, Long pbancSn) {
         if (user.getRole() != Role.LEADER) {
-            throw new AccessDeniedException("평가 점수와 장단점은 이 사업을 맡은 팀의 팀장이 입력합니다.");
+            throw new AccessDeniedException("평가표와 평가 점수·장단점은 이 사업을 맡은 팀의 팀장이 입력합니다.");
         }
         if (!isTeamLeader(user, requireArchive(pbancSn))) {
             throw new AccessDeniedException("자기 팀이 맡은 사업만 입력할 수 있습니다.");

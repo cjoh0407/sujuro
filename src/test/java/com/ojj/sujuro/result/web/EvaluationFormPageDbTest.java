@@ -175,6 +175,7 @@ class EvaluationFormPageDbTest {
         assertFalse(page.contains("id=\"evl-form\""));
         assertFalse(page.contains(EXCEL_NOTE));
         assertFalse(page.contains("ic-download"));
+        assertFalse(page.contains("action=\"/results/evaluation-file\""), "평가표 엑셀은 담당 팀 팀장만 올립니다 (11/10)");
     }
 
     /** 평가표 업로드 기록. 위원 수는 저장해야 채워진다 */

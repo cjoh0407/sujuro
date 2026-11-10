@@ -55,7 +55,7 @@
       <!--/* 드롭다운은 제목 줄 오른쪽에 둔다. 고르면 바로 그 연도·팀의 사업으로 바뀐다(맨 아래 스크립트). 팀장은 자기 팀만 보므로 팀 칸이 없다 */-->
       <div class="card-head scope-head">
         <h3>사업 목록</h3>
-        <form class="scope-form" method="get" th:action="@{/bid-history}">
+        <form class="scope-form" method="get" th:action="@{/stats}">
           <select id="sc-year" name="year" aria-label="연도" title="입찰 마감일 기준 연도">
             <option th:each="y : ${view.years}" th:value="${y}" th:text="|${y}년|" th:selected="${y == view.year}">2026년</option>
           </select>
@@ -67,12 +67,12 @@
       </div>
       <div class="bid-list">
         <div class="bid-body year-body">
-          <a class="bid-item" th:each="p : ${view.inProgress}" th:href="@{/bid-history(team=${view.teamSn}, year=${view.year}, bid=${p.pbancSn})}"
+          <a class="bid-item" th:each="p : ${view.inProgress}" th:href="@{/stats(team=${view.teamSn}, year=${view.year}, bid=${p.pbancSn})}"
              th:classappend="${archive != null and archive.pbancSn == p.pbancSn} ? 'on'">
             <b th:title="${p.pbancNm}" th:text="${p.pbancNm}">사업명</b>
             <span class="pill neutral" th:text="${p.pbancSttsNm}">제안 작성 중</span>
           </a>
-          <a class="bid-item" th:each="h : ${view.history}" th:href="@{/bid-history(team=${view.teamSn}, year=${view.year}, bid=${h.pbancSn})}"
+          <a class="bid-item" th:each="h : ${view.history}" th:href="@{/stats(team=${view.teamSn}, year=${view.year}, bid=${h.pbancSn})}"
              th:classappend="${archive != null and archive.pbancSn == h.pbancSn} ? 'on'">
             <b th:title="${h.pbancNm}" th:text="${h.pbancNm}">사업명</b>
             <span class="pill" th:classappend="${h.won} ? 'success' : 'neutral'" th:text="${h.pillText}">수주</span>

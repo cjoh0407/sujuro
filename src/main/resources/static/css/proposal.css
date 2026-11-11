@@ -475,3 +475,10 @@ main.content table.ev-table th:nth-child(2),main.content table.ev-table tbody td
 .ex-warn-li{display:block;padding-left:12px;position:relative}
 .ex-warn-li::before{content:"";position:absolute;left:2px;top:.62em;width:4px;height:4px;border-radius:50%;background:var(--danger)}
 .ex-warn:hover .ex-warn-pop,.ex-warn:focus .ex-warn-pop,.ex-warn:focus-within .ex-warn-pop{display:block}
+
+/* 공고 첨부파일 카드 (11/11) */
+.nf-list{display:flex;flex-direction:column}
+.nf-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 16px;border-top:1px solid var(--line,#e3e6ec);color:inherit;text-decoration:none}
+.nf-item:hover{background:var(--bg,#f4f5f8)}
+.nf-nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.nf-item .faint{flex:none}

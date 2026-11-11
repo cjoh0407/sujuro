@@ -54,8 +54,8 @@ public interface RqtService {
     int deleteAll(Long pbancSn);
 
     /**
-     * 요구사항 등록·수정·삭제·매핑을 할 수 있는지. 이 사업건 주관팀 팀장(lead)이거나,
-     * 이 사업건 목차를 하나 이상 맡은 담당자면 된다. (FR-016-1)
+     * 요구사항 등록·수정·삭제·매핑을 할 수 있는지. 이 사업건 제안팀원이면 누구나 된다 (11/11 변경: 예전에는
+     * 주관팀 팀장이나 목차 담당자만 했다). 제안팀원인지는 호출하는 쪽이 먼저 확인한다. 전체 삭제만 주관팀 팀장이다.
      */
     boolean canEdit(Long pbancSn, String userId, boolean lead);
 

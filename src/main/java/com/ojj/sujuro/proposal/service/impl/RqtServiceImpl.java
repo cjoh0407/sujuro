@@ -229,13 +229,13 @@ public class RqtServiceImpl implements RqtService {
 
     @Override
     public boolean canEdit(Long pbancSn, String userId, boolean lead) {
-        return lead || mapper.countOwnedTocs(pbancSn, userId) > 0;
+        return true; // 호출하는 쪽이 이미 제안팀원(requireProposalMember)인지 확인한다. 제안팀이 되면 바로 쓸 수 있다
     }
 
     @Override
     public void requireEditor(Long pbancSn, String userId, boolean lead) {
         if (!canEdit(pbancSn, userId, lead)) {
-            throw new BusinessException("요구사항은 주관팀 팀장과 목차 담당자만 등록·수정·연결할 수 있습니다.");
+            throw new BusinessException("요구사항은 제안팀원만 등록·수정·연결할 수 있습니다.");
         }
     }
 

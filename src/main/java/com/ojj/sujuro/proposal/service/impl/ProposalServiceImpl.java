@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ojj.sujuro.auth.code.Role;
 import com.ojj.sujuro.common.exception.BusinessException;
+import com.ojj.sujuro.notification.code.NotificationType;
 import com.ojj.sujuro.notification.service.NotificationService;
 import com.ojj.sujuro.proposal.dto.ProposalBidDto;
 import com.ojj.sujuro.proposal.dto.ProposalMemberDto;
@@ -107,6 +108,9 @@ public class ProposalServiceImpl implements ProposalService {
             mapper.insertPtcpTeam(pbancSn, u.getTeamSn()); // 다른 팀 인원을 넣으면 그 팀이 참여팀이 된다
         }
         mapper.insertMember(pbancSn, u.getUserId(), leadTeam ? PT_LEAD : PT_JOIN);
+        // 제안팀이 된 사람에게 알린다. 넣은 본인에게는 알림 서비스가 보내지 않는다
+        notificationService.send(u.getUserId(), NotificationType.PROPOSAL_TEAM_ADDED, pbancSn,
+                "'" + bid.getLabel() + "' 사업건의 제안팀에 추가되었습니다. 제안 업무 화면에서 확인해 주세요.");
         return u.getUserNm();
     }
 

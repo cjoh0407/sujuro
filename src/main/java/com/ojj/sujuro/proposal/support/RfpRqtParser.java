@@ -187,8 +187,102 @@ public final class RfpRqtParser {
         return parse(lines);
     }
 
+    /**
+     * PDF가 낱말 사이에 빈칸을 끼워 나눠 놓은 것을 붙인다 (11/11).
+     * ID: "SFR- 001", "SFR -001", "SFR - 001" → "SFR-001" / 영문 약어: "H/ W", "S/ W" → "H/W", "S/W".
+     * 위치(x·y)는 앞 낱말의 것을 그대로 쓴다. ID 모양이 아닌 말("SFR-00 06" 같은 개수 표기)은 건드리지 않는다.
+     */
+    private static void joinSplitTokens(List<Line> lines) {
+        for (Line l : lines) {
+            for (int i = 0; i + 1 < l.words.size(); i++) {
+                String a = l.words.get(i);
+                String b = l.words.get(i + 1);
+                String joined = null;
+                int take = 0;
+                if (a.matches("[A-Z]{2,4}-") && b.matches("\\d{1,4}")) {
+                    joined = a + b;
+                    take = 2;
+                } else if (a.matches("[A-Z]{2,4}") && b.matches("-\\d{1,4}")) {
+                    joined = a + b;
+                    take = 2;
+                } else if (a.matches("[A-Z]{2,4}") && "-".equals(b) && i + 2 < l.words.size()
+                        && l.words.get(i + 2).matches("\\d{1,4}")) {
+                    joined = a + "-" + l.words.get(i + 2);
+                    take = 3;
+                } else if (a.matches("[A-Za-z]/") && b.matches("[A-Za-z]")) {
+                    joined = a + b;
+                    take = 2;
+                }
+                if (joined != null) {
+                    l.words.set(i, joined);
+                    for (int k = 1; k < take; k++) {
+                        l.words.remove(i + 1);
+                        l.xs.remove(i + 1);
+                        l.ys.remove(i + 1);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 목록표 머리글에 "비고" 칸이 있으면 그 칸(머리글 "비고" 위치부터 오른쪽)에 찍힌 글자를 뺀다 (11/11).
+     * 비고 칸은 여러 줄을 합친 칸이라 "SIMS"·"G4B"처럼 요구사항 이름 줄 끝이나 줄 사이에 따로 찍혀 이름 조각으로 오해받는다.
+     * 비고 머리글이 나온 줄부터만 적용하므로 그 앞의 총괄표(개수 칸이 오른쪽 끝에 있다)는 그대로 읽는다.
+     * 머리글에서 "비고"를 못 찾으면 줄을 그대로 둔다.
+     */
+    private static List<Line> dropRemarks(List<Line> lines) {
+        List<Line> out = new ArrayList<>(lines.size());
+        float remarkX = -1;
+        for (Line l : lines) {
+            float hx = remarksHeaderX(l);
+            if (hx >= 0) {
+                remarkX = remarkX < 0 ? hx : Math.min(remarkX, hx);
+                out.add(l); // 머리글 줄은 아래에서 "머리"로 걸러진다
+                continue;
+            }
+            if (remarkX < 0) {
+                out.add(l);
+                continue;
+            }
+            for (int k = l.words.size() - 1; k >= 0; k--) {
+                if (l.xs.get(k) >= remarkX - 15f) {
+                    l.words.remove(k);
+                    l.xs.remove(k);
+                    l.ys.remove(k);
+                }
+            }
+            if (!l.words.isEmpty()) {
+                out.add(l);
+            }
+        }
+        return out;
+    }
+
+    /** "요구사항" 낱말이 있는 머리글 줄에서 "비고"(또는 "비 고") 낱말의 가로 위치. 없으면 -1 */
+    private static float remarksHeaderX(Line l) {
+        boolean head = false;
+        for (String w : l.words) {
+            if (w.contains("요구사항")) {
+                head = true;
+            }
+        }
+        if (!head) {
+            return -1;
+        }
+        for (int k = 0; k < l.words.size(); k++) {
+            String w = l.words.get(k);
+            if ("비고".equals(w) || ("비".equals(w) && k + 1 < l.words.size() && "고".equals(l.words.get(k + 1)))) {
+                return l.xs.get(k) > 0 ? l.xs.get(k) : -1; // 위치를 모르는(글자만 있는) 줄은 0이라 칸을 가를 수 없다
+            }
+        }
+        return -1;
+    }
+
     /** 줄 목록에서 총괄표·목록표를 읽고 개수를 검사한다 */
     public static RqtExtractDto parse(List<Line> lines) {
+        joinSplitTokens(lines);
+        lines = dropRemarks(lines);
         RqtExtractDto r = new RqtExtractDto();
         int n = lines.size();
         Matcher[] rows = new Matcher[n];
@@ -434,7 +528,7 @@ public final class RfpRqtParser {
                     .replaceAll("[A-Za-z()]+", " ")         // 줄이 나뉘어 남은 영문 조각
                     .replaceAll("\\s+", " ").trim();
             if (!nm.isEmpty()) {
-                r.getGroupNames().putIfAbsent(e.getKey(), nm);
+                r.getGroupNames().putIfAbsent(e.getKey(), joinGroupWords(nm));
             }
         }
     }
@@ -468,8 +562,13 @@ public final class RfpRqtParser {
      * 총괄표 줄에서 ID 앞의 글자를 구분명으로 쓴다 (11/09). 큰 분류(기능·비기능) 칸이 같은 줄에 붙어 나오면 뗀다.
      *   "기능 기능 요구사항" → "기능 요구사항", "비기능 보안 요구사항" → "보안 요구사항", "기능 요구사항" → 그대로
      */
+    /** 칸 폭 때문에 줄이 나뉜 "요구 사항"은 "요구사항"으로 붙인다 (11/11) */
+    private static String joinGroupWords(String s) {
+        return s.replaceAll("요구\\s+사항", "요구사항");
+    }
+
     static String groupName(String raw) {
-        String s = raw == null ? "" : raw.replaceAll("\\s+", " ").trim();
+        String s = raw == null ? "" : joinGroupWords(raw).replaceAll("\\s+", " ").trim();
         if (s.startsWith("비기능 ")) {
             s = s.substring(4).trim();
         } else if (s.startsWith("기능 ") && !"기능 요구사항".equals(s)) {

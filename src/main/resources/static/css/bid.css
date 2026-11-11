@@ -135,7 +135,6 @@
 .nd-act select{height:38px;font-size:13px}
 .nd-req{color:var(--danger)}
 .nd-opt{font-weight:400}
-.nd-hint{margin:0;font-size:12px;line-height:1.6;color:var(--muted);background:var(--alt);border-radius:8px;padding:9px 12px}
 .btn.nd-big{justify-content:center;padding:11px 18px;font-size:14px;font-weight:700}
 .nd-2btn{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .btn.danger.nd-out{border-color:var(--danger)}

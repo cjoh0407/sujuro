@@ -21,7 +21,6 @@ import com.ojj.sujuro.auth.support.AccessChecker;
 import com.ojj.sujuro.auth.dto.LoginUser;
 import com.ojj.sujuro.proposal.dto.RqtDto;
 import com.ojj.sujuro.proposal.dto.RqtExtractDto;
-import com.ojj.sujuro.proposal.dto.RqtExtractItemDto;
 import com.ojj.sujuro.proposal.service.ProposalService;
 import com.ojj.sujuro.proposal.service.RqtService;
 

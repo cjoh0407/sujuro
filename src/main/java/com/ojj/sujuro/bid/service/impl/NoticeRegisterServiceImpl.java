@@ -116,7 +116,7 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
         Long pbancSn = saveNew(regist, "사전규격등록번호", no, res);
         // 규격서에는 제안요청서 초안이 들어 있는 경우가 많다 (실측 21건 중 17건)
         attachmentService.save(pbancSn, userId, attachmentService.readPreSpecFiles(item));
-        return new NoticeRegisterResultDTO(pbancSn, regist.getPbancNm(), "사전규격", no, linkedBidNoOf(item));
+        return new NoticeRegisterResultDTO(pbancSn, regist.getPbancNm(), "사전규격", linkedBidNoOf(item));
     }
 
     /**
@@ -153,7 +153,7 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
         regist.setRgtrId(userId);
 
         Long pbancSn = saveNew(regist, "발주계획번호", no, res);
-        return new NoticeRegisterResultDTO(pbancSn, regist.getPbancNm(), "발주계획", no, linkedBidNoOf(item));
+        return new NoticeRegisterResultDTO(pbancSn, regist.getPbancNm(), "발주계획", linkedBidNoOf(item));
     }
 
     /**
@@ -206,7 +206,7 @@ public class NoticeRegisterServiceImpl implements NoticeRegisterService {
 
         Long pbancSn = saveNew(regist, "입찰공고번호", no, res);
         attachmentService.save(pbancSn, userId, attachmentService.readBidFiles(item));
-        return new NoticeRegisterResultDTO(pbancSn, regist.getPbancNm(), "입찰공고", no, null);
+        return new NoticeRegisterResultDTO(pbancSn, regist.getPbancNm(), "입찰공고", null);
     }
 
     /**

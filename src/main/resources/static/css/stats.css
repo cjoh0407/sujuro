@@ -75,9 +75,8 @@
 .co-bar.first .val{fill:var(--text);font-weight:700}
 @media (prefers-reduced-motion:reduce){.co-bar path{transition:none}}
 /* 그래프 아래 수주 업체 한 줄 (평가표 내려받기가 있던 자리). 줄 전체를 연한 초록으로 칠한다 */
-.evl-win{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--border);font-size:12.5px;background:var(--success-soft)}
+.evl-win{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--border);font-size:12.5px;background:var(--success-soft);border-radius:0 0 11px 11px} /* 11/11: 카드 아래 모서리가 각져 테두리를 가리던 것 */
 .evl-win .faint{color:var(--muted)}
-.cmp-note{font-size:11.5px;padding:10px 14px;border-top:1px solid var(--border)}
 
 /* 점수 막대: 이름 칸을 좁게 */
 .lossrow.score{grid-template-columns:90px 1fr 110px}

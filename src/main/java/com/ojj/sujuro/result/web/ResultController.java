@@ -24,7 +24,6 @@ import com.ojj.sujuro.result.service.ResultEntryService;
  * UI 목업 v3.5 의 rResults() 화면과 같은 구성이다.
  *
  *   /results?bid=&co=                  화면 (bid: 사업건. 없으면 사업 이력 관리로 보낸다, 사업건은 사업 이력 관리의 목록에서 고른다. co: 평가표를 볼 개찰 업체, 없으면 우리 회사)
- *   POST /results/import               나라장터에서 결과 가져오기 (제출 완료 사업)
  *   POST /results/partner-import       참여 업체(주관사·원도급사) 사업자번호로 결과 가져오기 (컨소시엄 참여·하도급 사업, 담당 팀 팀장, 11/10)
  *                                      (11/04 의 결과 직접 입력 POST /results/manual 은 11/10 에 없앴다)
  *   POST /results/evaluation-file      평가표 엑셀 올리기 (업체별)
@@ -60,16 +59,6 @@ public class ResultController {
             model.addAttribute("evaluationForm", view.getExcelForm() != null ? view.getExcelForm() : view.getCompanyForm());
         }
         return "results/index";
-    }
-
-    @PostMapping("/import")
-    public String importResult(@AuthenticationPrincipal LoginUser user, @RequestParam Long bid, RedirectAttributes ra) {
-        try {
-            ra.addFlashAttribute("resultMessage", resultEntryService.importResult(user, bid));
-        } catch (BusinessException e) {
-            ra.addFlashAttribute("resultError", e.getMessage());
-        }
-        return back(ra, bid, null);
     }
 
     @PostMapping("/partner-import")

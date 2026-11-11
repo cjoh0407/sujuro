@@ -35,7 +35,6 @@ button{font-family:inherit}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--logo-n:#4F86C0;--logo-r:#D4575E}}
 :root[data-theme="dark"]{--logo-n:#4F86C0;--logo-r:#D4575E}
 .brand-logo{display:block;flex:none}
-.brand-mark{width:32px;height:32px;border-radius:8px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
 .brand b{font-size:14.5px;font-weight:600}
 .brand span{display:block;font-size:10.5px;color:var(--faint)}
 .nav{display:flex;flex-direction:column;gap:2px}
@@ -54,7 +53,6 @@ button{font-family:inherit}
 .topbar .left h1{padding-left:26px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .topbar h1{font-size:19px}
 .right{display:flex;align-items:center;gap:12px}
-.avatar{width:32px;height:32px;border-radius:50%;background:var(--accent-soft);color:var(--accent-s);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12.5px}
 .who{display:flex;gap:8px;align-items:center;line-height:1.3}
 /* 이름 오른쪽에 권한·팀을 한 줄로 (11/07). 글자 아래선을 맞춘다 */
 .who>div{display:flex;align-items:baseline;gap:8px;white-space:nowrap}
@@ -104,7 +102,6 @@ button{font-family:inherit}
 @media (max-width:600px){.mepanel{left:8px;right:8px;width:auto;max-width:none}}
 .content{display:none;flex-direction:column;gap:16px;padding:22px 26px 44px}
 .content.on{display:flex}
-.crumb{font-size:11.5px;color:var(--faint)}
 .page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
 .page-head h2{font-size:19px}
 .sub{font-size:12.5px;color:var(--muted);margin-top:3px}
@@ -166,7 +163,6 @@ a.tab{text-decoration:none}
 .banner.err{background:var(--danger-soft);color:var(--danger)}
 .banner.ok{background:var(--success-soft);color:var(--success)}
 .banner.info{background:var(--accent-soft);color:var(--accent-s)}
-.steps{display:flex;gap:10px;flex-wrap:wrap}
 .step{flex:1;min-width:170px;border:1px solid var(--border);border-radius:10px;padding:10px 14px;background:var(--surface)}
 .step b{font-size:12.5px}
 .step span{display:block;font-size:11px;color:var(--faint)}
@@ -268,9 +264,6 @@ html:has(.login:not(.hide)){scrollbar-gutter:auto} /* 로그인 화면은 스크
 .cal .cell.today .d{background:var(--accent);color:#fff;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center}
 .ev{font-size:10.5px;font-weight:700;border-radius:5px;padding:2px 6px;cursor:pointer;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ev.k1{background:var(--danger-soft);color:var(--danger)}
-.ev.k2{background:var(--warning-soft);color:var(--warning)}
-.ev.k3{background:var(--accent-soft);color:var(--accent-s)}
-.ev.k4{background:var(--info-soft);color:var(--info)}
 .ev.k5{background:var(--success-soft);color:var(--success)}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
 /* 일정: 팀 색으로 칠한다 (FR-094). 바탕은 연하게, 왼쪽 선과 글자는 진하게. 밝은·어두운 화면 모두 읽히도록 반투명 바탕 */
@@ -337,39 +330,27 @@ a.bellbtn{display:flex;align-items:center;justify-content:center;text-decoration
 .pt-0{padding-top:0 !important}
 .stack-12{display:flex !important;flex-direction:column !important;gap:12px !important}
 .jc-end{justify-content:flex-end !important}
-.col-all{grid-column:1 / -1 !important}
 .w-240px{width:240px !important}
-.mw-100p{max-width:100% !important}
 .w-220px{width:220px !important}
-.sh-330{--scroll-h:330px !important}
 .sh-420{--scroll-h:420px !important}
-.sh-340{--scroll-h:340px !important}
 .sh-480{--scroll-h:480px !important}
 .sh-360{--scroll-h:360px !important}
 .fs-26{font-size:26px !important}
 .jc-center{justify-content:center !important}
-.stack-16{display:flex !important;flex-direction:column !important;gap:16px !important}
-.fs-19{font-size:19px !important}
 .d-inline{display:inline !important}
 .w-200px{width:200px !important}
 .fw-normal{font-weight:400 !important}
-.w-44px{width:44px !important}
 .w-90px{width:90px !important}
 .w-160px{width:160px !important}
-.w-60px{width:60px !important}
 .jc-between{justify-content:space-between !important}
-.u-padding-12px{padding:12px !important}
 .u-padding-4px-12px-8px{padding:4px 12px 8px !important}
 .fs-12_5{font-size:12.5px !important}
 .u-cursor-pointer-padding-left-8px{cursor:pointer !important;padding-left:8px !important}
 .minw-0{min-width:0 !important}
 .w-30px{width:30px !important}
 .c-text{color:var(--text) !important}
-.u-display-inline-flex-gap-3px{display:inline-flex !important;gap:3px !important}
 .mw-260px{max-width:260px !important}
-.mw-280px{max-width:280px !important}
 .stack-8{display:flex !important;flex-direction:column !important;gap:8px !important}
-.u-margin-8px-0-0-16px-padding-0{margin:8px 0 0 16px !important;padding:0 !important}
 .u-max-height-520px-overflow-auto{max-height:520px !important;overflow:auto !important}
 .w-34px{width:34px !important}
 .w-56px{width:56px !important}
@@ -383,7 +364,6 @@ a.bellbtn{display:flex;align-items:center;justify-content:center;text-decoration
 .w-280px{width:280px !important}
 .mw-210px{max-width:210px !important}
 .w-64px{width:64px !important}
-.mw-640px{max-width:640px !important}
 .u-flex-1{flex:1 !important}
 .pb-0{padding-bottom:0 !important}
 .w-32p{width:32% !important}
@@ -391,7 +371,6 @@ a.bellbtn{display:flex;align-items:center;justify-content:center;text-decoration
 .w-34p{width:34% !important}
 .w-24p{width:24% !important}
 .w-80px{width:80px !important}
-.mt-8{margin-top:8px !important}
 .mt-12{margin-top:12px !important}
 .mt-16{margin-top:16px !important}
 .gap-8{gap:8px !important}
@@ -400,16 +379,10 @@ a.bellbtn{display:flex;align-items:center;justify-content:center;text-decoration
 .nowrap{white-space:nowrap !important}
 .mt-0{margin-top:0 !important}
 .u-border-top-0{border-top:0 !important}
-.w-72px{width:72px !important}
 .mb-12{margin-bottom:12px !important}
-.fs-14{font-size:14px !important}
 .u-flex-wrap-wrap{flex-wrap:wrap !important}
 .pos-abs{position:absolute !important}
-.u-margin-0-padding-left-16px{margin:0 !important;padding-left:16px !important}
-.ta-center{text-align:center !important}
-.mw-420px{max-width:420px !important}
 .gap-4{gap:4px !important}
-.u-flex-direction-column-align-items-flex-s{flex-direction:column !important;align-items:flex-start !important}
 .u-padding-bottom-12px{padding-bottom:12px !important}
 .c-danger{color:var(--danger) !important}
 
@@ -426,7 +399,6 @@ a.bellbtn{display:flex;align-items:center;justify-content:center;text-decoration
 .gauge.ok>i{background:var(--success)}
 .gauge.red>i{background:var(--danger)}
 @media (prefers-reduced-motion:reduce){.gauge>i{transition:none}}
-.u-flex-1-min-width-180px{flex:1 !important;min-width:180px !important}
 
 /* 줄 맨 오른쪽 아이콘(내려받기·삭제) 칸: 어느 목록이든 오른쪽 끝에서 18px (카드 안쪽 여백 .pad·.item 과 같다) */
 .c-end{text-align:right !important;padding-right:18px !important}

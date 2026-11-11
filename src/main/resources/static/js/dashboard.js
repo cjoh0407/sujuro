@@ -116,6 +116,25 @@
     if (cell && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openPop(cell); }
   });
 
+  // 새 알림이 오면 '최근 알림' 칸만 다시 불러와 바꾼다 (11/11). 웹소켓이 알려 주는 sujuro:notification 을 받는다.
+  // 알림이 몰려 와도 한 번만 부르고(0.4초 모아서), 저장이 끝난 뒤 읽도록 조금 기다린다. 실패하면 그대로 둔다.
+  var alertTimer = 0, alertReq = 0;
+  document.addEventListener('sujuro:notification', function () {
+    if (!document.querySelector('.dash-side')) return;
+    clearTimeout(alertTimer);
+    alertTimer = setTimeout(function () {
+      var mine = ++alertReq;
+      fetch(location.href, { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } }).then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.text();
+      }).then(function (html) {
+        if (mine !== alertReq) return;
+        var next = new DOMParser().parseFromString(html, 'text/html').querySelector('.dash-side');
+        var cur = document.querySelector('.dash-side');
+        if (next && cur) cur.replaceWith(next);
+      }).catch(function () { /* 다음 알림이나 새로고침 때 다시 맞춰진다 */ });
+    }, 400);
+  });
   window.onPageReady(function () {
     if (reduce) return;
     document.querySelectorAll('.dash-stat .v > span, .dash-kpi .v > span').forEach(countUp);

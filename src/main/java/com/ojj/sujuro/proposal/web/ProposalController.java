@@ -1,6 +1,9 @@
 package com.ojj.sujuro.proposal.web;
 
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,16 +13,28 @@ import java.util.function.Supplier;
 
 import javax.servlet.http.HttpSession;
 
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.ojj.sujuro.auth.support.AccessChecker;
 import com.ojj.sujuro.auth.dto.LoginUser;
+import com.ojj.sujuro.bid.code.BidCode;
+import com.ojj.sujuro.bid.dto.AtchFileDTO;
+import com.ojj.sujuro.bid.service.NoticeAttachmentService;
+import com.ojj.sujuro.common.file.FileStorage;
 import com.ojj.sujuro.proposal.dto.ProposalBidDto;
 import com.ojj.sujuro.proposal.dto.RqtDto;
 import com.ojj.sujuro.proposal.dto.TocDto;
@@ -61,6 +76,8 @@ public class ProposalController {
     private final ProposalService proposalService;
     private final TocService tocService;
     private final RqtService rqtService;
+    private final NoticeAttachmentService noticeAttachmentService;
+    private final FileStorage storage;
 
     @GetMapping("/proposal")
     public String index(@AuthenticationPrincipal LoginUser user,
@@ -97,6 +114,7 @@ public class ProposalController {
         model.addAttribute("canAssign", canAssign);
         model.addAttribute("canReq", canReq);
         model.addAttribute("members", proposalService.members(pbancSn));
+        model.addAttribute("noticeFiles", noticeFiles(pbancSn)); // 공고 상세의 첨부(제안요청서 등)를 화면 위에서 바로 받는다 (11/11)
         if (canAssign) { // 제안팀 구성 카드의 인원 찾기 팝업 필터 (참여팀은 인원을 넣고 빼면 자동으로 정해진다)
             model.addAttribute("memTeams", proposalService.devTeams());
             model.addAttribute("memRanks", proposalService.rankNames());
@@ -163,6 +181,46 @@ public class ProposalController {
             model.addAttribute("editRqt", rqtService.findForEdit(pbancSn, edit));
         }
         return "proposal/proposal";
+    }
+
+    /**
+     * 이 사업건의 공고 첨부. 공고 상세와 같이 입찰공고 첨부는 가장 큰 차수(정정 뒤 최신)만, 제안요청서(FL010)를 맨 위에 두고
+     * 사전규격 규격서가 있으면 이어서 보여 준다.
+     */
+    private List<AtchFileDTO> noticeFiles(Long pbancSn) {
+        List<AtchFileDTO> all = noticeAttachmentService.findFiles(pbancSn);
+        int latest = all.stream().filter(f -> !f.isPreSpec()).mapToInt(AtchFileDTO::getVer).max().orElse(1);
+        List<AtchFileDTO> out = new ArrayList<>();
+        all.stream().filter(f -> !f.isPreSpec() && f.getVer() == latest)
+                .sorted(Comparator.comparing((AtchFileDTO f) -> !BidCode.FILE_RFP.equals(f.getFileSeCd() == null ? "" : f.getFileSeCd().trim())))
+                .forEach(out::add);
+        all.stream().filter(AtchFileDTO::isPreSpec).forEach(out::add);
+        return out;
+    }
+
+    /**
+     * 공고 첨부 내려받기. 공고 상세(/notices)는 팀원이 못 열어서 제안 화면에도 같은 받기를 둔다. 그 사업건 제안팀원만,
+     * 화면에 보이는 첨부만 받는다. 서버에 저장한 파일은 바로, 아니면 나라장터 주소로 보낸다 (NoticeController 와 같은 방식).
+     */
+    @GetMapping("/proposal/notice-file/{fileSn}")
+    public ResponseEntity<Resource> downloadNoticeFile(@AuthenticationPrincipal LoginUser user, @PathVariable Long fileSn,
+                                                       @RequestParam("bid") Long bid) {
+        accessChecker.requireProposalMember(bid, user);
+        AtchFileDTO f = noticeFiles(bid).stream()
+                .filter(x -> fileSn.equals(x.getFileSn()))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다."));
+        if (f.isStored()) {
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            ContentDisposition.attachment().filename(f.getOrgnlFileNm(), StandardCharsets.UTF_8).build().toString())
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(storage.load(f.getFilePathNm(), f.getStrgFileNm()));
+        }
+        if (f.getOrgnlUrl() != null && !f.getOrgnlUrl().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(f.getOrgnlUrl())).build();
+        }
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다.");
     }
 
     /* ---------- 목차 양식 (FR-046~048): 주관팀 인원 ---------- */

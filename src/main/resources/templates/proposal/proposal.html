@@ -46,6 +46,22 @@
     <div class="split-r">
     <th:block th:replace="~{proposal/fragments/bid-header :: teamCard}"></th:block>
 
+    <!-- 공고 첨부파일 (11/11): 공고 상세의 첨부(제안요청서 등). 제안요청서가 맨 위. 누르면 내려받는다. 첨부가 없어도 카드는 보이고 안내만 나온다 -->
+    <div class="card">
+      <div class="card-head">
+        <h3>공고 첨부파일</h3>
+        <span class="faint fs-11_5" th:text="${#lists.size(noticeFiles)} + '건'">2건</span>
+      </div>
+      <div class="empty" th:if="${#lists.isEmpty(noticeFiles)}">첨부파일 정보가 아직 없습니다. 공고를 수집할 때 다시 받아 봅니다.</div>
+      <div class="nf-list" th:unless="${#lists.isEmpty(noticeFiles)}">
+        <a class="nf-item" th:each="f : ${noticeFiles}" title="눌러서 내려받기"
+           th:href="@{/proposal/notice-file/{fs}(fs=${f.fileSn}, bid=${bid.pbancSn})}">
+          <span class="nf-nm" th:text="${f.orgnlFileNm}">[제안요청서] 사업.hwpx</span>
+          <span class="faint fs-11_5" th:text="${f.format} + (${f.sizeText} != null ? ' · ' + ${f.sizeText} : '')">HWPX · 417KB</span>
+        </a>
+      </div>
+    </div>
+
     <!-- 탭: 제안서 목차·요구사항 / 제안요약서 목차 (FR-063) -->
     <div class="tabs">
       <a class="tab" th:classappend="${tab == 'prop'} ? 'on'" th:href="@{/proposal(bid=${bid.pbancSn})}">제안서 목차 · 요구사항</a>

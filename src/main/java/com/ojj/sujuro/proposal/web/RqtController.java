@@ -28,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * 요구사항 등록·수정·삭제·목차 연결 (FR-050~054). 제안 화면(/proposal) 제안서 탭에서 호출한다.
- * 제안팀원 중 주관팀 팀장 또는 목차 담당자만 할 수 있다 (FR-050, FR-016-1, 요구사항 v3.3).
+ * 제안팀원이면 누구나 할 수 있다 (11/11 변경, 요구사항 v3.3의 FR-050·FR-016-1은 팀장·목차 담당자였다). 전체 삭제만 주관팀 팀장.
  * 처리 후 같은 사업건의 /proposal 화면으로 돌아간다.
  */
 @Controller
@@ -189,8 +189,7 @@ public class RqtController {
     }
 
     /**
-     * 요구사항 처리: 제안팀원(requireProposalMember) 중 주관팀 팀장 또는 목차 담당자만 (FR-050, FR-016-1).
-     * 참여팀 팀장도 자기가 담당한 목차가 있으면 다룰 수 있다.
+     * 요구사항 처리: 제안팀원(requireProposalMember)이면 누구나. 제안팀이 되는 순간부터 PDF 추출·등록을 할 수 있다.
      */
     private String runReq(LoginUser user, Long bid, RedirectAttributes ra, Supplier<String> action) {
         accessChecker.requireProposalMember(bid, user);

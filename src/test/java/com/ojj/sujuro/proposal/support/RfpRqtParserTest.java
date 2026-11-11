@@ -9,6 +9,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import com.ojj.sujuro.proposal.dto.RqtExtractDto;
+import com.ojj.sujuro.proposal.support.RfpRqtParser.Line;
 
 /** 제안요청서 요구사항 추출 정규식 확인 (PDF 없이 PDFBox가 뽑은 것과 같은 모양의 글자로 시험한다) */
 class RfpRqtParserTest {
@@ -203,5 +204,48 @@ class RfpRqtParserTest {
         assertEquals("성능요구사항", r.getGroupNames().get("PER"));
         assertEquals(Integer.valueOf(2), r.getExpected().get("FUN"));
         assertTrue(r.getWarnings().isEmpty(), r.getWarnings().toString());
+    }
+
+    @Test
+    void ID_사이_공백과_영문약어_공백을_붙여_읽는다() {
+        RqtExtractDto r = RfpRqtParser.parse("요구사항 총괄표\n분 류 요구사항 고유번호 요구사항 명칭 비 고\n"
+                + "프로젝트 관리 PMR- 001 일반 업무 수행 범위\nPMR - 002 유지보수 관리 인력\nPMR -003 계약의 변경\n"
+                + "MPR- 001 H/ W 유지관리 활동\nMPR- 002 응용 S/ W 유지관리 활동\n");
+        assertEquals(5, r.getFoundCount());
+        assertEquals("PMR-001", r.getItems().get(0).getRqtMttrNo());
+        assertEquals("PMR-002", r.getItems().get(1).getRqtMttrNo());
+        assertEquals("PMR-003", r.getItems().get(2).getRqtMttrNo());
+        assertEquals("H/W 유지관리 활동", r.getItems().get(3).getRqtMttrNm());
+        assertEquals("응용 S/W 유지관리 활동", r.getItems().get(4).getRqtMttrNm());
+    }
+
+    @Test
+    void 비고_칸_글자는_요구사항명에_섞지_않는다() {
+        List<Line> ls = new ArrayList<>();
+        ls.add(line(10, "구분", 50f, "번호", 150f, "요구사항", 250f, "명", 300f, "비고", 500f));
+        ls.add(line(30, "MAR-", 150f, "001", 175f, "(SIMS)", 250f, "기초지차체", 290f, "관리", 350f));
+        ls.add(line(43, "SIMS", 510f));
+        ls.add(line(56, "MAR-", 150f, "002", 175f, "(기업마당)", 250f, "정책정보", 320f, "기업", 505f));
+        ls.add(line(69, "MAR-", 150f, "003", 175f, "(G4B)", 250f, "신청", 290f));
+        RqtExtractDto r = RfpRqtParser.parse(ls);
+        assertEquals(3, r.getFoundCount());
+        assertEquals("(SIMS) 기초지차체 관리", r.getItems().get(0).getRqtMttrNm());
+        assertEquals("(기업마당) 정책정보", r.getItems().get(1).getRqtMttrNm());
+        assertEquals("(G4B) 신청", r.getItems().get(2).getRqtMttrNm());
+    }
+
+    @Test
+    void 구분명_중간_공백을_붙인다() {
+        RqtExtractDto r = RfpRqtParser.parse("목록\n구 분 번호 요구사항 명 비고\n보안요구 SER- 001 공통 보안요건\n사항 SER- 002 문서 보안\n");
+        assertEquals("보안요구사항", r.getGroupNames().get("SER"));
+        assertEquals(2, r.getFoundCount());
+    }
+
+    private static Line line(float y, Object... wx) {
+        Line l = new Line(1, y);
+        for (int i = 0; i < wx.length; i += 2) {
+            l.add((String) wx[i], ((Number) wx[i + 1]).floatValue(), y);
+        }
+        return l;
     }
 }

@@ -42,7 +42,8 @@ import lombok.RequiredArgsConstructor;
  * 권한 (AccessChecker, 없으면 403):
  *   보기·내려받기                 — requireProposalMember (제안팀원)
  *   목차별 파일 올리기            — 제안팀원 중 주관팀 팀장 또는 그 목차 담당자 (서비스에서 담당자 확인)
- *   통합본 올리기·최종본 확정·검토 완료 표시 — requireLeadTeamLeader (주관팀 팀장)
+ *   통합본 올리기                 — requireProposalMember (제안팀원 누구나)
+ *   최종본 확정·검토 완료 표시    — requireLeadTeamLeader (주관팀 팀장)
  *   파일 삭제(숨김)               — 제안팀원 중 올린 사람 또는 주관팀 팀장. 사유 필수, 원본·이력은 남긴다 (NFR-009)
  */
 @Controller
@@ -127,17 +128,13 @@ public class PrpFileController {
         return "proposal/files";
     }
 
-    /** 파일 올리기. 탭 full이면 통합본(주관팀 팀장), 아니면 tocSn 목차에 올린다(주관팀 팀장 또는 담당자). */
+    /** 파일 올리기. 탭 full이면 통합본(제안팀원 누구나), 아니면 tocSn 목차에 올린다(주관팀 팀장 또는 담당자). */
     @PostMapping("/files/upload")
     public String upload(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
                          @RequestParam(value = "tab", defaultValue = TAB_PART) String tab,
                          @RequestParam(value = "tocSn", required = false) Long tocSn,
                          @RequestParam(value = "file", required = false) MultipartFile file, RedirectAttributes ra) {
-        if (TAB_FULL.equals(tab)) {
-            accessChecker.requireLeadTeamLeader(bid, user);
-        } else {
-            accessChecker.requireProposalMember(bid, user);
-        }
+        accessChecker.requireProposalMember(bid, user);
         return FlashRedirect.run(ra, PATH, bid, tabParam(tab), () -> {
             if (TAB_FULL.equals(tab)) {
                 int cycl = fileService.uploadFull(bid, file, user.getEmpNo());

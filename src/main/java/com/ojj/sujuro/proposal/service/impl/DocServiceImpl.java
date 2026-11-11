@@ -144,20 +144,6 @@ public class DocServiceImpl implements DocService {
 
     @Transactional
     @Override
-    public void changeStatus(Long pbancSn, Long dcmntSn, String statusCd, boolean admin) {
-        requireOpen(pbancSn);
-        DocDto d = own(pbancSn, dcmntSn);
-        if (!admin && !d.isTeamOwned()) {
-            throw new BusinessException("경영지원실 담당 서류의 상태는 경영지원실이 바꿉니다.");
-        }
-        if (!(DocDto.ST_NONE.equals(statusCd) || DocDto.ST_READY.equals(statusCd))) {
-            throw new BusinessException("상태가 올바르지 않습니다.");
-        }
-        mapper.updateDocStatus(dcmntSn, statusCd);
-    }
-
-    @Transactional
-    @Override
     public void uploadDoc(Long pbancSn, Long dcmntSn, MultipartFile file, String userId) {
         requireOpen(pbancSn);
         DocDto d = own(pbancSn, dcmntSn);
@@ -170,48 +156,6 @@ public class DocServiceImpl implements DocService {
     }
 
     /* ---------- 조견표 (FR-071) ---------- */
-
-    @Transactional
-    @Override
-    public void addArticle(Long pbancSn, String name, String score) {
-        requireOpen(pbancSn);
-        String nm = name == null ? "" : name.trim();
-        if (nm.isEmpty()) {
-            throw new BusinessException("평가 항목 이름을 입력해 주세요.");
-        }
-        if (nm.length() > ARTICLE_NAME_MAX) {
-            throw new BusinessException("평가 항목 이름은 " + ARTICLE_NAME_MAX + "자까지 입력할 수 있습니다.");
-        }
-        BigDecimal scr;
-        try {
-            scr = new BigDecimal(score == null ? "" : score.trim());
-        } catch (NumberFormatException e) {
-            throw new BusinessException("배점은 숫자로 입력해 주세요.");
-        }
-        if (scr.signum() <= 0 || scr.compareTo(HUNDRED) > 0) {
-            throw new BusinessException("배점은 0보다 크고 100 이하로 입력해 주세요.");
-        }
-        if (scr.scale() > 3) {
-            throw new BusinessException("배점은 소수점 아래 세 자리까지 입력할 수 있습니다.");
-        }
-        BigDecimal sum = scr;
-        for (EvlArtclDto a : mapper.findArticles(pbancSn)) {
-            if (a.getEvlArtclNm().equals(nm)) {
-                throw new BusinessException("같은 이름의 평가 항목이 이미 있습니다.");
-            }
-            if (a.getEvlScorScr() != null) {
-                sum = sum.add(a.getEvlScorScr());
-            }
-        }
-        if (sum.compareTo(HUNDRED) > 0) {
-            throw new BusinessException("배점 합계가 100점을 넘습니다 (" + sum.stripTrailingZeros().toPlainString() + "점).");
-        }
-        EvlArtclDto a = new EvlArtclDto();
-        a.setPbancSn(pbancSn);
-        a.setEvlArtclNm(nm);
-        a.setEvlScorScr(scr);
-        mapper.insertArticle(a);
-    }
 
     @Transactional
     @Override

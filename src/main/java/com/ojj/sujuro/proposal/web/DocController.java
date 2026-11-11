@@ -180,20 +180,6 @@ public class DocController {
 
     /* ---------- 서류 상태·파일 (경영지원실·제안팀) ---------- */
 
-    @PostMapping("/docs/status")
-    public String changeStatus(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
-                               @RequestParam("dcmntSn") Long dcmntSn,
-                               @RequestParam("prgrsSttsCd") String status, RedirectAttributes ra) {
-        requireViewer(bid, user);
-        if (isSales(user)) {
-            throw new AccessDeniedException("준비 상태는 경영지원실과 제안팀이 바꿉니다.");
-        }
-        return FlashRedirect.run(ra, PATH, bid, null, () -> { // 선택한 상태가 화면에 바로 보이므로 완료 문구는 띄우지 않는다
-            docService.changeStatus(bid, dcmntSn, status, isMgmt(user));
-            return null;
-        });
-    }
-
     @PostMapping("/docs/upload")
     public String uploadDoc(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
                             @RequestParam(value = "dcmntSn", required = false) Long dcmntSn,
@@ -222,38 +208,6 @@ public class DocController {
     }
 
     /* ---------- 조견표: 웹 입력 (FR-071) ---------- */
-
-    /** 평가 항목 추가 (경영지원실) */
-    @PostMapping("/docs/article/add")
-    public String addArticle(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
-                             @RequestParam(value = "evlArtclNm", required = false) String name,
-                             @RequestParam(value = "evlScorScr", required = false) String score, RedirectAttributes ra) {
-        requireMgmt(bid, user);
-        return FlashRedirect.run(ra, PATH, bid, null, "평가 항목을 추가했습니다.", () -> docService.addArticle(bid, name, score));
-    }
-
-    /** 평가 항목 삭제 (경영지원실) */
-    @PostMapping("/docs/article/delete")
-    public String deleteArticle(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
-                                @RequestParam("evlArtclSn") Long evlArtclSn, RedirectAttributes ra) {
-        requireMgmt(bid, user);
-        return FlashRedirect.run(ra, PATH, bid, null, "평가 항목을 삭제했습니다.", () -> docService.deleteArticle(bid, evlArtclSn));
-    }
-
-    /** 쪽번호 저장 (제안팀). 표의 모든 항목을 한 번에 저장한다 */
-    @PostMapping("/docs/article/pages")
-    public String savePages(@AuthenticationPrincipal LoginUser user, @RequestParam("bid") Long bid,
-                            @RequestParam(value = "evlArtclSn", required = false) List<Long> sns,
-                            @RequestParam(value = "pageNo", required = false) List<String> pages, RedirectAttributes ra) {
-        if (isMgmt(user)) {
-            throw new AccessDeniedException("쪽번호는 제안팀이 입력합니다.");
-        }
-        accessChecker.requireProposalMember(bid, user);
-        return FlashRedirect.run(ra, PATH, bid, null, () -> {
-            docService.savePages(bid, sns, pages);
-            return "조견표 쪽번호를 저장했습니다.";
-        });
-    }
 
     /** 조견표 편집 창 [저장] (11/07): 경영지원실은 항목·배점(추가·삭제 포함), 제안팀은 쪽번호를 한 번에 저장한다 */
     @PostMapping("/docs/article/save")

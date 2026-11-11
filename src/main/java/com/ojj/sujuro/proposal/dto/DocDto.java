@@ -20,7 +20,6 @@ public class DocDto {
 
     /** 서류준비상태 (공통코드 DCPST). 11/08부터 사람이 고르지 않고 파일로 정한다: 파일이 있으면 완료, 없으면 미완료.
      *  DS020(옛 "준비 중")은 쓰지 않는다. 화면 표시는 isReady()(파일 수)로 한다 */
-    public static final String ST_NONE = "DS010";  // 미완료
     public static final String ST_READY = "DS030"; // 완료
 
     private Long dcmntSn;

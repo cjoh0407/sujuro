@@ -5,7 +5,7 @@
       layout:decorate="~{layout/default}">
 <!--/*
   평가·결과 입력 (FR-077~081). UI 목업 v3.5 의 rResults() 화면과 같은 구성이다.
-  경영지원실: 모든 사업, 결과 가져오기(view.canImport). 평가표·점수·장단점은 읽기만 (평가표 등록은 11/10부터 팀장만).
+  경영지원실: 모든 사업을 읽기만 한다 (결과는 평일 오후 5시 자동 수집·지금 수집이 가져온다. 결과 가져오기 버튼은 11/11에 없앴다). 평가표 등록은 11/10부터 팀장만.
   팀장: 자기 팀 사업만, 평가표 등록·평가 항목·점수·장단점 입력(view.canScore). 회의 결정, 2026-11-02 반영.
   11/04 사이드바 메뉴와 이 화면의 사업건 목록을 뺐다. 사업건은 사업 이력 관리의 목록에서 고르고 들어온다(bid 없이 오면 사업 이력 관리로 보낸다).
   평가표를 올릴 수 있는 사업만 제안서 관리와 같은 3:7 양식이고(proposal.css 의 .split, #upCard, .drop 을 같이 쓴다), 나머지는 오른쪽 내용만 넓게 보인다.
@@ -152,10 +152,6 @@
     <div class="card" th:if="${b.submitted and !b.viaPartner}">
       <div class="card-head">
         <h3>입찰 결과 · 기술·가격·종합 점수 (API)</h3>
-        <form method="post" th:action="@{/results/import}" th:if="${view.canImport}">
-          <input type="hidden" name="bid" th:value="${b.pbancSn}">
-          <button class="btn sm primary" type="submit" th:disabled="${!view.ready}">나라장터에서 결과 가져오기</button>
-        </form>
       </div>
       <div class="pad faint fs-12_5">
         결과를 아직 등록하지 않았습니다. 최종 낙찰자가 나라장터에 올라오면 평일 오후 5시 수집 때 자동으로 가져오고

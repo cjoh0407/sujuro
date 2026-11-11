@@ -17,9 +17,6 @@ public class NoticeRegisterResultDTO {
     /** 번호 형식으로 정해진 단계 이름 (발주계획 / 사전규격 / 입찰공고) */
     private final String stepNm;
 
-    /** 사람이 입력한 번호 */
-    private final String registeredNo;
-
     /** 등록 시점에 이미 올라와 있던 입찰공고 번호. 없으면 null. 입찰공고로 등록했으면 늘 null */
     private final String linkedBidNo;
 

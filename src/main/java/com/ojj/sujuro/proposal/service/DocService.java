@@ -46,16 +46,10 @@ public interface DocService {
 
     void changeDue(Long pbancSn, Long dcmntSn, String due);
 
-    /** 준비 상태 변경. 제안팀은 제안팀 담당 서류만 바꿀 수 있다. */
-    void changeStatus(Long pbancSn, Long dcmntSn, String statusCd, boolean admin);
-
     /** 서류 파일 올리기 (경영지원실·제안팀). 파일을 올리면 완료가 된다. (FR-069) */
     void uploadDoc(Long pbancSn, Long dcmntSn, MultipartFile file, String userId);
 
     /* ---------- 조견표 (FR-071) ---------- */
-
-    /** 평가 항목 추가 (경영지원실). 이름은 사업건 안에서 겹칠 수 없고, 배점 합계는 100점을 넘을 수 없다. */
-    void addArticle(Long pbancSn, String name, String score);
 
     /** 평가 항목 삭제 (경영지원실). 결과 분석에서 점수를 넣은 항목은 지울 수 없다. */
     void deleteArticle(Long pbancSn, Long evlArtclSn);

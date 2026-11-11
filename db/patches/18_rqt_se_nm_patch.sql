@@ -2,10 +2,12 @@
 -- 요구사항 구분명 컬럼 추가 (2026-11-09, 이세종)
 -- 대상: 이 패치 전 01_schema.sql 로 이미 만든 DB (로컬 DB, 배포 서버 DB). 데이터는 그대로 둔다.
 --       01_schema.sql 을 새로 실행한 DB에는 이미 있으므로 실행하지 않는다 (다시 실행하면 ORA-01430: 이미 있는 열).
--- 내용: TB_RQT_MTTR.RQT_SE_NM - 제안요청서 요구사항 총괄표의 "요청사항 구분"(기능 요구사항·성능 요구사항 …).
+-- 내용: TB_RQT_MTTR.RQT_MTTR_SE_NM - 제안요청서 요구사항 총괄표의 "요청사항 구분"(기능 요구사항·성능 요구사항 …).
 --       PDF로 추출해 등록할 때 저장하고, 미매핑 요구사항 표를 이 구분별 제목 줄로 묶어 보여 준다.
 --       예전에 등록한 요구사항은 NULL 이며, 화면에서는 ID 접두어(SFR→기능 요구사항 등)로 묶는다.
+-- 컬럼 이름 (11/10 변경): 처음 RQT_SE_NM 으로 만들었다가 표준 규칙(요구사항 = RQT_MTTR)에 맞춰 RQT_MTTR_SE_NM 으로 바꿨다.
+--       이미 RQT_SE_NM 으로 만든 DB는 이 파일 대신 19_rqt_mttr_se_nm_rename_patch.sql 을 실행한다.
 -- 실행: DBeaver에서 파일을 열고 Alt+X.
 -- ============================================================
-ALTER TABLE TB_RQT_MTTR ADD (RQT_SE_NM VARCHAR2(100 CHAR));
-COMMENT ON COLUMN TB_RQT_MTTR.RQT_SE_NM IS '요구사항구분명 - 제안요청서 총괄표의 요청사항 구분(예: 기능 요구사항). PDF 추출 때 저장, NULL이면 ID 접두어로 묶는다';
+ALTER TABLE TB_RQT_MTTR ADD (RQT_MTTR_SE_NM VARCHAR2(100 CHAR));
+COMMENT ON COLUMN TB_RQT_MTTR.RQT_MTTR_SE_NM IS '요구사항구분명 - 제안요청서 총괄표의 요청사항 구분(예: 기능 요구사항). PDF 추출 때 저장, NULL이면 ID 접두어로 묶는다';

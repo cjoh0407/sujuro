@@ -1,0 +1,12 @@
+-- ============================================================
+-- 요구사항구분명 컬럼 이름 변경 (2026-11-10, 오창준)
+-- 대상: 요구사항구분명을 RQT_SE_NM 으로 이미 만든 DB (11/09~11/10 사이 01_schema.sql 로 새로 만든 DB, 또는 예전 18번 패치를 실행한 DB).
+--       데이터는 그대로 둔다.
+-- 실행하지 않는 DB: 지금 01_schema.sql 로 새로 만든 DB, 지금 18번 패치로 컬럼을 추가한 DB (이미 RQT_MTTR_SE_NM 이다.
+--       실행하면 ORA-00904: "RQT_SE_NM": 부적합한 식별자).
+-- 이유: 공통표준 단어 조합 규칙. 요구사항 = 요구(RQT) + 사항(MTTR) 이므로 요구사항구분명은 RQT_MTTR_SE_NM 이다
+--       (요구사항번호 RQT_MTTR_NO, 요구사항명 RQT_MTTR_NM 과 같은 방식).
+-- 확인: SELECT COLUMN_NAME FROM USER_TAB_COLUMNS WHERE TABLE_NAME = 'TB_RQT_MTTR' AND COLUMN_NAME LIKE '%SE_NM';
+-- 실행: DBeaver에서 파일을 열고 Alt+X.
+-- ============================================================
+ALTER TABLE TB_RQT_MTTR RENAME COLUMN RQT_SE_NM TO RQT_MTTR_SE_NM;

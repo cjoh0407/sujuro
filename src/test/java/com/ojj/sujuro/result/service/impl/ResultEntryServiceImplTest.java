@@ -126,7 +126,7 @@ class ResultEntryServiceImplTest {
     }
 
     @Test
-    void 경영지원실은_가져오기만_팀장은_자기_팀_사업의_평가표와_점수_장단점을_입력한다() {
+    void 경영지원실은_읽기만_팀장은_자기_팀_사업의_평가표와_점수_장단점을_입력한다() {
         when(resultMapper.findResultBids(null)).thenReturn(Arrays.asList(bid(8L, "PS060")));
         when(resultMapper.findResultBids(3L)).thenReturn(Arrays.asList(bid(8L, "PS060")));
         when(resultMapper.findResultBid(8L)).thenReturn(bid(8L, "PS060"));
@@ -134,12 +134,10 @@ class ResultEntryServiceImplTest {
         when(statsService.findArchive(leader, 8L)).thenReturn(archive(3L));
 
         ResultsViewDTO m = service.build(mgmt, 8L, null);
-        assertTrue(m.isCanImport());
         assertFalse(m.isCanScore()); // 평가표 엑셀도 올리지 않는다 (11/10)
 
         ResultsViewDTO l = service.build(leader, 8L, null);
         verify(resultMapper).findResultBids(3L); // 팀장은 자기 팀 사업만
-        assertFalse(l.isCanImport());
         assertTrue(l.isCanScore());
 
         // 개발팀이 아닌 팀장은 볼 사업이 없다
@@ -224,36 +222,6 @@ class ResultEntryServiceImplTest {
         when(resultMapper.findResultBids(3L)).thenReturn(Arrays.asList(bid(8L, "PS060")));
         when(resultMapper.findResultBid(8L)).thenReturn(bid(8L, "PS060"));
         when(statsService.findArchive(leader, 8L)).thenReturn(archive(3L));
-    }
-
-    @Test
-    void 결과_가져오기는_제출_완료만_하고_결과에_따라_안내한다() {
-        ResultTargetDTO t = new ResultTargetDTO();
-        t.setPbancSn(5L);
-        when(resultMapper.findResultTarget(5L)).thenReturn(t);
-
-        when(collect.register(t)).thenReturn(ResultOutcomeDTO.registered("결과 등록: 수주 · 1위"));
-        assertEquals("결과 등록: 수주 · 1위. 평가표 엑셀과 항목별 점수·장단점은 담당 팀 팀장이 입력합니다.",
-                service.importResult(mgmt, 5L));
-        assertThrows(AccessDeniedException.class, () -> service.importResult(leader, 5L));
-
-        when(collect.register(t)).thenReturn(ResultOutcomeDTO.waiting());
-        assertTrue(message(() -> service.importResult(mgmt, 5L)).startsWith("아직 나라장터에 최종 낙찰자가 올라오지 않았습니다"));
-
-        when(collect.register(t)).thenReturn(ResultOutcomeDTO.notListed("개찰 목록에 우리 회사가 없어"));
-        assertEquals("개찰 목록에 우리 회사가 없어", message(() -> service.importResult(mgmt, 5L)));
-
-        assertTrue(message(() -> service.importResult(mgmt, 6L)).startsWith("제출 완료 상태인 사업만"));
-        when(collect.isReady()).thenReturn(false);
-        assertTrue(message(() -> service.importResult(mgmt, 5L)).contains("사업자번호(company.biz-no)"));
-    }
-
-    @Test
-    void 컨소시엄은_우리_회사_번호로_가져오지_않고_주관사_번호를_넣으라고_안내한다() {
-        when(resultMapper.findResultBid(5L)).thenReturn(shapedBid(5L, "PS050", "PF020", "컨소시엄 참여")); // findResultTarget 은 null
-
-        assertTrue(message(() -> service.importResult(mgmt, 5L)).contains("주관사·원도급사의 사업자번호를 넣어 결과를 가져옵니다"));
-        verify(collect, never()).register(any());
     }
 
     /* 참여 업체로 결과 가져오기 (11/10): 컨소시엄 참여·하도급은 주관사·원도급사의 사업자번호로 그 업체의 결과·순위·점수·낙찰 금액을

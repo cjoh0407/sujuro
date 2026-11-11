@@ -65,9 +65,6 @@ public class ResultEntryServiceImpl implements ResultEntryService {
     /** 항목 이름 끝의 배점 표시. 예: "전략 및 방법론(15)" */
     private static final Pattern MAX_SUFFIX = Pattern.compile("\\s*\\(\\s*\\d+(\\.\\d+)?\\s*\\)\\s*$");
 
-    private static final String VIA_PARTNER = "컨소시엄 참여·하도급 사업은 나라장터 개찰 목록에 우리 회사가 나오지 않습니다. "
-            + "함께 참여한 주관사·원도급사의 사업자번호를 넣어 결과를 가져옵니다.";
-
     private final ResultMapper resultMapper;
     private final StatsMapper statsMapper;
     private final StatsService statsService;
@@ -88,7 +85,6 @@ public class ResultEntryServiceImpl implements ResultEntryService {
     public ResultsViewDTO build(LoginUser user, Long bid, Long coSn) {
         ResultsViewDTO v = new ResultsViewDTO();
         v.setReady(resultCollectService.isReady());
-        v.setCanImport(user.getRole() == Role.MGMT);
         List<ResultBidDTO> bids;
         if (user.getRole() == Role.MGMT) {
             bids = resultMapper.findResultBids(null);
@@ -158,32 +154,6 @@ public class ResultEntryServiceImpl implements ResultEntryService {
         } catch (IOException e) {
             v.setExcelError("엑셀 파일을 열지 못했습니다. 아래에 직접 입력해 주세요.");
         }
-    }
-
-    @Override
-    @Transactional(propagation = Propagation.NOT_SUPPORTED) // 나라장터를 부르는 동안 DB 연결을 잡지 않는다
-    public String importResult(LoginUser user, Long pbancSn) {
-        requireMgmt(user);
-        ResultTargetDTO target = resultMapper.findResultTarget(pbancSn);
-        if (target == null) {
-            ResultBidDTO bid = resultMapper.findResultBid(pbancSn);
-            if (bid != null && bid.isViaPartner()) {
-                throw new BusinessException(VIA_PARTNER);
-            }
-            throw new BusinessException("제출 완료 상태인 사업만 나라장터에서 결과를 가져올 수 있습니다.");
-        }
-        if (!resultCollectService.isReady()) {
-            throw new BusinessException("우리 회사 사업자번호(company.biz-no)가 설정되지 않아 결과를 가져올 수 없습니다.");
-        }
-        ResultOutcomeDTO out = resultCollectService.register(target);
-        if (out.getKind() == ResultOutcomeDTO.Kind.REGISTERED) {
-            return out.getMessage() + ". 평가표 엑셀과 항목별 점수·장단점은 담당 팀 팀장이 입력합니다.";
-        }
-        if (out.getKind() == ResultOutcomeDTO.Kind.NOT_LISTED) {
-            throw new BusinessException(out.getMessage());
-        }
-        throw new BusinessException("아직 나라장터에 최종 낙찰자가 올라오지 않았습니다. "
-                + "낙찰자가 정해지면 평일 오후 5시 수집 때 자동으로 등록됩니다.");
     }
 
     @Override
@@ -344,12 +314,6 @@ public class ResultEntryServiceImpl implements ResultEntryService {
         resultMapper.deleteUnusedSubArticles(pbancSn);
         resultMapper.deleteUnusedArticles(pbancSn);
         resultMapper.updateUploadCmsnrCnt(co, cmsnr);
-    }
-
-    private static void requireMgmt(LoginUser user) {
-        if (user.getRole() != Role.MGMT) {
-            throw new AccessDeniedException("나라장터 결과 가져오기는 경영지원실이 합니다.");
-        }
     }
 
     /** 평가표 엑셀·평가 점수·장단점은 이 사업을 맡은 팀(주관 팀)의 팀장만 입력한다 (엑셀은 11/10부터). 경영지원실은 읽기만 한다 */

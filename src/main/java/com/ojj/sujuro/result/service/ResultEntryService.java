@@ -31,13 +31,6 @@ public interface ResultEntryService {
     ResultsViewDTO build(LoginUser user, Long bid, Long coSn);
 
     /**
-     * [나라장터에서 결과 가져오기]. 제출 완료 사업 하나를 지금 확인한다(평일 오후 5시 수집을 기다리지 않고).
-     * 등록하면 안내 문구를 돌려준다. 아직 최종 낙찰자가 없거나, 개찰 목록에 우리 회사가 없거나,
-     * 사업자번호가 설정되지 않았으면 BusinessException.
-     */
-    String importResult(LoginUser user, Long pbancSn);
-
-    /**
      * 컨소시엄 참여·하도급의 [참여 업체로 결과 가져오기] (11/10, 이 사업을 맡은 팀의 팀장만). 개찰 목록에 우리 대신 올라온 주관사·원도급사의
      * 사업자번호(bizNo, 하이픈 있어도 됨)로 그 업체의 수주·실주, 순위·점수, 낙찰 금액을 주관 사업과 똑같이 가져온다.
      * 그 업체 행을 우리 쪽으로 표시해 두어 낙찰자가 아직 없으면 평일 오후 5시 수집이 이어받는다.

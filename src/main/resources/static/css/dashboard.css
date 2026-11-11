@@ -60,7 +60,6 @@
 
 /* 나란히 놓는 두 블록 */
 .dash-pair{display:grid;gap:var(--dash-gap);grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:stretch}
-.dash-pair.wide-left{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}
 /* 경영지원실 (11/07): 연도별 성과 | 제출서류 현황 5:5. 차트 높이를 줄여 옆 목록이 덜 스크롤되게 */
 /* 그래프는 칸 폭을 꽉 채운다(560×240 비율). 요약 숫자는 '제출 12 · 수주 5 …' 작은 한 줄 */
 .mgmt-pair .dash-line svg{max-width:none;max-height:none;width:100%}
@@ -222,12 +221,7 @@
 .dash-cal-cell.today b{background:var(--accent);color:#fff !important;font-weight:600}
 .dash-cal-cell .dots{display:flex;gap:2px}
 .dash-cal-cell .cnt{min-width:15px;height:12px;line-height:12px;padding:0 3px;box-sizing:border-box;border-radius:6px;background:var(--accent-soft);color:var(--accent-s);font-size:9.5px;font-weight:600}
-.dash-cal .dot,.dash-upcoming .dot{width:6px;height:6px;margin:0;flex:none}
-.dash-upcoming{border-top:1px solid var(--border);padding:8px 14px 12px;display:flex;flex-direction:column;gap:6px;font-size:11.5px;margin-top:auto}
-.dash-upcoming .h{font-weight:600;color:var(--d-sub)}
-.dash-upcoming .u{display:flex;align-items:center;gap:6px;min-width:0}
-.dash-upcoming .u b{flex:none;width:34px}
-.dash-upcoming .u .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dash-cal .dot{width:6px;height:6px;margin:0;flex:none}
 
 /* 최근 알림 열: 한 줄 전체를 누를 수 있다. 안 읽음은 진하게 + 점, 읽음은 흐리게 */
 .dash-side .dash-empty{min-height:200px}
@@ -252,7 +246,7 @@
   .dash-top{grid-template-columns:1fr}
   .dash-top .dash-banner{min-height:170px}
   .dash-cards,.dash-cards.c3{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .dash-pair,.dash-pair.wide-left{grid-template-columns:1fr}
+  .dash-pair{grid-template-columns:1fr}
   .dash-list.fit{contain:none;min-height:0}
   .dash-list.fit .dash-scroll{max-height:330px}
   .dash-blocks{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -289,11 +283,9 @@
 .lt-row .amt{font-weight:600;color:var(--accent)}
 .lt-row .miss{color:var(--danger);font-weight:500}
 .f{flex:1;min-width:0}
-.w44{flex:none;width:44px}.w52{flex:none;width:52px}.w64{flex:none;width:64px}.w72{flex:none;width:72px}.w76{flex:none;width:76px}.w84{flex:none;width:84px}.w88{flex:none;width:88px}.w96{flex:none;width:96px}.w120{flex:none;width:120px}.w128{flex:none;width:136px}
-.w80{flex:none;width:80px}.w110{flex:none;width:110px}
-.f2{flex:1.5 1 0;min-width:0}.g{flex:1 1 0;min-width:0}
+.w44{flex:none;width:44px}.w64{flex:none;width:64px}.w72{flex:none;width:72px}.w76{flex:none;width:76px}.w84{flex:none;width:84px}.w88{flex:none;width:88px}.w96{flex:none;width:96px}.f2{flex:1.5 1 0;min-width:0}.g{flex:1 1 0;min-width:0}
 .tr{text-align:right}.tc{text-align:center}
-@media (max-width:760px){.lt-head .w96,.lt-row .w96,.lt-head .w120,.lt-row .w120,.lt-head .w110,.lt-row .w110{display:none}}
+@media (max-width:760px){.lt-head .w96,.lt-row .w96{display:none}}
 
 /* 팀별 진행 현황 (영업부, 11/07): 왼쪽 도넛(배정 파랑 / 미배정 회색) + 오른쪽 팀별 막대 */
 .dash{--d-un:#818B9A}

@@ -17,9 +17,6 @@ import lombok.Setter;
 @Setter
 public class ResultsViewDTO {
 
-    /** [나라장터에서 결과 가져오기]를 할 수 있는지 (경영지원실) */
-    private boolean canImport;
-
     /** 컨소시엄 참여·하도급에서 주관사·원도급사 사업자번호를 넣을 수 있는지 (이 사업을 맡은 팀의 팀장, 11/10) */
     private boolean canLinkPartner;
 

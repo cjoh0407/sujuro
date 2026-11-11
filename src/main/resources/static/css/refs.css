@@ -1,10 +1,4 @@
 /* 참고자료 화면 전용 스타일. 색은 common.css의 변수만 쓴다. */
-.ref-up{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;padding:16px 18px}
-.ref-up .grow{flex:1 1 240px;min-width:0}
-.ref-up input[type=text]{width:100%;box-sizing:border-box;height:36px;padding:0 10px;font-size:12.5px}
-.ref-up .drop{min-height:36px;box-sizing:border-box;padding:4px 12px;gap:8px}
-.ref-up .drop>.ic{width:18px;height:18px}
-.ref-up .btn{height:36px}
 .ref-search input[type=search]{height:30px}
 .ref-table{table-layout:fixed;width:100%}
 .ref-table td:nth-child(2){overflow:hidden}
@@ -26,7 +20,6 @@
 /* 이미지가 아닌 파일: 미리보기 대신 기본 문서 아이콘 (이미지 썸네일과 같은 크기) */
 .ref-doc{display:flex;align-items:center;justify-content:center;width:40px;height:40px;color:var(--accent)}
 .ref-doc svg{flex:none}
-.ic-file{--ic:var(--ic-file-img)}
 .ref-nm{font-weight:500;word-break:break-all}
 .ref-memo{margin-top:2px;font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .inl{display:inline;margin:0}

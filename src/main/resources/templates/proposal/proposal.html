@@ -53,12 +53,21 @@
         <span class="faint fs-11_5" th:text="${#lists.size(noticeFiles)} + '건'">2건</span>
       </div>
       <div class="empty" th:if="${#lists.isEmpty(noticeFiles)}">첨부파일 정보가 아직 없습니다. 공고를 수집할 때 다시 받아 봅니다.</div>
+      <!-- 대표 1개(제안요청서가 맨 앞)만 보이고, 나머지는 접어 둔다. 기본은 접힘 (11/12) -->
       <div class="nf-list" th:unless="${#lists.isEmpty(noticeFiles)}">
-        <a class="nf-item" th:each="f : ${noticeFiles}" title="눌러서 내려받기"
+        <a class="nf-item" th:each="f, st : ${noticeFiles}" th:if="${st.first}" title="눌러서 내려받기"
            th:href="@{/proposal/notice-file/{fs}(fs=${f.fileSn}, bid=${bid.pbancSn})}">
           <span class="nf-nm" th:text="${f.orgnlFileNm}">[제안요청서] 사업.hwpx</span>
           <span class="faint fs-11_5" th:text="${f.format} + (${f.sizeText} != null ? ' · ' + ${f.sizeText} : '')">HWPX · 417KB</span>
         </a>
+        <details class="nf-more" th:if="${#lists.size(noticeFiles) > 1}">
+          <summary th:text="'나머지 ' + ${#lists.size(noticeFiles) - 1} + '건 보기'">나머지 1건 보기</summary>
+          <a class="nf-item" th:each="f, st : ${noticeFiles}" th:unless="${st.first}" title="눌러서 내려받기"
+             th:href="@{/proposal/notice-file/{fs}(fs=${f.fileSn}, bid=${bid.pbancSn})}">
+            <span class="nf-nm" th:text="${f.orgnlFileNm}">공고서.pdf</span>
+            <span class="faint fs-11_5" th:text="${f.format} + (${f.sizeText} != null ? ' · ' + ${f.sizeText} : '')">PDF · 120KB</span>
+          </a>
+        </details>
       </div>
     </div>
 

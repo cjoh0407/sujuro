@@ -3,9 +3,11 @@
 // 주관팀 필터를 고르면 바로 검색 폼을 보내는 동작은 공통(common.js)의 data-change-submit 이 맡는다.
 
 // [지금 수집] 은 끝날 때까지 수십 초 걸릴 수 있다. 두 번 눌리지 않게 막고 진행 중임을 보여 준다.
+// 버튼 글자는 화면(notices.html)에 적힌 것을 기억해 두었다가 되돌린다 (11/12 '수집' 으로 바꾼 글자가 덮어써지던 문제)
 document.querySelectorAll('[data-collect-form]').forEach(function (form) {
+  var btn = form.querySelector('button');
+  btn.dataset.label = btn.textContent;
   form.addEventListener('submit', function () {
-    var btn = form.querySelector('button');
     btn.disabled = true;
     btn.textContent = '수집 중…';
   });
@@ -16,7 +18,7 @@ document.querySelectorAll('[data-collect-form]').forEach(function (form) {
 window.addEventListener('pageshow', function () {
   document.querySelectorAll('[data-collect-form] button').forEach(function (btn) {
     btn.disabled = false;
-    btn.textContent = '지금 수집';
+    if (btn.dataset.label) { btn.textContent = btn.dataset.label; }
   });
 });
 

@@ -142,7 +142,7 @@ public final class BidCode {
         return "배정 전"; // 신규
     }
 
-    /** 진행상태 pill 색 이름. common.css 의 {@code .pill.<색>} 에 쓴다. 결과 등록·불참처럼 끝난 공고는 회색이다. */
+    /** 진행상태 pill 색 이름. common.css 의 {@code .pill.<색>} 에 쓴다. 결과 등록은 회색, 유찰·불참은 빨간색이다. */
     public static String progressPillClass(String sttsCd) {
         String cd = trim(sttsCd);
         if (STTS_NEW.equals(cd)) {
@@ -157,11 +157,11 @@ public final class BidCode {
         if (STTS_SUBMITTED.equals(cd)) {
             return "success";
         }
-        if (STTS_FAILED_BID.equals(cd)) {
-            // 유찰은 입찰이 없어진 것이라 눈에 걸려야 한다. 재공고를 기다릴지 판단해야 하기 때문이다.
+        if (STTS_FAILED_BID.equals(cd) || STTS_DECLINED.equals(cd)) {
+            // 유찰·불참은 진행이 끝난 공고라 눈에 걸려야 한다 (11/12 불참도 유찰처럼 빨간색으로)
             return "danger";
         }
-        return "neutral"; // 결과 등록, 불참
+        return "neutral"; // 결과 등록
     }
 
     /**

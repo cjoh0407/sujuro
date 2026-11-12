@@ -26,7 +26,7 @@ class BidCodeTest {
     void 유찰은_빨강_끝난_공고는_회색이다() {
         assertEquals("danger", BidCode.progressPillClass("PS070"));
         assertEquals("neutral", BidCode.progressPillClass("PS060"));
-        assertEquals("neutral", BidCode.progressPillClass("PS090"));
+        assertEquals("danger", BidCode.progressPillClass("PS090"));
     }
 
     @Test

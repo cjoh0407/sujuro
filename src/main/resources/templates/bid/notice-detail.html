@@ -286,10 +286,10 @@
           </div>
           <!-- 다른 팀에도 맡기지 않을 때. 신규 공고만이다. 실수로 누르지 않게 접어 둔다 -->
           <details class="nd-fold" th:if="${notice.closable}" th:open="${closeReason != null}">
-            <summary th:text="${notice.deletable} ? '어느 팀에도 맡기지 않기 · 공고 삭제' : '맡을 팀이 없으면 · 불참으로 종결'">어느 팀에도 맡기지 않기</summary>
+            <summary th:text="${notice.deletable} ? '불참 종결 · 공고 삭제' : '맡을 팀이 없으면 · 불참으로 종결'">어느 팀에도 맡기지 않기</summary>
             <form method="post" th:action="@{/notices/{sn}/close(sn=${notice.pbancSn})}" class="nd-act-body">
               <div class="fld">
-                <label for="as-skip">불참 처리 사유 <span class="nd-req">*</span></label>
+                <label for="as-skip">불참 사유 <span class="nd-req">*</span></label>
                 <textarea id="as-skip" name="reason" rows="2" maxlength="1000" th:text="${closeReason}"></textarea>
               </div>
               <div class="row jc-end">

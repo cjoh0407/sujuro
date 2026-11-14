@@ -13,7 +13,7 @@ import lombok.RequiredArgsConstructor;
  * 마감 임박 알림 실행 시각 (FR-031, NFR-017). 스케줄러 사용 설정은 AsyncSchedulingConfig 에 있다.
  *
  * - 알림 만들기: 매일 오전 9시 (notice.deadline.cron 으로 바꿀 수 있다)
- * - 메일 보내기·재시도: 10분마다 (notice.mail.cron)
+ * - 메일 보내기·재시도: 10초마다, 알림당 최대 3회 (notice.mail.cron)
  * - 서버가 시작될 때도 한 번 실행한다. 꺼져 있던 동안 놓친 알림을 채우기 위해서다. 중복은 생기지 않는다.
  * 실행 중 오류가 나도 스케줄러가 멈추지 않도록 여기서 잡는다.
  */
@@ -33,7 +33,7 @@ public class DeadlineNoticeScheduler {
         }
     }
 
-    @Scheduled(cron = "${notice.mail.cron:0 */10 * * * *}")
+    @Scheduled(cron = "${notice.mail.cron:*/10 * * * * *}")
     public void sendMails() {
         try {
             service.sendPendingMails();

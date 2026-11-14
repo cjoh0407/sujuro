@@ -59,6 +59,7 @@
      WHERE N.NOTI_TYPE_CD = #{typeCd}
        AND N.NOTI_CN LIKE #{tag} || '%'
        AND N.EML_SNDNG_YN = 'N'
+       AND N.EML_SNDNG_FAIL_NMTM &lt; #{maxFail}
        AND N.CRT_DT >= SYSDATE - 2
        AND U.EML_ADDR IS NOT NULL
        AND U.ACNT_STTS_CD &lt;&gt; 'AS050'
@@ -67,6 +68,10 @@
 
   <update id="markMailSent">
     UPDATE TB_NOTI SET EML_SNDNG_YN = 'Y' WHERE NOTI_SN = #{notiSn}
+  </update>
+
+  <update id="markMailFailed">
+    UPDATE TB_NOTI SET EML_SNDNG_FAIL_NMTM = EML_SNDNG_FAIL_NMTM + 1 WHERE NOTI_SN = #{notiSn}
   </update>
 
 </mapper>

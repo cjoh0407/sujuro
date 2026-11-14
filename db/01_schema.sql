@@ -349,6 +349,7 @@ CREATE TABLE TB_NOTI (
   NOTI_CN       VARCHAR2(4000 CHAR)  NOT NULL,
   PRSL_YN       CHAR(1)              DEFAULT 'N'  NOT NULL,
   EML_SNDNG_YN  CHAR(1)              DEFAULT 'N'  NOT NULL,
+  EML_SNDNG_FAIL_NMTM NUMBER(1)      DEFAULT 0  NOT NULL,
   CRT_DT        DATE                 DEFAULT SYSDATE  NOT NULL,
   CONSTRAINT PK_NOTI PRIMARY KEY (NOTI_SN),
   CONSTRAINT CK_NOTI_PRSL_YN CHECK (PRSL_YN IN ('Y','N')),
@@ -363,7 +364,8 @@ COMMENT ON COLUMN TB_NOTI.PBANC_SN IS '공고일련번호 - 관련 공고';
 COMMENT ON COLUMN TB_NOTI.NOTI_TYPE_CD IS '알림유형코드 - 공통코드 NOTIT (본공고 등록/공고 변경/배정/참여 결정/마감 임박/중도 철회/제출 완료/계정 요청/계정 발급/목차 담당)';
 COMMENT ON COLUMN TB_NOTI.NOTI_CN IS '알림내용';
 COMMENT ON COLUMN TB_NOTI.PRSL_YN IS '열람여부 - 읽음 여부';
-COMMENT ON COLUMN TB_NOTI.EML_SNDNG_YN IS '이메일발송여부 - N이면 다음 주기에 재발송';
+COMMENT ON COLUMN TB_NOTI.EML_SNDNG_YN IS '이메일발송여부 - N이고 실패 3회 미만이면 다음 주기에 재발송';
+COMMENT ON COLUMN TB_NOTI.EML_SNDNG_FAIL_NMTM IS '이메일발송실패횟수 - 3회가 되면 재발송 중단';
 COMMENT ON COLUMN TB_NOTI.CRT_DT IS '생성일시';
 
 -- 일정 (TB_SCHDL)  ← 먼저 필요: 팀, 사용자, 입찰공고

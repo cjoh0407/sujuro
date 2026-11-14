@@ -91,7 +91,7 @@ class DeadlineNoticeServiceTest {
 
     @Test
     void 메일을_보낸_알림만_보냄으로_표시한다() {
-        when(deadlineMapper.findPendingMails(NotificationType.DEADLINE_NEAR, "[D-1]"))
+        when(deadlineMapper.findPendingMails(NotificationType.DEADLINE_NEAR, "[D-1]", 3))
                 .thenReturn(Arrays.asList(mail(1L, "ok@example.com"), mail(2L, "fail@example.com")));
         when(mailSender.send(eq("ok@example.com"), anyString(), anyString())).thenReturn(true);
         when(mailSender.send(eq("fail@example.com"), anyString(), anyString())).thenReturn(false);
@@ -142,7 +142,7 @@ class DeadlineNoticeServiceTest {
 
     @Test
     void 단계_전환_알림도_메일로_보낸다() {
-        when(deadlineMapper.findPendingMails(NotificationType.BID_STAGE_CHANGED, ""))
+        when(deadlineMapper.findPendingMails(NotificationType.BID_STAGE_CHANGED, "", 3))
                 .thenReturn(Collections.singletonList(mail(9L, "sales@example.com")));
         when(mailSender.send(eq("sales@example.com"), anyString(), anyString())).thenReturn(true);
 
@@ -150,5 +150,39 @@ class DeadlineNoticeServiceTest {
 
         assertEquals(1, sent);
         verify(deadlineMapper).markMailSent(9L);
+    }
+
+    @Test
+    void 메일을_못_보내면_실패_횟수를_올린다() {
+        when(deadlineMapper.findPendingMails(NotificationType.BID_STAGE_CHANGED, "", 3))
+                .thenReturn(Collections.singletonList(mail(9L, "fail@example.com")));
+        when(mailSender.send(eq("fail@example.com"), anyString(), anyString())).thenReturn(false);
+
+        int sent = service.sendPendingMails();
+
+        assertEquals(0, sent);
+        verify(deadlineMapper).markMailFailed(9L);
+        verify(deadlineMapper, never()).markMailSent(9L);
+    }
+
+    @Test
+    void 메일을_보내면_실패_횟수를_올리지_않는다() {
+        when(deadlineMapper.findPendingMails(NotificationType.BID_STAGE_CHANGED, "", 3))
+                .thenReturn(Collections.singletonList(mail(9L, "ok@example.com")));
+        when(mailSender.send(eq("ok@example.com"), anyString(), anyString())).thenReturn(true);
+
+        service.sendPendingMails();
+
+        verify(deadlineMapper).markMailSent(9L);
+        verify(deadlineMapper, never()).markMailFailed(9L);
+    }
+
+    @Test
+    void 실패_3회_미만인_알림만_다시_보낸다() {
+        service.sendPendingMails();
+
+        assertEquals(3, DeadlineNoticeService.MAX_MAIL_FAIL);
+        verify(deadlineMapper).findPendingMails(NotificationType.DEADLINE_NEAR, "[D-1]", 3);
+        verify(deadlineMapper).findPendingMails(NotificationType.BID_STAGE_CHANGED, "", 3);
     }
 }

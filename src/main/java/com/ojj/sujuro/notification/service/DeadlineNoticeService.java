@@ -24,7 +24,8 @@ import lombok.RequiredArgsConstructor;
  * - 대상은 참여 확정·제안 작성 중인 사업건이다. 제출 완료 이후와 불참은 보내지 않는다.
  * - 같은 사람에게 같은 사업건·같은 D-day 알림은 한 번만 만든다. (내용 맨 앞의 [D-1] 표시로 확인)
  *   그래서 서버가 꺼져 있다 켜져 다시 실행해도 중복되지 않고, 놓친 알림은 채워진다.
- * - 메일은 알림과 따로 보낸다. 실패하면 "메일 안 보냄"으로 남아 다음 실행 때 다시 시도한다. (최근 2일 것만)
+ * - 메일은 알림과 따로 보낸다. 실패하면 실패 횟수를 올리고 다음 실행 때 다시 시도한다.
+ *   알림 하나당 MAX_MAIL_FAIL(3)번 실패하면 더 보내지 않는다. (최근 2일 것만)
  */
 @Service
 @Slf4j
@@ -34,6 +35,8 @@ public class DeadlineNoticeService {
     /** 알림을 보낼 남은 일수. 마감 하루 전(D-1) 하나만이고, 메일도 같은 날 보낸다. */
     public static final int[] NOTICE_DAYS = {1};
     public static final int MAIL_DAY = 1;
+    /** 알림 하나당 메일 최대 실패 횟수. 이만큼 실패하면 재발송을 멈춘다. */
+    public static final int MAX_MAIL_FAIL = 3;
 
     private final DeadlineMapper deadlineMapper;
     private final NotificationMapper notificationMapper;
@@ -85,14 +88,21 @@ public class DeadlineNoticeService {
 
     private int sendPending(String typeCd, String tag, String subject) {
         int sent = 0;
-        for (PendingMail m : deadlineMapper.findPendingMails(typeCd, tag)) {
+        int failed = 0;
+        for (PendingMail m : deadlineMapper.findPendingMails(typeCd, tag, MAX_MAIL_FAIL)) {
             if (mailSender.send(m.getEmlAddr(), subject, m.getContent())) {
                 deadlineMapper.markMailSent(m.getNotiSn());
                 sent++;
+            } else {
+                deadlineMapper.markMailFailed(m.getNotiSn());
+                failed++;
             }
         }
         if (sent > 0) {
             log.info("{} 메일 {}건 발송", subject, sent);
+        }
+        if (failed > 0) {
+            log.warn("{} 메일 {}건 실패 (알림당 {}회 실패하면 재발송 중단)", subject, failed, MAX_MAIL_FAIL);
         }
         return sent;
     }

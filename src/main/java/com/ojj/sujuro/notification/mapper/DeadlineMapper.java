@@ -27,9 +27,13 @@ public interface DeadlineMapper {
     int countSentByContent(@Param("receiverId") String receiverId, @Param("typeCd") String typeCd,
                            @Param("content") String content);
 
-    /** 메일을 아직 못 보낸 마감 임박 알림 (최근 2일 것만 다시 시도한다) */
-    List<PendingMail> findPendingMails(@Param("typeCd") String typeCd, @Param("tag") String tag);
+    /** 메일을 아직 못 보낸 알림 (최근 2일 것, 실패 횟수가 maxFail 미만인 것만 다시 시도한다) */
+    List<PendingMail> findPendingMails(@Param("typeCd") String typeCd, @Param("tag") String tag,
+                                       @Param("maxFail") int maxFail);
 
     /** 메일 보냄으로 표시 */
     int markMailSent(@Param("notiSn") Long notiSn);
+
+    /** 메일 실패 횟수를 1 올린다 */
+    int markMailFailed(@Param("notiSn") Long notiSn);
 }

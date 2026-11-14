@@ -9,7 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * 알림 메일 발송 (FR-031). 메일 서버 설정(spring.mail.*)이 없으면 보내지 않고 false를 돌려준다.
- * 실패해도 예외를 던지지 않는다. 보내지 못한 알림은 "메일 안 보냄(N)"으로 남아 다음 실행 때 다시 시도된다. (NFR-017)
+ * 실패해도 예외를 던지지 않는다. 보내지 못한 알림은 "메일 안 보냄(N)"으로 남아 다음 실행 때 다시 시도된다.
+ * 알림 하나당 3회 실패하면 더 시도하지 않는다(DeadlineNoticeService.MAX_MAIL_FAIL). (NFR-017)
  *
  * 설정 예 (application-local.properties):
  *   spring.mail.host=smtp.example.com

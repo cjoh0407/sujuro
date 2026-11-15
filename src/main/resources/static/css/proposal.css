@@ -387,9 +387,12 @@ button.drop.need-owner:hover{border-color:var(--warning);background:var(--warnin
 .ev-miss-l{font-size:12px;font-weight:700;color:var(--warning)}
 .ev-chip{font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--warning-soft);color:var(--warning)}
 .ev-empty{padding:0 20px 16px;font-size:12.5px}
-/* 창: 표 안 스크롤 없이 내용만큼. 화면보다 길면 배경째 오르내린다 */
-.modal.ev-modal{align-items:flex-start;overflow-y:auto;padding:48px 16px}
-.modal .box.ev-box{width:720px;max-height:none;overflow:visible;margin:0;box-shadow:var(--shadow-pop)}
+/* 창: 공통 규격(가운데 · 최대 높이 84vh). 제목줄·하단 합계는 고정, 표 영역(.ev-scroll)만 스크롤 */
+.modal.ev-modal{align-items:center;overflow:hidden;padding:16px}
+.modal .box.ev-box{display:flex;flex-direction:column;width:720px;max-width:94vw;max-height:84vh;overflow:hidden;margin:0;box-shadow:var(--shadow-pop)}
+.ev-box .card-head,.ev-box .ev-foot{flex:none}
+.ev-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.ev-table thead th{position:sticky;top:0;z-index:1}
 .ev-box .card-head{align-items:flex-start}
 .ev-table{width:100%;table-layout:fixed}
 .ev-table col.ev-c-no{width:56px}

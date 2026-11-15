@@ -203,7 +203,7 @@
       <div class="ev-empty faint" th:if="${#lists.isEmpty(articles)}"
            th:text="${admin} ? '평가 항목이 없습니다. [조견표 편집]에서 RFP의 평가 항목과 배점을 추가해 주세요.' : '경영지원실이 평가 항목을 등록하면 쪽번호를 적을 수 있습니다.'">평가 항목이 없습니다.</div>
 
-      <!-- 조견표 편집 창: 칸에서 바로 고치고 [저장]으로 한 번에 저장 (proposal.js openEvPop·evRecalc). 창 안 스크롤 없음 -->
+      <!-- 조견표 편집 창: 칸에서 바로 고치고 [저장]으로 한 번에 저장 (proposal.js openEvPop·evRecalc). 표 영역만 창 안에서 스크롤 (max-height 84vh) -->
       <div class="modal ev-modal" id="evPop" hidden data-self-click="closeEvPop">
         <form class="box ev-box" role="dialog" aria-modal="true" aria-labelledby="evPopTitle"
               th:action="@{/docs/article/save}" method="post" data-on-input="evRecalc" novalidate>
@@ -214,6 +214,7 @@
             </div>
             <button class="ico" type="button" title="닫기" aria-label="닫기" data-on-click="closeEvPop"><span class="ic ic-close"></span></button>
           </div>
+          <div class="ev-scroll">
           <table class="ev-table">
             <colgroup><col class="ev-c-no"><col><col class="ev-c-scr"><col class="ev-c-pg"><col class="ev-c-del" th:if="${admin and open}"></colgroup>
             <thead><tr><th>No</th><th>평가 항목</th><th class="ev-r">배점</th><th>쪽번호</th><th th:if="${admin and open}"></th></tr></thead>
@@ -226,7 +227,7 @@
                   <span th:unless="${admin and open}" th:text="${a.evlArtclNm}">사업 이해도</span>
                 </td>
                 <td class="ev-r">
-                  <input type="number" name="evlScorScr" class="ev-scr" min="0.001" max="100" step="0.001" th:value="${a.evlScorScr}" th:if="${admin and open}" aria-label="배점">
+                  <input type="number" name="evlScorScr" class="ev-scr" min="0" max="100" step="1" th:value="${a.evlScorScr}" th:if="${admin and open}" aria-label="배점">
                   <span class="mono ev-scr-t" th:unless="${admin and open}" th:text="${a.scoreLabel}" th:data-v="${a.evlScorScr}">10</span>
                 </td>
                 <td>
@@ -247,13 +248,14 @@
             <tr class="ev-row ev-new">
               <td class="ev-no mono">+</td>
               <td><input type="text" name="newNm" maxlength="100" placeholder="평가 항목 (예: 사업 이해도)" aria-label="새 평가 항목"></td>
-              <td class="ev-r"><input type="number" name="newScr" class="ev-scr" min="0.001" max="100" step="0.001" placeholder="배점" aria-label="새 배점"></td>
+              <td class="ev-r"><input type="number" name="newScr" class="ev-scr" min="0" max="100" step="1" placeholder="배점" aria-label="새 배점"></td>
               <td><span class="faint">-</span></td>
               <td class="ev-r"><button type="button" class="ico danger" title="이 줄 빼기" aria-label="이 줄 빼기" data-on-click="evDelRow"><span class="ic ic-trash"></span></button></td>
             </tr>
           </template>
           <div class="ev-add" th:if="${admin and open}">
             <button type="button" class="btn sm" data-on-click="evAddRow">+ 평가 항목 추가</button>
+          </div>
           </div>
           <div class="ev-foot">
             <span class="ev-total">배점 합계 <b id="evSum" th:text="${scoreSum}">0</b> · 쪽번호 <b id="evPaged" th:text="|${pagedCnt}/${#lists.size(articles)}|">0/0</b></span>

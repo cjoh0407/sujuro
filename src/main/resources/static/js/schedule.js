@@ -9,7 +9,12 @@ function schOpen(id) {
 
 function schClose(id) {
   var m = document.getElementById(id);
-  if (m) m.hidden = true;
+  if (!m) return;
+  m.hidden = true;
+  if (id === 'schAdd') { // 등록 모달만: 닫을 때 입력값을 비운다 (수정·보기 모달은 열 때마다 값을 새로 채운다)
+    var f = m.querySelector('form');
+    if (f) f.reset();
+  }
 }
 
 /* 캘린더에서 우리 팀 일정을 누르면 값을 채워 수정·삭제 모달을 연다.

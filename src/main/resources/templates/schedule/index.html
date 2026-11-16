@@ -142,7 +142,7 @@
         </label>
         <div class="sch-two">
           <label><span class="lbl">날짜</span><input type="date" name="date" required th:min="${view.today}"></label>
-          <label><span class="lbl">시간 <span class="faint">(선택)</span></span><input type="time" name="time"></label>
+          <label><span class="lbl">시간</span><input type="time" name="time" required></label>
         </div>
         <div class="sch-actions">
           <button class="btn sm" type="button" data-on-click="schClose" data-arg="schAdd">취소</button>
@@ -192,7 +192,7 @@
           <label>일정 이름<input type="text" name="title" id="se-title" maxlength="30" placeholder="30자까지" required></label>
           <div class="sch-two">
             <label><span class="lbl">날짜</span><input type="date" name="date" id="se-date" required th:min="${view.today}"></label>
-            <label><span class="lbl">시간 <span class="faint">(선택)</span></span><input type="time" name="time" id="se-time"></label>
+            <label><span class="lbl">시간</span><input type="time" name="time" id="se-time" required></label>
           </div>
         </form>
         <form id="se-del" method="post" th:action="@{/schedule/delete}">

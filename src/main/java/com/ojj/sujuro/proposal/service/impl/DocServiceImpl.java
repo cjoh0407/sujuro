@@ -106,9 +106,7 @@ public class DocServiceImpl implements DocService {
                 throw new BusinessException("같은 이름의 서류가 이미 있습니다.");
             }
         }
-        if (due == null || due.trim().isEmpty()) { // 제출 기한은 꼭 받는다 (11/08)
-            throw new BusinessException("제출 기한을 입력해 주세요.");
-        }
+        requireDue(due); // 제출 기한은 날짜와 시간을 꼭 받는다 (11/08 날짜, 11/16 시간)
         DocDto d = new DocDto();
         d.setPbancSn(pbancSn);
         d.setDcmntNm(nm);
@@ -139,6 +137,7 @@ public class DocServiceImpl implements DocService {
     public void changeDue(Long pbancSn, Long dcmntSn, String due) {
         requireOpen(pbancSn);
         own(pbancSn, dcmntSn);
+        requireDue(due);
         mapper.updateDocDue(dcmntSn, parseDate(due));
     }
 
@@ -425,6 +424,16 @@ public class DocServiceImpl implements DocService {
     }
 
     /** 제출 기한: "yyyy-MM-dd" 또는 "yyyy-MM-dd HH:mm" (시간은 화면에서 직접 입력, 없으면 0시 = 날짜만) (11/08) */
+    /** 제출 기한은 "yyyy-MM-dd HH:mm" 형태로 날짜와 시간이 모두 있어야 한다 */
+    private static void requireDue(String due) {
+        if (due == null || due.trim().isEmpty()) {
+            throw new BusinessException("제출 기한을 입력해 주세요.");
+        }
+        if (due.trim().split("\\s+").length < 2) {
+            throw new BusinessException("제출 시간을 입력해 주세요.");
+        }
+    }
+
     private Timestamp parseDate(String s) {
         if (s == null || s.trim().isEmpty()) {
             return null;

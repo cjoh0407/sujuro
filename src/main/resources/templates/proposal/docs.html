@@ -109,7 +109,7 @@
                   <span class="due-in">
                     <input type="date" name="due" th:min="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}" th:value="${d.dueDate}"
                            data-change-submit aria-label="제출 기한 날짜">
-                    <input type="time" name="dueTime" th:value="${d.dueTime}" data-change-submit aria-label="제출 기한 시간 (선택)" title="시간 (선택)">
+                    <input type="time" name="dueTime" th:value="${d.dueTime}" required data-change-submit aria-label="제출 기한 시간 (필수)" title="시간 (필수)">
                   </span>
                 </form>
                 <span th:unless="${admin and open}" th:text="${d.dueLabel}">-</span>
@@ -176,7 +176,7 @@
           <option value="TK020">제안팀</option>
         </select>
         <input type="date" name="due" required aria-label="제출 기한 (필수)" title="제출 기한 (필수)" th:min="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
-        <input type="time" name="dueTime" aria-label="제출 시간 (선택)" title="제출 시간 (선택, 비우면 날짜만)">
+        <input type="time" name="dueTime" required aria-label="제출 시간 (필수)" title="제출 시간 (필수)">
         <button class="ico ico-add" type="submit" title="서류 추가" aria-label="서류 추가"><span class="ic ic-plus"></span></button>
       </form>
     </div>

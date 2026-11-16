@@ -128,10 +128,10 @@
             <input id="pt-biz" name="bizNo" type="text" inputmode="numeric" maxlength="12" required placeholder="예: 123-45-67890"
                    th:value="${partnerBizNo != null} ? ${partnerBizNo} : ${b.partnerBizNoText}">
           </div>
-          <div class="row">
-            <button class="btn primary sm" type="submit">참여 업체 결과 가져오기</button>
+          <div class="row end"><!--/* 안내 문구는 왼쪽, 버튼은 항상 오른쪽 (11/16) */-->
             <span class="faint fs-11_5" th:if="${b.partnerLinked}" th:text="|저장한 업체: ${b.partnerBizNoText}. 최종 낙찰자가 나오면 평일 오후 5시 수집 때 이 업체 기준으로 자동 등록됩니다.|">저장한 업체</span>
             <span class="faint fs-11_5" th:unless="${b.partnerLinked}">개찰 결과가 나온 뒤에 넣습니다. 그 업체의 낙찰 여부로 수주·실주를, 낙찰 금액으로 수주 금액을 등록합니다.</span>
+            <button class="btn primary sm" type="submit">참여 업체 결과 가져오기</button>
           </div>
         </form>
       </div>
@@ -293,7 +293,7 @@
                   </tbody>
                 </table>
               </div>
-              <div class="row">
+              <div class="row end">
                 <button class="btn primary sm" type="submit">저장</button>
               </div>
             </form>

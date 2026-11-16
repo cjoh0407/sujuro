@@ -250,13 +250,13 @@ class ScheduleServiceTest {
     }
 
     @Test
-    void 시간을_비우면_00시로_저장한다() {
+    void 시간을_입력하면_그_시각으로_저장한다() {
         when(mapper.findMyTeamSn("L1")).thenReturn(1L);
         when(mapper.findEditablePbancs(1L)).thenReturn(Arrays.asList(opt("10", "A사업")));
 
-        service.add(user("L1", Role.LEADER), 10L, "점검", "2026-10-28", "");
+        service.add(user("L1", Role.LEADER), 10L, "점검", "2026-10-28", "09:00");
 
-        verify(mapper).insert(1L, 10L, "SC020", "점검", "2026-10-28 00:00", "L1");
+        verify(mapper).insert(1L, 10L, "SC020", "점검", "2026-10-28 09:00", "L1");
     }
 
     @Test
@@ -278,11 +278,10 @@ class ScheduleServiceTest {
 
         assertThrows(BusinessException.class, () -> service.add(l, 10L, "점검", "2026-10-19", ""));      // 어제
         assertThrows(BusinessException.class, () -> service.add(l, 10L, "점검", "2026-10-20", "09:30")); // 오늘, 지난 시각
-        service.add(l, 10L, "점검", "2026-10-20", "");       // 오늘 하루 종일은 된다
+        assertThrows(BusinessException.class, () -> service.add(l, 10L, "점검", "2026-10-20", "")); // 시간은 필수
         service.add(l, 10L, "점검", "2026-10-20", "10:00");  // 지금 시각은 된다
         service.add(l, 10L, "점검", "2026-10-21", "08:00");  // 내일
 
-        verify(mapper).insert(1L, 10L, "SC020", "점검", "2026-10-20 00:00", "L1");
         verify(mapper).insert(1L, 10L, "SC020", "점검", "2026-10-20 10:00", "L1");
         verify(mapper).insert(1L, 10L, "SC020", "점검", "2026-10-21 08:00", "L1");
     }
@@ -334,11 +333,11 @@ class ScheduleServiceTest {
         when(mapper.findMyTeamSn("L1")).thenReturn(1L);
         when(mapper.findEditablePbancs(1L)).thenReturn(Arrays.asList(opt("10", "A사업"), opt("11", "B사업")));
         when(mapper.findInternalOne(9L, 1L)).thenReturn(mineOn("2026-10-25", 10L));
-        when(mapper.update(9L, 1L, "점검", "2026-10-26 00:00")).thenReturn(1);
+        when(mapper.update(9L, 1L, "점검", "2026-10-26 09:00")).thenReturn(1);
 
-        service.edit(user("L1", Role.LEADER), 9L, "점검", "2026-10-26", "");
+        service.edit(user("L1", Role.LEADER), 9L, "점검", "2026-10-26", "09:00");
 
-        verify(mapper).update(9L, 1L, "점검", "2026-10-26 00:00");
+        verify(mapper).update(9L, 1L, "점검", "2026-10-26 09:00");
         verify(notificationService).sendToProposalTeam(eq(10L), eq(NotificationType.SCHEDULE_CHANGED), contains("변경"));
     }
 
@@ -470,8 +469,8 @@ class ScheduleServiceTest {
         String thirty = "가나다라마바사아자차카타파하가나다라마바사아자차카타파하가나";
         assertEquals(30, thirty.length());
 
-        service.add(l, 10L, thirty, "2026-10-28", "");
-        assertThrows(BusinessException.class, () -> service.add(l, 10L, thirty + "다", "2026-10-28", ""));
+        service.add(l, 10L, thirty, "2026-10-28", "09:00");
+        assertThrows(BusinessException.class, () -> service.add(l, 10L, thirty + "다", "2026-10-28", "09:00"));
     }
 
     @Test

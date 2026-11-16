@@ -141,6 +141,7 @@ public class ScheduleService {
         Long teamSn = requireLeaderTeam(user);
         String pbancNm = requireEditablePbanc(teamSn, pbancSn);
         String checkedTitle = checkTitle(title);
+        requireTime(time);
         String dateTime = checkNotPast(checkDate(date), time);
         mapper.insert(teamSn, pbancSn, KIND_INTERNAL, checkedTitle, dateTime, user.getEmpNo());
         notifyProposalTeam(pbancSn, pbancNm, "일정이 등록되었습니다", checkedTitle, dateTime);
@@ -159,6 +160,7 @@ public class ScheduleService {
             throw new BusinessException(reason);
         }
         String checkedTitle = checkTitle(title);
+        requireTime(time);
         String dateTime = checkNotPast(checkDate(date), time);
         int n = mapper.update(schdlSn, teamSn, checkedTitle, dateTime);
         if (n == 0) {
@@ -322,7 +324,14 @@ public class ScheduleService {
         }
     }
 
-    /** 시간은 비워 둘 수 있다(하루 종일). 입력하면 HH:mm 으로 맞춘다. */
+    /** 일정을 새로 등록·수정할 때는 시간을 꼭 받는다 (11/16). 끌어서 날짜만 옮길 때는 기존 일정의 시간을 그대로 쓴다. */
+    static void requireTime(String time) {
+        if (time == null || time.trim().isEmpty()) {
+            throw new BusinessException("시간을 입력해 주세요.");
+        }
+    }
+
+    /** 끌어서 옮길 때 시간 없는 기존 일정은 비워 둘 수 있다(하루 종일). 입력하면 HH:mm 으로 맞춘다. */
     static String checkTime(String time) {
         String t = time == null ? "" : time.trim();
         if (t.isEmpty()) {

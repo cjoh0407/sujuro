@@ -250,12 +250,9 @@ public class NoticeController {
             return "redirect:/notices";
         }
 
-        StringBuilder msg = new StringBuilder();
-        msg.append(result.getStepNm()).append(" 단계로 등록했습니다: ").append(result.getPbancNm());
-        if (result.isAlreadyHasBidNotice()) {
-            msg.append(" · 입찰공고(").append(result.getLinkedBidNo()).append(")가 이미 나 있습니다.");
-        }
-        redirect.addFlashAttribute("registMessage", msg.toString());
+        // 입찰공고가 이미 나 있다는 안내는 빼기로 함 (11/16)
+        String msg = result.getStepNm() + " 단계로 등록했습니다: " + result.getPbancNm();
+        redirect.addFlashAttribute("registMessage", msg);
         return "redirect:/notices";
     }
 

@@ -367,7 +367,8 @@
                         th:text="${analysisForm != null} ? ${analysisForm.splmntCn} : ${a.splmntCn}"></textarea>
             </div>
           </div>
-          <div class="row end" th:if="${view.canScore}">
+          <!-- 저장 버튼은 오른쪽 끝 (11/16) -->
+          <div class="row jc-end" th:if="${view.canScore}">
             <button class="btn primary sm" type="submit">저장</button>
           </div>
           <div class="faint fs-11_5" th:unless="${view.canScore}">장단점은 담당 팀 팀장이 입력합니다.</div>

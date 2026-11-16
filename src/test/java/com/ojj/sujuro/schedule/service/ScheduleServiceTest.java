@@ -469,8 +469,8 @@ class ScheduleServiceTest {
         String thirty = "가나다라마바사아자차카타파하가나다라마바사아자차카타파하가나";
         assertEquals(30, thirty.length());
 
-        service.add(l, 10L, thirty, "2026-10-28", "");
-        assertThrows(BusinessException.class, () -> service.add(l, 10L, thirty + "다", "2026-10-28", ""));
+        service.add(l, 10L, thirty, "2026-10-28", "09:00");
+        assertThrows(BusinessException.class, () -> service.add(l, 10L, thirty + "다", "2026-10-28", "09:00"));
     }
 
     @Test

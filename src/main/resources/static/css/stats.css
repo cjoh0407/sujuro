@@ -4,10 +4,10 @@
 
 /* 사업 이력 관리의 3:7 배치와 왼쪽 사업 목록, 평가·결과 입력의 3:7 배치는 제안 화면과 같은 proposal.css 의 .split, .bid-item 을 쓴다 (11/04) */
 
-/* 본문 버튼 크기는 대시보드의 [공고 관리](a.btn.sm, 68×30px)에 맞춘다 (11/05). 긴 문구는 잘리지 않게 폭은 최소값만 둔다.
-   button 태그는 줄 높이가 달라 28px 이 되므로 물려받게 한다. 상단바 버튼은 모든 화면에서 같아야 해서 .content 로 한정한다 */
-.content .btn.sm{box-sizing:border-box;min-width:68px;justify-content:center}
-.content button.btn.sm{line-height:inherit}
+/* 본문 작은 버튼(.btn.sm): 글자 폭에 맞춘 작은 크기. a·button 높이를 28px로 같게 맞춘다 (11/16, 이전의 68px 최소 폭 규칙은 뺌). 상단바 버튼은 모든 화면에서 같아야 해서 .content 로 한정한다 */
+.content .btn.sm{box-sizing:border-box;line-height:1.4}
+/* 카드 아래 버튼 줄: 버튼은 항상 오른쪽 (11/16). 앞에 안내 문구가 있으면 문구는 왼쪽에 남는다 */
+.row.end>.btn{margin-left:auto}
 
 /* 내려받기 아이콘(proposal.css 의 .ico)은 고정 남색이라 어두운 화면에서 안 보인다 (대비 1.92:1).
    앱 색 토큰으로 칠한다. 밝은 화면은 같은 색이다 (11/05) */

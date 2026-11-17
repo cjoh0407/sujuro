@@ -260,7 +260,7 @@ main.content table.ref-table th.c-act{text-align:center}
 @media (max-width:900px){.gauge-pair{grid-template-columns:1fr}}
 /* 두 칸의 머리줄 높이를 맞춰 막대가 같은 높이에 오게 한다 (오른쪽은 버튼 때문에 더 높다) */
 .gp-cell{display:flex;flex-direction:column}
-.gp-cell>.row{min-height:30px;align-items:center}
+.gp-cell>.row{min-height:36px;align-items:center}
 /* 목차 이름 입력칸 오른쪽 옆에 하위·같은 단계 추가 아이콘 */
 .lbl-row{display:flex;align-items:center;gap:8px}
 .lbl-row>form{flex:1;min-width:0;max-width:340px}

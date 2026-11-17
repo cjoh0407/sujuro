@@ -258,6 +258,9 @@ main.content table.ref-table th.c-act{text-align:center}
 /* 제안서 분량 · 요구사항 연결 게이지: 목록 카드 맨 위에 반반 (요구사항 추가 화면에서는 단계만 보인다) */
 .gauge-pair{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:16px 18px;border-bottom:1px solid var(--border)}
 @media (max-width:900px){.gauge-pair{grid-template-columns:1fr}}
+/* 두 칸의 머리줄 높이를 맞춰 막대가 같은 높이에 오게 한다 (오른쪽은 버튼 때문에 더 높다) */
+.gp-cell{display:flex;flex-direction:column}
+.gp-cell>.row{min-height:30px;align-items:center}
 /* 목차 이름 입력칸 오른쪽 옆에 하위·같은 단계 추가 아이콘 */
 .lbl-row{display:flex;align-items:center;gap:8px}
 .lbl-row>form{flex:1;min-width:0;max-width:340px}

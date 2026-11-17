@@ -53,10 +53,15 @@
 
   <!--/* 평가 항목(대분류)별 점수 그래프 (11/05). 평가표 엑셀을 올린 업체마다 위원 평균 점수를 막대로 그리고, 항목마다 1등 막대만 진하다.
        종합 점수 1등 업체를 수주 업체로 보인다. 평가표 엑셀이 올라오기 전에는 비어 있다. 두 칸 폭을 쓴다 */-->
-  <div class="card" th:unless="${archive.pending or archive.scoreless}">
+  <!--/* 11/17 평가표가 아직 없으면 참여 확정 단계 화면과 같은 크기의 빈 칸에 안내 문구를 가운데 둔다 */-->
+  <div class="card pending-card" th:if="${!archive.pending and !archive.scoreless and archive.articleTable.empty}">
+    <div class="card-head"><h3>평가 항목별 점수</h3></div>
+    <div class="pending-msg">평가표가 업로드되지 않았습니다.</div>
+  </div>
+  <div class="card" th:unless="${archive.pending or archive.scoreless or archive.articleTable.empty}">
     <div class="card-head">
       <h3>평가 항목별 점수</h3>
-      <span class="faint fs-11_5" th:unless="${archive.articleTable.empty}">단위: 점 · 괄호는 배점</span>
+      <span class="faint fs-11_5">단위: 점 · 괄호는 배점</span>
     </div>
     <th:block th:replace="~{stats/fragments/result-parts :: articleChart(${archive.articleTable},
               '평가표가 업로드되지 않았습니다.')}"></th:block>
@@ -68,7 +73,14 @@
   </div>
 
   <!-- 장단점 분석 (FR-081). 담당 팀 팀장이 평가·결과 입력에서 적는다 -->
-  <div class="card" th:unless="${archive.pending}">
+  <!--/* 11/17 세 칸이 모두 비어 있으면 참여 확정 단계 화면과 같은 크기로 안내 문구 하나만 둔다 */-->
+  <div class="card pending-card" th:if="${!archive.pending and #strings.isEmpty(archive.strptCn)
+       and #strings.isEmpty(archive.sbptCsCn) and #strings.isEmpty(archive.splmntCn)}">
+    <div class="card-head"><h3>분석 기록</h3></div>
+    <div class="pending-msg sm">분석 기록이 아직 없습니다.</div>
+  </div>
+  <div class="card" th:unless="${archive.pending or (#strings.isEmpty(archive.strptCn)
+       and #strings.isEmpty(archive.sbptCsCn) and #strings.isEmpty(archive.splmntCn))}">
     <div class="card-head">
       <h3>분석 기록</h3>
     </div>
